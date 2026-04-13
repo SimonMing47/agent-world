@@ -1,12 +1,12 @@
 import { formatDateTime } from "@/lib/utils";
-import { type ExecutionEvent } from "@/server/db";
+import { type EventLog } from "@/server/db";
 
 export function TraceGroup({
   title,
   events,
 }: {
   title: string;
-  events: ExecutionEvent[];
+  events: EventLog[];
 }) {
   return (
     <details

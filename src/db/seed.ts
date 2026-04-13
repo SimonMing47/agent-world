@@ -2,4 +2,4 @@ import { refreshDatabase, getDatabasePath } from "@/server/db";
 
 refreshDatabase();
 
-console.log(`Seeded AgentHelix data at ${getDatabasePath()}`);
+console.log(`Seeded AgentWorld data at ${getDatabasePath()}`);

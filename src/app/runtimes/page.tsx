@@ -1,8 +1,8 @@
 import { RuntimeDiscoveryButton } from "@/components/runtime-discovery-button";
-import { listRuntimeEndpoints } from "@/server/queries";
+import { getDashboardSnapshot } from "@/server/queries";
 
 export default function RuntimesPage() {
-  const runtimes = listRuntimeEndpoints();
+  const snapshot = getDashboardSnapshot();
 
   return (
     <div className="space-y-6">
@@ -12,17 +12,17 @@ export default function RuntimesPage() {
             Runtime discovery
           </div>
           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            Probe OpenCode runtimes and refresh the health catalog.
+            Probe OpenCode runtimes and refresh the capability catalog.
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)]">
-            Discovery runs through the OpenCode SDK. The platform keeps runtime health visible before work is dispatched.
+            AgentWorld stays monolithic, but it can still discover and health-check external runtimes before a Quest is dispatched.
           </p>
         </div>
         <RuntimeDiscoveryButton />
       </section>
 
       <section className="space-y-3">
-        {runtimes.map((runtime) => (
+        {snapshot.runtimes.map((runtime) => (
           <div
             key={runtime.id}
             className="rounded-[24px] border border-[var(--line)] bg-[var(--surface-strong)] px-5 py-5"
@@ -36,12 +36,13 @@ export default function RuntimesPage() {
                 {runtime.healthStatus}
               </div>
             </div>
-            <div className="mt-4 grid gap-3 text-sm text-[var(--ink-muted)] md:grid-cols-3">
+            <div className="mt-4 grid gap-3 text-sm text-[var(--ink-muted)] md:grid-cols-4">
               <div>Kind: {runtime.runtimeKind}</div>
               <div>
                 Concurrency: {runtime.activeRunCount} / {runtime.concurrencyLimit}
               </div>
-              <div>Agents: {JSON.parse(runtime.agentCatalogJson).join(", ")}</div>
+              <div>Agents: {runtime.agents.join(", ") || "No agents found"}</div>
+              <div>Providers: {runtime.providers.join(", ") || "No providers found"}</div>
             </div>
           </div>
         ))}

@@ -1,5 +1,5 @@
 import { MetricCard } from "@/components/metric-card";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatPercent } from "@/lib/utils";
 import { getDashboardSnapshot } from "@/server/queries";
 
 export default function OverviewPage() {
@@ -13,38 +13,38 @@ export default function OverviewPage() {
         ))}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                Dispatch doctrine
+                World governance
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                Every run is routed through dispatch, harness, and invocation on purpose.
+                World policy sets the outer boundary. Kingdoms and teams tighten it from there.
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
-              Next scheduled window ends {formatDateTime(snapshot.upcomingWindow)}
+              Next scheduling window ends {formatDateTime(snapshot.upcomingWindow)}
             </div>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {snapshot.dispatchPreviews.map((preview) => (
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {snapshot.worldSummaries.map((world) => (
               <div
-                key={preview.taskName}
+                key={world.id}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
               >
-                <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                  {preview.teamSpace}
-                </div>
-                <div className="mt-2 text-lg font-semibold text-[var(--ink)]">
-                  {preview.taskName}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold text-[var(--ink)]">{world.name}</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                    {world.status}
+                  </div>
                 </div>
                 <div className="mt-3 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>Priority score: {preview.priorityScore}</div>
-                  <div>Selected runtime: {preview.selectedRuntimeName}</div>
-                  <div>Runtime status: {preview.selectedRuntimeStatus}</div>
-                  <div>Harness: {preview.harnessName}</div>
+                  <div>Kingdoms: {world.kingdomCount}</div>
+                  <div>Monthly quota: ${world.monthlyUsd}</div>
+                  <div>Max running quests: {world.maxRunningQuests}</div>
                 </div>
               </div>
             ))}
@@ -53,18 +53,25 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Team spaces
+            Kingdom finances
           </div>
           <div className="mt-4 space-y-3">
-            {snapshot.teams.map((team) => (
+            {snapshot.kingdomSummaries.map((kingdom) => (
               <div
-                key={team.id}
+                key={kingdom.id}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
-                <div className="text-lg font-semibold text-[var(--ink)]">{team.name}</div>
-                <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">
-                  {team.description}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold text-[var(--ink)]">{kingdom.name}</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                    {kingdom.status}
+                  </div>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
+                  <div>Balance: ${kingdom.balance}</div>
+                  <div>Credit limit: ${kingdom.creditLimit}</div>
+                  <div>Tool refs: {kingdom.toolRefCount}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -79,34 +86,35 @@ export default function OverviewPage() {
                 Scheduler
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                Due work is visible before it becomes hidden queue debt.
+                Due schedules and Quest priority stay visible before they turn into queue debt.
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
-              Due now: {snapshot.dueTaskCount}
+              Due now: {snapshot.dueScheduleCount}
             </div>
           </div>
           <div className="mt-5 space-y-3">
             {snapshot.scheduleAssessments.map((assessment) => (
               <div
-                key={assessment.taskId}
+                key={assessment.templateId}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-base font-semibold text-[var(--ink)]">
-                      {assessment.taskName}
+                      {assessment.name}
                     </div>
                     <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">
                       {assessment.rationale}
                     </p>
                   </div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--ink-muted)]">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--ink-muted)]">
                     {assessment.state}
                   </div>
                 </div>
-                <div className="mt-3 text-sm text-[var(--ink-muted)]">
-                  Next run: {assessment.nextRunAt ? formatDateTime(assessment.nextRunAt) : "Manual or webhook only"}
+                <div className="mt-2 text-sm text-[var(--ink-muted)]">
+                  {assessment.cadence}
+                  {assessment.nextRunAt ? ` · Next run ${formatDateTime(assessment.nextRunAt)}` : ""}
                 </div>
               </div>
             ))}
@@ -118,10 +126,13 @@ export default function OverviewPage() {
             Invocation chain
           </div>
           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            Agent invocation is a controlled pipeline, not a blind prompt handoff.
+            Agent invocation is a governed pipeline, not a blind prompt handoff.
           </h3>
+          <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
+            {snapshot.featuredPlanningMode}
+          </p>
           <div className="mt-5 space-y-3">
-            {snapshot.invocationStages.map((stage, index) => (
+            {snapshot.featuredInvocation.map((stage, index) => (
               <div
                 key={stage.key}
                 className="grid gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4 md:grid-cols-[auto_1fr]"
@@ -144,6 +155,76 @@ export default function OverviewPage() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              Provider rationale
+            </div>
+            <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
+              {snapshot.featuredProviderRationale.map((line) => (
+                <div key={line}>{line}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            Tavern
+          </div>
+          <div className="mt-4 space-y-3">
+            {snapshot.tavernResumes.map((listing) => (
+              <div
+                key={listing.id}
+                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-lg font-semibold text-[var(--ink)]">{listing.teamName}</div>
+                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                    {listing.recruitmentMode}
+                  </div>
+                </div>
+                <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
+                  <div>Success rate: {formatPercent(listing.resume.successRate ?? 0)}</div>
+                  <div>Avg latency: {Math.round((listing.resume.avgLatencyMs ?? 0) / 1000)}s</div>
+                  <div>Avg cost: ${listing.resume.avgCostUsd ?? 0}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            Quest priority board
+          </div>
+          <div className="mt-4 space-y-3">
+            {snapshot.questPriorityBoard.map((item) => {
+              const quest = snapshot.quests.find((candidate) => candidate.id === item.questId);
+
+              return (
+                <div
+                  key={item.questId}
+                  className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-base font-semibold text-[var(--ink)]">
+                      {quest?.sourceRef ?? quest?.sourceType ?? "Quest"}
+                    </div>
+                    <div className="text-sm font-medium text-[var(--ink)]">
+                      {item.effectivePriority}
+                    </div>
+                  </div>
+                  <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
+                    {item.rationale.map((line) => (
+                      <div key={line}>{line}</div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

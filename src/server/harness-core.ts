@@ -10,6 +10,9 @@ export type ResolvedHarness = {
   maxSteps: number;
   maxToolCalls: number;
   collapseThinkingByDefault: boolean;
+  structuredOutput: boolean;
+  promptScan: boolean;
+  outputScan: boolean;
 };
 
 export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness {
@@ -25,6 +28,11 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
   };
   const outputPolicy = JSON.parse(profile.outputPolicyJson) as {
     collapseThinkingByDefault?: boolean;
+    structuredOutput?: boolean;
+  };
+  const securityPolicy = JSON.parse(profile.securityPolicyJson) as {
+    promptScan?: boolean;
+    outputScan?: boolean;
   };
 
   return {
@@ -37,6 +45,9 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
     maxSteps: budgetPolicy.maxSteps ?? 0,
     maxToolCalls: budgetPolicy.maxToolCalls ?? 0,
     collapseThinkingByDefault: outputPolicy.collapseThinkingByDefault ?? true,
+    structuredOutput: outputPolicy.structuredOutput ?? true,
+    promptScan: securityPolicy.promptScan ?? true,
+    outputScan: securityPolicy.outputScan ?? true,
   };
 }
 
@@ -44,15 +55,22 @@ export function buildHarnessSummary(profile: HarnessProfile) {
   const resolved = resolveHarnessProfile(profile);
 
   return {
+    id: profile.id,
     name: resolved.name,
     instruction: resolved.systemInstruction,
     allowedTools: resolved.allowedTools,
-    approvalRequiredTools: resolved.approvalRequiredTools,
     blockedTools: resolved.blockedTools,
+    approvalRequiredTools: resolved.approvalRequiredTools,
     budget: {
       maxRuntimeMinutes: Math.round(resolved.maxRuntimeMs / 60000),
       maxSteps: resolved.maxSteps,
       maxToolCalls: resolved.maxToolCalls,
+    },
+    safety: {
+      collapseThinkingByDefault: resolved.collapseThinkingByDefault,
+      structuredOutput: resolved.structuredOutput,
+      promptScan: resolved.promptScan,
+      outputScan: resolved.outputScan,
     },
   };
 }

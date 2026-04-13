@@ -7,13 +7,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-[var(--line)] bg-[var(--surface)] px-5 py-6 lg:flex lg:flex-col">
           <div className="mb-8 border-b border-[var(--line)] pb-5">
             <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-              AgentHelix
+              AgentWorld
             </div>
             <h1 className="mt-3 max-w-[14rem] text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-              Harnessed agent operations for real teams.
+              Worlds, kingdoms, quests, and governed agent execution.
             </h1>
             <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
-              One surface for schedules, runtimes, traces, and human intervention.
+              One surface for Tavern, contracts, runtime discovery, trace replay, and human gates.
             </p>
           </div>
           <SidebarNav />
@@ -23,15 +23,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <header className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                Team operating surface
+                Agent operating surface
               </div>
               <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                AgentHelix command center
+                AgentWorld command center
               </h2>
             </div>
             <div className="grid gap-2 text-sm text-[var(--ink-muted)] sm:text-right">
-              <div>Dispatch and invocation stay separate on purpose.</div>
-              <div>Harness constraints stay visible before and during every run.</div>
+              <div>Quest scheduling, DAG execution, and agent invocation stay explicit on purpose.</div>
+              <div>Harness constraints remain visible before, during, and after every Quest.</div>
             </div>
           </header>
           <div className="flex-1">{children}</div>

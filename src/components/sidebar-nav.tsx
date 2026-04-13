@@ -9,10 +9,15 @@ import {
   Cable,
   ChartNoAxesCombined,
   Command,
+  Globe,
   GitBranch,
   LayoutDashboard,
+  Network,
+  ScrollText,
   Settings,
   ShieldCheck,
+  ShieldPlus,
+  Store,
   Users,
   Workflow,
 } from "lucide-react";
@@ -20,8 +25,12 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: Workflow },
-  { href: "/runs", label: "Runs", icon: Activity },
+  { href: "/worlds", label: "Worlds", icon: Globe },
+  { href: "/kingdoms", label: "Kingdoms", icon: Users },
+  { href: "/agent-teams", label: "AgentTeams", icon: Workflow },
+  { href: "/quests", label: "Quests", icon: Activity },
+  { href: "/tavern", label: "Tavern", icon: Store },
+  { href: "/contracts", label: "Contracts", icon: ScrollText },
   { href: "/runtimes", label: "Runtimes", icon: Cable },
   { href: "/harness", label: "Harness", icon: ShieldCheck },
   { href: "/wallboard", label: "Wallboard", icon: ChartNoAxesCombined },
@@ -34,7 +43,9 @@ export function SidebarNav() {
   return (
     <nav className="flex flex-col gap-1.5">
       {items.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive =
+          pathname === item.href ||
+          (item.href !== "/" && pathname.startsWith(`${item.href}/`));
         const Icon = item.icon;
 
         return (
@@ -57,7 +68,7 @@ export function SidebarNav() {
       <div className="mt-6 space-y-3 rounded-[26px] border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
           <Command className="h-3.5 w-3.5" />
-          Core lenses
+          Operating lenses
         </div>
         <div className="space-y-2 text-sm text-[var(--ink-muted)]">
           <div className="flex items-center gap-2">
@@ -65,8 +76,8 @@ export function SidebarNav() {
             Active agents
           </div>
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Active developers
+            <Network className="h-4 w-4" />
+            Contract edges
           </div>
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4" />
@@ -74,7 +85,11 @@ export function SidebarNav() {
           </div>
           <div className="flex items-center gap-2">
             <AlarmClock className="h-4 w-4" />
-            Scheduled queue
+            Scheduled quests
+          </div>
+          <div className="flex items-center gap-2">
+            <ShieldPlus className="h-4 w-4" />
+            Human gates
           </div>
         </div>
       </div>

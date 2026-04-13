@@ -15,9 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AgentHelix",
+  title: "AgentWorld",
   description:
-    "A TypeScript-first operations console for harnessed agents, scheduling, runtimes, and human-in-the-loop execution.",
+    "A TypeScript monolith for Worlds, Kingdoms, Quests, Contracts, Tavern listings, and harnessed agent execution.",
 };
 
 export default function RootLayout({
