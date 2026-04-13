@@ -15,3 +15,4 @@ out
 .pnpm-store
 playwright-report
 test-results
+.playwright-cli
