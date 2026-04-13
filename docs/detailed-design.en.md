@@ -1,1456 +1,1142 @@
-# AgentHelix Detailed Design
+# AgentWorld Detailed Design
 
-## 1. Purpose of This Document
+This is the English detailed design for AgentWorld.
 
-This is the English detailed design document for AgentHelix.
+It is not a concept note. It is an implementation-oriented design for turning the World, Kingdom, AgentTeam, Agent, Tavern, Quest, and Contract model into a real platform built with a full TypeScript stack, a single deployable service, and an embedded database.
 
-Its purpose is very practical:
+## 0. Document Goal
 
-- explain what the product is supposed to do
-- explain how the system is layered
-- explain agent scheduling clearly
-- explain agent invocation clearly
-- explain the database, APIs, screens, failure handling, and human intervention model
+This document answers six practical questions:
 
-This is not meant to be a vague concept paper. It is intended to be detailed enough for implementation work.
+1. What exactly AgentWorld is
+2. Why the design is now a TypeScript monolith instead of a distributed control plane
+3. How Quest scheduling, planning, execution, and human intervention work together
+4. How harness engineering constrains agent invocation
+5. How World, Kingdom, AgentTeam, Contract, and Tavern map into database objects and APIs
+6. What the first development milestones should be
 
-## 2. Product Positioning
+## 1. System Positioning
 
-AgentHelix is an agent platform for teams.
+### 1.1 One-Sentence Definition
 
-It is not just a chat interface, and it is not just a timer-based job runner. The goal is to let teams use agents as an execution capability that is schedulable, observable, and interruptible by people when needed.
+AgentWorld is a multi-tenant, orchestrated, governable, observable AI agent runtime platform that supports cross-team agent marketplaces and collaborative execution.
 
-The platform is designed to answer practical questions:
+### 1.2 Plain-Language Explanation
 
-- how different teams manage their own tasks and configurations
-- how scheduled work runs reliably
-- how agent runtimes are discovered and chosen
-- what exactly happened during a task run
-- how a person can step in during execution
-- how to tell the difference between a scheduling problem and an invocation problem
+AgentWorld is not a chat app.
 
-## 3. Target Capabilities
+It is also not just a thin agent shell around a model endpoint.
 
-### 3.1 Product Capabilities
+It is an operating surface for teams:
 
-- team spaces
-- task definitions and run records
-- manual, scheduled, and webhook triggers
-- OpenCode runtime discovery
-- OpenAI-style provider configuration
-- trace pages that show thinking, execution, and text output
-- pause, resume, cancel, and add-instruction controls
-- team views and wallboard views
-- separate activity metrics for agents, developers, and repositories
+- World is the top-level tenant boundary
+- Kingdom is the team boundary inside a world
+- AgentTeam is the service unit exposed to users or other kingdoms
+- Agent is the execution unit
+- Quest is the actual job instance that gets scheduled, executed, observed, and settled
+- Tavern is the registry and marketplace for AgentTeams
+- Contract is the formal permission model for cross-kingdom calls
 
-### 3.2 Technical Constraints
+## 2. Design Convergence Principles
 
-- the entire stack must be TypeScript
-- the database must be embedded
-- frontend and backend must be integrated
-- installation must stay simple and close to one-command setup
+### 2.1 Hard Constraints for This Version
 
-## 4. Design Principles
+This version of AgentWorld is deliberately constrained as follows:
 
-### 4.1 Make State Clear Before Making Calls
+- full-stack TypeScript
+- monolithic service
+- no Redis, Kafka, Temporal, PostgreSQL, Milvus, S3, Knative, or similar extra middleware
+- embedded database only
+- one-command local install and startup
+- support for external OpenAI-compatible model providers
+- support for discovering external OpenCode runtimes without making the platform itself a service mesh
 
-When work arrives, the system should not call an agent immediately. It should first create a clear scheduling state so the execution path remains understandable.
+### 2.2 What Was Intentionally Simplified
 
-### 4.2 Scheduling and Invocation Must Stay Separate
+| Original direction | Optimized design | Why |
+| --- | --- | --- |
+| distributed control plane and runtime plane | logical layers inside one monolith | the domain needs to stabilize before service splits |
+| standalone quest scheduler service | in-process scheduling core | scheduling is a database-driven state machine first |
+| serverless agent executors | in-process worker slots | simpler logging, tracing, cost control, and intervention |
+| Redis for short context | SQLite tables plus in-memory cache | easier embedded deployment |
+| separate vector database | SQLite FTS5 plus optional embedding fields | enough for v1 retrieval without new infrastructure |
+| S3 | local filesystem artifacts | simpler single-node setup |
+| Docker or WASM sandbox by default | harness constraints plus controlled tool adapters and selective process isolation | governance first, stronger isolation later |
 
-Scheduling decides who should run the work. Invocation decides how the work is actually run. Those concerns must not be merged.
+### 2.3 Why This Is Not a Regression
 
-### 4.3 Important Actions Must Leave Structured Records
+This convergence is not a downgrade. It gives the platform the three things it actually needs first:
 
-Queueing, runtime selection, execution start, human intervention, and failures must all become durable records.
+- a clear domain model
+- a stable scheduling and execution state machine
+- an explainable, auditable, human-interruptible invocation chain
 
-### 4.4 The UI Should Feel Like an Operations Console
+Once those are solid, later splits become much safer.
 
-The interface should be calm, readable, and restrained, with a slight Anthropic-like sense of discipline, but its purpose is operational clarity rather than brand presentation.
+## 3. Core Terms
 
-### 4.5 The Harness Is a Platform Constraint Layer, Not Just a Prompt
+| Term | Meaning | Role in the platform |
+| --- | --- | --- |
+| World | top-level tenant space | quota, model whitelist, top-level guardrails |
+| Kingdom | team space inside a world | team budget, private tool refs, private memory scope |
+| AgentTeam | service unit | receives input, orchestrates agents, returns a contractable result |
+| Agent | execution unit | performs a step and can call models and tools |
+| Tavern | marketplace and registry | exposes AgentTeams for discovery and recruitment |
+| Quest | job instance | one real execution with plan, nodes, result, and cost |
+| Contract | service agreement | constrains cross-kingdom access, price, scope, and SLA |
+| Harness | constraint layer | limits agent behavior through tools, config, and internal policy |
+| Captain Agent | planning agent | generates the Quest DAG or execution plan |
+| Watcher | supervisory component | validates outputs, enforces SLA, and triggers human gates |
 
-In AgentHelix, the harness is not only a system prompt, and it is not just an ad hoc tool allowlist.
+## 4. Overall Architecture
 
-It is the formal mechanism the platform uses to constrain agent behavior across at least three dimensions:
+### 4.1 Shape of the System
 
-- tool call boundaries
-- external configuration inputs
-- internal policy limits
+AgentWorld is implemented as a single Next.js service:
 
-In plain terms, AgentHelix does not connect a model and let it run freely. It wraps the model inside a harness-defined operating boundary.
+- UI for dashboards, configuration, wallboard, trace views, and intervention
+- Route Handlers for APIs
+- Server Components reading service-layer queries directly
+- service modules grouped by domain responsibility
+- SQLite as the only persistent database
+- local filesystem for artifacts, reports, and attachments
+
+### 4.2 Logical Layers
+
+Although the deployment is monolithic, the codebase is still layered:
+
+1. Presentation Layer
+2. Application Layer
+3. Domain Layer
+4. Infrastructure Layer
+
+| Layer | Responsibility |
+| --- | --- |
+| Presentation | pages, forms, SSE trace streams, admin surfaces, wallboard |
+| Application | use-case orchestration such as submit Quest, approve gate, discover runtime |
+| Domain | World, Kingdom, Quest, Contract, Tavern, Harness, Scheduler, Executor rules |
+| Infrastructure | SQLite, filesystem, OpenCode SDK, OpenAI-compatible HTTP providers, webhook ingestion |
+
+### 4.3 Major Modules
+
+| Module | Responsibility |
+| --- | --- |
+| tenant-core | manages Worlds, Kingdoms, quota, and boundaries |
+| registry-core | manages AgentTeams, Agents, and Tavern listings |
+| contract-core | manages cross-kingdom contracts, scopes, and service accounts |
+| scheduler-core | handles schedule ticks, prioritization, leasing, and Quest creation |
+| planner-core | creates DAGs through a captain agent or rule planner |
+| executor-core | drives DAG node execution, retry, and recovery |
+| invocation-core | performs single-agent invocation including model and tool calls |
+| harness-core | resolves prompts, tool policy, budget policy, output policy, and human gates |
+| memory-core | manages short-term memory, summaries, and searchable notes |
+| trace-core | records spans, event logs, cost, and audits |
+| provider-core | manages OpenAI-compatible providers, model routing, and limits |
+| runtime-core | discovers OpenCode runtimes and stores health and capability catalogs |
 
 ## 5. Technology Stack
 
-### 5.1 Application Layer
+### 5.1 Selected Stack
+
+| Layer | Technology |
+| --- | --- |
+| full-stack app | Next.js + TypeScript |
+| UI | React 19 + Server Components |
+| APIs | Next.js Route Handlers |
+| database | SQLite via `node:sqlite` |
+| validation | Zod |
+| runtime discovery | OpenCode SDK |
+| model connectivity | OpenAI-compatible HTTP APIs |
+| artifacts | local filesystem |
+| search and memory | SQLite FTS5 |
+
+### 5.2 Why No Extra Middleware
+
+The first real risk is not throughput. It is architectural ambiguity.
+
+Before the domain and execution chain are stable, adding Redis, queues, orchestration systems, and vector databases mostly adds debugging cost and deployment noise.
+
+## 6. Domain Model
+
+This section focuses on the objects that should exist in the first real database schema.
+
+### 6.1 World
+
+```ts
+type World = {
+  id: string;
+  slug: string;
+  name: string;
+  ownerUserId: string;
+  status: "active" | "suspended" | "archived";
+  quotaLimitJson: string;
+  modelWhitelistJson: string;
+  globalGuardrailsJson: string;
+  defaultHarnessId: string | null;
+  createdAt: string;
+};
+```
+
+Invariants:
+
+- World is the outermost governance boundary
+- World-level guardrails are inherited by all kingdoms
+- no Kingdom may bypass the World model whitelist
+
+### 6.2 Kingdom
+
+```ts
+type Kingdom = {
+  id: string;
+  worldId: string;
+  slug: string;
+  name: string;
+  lordUserId: string;
+  status: "active" | "suspended" | "archived";
+  balance: number;
+  creditLimit: number;
+  privateToolRefsJson: string;
+  privateMemoryNamespace: string;
+  policyJson: string;
+  createdAt: string;
+};
+```
+
+Invariants:
+
+- privateToolRefs store references, not raw secrets
+- Kingdom has independent cost attribution and credit control
+- Kingdom policies can tighten but not loosen World policies
+
+### 6.3 AgentTeam
+
+```ts
+type AgentTeam = {
+  id: string;
+  kingdomId: string;
+  slug: string;
+  name: string;
+  description: string;
+  captainAgentId: string | null;
+  workflowType: "single" | "sequential" | "parallel" | "dag";
+  inputSchemaJson: string;
+  outputSchemaJson: string;
+  maxConcurrency: number;
+  timeoutMs: number;
+  successRateThreshold: number;
+  pricingModelJson: string;
+  visibility: "private" | "public";
+  defaultHarnessId: string | null;
+  createdAt: string;
+};
+```
+
+Invariants:
+
+- AgentTeam is the service interface exposed by the platform
+- a public AgentTeam is eligible for Tavern listing
+- a team may contain multiple Agents and one optional captain
+
+### 6.4 Agent
+
+```ts
+type Agent = {
+  id: string;
+  teamId: string;
+  slug: string;
+  name: string;
+  role: string;
+  personaPrompt: string;
+  model: string;
+  shortTermWindow: number;
+  ragConfigJson: string;
+  toolBindingsJson: string;
+  memoryScope: "private" | "team_shared";
+  safetyPolicyJson: string;
+  status: "active" | "disabled";
+  createdAt: string;
+};
+```
+
+Invariants:
+
+- the agent never owns cross-kingdom access by itself
+- tool visibility is constrained by both Harness and Contract
+
+### 6.5 Quest
+
+```ts
+type Quest = {
+  id: string;
+  worldId: string;
+  kingdomId: string;
+  teamId: string;
+  sourceType: "manual" | "schedule" | "webhook" | "contract";
+  sourceRef: string | null;
+  status:
+    | "draft"
+    | "submitted"
+    | "validating"
+    | "planning"
+    | "running"
+    | "awaiting"
+    | "completed"
+    | "failed"
+    | "cancelled";
+  priority: number;
+  inputPayloadJson: string;
+  outputPayloadJson: string | null;
+  costEstimate: number;
+  costActual: number;
+  traceId: string;
+  createdAt: string;
+  completedAt: string | null;
+};
+```
+
+### 6.6 QuestPlan and QuestNode
+
+```ts
+type QuestPlan = {
+  id: string;
+  questId: string;
+  plannerMode: "rule" | "captain_agent";
+  dagJson: string;
+  summary: string;
+  createdAt: string;
+};
+
+type QuestNode = {
+  id: string;
+  questId: string;
+  planId: string;
+  nodeKey: string;
+  agentId: string;
+  dependsOnJson: string;
+  inputJson: string;
+  outputJson: string | null;
+  status: "pending" | "ready" | "running" | "awaiting" | "completed" | "failed" | "cancelled";
+  attemptCount: number;
+  maxAttempts: number;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+```
+
+### 6.7 Contract
+
+```ts
+type Contract = {
+  id: string;
+  providerTeamId: string;
+  consumerKingdomId: string;
+  pricingModelJson: string;
+  slaJson: string;
+  accessScopeJson: string;
+  serviceAccountRef: string;
+  status: "draft" | "active" | "suspended" | "expired";
+  createdAt: string;
+};
+```
+
+### 6.8 TavernListing
+
+```ts
+type TavernListing = {
+  id: string;
+  teamId: string;
+  resumeJson: string;
+  recruitmentMode: "copy" | "subscribe" | "dedicated";
+  tagsJson: string;
+  status: "listed" | "hidden" | "suspended";
+  createdAt: string;
+};
+```
+
+### 6.9 HarnessProfile
+
+```ts
+type HarnessProfile = {
+  id: string;
+  worldId: string | null;
+  kingdomId: string | null;
+  teamId: string | null;
+  name: string;
+  systemInstruction: string;
+  toolPolicyJson: string;
+  approvalPolicyJson: string;
+  budgetPolicyJson: string;
+  outputPolicyJson: string;
+  securityPolicyJson: string;
+  createdAt: string;
+};
+```
+
+### 6.10 Trace and Audit
+
+```ts
+type TraceSpan = {
+  id: string;
+  traceId: string;
+  parentSpanId: string | null;
+  questId: string;
+  nodeId: string | null;
+  kind: "quest" | "planning" | "agent" | "tool" | "approval" | "contract";
+  status: "open" | "ok" | "error";
+  startedAt: string;
+  endedAt: string | null;
+  attributesJson: string;
+};
+
+type EventLog = {
+  id: string;
+  traceId: string;
+  questId: string;
+  nodeId: string | null;
+  seq: number;
+  phase: string;
+  foldGroup: string;
+  title: string;
+  content: string;
+  metadataJson: string;
+  createdAt: string;
+};
+```
+
+## 7. Quest State Machine
+
+### 7.1 Top-Level Statuses
+
+| Status | Meaning |
+| --- | --- |
+| Draft | not fully submitted yet |
+| Submitted | accepted and waiting to enter validation |
+| Validating | permissions, budget, contract, and harness pre-checks are running |
+| Planning | DAG or execution plan is being created |
+| Running | one or more nodes are being executed |
+| Awaiting | blocked on human approval or missing user input |
+| Completed | finished successfully |
+| Failed | execution failed |
+| Cancelled | cancelled by a person or policy |
+
+### 7.2 Key Rules
+
+- database state is the source of truth
+- every status change writes an event
+- human intervention is a first-class state transition, not a side channel
+
+## 8. Scheduling Design
+
+This is one of the most important sections of the platform.
+
+### 8.1 Why There Is No External Orchestrator
+
+In the first phase, Quest scheduling mainly does four things:
+
+1. find due work
+2. claim ownership
+3. create or advance Quests
+4. move Quests from one stable state to another stable state
+
+That is fundamentally a database state machine. It does not require a separate orchestration platform yet.
+
+### 8.2 What the Scheduler Operates On
+
+The scheduling core works with three object types:
+
+- ScheduleTemplate
+- Quest
+- QuestNode
+
+### 8.3 Internal Loops
+
+The monolith runs two lightweight loops:
+
+- Schedule Tick: every 5 seconds
+- Executor Tick: every 1 second
+
+### 8.4 Schedule Tick Algorithm
+
+1. query schedule templates where `next_run_at <= now`
+2. sort by World, Kingdom, priority, and SLA
+3. claim a lease through SQLite update semantics
+4. create a Quest
+5. write the next schedule time
+
+### 8.5 Executor Tick Algorithm
+
+1. load Quests in `submitted`, `validating`, `planning`, `running`, or `awaiting`
+2. route each Quest to the correct state handler
+3. when a Quest is running, pick `ready` QuestNodes
+4. start nodes within the team `max_concurrency` and runtime slot limits
+
+### 8.6 Priority Model
+
+Effective priority combines:
+
+- Quest priority
+- Kingdom priority class
+- Contract SLA
+- human wait time
+- time-to-timeout
+
+## 9. Planning and DAG Design
+
+### 9.1 Planning Entry
+
+Every Quest must have a QuestPlan before it enters Running.
+
+### 9.2 Two Planning Modes
+
+| Mode | Use case |
+| --- | --- |
+| rule | simple, predictable flows |
+| captain_agent | dynamic or complex work where the DAG depends on the input |
+
+### 9.3 Responsibility of the Captain Agent
+
+The captain agent should do only three things:
+
+- generate a DAG from the input
+- explain node goals and dependencies
+- estimate cost and risk
+
+The captain should not directly run heavyweight tools.
+
+### 9.4 DAG Validation
+
+Every generated DAG is validated:
+
+- it must be acyclic
+- node count must stay within team limits
+- every node must bind to a concrete Agent
+- final outputs must map back to the team output schema
+
+### 9.5 Node Recovery
+
+If a node fails:
+
+- retryable nodes re-enter the retry queue
+- non-retryable failures move the Quest to Failed or Awaiting
+- completed nodes are never re-executed unnecessarily
+
+## 10. Agent Invocation Design
+
+This is the other most important section.
+
+### 10.1 Invocation Goal
+
+An agent call is not just a prompt sent to a model.
+
+Inside AgentWorld, invocation is a controlled pipeline:
+
+1. build the InvocationEnvelope
+2. merge World, Kingdom, Team, and Agent harness layers
+3. trim visible tools and memory scopes
+4. validate Contract scope
+5. select provider and model
+6. execute as a stream and write trace data
+7. pause if a human gate is reached
+8. validate output and persist node results
+
+### 10.2 InvocationEnvelope
+
+```ts
+type InvocationEnvelope = {
+  questId: string;
+  nodeId: string;
+  worldId: string;
+  kingdomId: string;
+  teamId: string;
+  agentId: string;
+  inputJson: string;
+  contractId: string | null;
+  visibleToolsJson: string;
+  visibleMemoryScopesJson: string;
+  providerPolicyJson: string;
+  harnessProfileId: string;
+};
+```
+
+### 10.3 Why Harness Resolution Happens Before the First Token
+
+Because the agent does not get to decide what it is allowed to do.
+
+AgentWorld applies harness engineering before execution begins:
+
+- which tools are visible
+- which tools need human approval
+- which models are allowed
+- max tokens, max steps, and max runtime
+- whether output must be structured
+
+### 10.4 Tool Call Decision Chain
+
+Every tool call passes four checks:
+
+1. is the tool bound to the Agent
+2. is it allowed by the Harness
+3. is it allowed by the Contract scope
+4. is it allowed by runtime safety policy
+
+If any layer denies it, the call stops.
+
+### 10.5 Model Call Decision Chain
+
+provider-core selects the model using:
+
+- World model whitelist
+- Kingdom cost policy
+- Team default model policy
+- Agent preferred model
+- fallback strategy
+
+### 10.6 Streaming Output
+
+Every invocation must emit observable events:
+
+- `thinking`
+- `tool_call`
+- `tool_result`
+- `text_delta`
+- `approval_required`
+- `output_validated`
+- `node_completed`
+
+These events are written into a unified event log and rendered as foldable trace groups in the UI.
+
+## 11. Harness Engineering Design
+
+### 11.1 Position of Harness in AgentWorld
+
+Harness is not optional configuration. It is the platform constraint layer.
+
+Every Quest goes through HarnessResolve before a real Agent invocation can start.
+
+### 11.2 Three Sources of Constraints
+
+#### 1. Tool-Calling Constraints
+
+- allow list
+- block list
+- approval-required list
+- per-tool call limits
+
+#### 2. External Configuration Constraints
+
+- World model whitelist
+- Kingdom budget and credit limit
+- Contract access scope
+- runtime health state
+
+#### 3. Internal Policy Constraints
+
+- max runtime
+- max tokens
+- max step count
+- structured output validation
+- prompt scan and output scan
 
-- Next.js App Router
-- React
-- TypeScript
-- tRPC
-- Zod
-- TanStack Query
-- Zustand
-- Tailwind CSS
-- shadcn/ui
-- Framer Motion
+### 11.3 Harness Resolution Order
 
-### 5.2 Data Layer
+Final policy is composed in this order:
 
-- SQLite
-- better-sqlite3
-- Drizzle ORM
-- drizzle-kit
+1. World Harness
+2. Kingdom Harness
+3. AgentTeam Harness
+4. Agent Safety Policy
+5. Contract restrictions
+6. runtime safety patch
 
-### 5.3 Scheduling and Invocation Layer
+Later layers may only tighten policy, never relax it.
 
-- cron-parser
-- `@opencode-ai/sdk`
-- Server-Sent Events
+### 11.4 Harness Preview
 
-### 5.4 Why This Stack
+Before submission, the UI should be able to show:
 
-This stack is chosen because:
+- the model that would be used
+- which tools would be visible
+- which tools would trigger approval
+- the effective budget ceiling
+- where the Quest is likely to pause or fail
 
-- TypeScript remains consistent across the whole system
-- SQLite avoids external operational overhead
-- Next.js fits an integrated product very well
-- the OpenCode SDK already covers runtime discovery and session calls
+## 12. Tavern Design
 
-## 6. System Layers
+### 12.1 What Tavern Really Is
 
-The system is split into four layers:
+Tavern is not a list of chatbots.
 
-1. product UI layer
-2. application service layer
-3. scheduling and invocation core layer
-4. infrastructure layer
+It is the marketplace for AgentTeams that can be recruited, subscribed to, or hosted for another Kingdom.
 
-### 6.1 Product UI Layer
+### 12.2 Hero Resume Generation
 
-Responsibilities:
+The platform automatically computes:
 
-- left navigation
-- team space switching
-- task lists
-- run lists
-- runtime views
-- webhook views
-- settings
-- wallboard
-- trace detail pages
+- success rate
+- average latency
+- average cost
+- top tasks
+- domain tags
+- recent failures
 
-### 6.2 Application Service Layer
+### 12.3 Recruitment Modes
 
-Responsibilities:
+| Mode | Meaning |
+| --- | --- |
+| Copy | clone the team configuration into the current Kingdom |
+| Subscribe | call the remote service through a Contract |
+| Dedicated | the provider offers a dedicated hosted team instance |
 
-- task creation
-- team space management
-- webhook intake
-- schedule management
-- provider configuration
-- dashboard and wallboard queries
+### 12.4 Tavern Sandbox
 
-### 6.3 Scheduling and Invocation Core Layer
+Tavern mode always enforces:
 
-This is the most important layer. It has two parts:
+- no unrestricted write tools
+- no raw provider secret exposure
+- no access to another Kingdom's private memory
+- no privilege escalation on model usage
 
-- scheduling core
-- invocation core
+## 13. Contract Design
 
-The scheduling core is responsible for:
+### 13.1 Role of Contracts
 
-- accepting work
-- queueing work
-- selecting runtimes
-- assigning concurrency
-- deciding retries or waiting for a human
+Contract is the only formal entry point for cross-kingdom service access.
 
-The invocation core is responsible for:
+No Contract means no legitimate cross-kingdom invocation.
 
-- creating OpenCode sessions
-- sending prompts
-- collecting messages
-- normalizing events
-- writing traces
-- handling pause, resume, and cancel actions
+### 13.2 Call Chain
 
-### 6.4 Infrastructure Layer
+Consumer Kingdom
+-> Contract validation
+-> Service account scope
+-> Provider AgentTeam
 
-Responsibilities:
+### 13.3 A Contract Must Define
 
-- SQLite persistence
-- file storage
-- provider key encryption
-- SSE streaming
-- OpenCode SDK connectivity
+- who can call
+- which input and output interface is exposed
+- how pricing works
+- what SLA is promised
 
-## 7. Core Data Objects
+### 13.4 Security Boundary
 
-This section intentionally keeps only the important objects.
+A Contract must not grant:
 
-### 7.1 TeamSpace
+- raw secret access in the provider Kingdom
+- raw private memory access in the provider Kingdom
+- local filesystem access on the provider side
+- direct bypass of the Tavern sandbox for high-risk tools
 
-Represents a team boundary.
+## 14. Memory, Artifact, and Trace
 
-It isolates:
+### 14.1 Memory
 
-- tasks
-- runtimes
-- provider configuration
-- webhooks
-- dashboard metrics
+The first version does not depend on an external vector database. It uses:
 
-### 7.2 TaskDefinition
+- SQLite tables for short-term working memory
+- SQLite FTS5 for text retrieval
+- summary tables for condensed memory
+- optional embedding JSON fields for later use
 
-Represents a reusable task template.
+### 14.2 Artifacts
 
-It defines:
+Artifacts are stored on local disk:
 
-- task name
-- task instructions
-- trigger mode
-- input shape
-- default priority
-- runtime policy
+- run transcripts
+- tool outputs
+- exported reports
+- uploaded attachments
 
-### 7.3 TaskTrigger
+SQLite stores metadata, not large binary payloads.
 
-Represents one task arrival.
+### 14.3 Trace
 
-It can come from:
+Trace is modeled in two layers:
 
-- a user action
-- a schedule
-- a webhook
+- spans for latency, parent-child structure, and cost
+- event logs for thinking, tool calls, and human-readable streaming output
 
-### 7.4 DispatchTicket
+## 15. API and UI Design
 
-This is the most important object in the scheduling layer.
+### 15.1 Left Navigation
 
-It means:
-
-- the task has entered the scheduling queue
-- the system has not yet started the runtime call
-- the task can be queued, retried, delayed, or blocked for a human
-
-Without this object, task requests and task execution become mixed together.
-
-### 7.5 TaskRun
-
-Represents the run record visible to users.
-
-It is the product-facing object used for:
-
-- run lists
-- team views
-- wallboard views
-
-### 7.6 ExecutionSession
-
-Represents the real execution session.
-
-It links:
-
-- the task run
-- the selected runtime
-- the external OpenCode session id
-- the current invocation state
-
-### 7.7 ExecutionEvent
-
-Represents one event inside execution history.
-
-It can be:
-
-- a thinking fragment
-- a tool start
-- tool output
-- a tool finish
-- text output
-- a human intervention
-- a system state change
-
-### 7.8 RuntimeEndpoint
-
-Represents an OpenCode runtime address.
-
-It stores:
-
-- base URL
-- health status
-- available agent catalog
-- available provider catalog
-- concurrency limit
-
-### 7.9 ScheduleRule
-
-Represents a schedule definition.
-
-The most important field is not just the cron expression. It is:
-
-- `nextRunAt`
-
-Because the dispatcher really asks:
-
-- which schedules are due now
-
-### 7.10 Intervention
-
-Represents a human action.
-
-Intervention types include:
-
-- add instruction
-- pause
-- resume
-- cancel
-- approve
-- reject
-
-### 7.11 ProviderConnection
-
-Represents an OpenAI-style model endpoint configuration.
-
-Key fields:
-
-- base URL
-- API key
-- default model
-- model list
-
-### 7.12 HarnessProfile
-
-This is the key object AgentHelix uses to make harness engineering explicit.
-
-It represents the final set of constraints that actually apply to one run.
-
-It should contain at least:
-
-- systemInstruction
-- toolPolicyJson
-- approvalPolicyJson
-- budgetPolicyJson
-- outputPolicyJson
-- contextPolicyJson
-
-The HarnessProfile should be merged from several layers:
-
-1. platform baseline
-2. team-space level rules
-3. task-definition level rules
-4. runtime capability intersection
-
-### 7.13 How Harness Constraints Affect the System
-
-Harness constraints operate in three layers.
-
-The first layer is tool-call constraints:
-
-- which tools are allowed
-- which tools need approval
-- which tools are blocked
-- parameter schemas
-- tool-call count limits
-
-The second layer is external configuration constraints:
-
-- the provider bound to the current team space
-- the runtime policy on the task definition
-- webhook input mappings
-- repository and context bindings
-
-The third layer is internal policy constraints:
-
-- maximum runtime duration
-- maximum step count
-- maximum retry count
-- maximum concurrency
-- forced human stop points
-- trace output size limits
-
-These three layers are merged into one HarnessProfile and then passed into scheduling and invocation.
-
-## 8. Most Important Part One: Agent Scheduling
-
-This is the core of the system.
-
-### 8.1 What Scheduling Needs to Solve
-
-Scheduling is not “receive a task and immediately call the agent”.
-
-Scheduling must answer:
-
-- when work becomes runnable
-- which runtime should take it
-- what happens when the runtime is busy
-- what happens when the runtime is unhealthy
-- how scheduled work avoids duplicate firing
-- how pause and resume affect dispatch state
-- whether a failure should retry or end
-
-### 8.2 Why a Dispatch Ticket Is Necessary
-
-AgentHelix requires every task to become a `DispatchTicket` before execution.
-
-The reasons are simple:
-
-1. queue state becomes visible
-2. retry counts can be tracked cleanly
-3. humans can act before invocation starts
-4. queue problems and invocation problems stay separate
-
-### 8.3 Scheduling Flow
-
-The full flow is:
-
-1. receive the trigger
-2. normalize input
-3. compute priority
-4. create the dispatch ticket
-5. select candidate runtimes
-6. acquire a runtime slot
-7. create TaskRun and ExecutionSession
-8. build the InvocationPlan
-9. hand off to invocation
-
-### 8.4 Trigger Normalization
-
-Different trigger sources must become one common internal shape.
-
-The normalized trigger must contain at least:
-
-- teamSpaceId
-- taskDefinitionId
-- triggerType
-- effective payload
-- requester identity
-- base priority value
-
-This allows the rest of the scheduler to ignore whether the task came from a button click or a webhook.
-
-### 8.5 Priority Calculation
-
-Priority should not be overly clever, but it must exist.
-
-Recommended inputs:
-
-- task default priority
-- trigger type weight
-- lateness weight
-- human escalation weight
-- retry penalty
-
-A simple explainable formula could be:
-
-`priority = base + triggerWeight + latenessWeight + escalationWeight - retryPenalty`
-
-The key point is not complexity. The key point is:
-
-- explainability
-- traceability
-- operability
-
-### 8.6 Runtime Selection Strategy
-
-Runtime selection has two stages:
-
-First, filtering:
-
-1. same team space only
-2. enabled only
-3. healthy only
-4. supports the required agent capability
-5. still has remaining concurrency
-
-Second, ranking:
-
-1. explicit runtime preference on the task
-2. recent success for similar tasks
-3. more free capacity
-4. lower recent latency
-5. lower recent failure rate
-
-One more rule must be checked:
-
-6. whether the runtime satisfies the current HarnessProfile for tools, approvals, and budget constraints
-
-### 8.7 Why Runtime Slots and Leases Matter
-
-If a runtime has concurrency 4, the platform must ensure that at most 4 runs actually occupy it.
-
-So the system cannot only store “selected runtime”. It must also store:
-
-- whether a runtime slot was actually claimed
-- how long the claim is valid
-- when the slot should be released if the process crashes
-
-That is what leases are for.
-
-A lease should keep:
-
-- runtimeId
-- taskRunId
-- leaseToken
-- leaseExpiresAt
-
-### 8.8 Scheduling State Machine
-
-Recommended states:
-
-- `pending`
-- `queued`
-- `leasing`
-- `dispatching`
-- `running`
-- `waiting_human`
-- `retry_wait`
-- `completed`
-- `failed`
-- `cancelled`
-
-Core meaning:
-
-- `pending`: the work just entered the system
-- `queued`: ready to wait for dispatch
-- `leasing`: trying to claim runtime capacity
-- `dispatching`: execution records are ready and invocation handoff is in progress
-- `running`: work is already executing
-- `waiting_human`: blocked by a person
-- `retry_wait`: waiting for a future retry
-
-### 8.9 Dedicated Optimization for Scheduled Work
-
-This must be called out explicitly.
-
-AgentHelix should not create one in-memory timer per scheduled task.
-
-Instead:
-
-- all schedules are stored in SQLite
-- every schedule keeps `nextRunAt`
-- the dispatcher loop scans due work by time window
-- after firing, the system computes the next `nextRunAt`
-
-This gives four major benefits:
-
-1. clean recovery after restart
-2. no timer explosion
-3. easy visibility into upcoming scheduled work
-4. clean handling of duplicate firing and expired leases
-
-### 8.10 How Scheduled Work Avoids Duplicate Firing
-
-The key is:
-
-- schedules need leases too
-
-Flow:
-
-1. the dispatcher finds a due schedule
-2. it tries to lease that schedule
-3. only after lease success does it create a TaskTrigger
-4. after trigger creation, it computes and stores the next `nextRunAt`
-
-This makes crash recovery predictable.
-
-### 8.11 Scheduling Failure Categories
-
-Scheduling failures should be split clearly:
-
-1. no runtime found
-2. all runtimes are full
-3. runtimes are unhealthy
-4. scheduler data error
-
-Suggested handling:
-
-| Failure Type | Handling |
-|---|---|
-| no runtime found | move to `retry_wait` |
-| runtime full | move back to `queued` |
-| runtime unhealthy | move to `retry_wait` and lower runtime score |
-| data error | fail directly and alert |
-
-### 8.12 How Human Intervention Affects Scheduling
-
-Human actions are not just UI controls. They change dispatch state.
-
-Examples:
-
-- manual pause: `running -> waiting_human`
-- manual resume: `waiting_human -> queued`
-- manual cancel: `running -> cancelled`
-
-That is the only way to keep scheduling state and trace state aligned.
-
-## 9. Most Important Part Two: Agent Invocation
-
-### 9.1 Responsibilities of the Invocation Layer
-
-After the scheduler hands work over, the invocation layer is responsible for:
-
-- creating the OpenCode client
-- creating the session
-- sending the prompt
-- collecting messages
-- converting them into internal events
-- pushing them to the UI
-- supporting pause, resume, and stop
-
-### 9.2 Why Invocation Must Not Live Inside the Scheduler
-
-If invocation logic is embedded in the scheduler:
-
-- runtime adapter logic and scheduling logic get mixed
-- trace behavior becomes harder to evolve
-- adding new runtimes later becomes expensive
-
-So invocation must be a separate core.
-
-### 9.3 InvocationPlan
-
-The scheduler should hand one standard object to the invocation layer, not a loose bag of parameters.
-
-That object should be called `InvocationPlan`.
-
-It should contain at least:
-
-- taskRunId
-- sessionId
-- runtimeEndpoint
-- instruction
-- payload
-- providerRef
-- harnessProfile
-- timeoutPolicy
-- interventionPolicy
-- tracePolicy
-
-This keeps the invocation layer focused on execution, not dispatch decisions.
-
-### 9.4 OpenCode Invocation Steps
-
-The actual call flow should be:
-
-1. create the OpenCode client from the runtime endpoint
-2. create the external session
-3. send the task instructions and payload
-4. poll or stream session messages
-5. convert them into AgentHelix internal events
-6. store the events
-7. push updates through SSE
-8. update session and run states
-
-### 9.5 Why Internal Event Normalization Is Necessary
-
-OpenCode returns runtime-specific message shapes.
-
-If the UI depends on them directly, two problems appear:
-
-1. SDK upgrades may break rendering
-2. future runtime integrations will force UI rewrites
-
-So AgentHelix needs its own internal event model.
-
-Recommended event types:
-
-- `thinking.delta`
-- `thinking.block`
-- `tool.started`
-- `tool.output`
-- `tool.finished`
-- `text.output`
-- `runtime.status`
-- `human.intervention`
-- `session.completed`
-- `session.failed`
-
-### 9.6 How Thinking, Execution, and Text Are Grouped
-
-If the platform wants a clean foldable trace, it cannot just store raw messages.
-
-Events should be grouped before storage:
-
-- continuous thinking fragments become thought blocks
-- one tool call becomes one execution block
-- continuous text output becomes one text block
-- human interventions become highlighted standalone blocks
-
-This lets the UI render a clear trace without guessing after the fact.
-
-### 9.7 Invocation State
-
-ExecutionSession should use its own states:
-
-- `bootstrapping`
-- `invoking`
-- `streaming`
-- `paused`
-- `completed`
-- `failed`
-- `aborted`
-
-Dispatch state and invocation state should not share the same field.
-
-Why:
-
-- dispatch state describes queue and runtime assignment
-- invocation state describes live session execution
-
-### 9.8 How Human Intervention Enters the Invocation Path
-
-There are three main classes of human action:
-
-1. add instructions and continue
-2. pause and wait
-3. terminate the run
-
-The handling order must be fixed:
-
-1. write the Intervention record
-2. write the ExecutionEvent
-3. send the control command to the runtime
-
-This keeps replay history trustworthy.
-
-### 9.9 Invocation Failure Categories
-
-Invocation failures should at least distinguish:
-
-- session creation failure
-- prompt send failure
-- message stream interruption
-- runtime timeout
-- runtime-initiated abort
-- provider configuration error
-
-Each failure should keep:
-
-- failureType
-- retryable
-- summary
-- rawPayload
-
-### 9.10 Invocation Recovery
-
-Recovery happens at two levels:
-
-1. internal platform recovery
-2. external runtime recovery
-
-If the OpenCode session is still resumable, continue it.
-
-If it is not resumable, the platform should still recover by:
-
-- rebuilding a short checkpoint from prior events
-- creating a fresh external session
-- continuing from there
-
-That is why the platform session must be independent from the runtime session.
-
-### 9.11 How the Harness Lands in the Invocation Path
-
-The harness cannot remain an abstract idea in the invocation layer. It must be applied at specific execution points.
-
-At minimum, it needs to land in these four places:
-
-1. Prompt constraints
-   - systemInstruction
-   - context boundary
-   - output format expectations
-2. Tool constraints
-   - allowedTools
-   - blockedTools
-   - approvalRequiredTools
-3. Budget constraints
-   - maxRuntimeMs
-   - maxSteps
-   - maxToolCalls
-4. Human gates
-   - which actions must stop for a human
-   - which actions may continue automatically
-
-That is how the harness becomes a real execution control plane instead of a design note.
-
-## 10. Database Design
-
-This section does not list every field, but it makes the key tables explicit.
-
-### 10.1 Table List
-
-- `team_spaces`
-- `task_definitions`
-- `task_triggers`
-- `dispatch_tickets`
-- `task_runs`
-- `execution_sessions`
-- `execution_events`
-- `runtime_endpoints`
-- `runtime_leases`
-- `schedule_rules`
-- `interventions`
-- `provider_connections`
-- `harness_profiles`
-- `repository_profiles`
-- `agent_profiles`
-- `developer_profiles`
-- `webhook_endpoints`
-
-### 10.2 Most Important Indexes
-
-- `schedule_rules(next_run_at, is_paused)`
-- `dispatch_tickets(dispatch_state, next_attempt_at, priority_score)`
-- `execution_events(session_id, seq)`
-- `runtime_endpoints(team_space_id, health_status)`
-- `task_runs(team_space_id, started_at desc)`
-
-### 10.3 Why execution_events Must Be a Separate Table
-
-Trace data grows quickly.
-
-If trace data is stored as one large JSON blob on `task_runs` or `execution_sessions`, it becomes hard to support:
-
-- pagination
-- folding
-- partial loading
-- realtime updates
-
-### 10.4 Why harness_profiles Should Also Be Persisted
-
-Keeping only a harness template on TaskDefinition is not enough.
-
-The platform should also persist the effective harness version used by a run, for three reasons:
-
-1. auditability
-2. replayability
-3. comparison across different policy versions
-
-## 11. API Design
-
-### 11.1 Query APIs
-
-- `teamSpaces.list`
-- `tasks.list`
-- `runs.list`
-- `runs.detail`
-- `runtimes.list`
-- `wallboard.summary`
-- `providers.list`
-- `webhooks.list`
-
-### 11.2 Command APIs
-
-- `tasks.trigger`
-- `tasks.pause`
-- `tasks.resume`
-- `tasks.cancel`
-- `runtimes.discover`
-- `harness.preview`
-- `schedules.save`
-- `providers.save`
-- `webhooks.save`
-
-### 11.3 SSE API
-
-- `GET /api/runs/:id/stream`
-
-This endpoint pushes incremental trace updates to the run detail page.
-
-## 12. Screen Design
-
-### 12.1 Overall Layout
-
-- left sidebar
-- top team switcher and search
-- main workspace
-- optional right-side detail panel
-
-### 12.2 Left Sidebar
-
-Suggested items:
+The first version should include:
 
 - Overview
-- Team Spaces
-- Tasks
-- Schedules
-- Runs
+- Worlds
+- Kingdoms
+- AgentTeams
+- Quests
+- Tavern
+- Contracts
 - Runtimes
-- Agents
-- Developers
-- Repositories
-- Webhooks
-- Wallboard
 - Harness
+- Wallboard
 - Settings
 
-### 12.3 Task Page
+### 15.2 Core Pages
 
-The task page should show:
+| Page | Responsibility |
+| --- | --- |
+| Overview | high-level system status, cost, success rate, pending Quest work |
+| World Detail | quota, model whitelist, global governance |
+| Kingdom Detail | team budget, tool refs, private task view |
+| Quest List | filterable job list |
+| Quest Detail | DAG, trace, intervention, and artifacts |
+| Tavern | browse and recruit AgentTeams |
+| Contract Center | inspect permissions, SLA, and cost rules |
+| Runtime Center | discover OpenCode runtimes and show health |
+| Harness Center | inspect and preview constraints |
+| Wallboard | big-screen view for active agents, developers, repositories, and Quest health |
 
-- task definitions
-- recent runs
-- current status
-- trigger mode
-- next scheduled run
+### 15.3 Webhooks
 
-### 12.4 Run Detail Page
+The monolith exposes webhook endpoints directly:
 
-This is one of the most important pages.
+- configurable path
+- configurable method
+- configurable request schema
+- configurable target AgentTeam
 
-It must show:
+After ingestion, a webhook becomes a Quest. It does not bypass the internal execution model.
 
-- current status
-- owning team space
-- selected runtime
-- dispatch state
-- invocation state
-- thinking
-- execution
-- text output
-- human actions
-- current HarnessProfile summary
-- current allowed tools
-- current budget consumption
+## 16. Security and Isolation
 
-### 12.5 Wallboard
+### 16.1 Isolation Model
 
-The wallboard should show:
+| Level | First-version implementation |
+| --- | --- |
+| World | tenant field isolation, with a future path to per-World SQLite files |
+| Kingdom | namespace, budget, and tool-ref isolation |
+| Agent | memory scope, tool scope, and harness scope |
+| Contract | API-level scope isolation |
 
-- current running count
-- daily success rate
-- upcoming schedules
-- runtime health
-- active agents
-- active developers
-- active repositories
+### 16.2 Tool Safety
 
-## 13. Webhook Design
+The first version does not promise a full OS sandbox. It does promise:
 
-The webhook layer should not execute business logic directly. It should convert external events into a standard `TaskTrigger`.
+- allowlisted tool adapters
+- cwd allowlists
+- schema validation for arguments
+- network allowlists
+- human approval for high-risk actions
+- audit logs for every tool execution
 
-Flow:
+### 16.3 Risk Controls
 
-1. verify signature or secret
-2. validate request schema
-3. transform input
-4. create TaskTrigger
-5. hand off to the scheduler
+- prompt scan
+- output scan
+- PII redaction
+- cost threshold blocking
+- repeated-failure circuit breaking
 
-This prevents webhooks from becoming a special bypass path in the system.
+## 17. Observability and Cost
 
-## 14. Provider Configuration Design
+### 17.1 Metrics
 
-Each team space can configure its own OpenAI-style endpoints.
+At minimum the platform should track:
 
-Fields:
+- World cost
+- Kingdom cost
+- Team cost
+- Agent success rate
+- Quest latency
+- node retry count
+- human intervention count
 
-- name
-- baseUrl
-- apiKey
-- defaultModel
-- modelsJson
+### 17.2 Cost Settlement
 
-Security requirements:
+Quest cost should be broken into at least:
 
-- encrypt apiKey before storing it in SQLite
-- never return it back to the browser after save
-- only the server can decrypt and use it
+- model token cost
+- tool execution cost
+- platform fee
+- contract revenue share
 
-## 15. Security and Failure Handling
+## 18. Installation and Deployment
 
-### 15.1 Security Requirements
-
-- provider keys must never be sent back to the browser
-- webhook secrets must not be returned in plaintext
-- human interventions must be recorded
-- cancel, approve, resume, and reject actions must all become events
-- harness rule changes must be versioned
-
-### 15.2 Common Failure Cases
-
-- runtime offline
-- OpenCode session creation fails
-- provider unavailable
-- SSE disconnects
-- SQLite blocked by long transactions
-- tool calls exceed the active harness budget
-- runtime output violates active harness constraints
-
-### 15.3 Handling Strategy
-
-- runtime offline: return work to scheduling or fail it clearly
-- provider unavailable: fail fast
-- SSE disconnect: reconnect and replay by sequence number
-- SQLite long transactions: keep writes short and event batches controlled
-- harness budget exceeded: pause or fail immediately
-- harness violation: emit audit event and stop progression
-
-## 16. Installation and Deployment
-
-### 16.1 Local Install Goal
-
-The install path should stay very simple:
+### 18.1 Local Startup
 
 1. `pnpm install`
 2. `pnpm bootstrap`
 3. `pnpm dev`
 
-### 16.2 What pnpm bootstrap Should Do
+### 18.2 Production Deployment
 
-- copy `.env.example` into `.env.local`
-- create a local encryption master key
-- initialize SQLite
-- run migrations
-- insert demo data
+The first version is just one Node service:
 
-## 17. 4+1 Views and Key Diagrams
+- one Next.js process
+- one SQLite file
+- one artifacts directory
 
-The diagrams are embedded directly in this document so readers do not need to jump between files.
+If the system grows, the first step is to place the SQLite file and artifact directory on stable storage before splitting modules.
 
-### 17.1 Logical View
+## 19. MVP Development Order
+
+### Phase 1
+
+- World and Kingdom
+- AgentTeam and Agent
+- Quest base lifecycle
+- Harness constraints
+- single-node execution
+- trace pages
+
+### Phase 2
+
+- captain planning
+- DAG execution
+- Tavern
+- Contracts
+- Wallboard
+
+### Phase 3
+
+- cost accounting
+- stronger tool isolation
+- per-World data files
+- richer memory retrieval
+
+## 20. 4+1 Views and Key Diagrams
+
+The diagrams are embedded directly in this document.
+
+### 20.1 Logical View
 
 ```plantuml
 @startuml
-title AgentHelix Logical View
+title AgentWorld Logical View
 
-entity TeamSpace {
-  *id : string
-  --
-  name : string
-}
+entity World
+entity Kingdom
+entity AgentTeam
+entity Agent
+entity TavernListing
+entity Contract
+entity Quest
+entity QuestPlan
+entity QuestNode
+entity HarnessProfile
+entity RuntimeEndpoint
+entity ProviderProfile
 
-entity TaskDefinition {
-  *id : string
-  --
-  triggerMode : string
-  runtimePolicy : string
-}
-
-entity TaskTrigger {
-  *id : string
-  --
-  triggerType : string
-}
-
-entity DispatchTicket {
-  *id : string
-  --
-  dispatchState : string
-  priorityScore : number
-}
-
-entity TaskRun {
-  *id : string
-  --
-  status : string
-}
-
-entity ExecutionSession {
-  *id : string
-  --
-  externalSessionId : string
-  sessionState : string
-}
-
-entity ExecutionEvent {
-  *id : string
-  --
-  seq : number
-  eventType : string
-}
-
-entity RuntimeEndpoint {
-  *id : string
-  --
-  healthStatus : string
-}
-
-entity RuntimeLease {
-  *id : string
-  --
-  leaseExpiresAt : datetime
-}
-
-entity ScheduleRule {
-  *id : string
-  --
-  cronExpr : string
-  nextRunAt : datetime
-}
-
-entity Intervention {
-  *id : string
-  --
-  actionType : string
-}
-
-entity ProviderConnection {
-  *id : string
-  --
-  baseUrl : string
-}
-
-entity HarnessProfile {
-  *id : string
-  --
-  toolPolicyJson : json
-  budgetPolicyJson : json
-}
-
-entity RepositoryProfile {
-  *id : string
-  --
-  name : string
-}
-
-entity AgentProfile {
-  *id : string
-  --
-  name : string
-}
-
-entity DeveloperProfile {
-  *id : string
-  --
-  name : string
-}
-
-TeamSpace ||--o{ TaskDefinition
-TeamSpace ||--o{ RuntimeEndpoint
-TeamSpace ||--o{ ProviderConnection
-TeamSpace ||--o{ HarnessProfile
-TeamSpace ||--o{ RepositoryProfile
-TeamSpace ||--o{ AgentProfile
-TeamSpace ||--o{ DeveloperProfile
-TaskDefinition ||--o{ ScheduleRule
-TaskDefinition ||--o{ TaskTrigger
-TaskTrigger ||--|| DispatchTicket
-DispatchTicket ||--|| TaskRun
-TaskRun ||--|| ExecutionSession
-ExecutionSession ||--o{ ExecutionEvent
-ExecutionSession ||--o{ Intervention
-ExecutionSession }o--|| HarnessProfile
-RuntimeEndpoint ||--o{ RuntimeLease
-TaskRun }o--|| RuntimeEndpoint
-TaskRun }o--o| AgentProfile
-TaskRun }o--o| DeveloperProfile
-TaskRun }o--o| RepositoryProfile
+World ||--o{ Kingdom
+Kingdom ||--o{ AgentTeam
+AgentTeam ||--o{ Agent
+AgentTeam ||--o{ TavernListing
+AgentTeam ||--o{ Quest
+Quest ||--|| QuestPlan
+Quest ||--o{ QuestNode
+Kingdom ||--o{ Contract
+AgentTeam ||--o{ Contract
+World ||--o{ HarnessProfile
+Kingdom ||--o{ HarnessProfile
+AgentTeam ||--o{ HarnessProfile
+World ||--o{ RuntimeEndpoint
+World ||--o{ ProviderProfile
 
 @enduml
 ```
 
-### 17.2 Process View
+### 20.2 Process View
 
 ```plantuml
 @startuml
-title AgentHelix Process View
+title AgentWorld Process View
 
-actor Operator
-participant "UI" as UI
-participant "Task Service" as TaskService
-participant "Scheduling Core" as Scheduler
+actor User
+participant "UI / API" as API
+participant "scheduler-core" as Scheduler
+participant "planner-core" as Planner
+participant "executor-core" as Executor
+participant "invocation-core" as Invocation
+participant "harness-core" as Harness
+participant "provider-core" as Provider
 database "SQLite" as DB
-participant "Runtime Discovery" as Discovery
-participant "Harness Resolver" as Harness
-participant "Invocation Core" as Invocation
-participant "OpenCode Adapter" as Adapter
-participant "Trace Stream" as Stream
 
-Operator -> UI : launch task or configure schedule
-UI -> TaskService : create trigger
-TaskService -> DB : insert TaskTrigger
-TaskService -> Scheduler : notify trigger ready
-Scheduler -> DB : normalize and create DispatchTicket
-Scheduler -> Discovery : resolve runtime candidates
-Discovery -> Adapter : health and catalog discovery
-Adapter --> Discovery : runtime metadata
-Discovery --> Scheduler : ranked candidates
-Scheduler -> Harness : merge effective harness constraints
-Harness --> Scheduler : resolved HarnessProfile
-Scheduler -> DB : acquire runtime lease and create TaskRun
-Scheduler -> Invocation : start with InvocationPlan
-Invocation -> DB : create ExecutionSession and initial events
-Invocation -> Adapter : create external session and send prompt
-loop execution
-  Invocation -> Adapter : poll messages
-  Adapter --> Invocation : thinking, tool, text messages
-  Invocation -> DB : append canonical ExecutionEvents
-  Invocation -> Stream : publish event update
-  Stream --> UI : live trace
-end
-Operator -> UI : intervene
-UI -> Invocation : pause or append instruction
-Invocation -> DB : append Intervention and state events
-Invocation -> Adapter : abort or continue
-Adapter --> Invocation : ack
-Invocation -> DB : update session and run state
+User -> API : submit quest
+API -> DB : create Quest(Submitted)
+Scheduler -> DB : claim submitted quest
+Scheduler -> Planner : build plan
+Planner -> DB : write QuestPlan + QuestNodes
+Executor -> DB : pick ready node
+Executor -> Harness : resolve harness
+Harness -> Invocation : invocation envelope
+Invocation -> Provider : call model / tool
+Invocation -> DB : write event log + spans
+Executor -> DB : update node and quest state
 
 @enduml
 ```
 
-### 17.3 Development View
+### 20.3 Development View
 
 ```plantuml
 @startuml
-title AgentHelix Development View
+title AgentWorld Development View
 
-package "apps/web" {
-  [app]
-  [components]
-  [features]
+package "src/app" {
+  [pages]
+  [route handlers]
 }
 
 package "src/server" {
-  [trpc]
-  [application]
-  [dispatch-core]
-  [harness-core]
+  [tenant-core]
+  [registry-core]
+  [contract-core]
+  [scheduler-core]
+  [planner-core]
+  [executor-core]
   [invocation-core]
-  [runtime-discovery]
-  [projections]
-  [security]
+  [harness-core]
+  [memory-core]
+  [trace-core]
+  [provider-core]
+  [runtime-core]
 }
 
 package "src/db" {
   [schema]
-  [repositories]
-  [db-client]
   [seed]
+  [queries]
 }
 
-package "src/opencode" {
-  [adapter]
-  [client-factory]
-  [message-normalizer]
-}
-
-package "src/lib" {
-  [events]
-  [env]
-  [crypto]
-  [validators]
-}
-
-[app] --> [features]
-[features] --> [trpc]
-[components] --> [features]
-[trpc] --> [application]
-[application] --> [dispatch-core]
-[application] --> [harness-core]
-[application] --> [invocation-core]
-[application] --> [runtime-discovery]
-[application] --> [projections]
-[dispatch-core] --> [repositories]
-[harness-core] --> [repositories]
-[invocation-core] --> [repositories]
-[runtime-discovery] --> [adapter]
-[invocation-core] --> [adapter]
-[adapter] --> [client-factory]
-[adapter] --> [message-normalizer]
-[repositories] --> [schema]
-[repositories] --> [db-client]
-[application] --> [security]
-[security] --> [crypto]
-[trpc] --> [validators]
-[seed] --> [db-client]
+[pages] --> [route handlers]
+[route handlers] --> [tenant-core]
+[route handlers] --> [registry-core]
+[route handlers] --> [scheduler-core]
+[scheduler-core] --> [planner-core]
+[executor-core] --> [invocation-core]
+[invocation-core] --> [harness-core]
+[invocation-core] --> [provider-core]
+[memory-core] --> [schema]
+[trace-core] --> [schema]
 
 @enduml
 ```
 
-### 17.4 Physical View
+### 20.4 Physical View
 
 ```plantuml
 @startuml
-title AgentHelix Physical View
+title AgentWorld Physical View
 
-node "Developer Machine" {
-  node "Browser" {
-    component "AgentHelix UI"
-  }
-
-  node "Node.js Process" {
-    component "Next.js Server"
-    component "Scheduling Core"
-    component "Invocation Core"
-    component "SSE Trace Stream"
-  }
-
-  database "SQLite\nagenthelix.db"
-  folder "Artifacts"
-  folder "Cache"
+node "Single Node Deployment" {
+  component "Next.js Monolith"
+  database "SQLite\nagentworld.db"
+  folder "Artifacts\n./data/artifacts"
 }
 
-cloud "External Endpoints" {
-  node "OpenCode Runtime"
-  node "OpenAI-Style Provider"
-  node "Repository Webhook Source"
+cloud "External Providers" {
+  component "OpenAI-Compatible APIs"
+  component "OpenCode Runtime"
+  component "Webhook Sources"
 }
 
-"AgentHelix UI" --> "Next.js Server"
-"Next.js Server" --> "SQLite\nagenthelix.db"
-"Scheduling Core" --> "SQLite\nagenthelix.db"
-"Invocation Core" --> "SQLite\nagenthelix.db"
-"Invocation Core" --> "Artifacts"
-"Invocation Core" --> "Cache"
-"Invocation Core" --> "OpenCode Runtime"
-"Next.js Server" --> "OpenAI-Style Provider"
-"Repository Webhook Source" --> "Next.js Server"
+"Next.js Monolith" --> "SQLite\nagentworld.db"
+"Next.js Monolith" --> "Artifacts\n./data/artifacts"
+"Next.js Monolith" --> "OpenAI-Compatible APIs"
+"Next.js Monolith" --> "OpenCode Runtime"
+"Webhook Sources" --> "Next.js Monolith"
 
 @enduml
 ```
 
-### 17.5 Scenario View
+### 20.5 Scenario View
 
 ```plantuml
 @startuml
-title AgentHelix Scenario View - Scheduled Task With Intervention
+title AgentWorld Scenario View - Cross Kingdom Quest
 
 actor Operator
-participant "Schedule Dispatcher" as Dispatcher
-participant "Scheduling Core" as Scheduler
-participant "Runtime Discovery" as Discovery
-participant "Harness Resolver" as Harness
-participant "Invocation Core" as Invocation
-participant "OpenCode Adapter" as Adapter
+participant "Kingdom A UI" as A
+participant "contract-core" as ContractCore
+participant "scheduler-core" as Scheduler
+participant "planner-core" as Planner
+participant "executor-core" as Executor
+participant "AgentTeam B" as TeamB
+participant "Watcher / Human Gate" as Watcher
 database "SQLite" as DB
-participant "Trace UI" as TraceUI
 
-Dispatcher -> DB : load due schedules
-DB --> Dispatcher : due rule
-Dispatcher -> Scheduler : create TaskTrigger
-Scheduler -> DB : create DispatchTicket
-Scheduler -> Discovery : rank candidate runtimes
-Discovery -> Adapter : health() and app.agents()
-Adapter --> Discovery : runtime metadata
-Scheduler -> Harness : resolve effective harness
-Harness --> Scheduler : harness profile
-Scheduler -> DB : lease runtime and create TaskRun
-Scheduler -> Invocation : hand over InvocationPlan
-Invocation -> Adapter : create session and prompt
-loop running
-  Invocation -> Adapter : poll messages
-  Adapter --> Invocation : thinking and execution output
-  Invocation -> DB : append canonical events
-  Invocation -> TraceUI : live updates
-end
-Operator -> TraceUI : pause and add instruction
-TraceUI -> Invocation : intervene
-Invocation -> DB : append Intervention
-Invocation -> Adapter : abort or continue
-Invocation -> DB : session state update
-Invocation -> TraceUI : refreshed state
+Operator -> A : submit quest
+A -> ContractCore : validate contract
+ContractCore -> DB : freeze budget + verify scope
+A -> DB : create Quest
+Scheduler -> Planner : generate DAG
+Planner -> DB : persist plan
+Executor -> TeamB : invoke node
+TeamB -> DB : write spans and events
+TeamB -> Watcher : approval required
+Watcher -> DB : record approval
+Executor -> DB : finalize quest
 
 @enduml
 ```
 
-### 17.6 Dispatch State Machine
+### 20.6 Quest State Machine
 
 ```plantuml
 @startuml
-title AgentHelix Dispatch State Machine
+title AgentWorld Quest State Machine
 
-[*] --> pending
-pending --> queued : normalized
-queued --> leasing : runtime selection starts
-leasing --> dispatching : lease acquired
-leasing --> queued : lease failed
-dispatching --> running : invocation started
-dispatching --> retry_wait : start failed and retryable
-dispatching --> failed : start failed and terminal
-running --> waiting_human : intervention pause
-running --> completed : session completed
-running --> retry_wait : transient failure
-running --> failed : terminal failure
-waiting_human --> queued : resume
-waiting_human --> cancelled : cancelled by human
-retry_wait --> queued : backoff expired
-cancelled --> [*]
-completed --> [*]
-failed --> [*]
+[*] --> Draft
+Draft --> Submitted
+Submitted --> Validating
+Validating --> Planning
+Validating --> Failed
+Planning --> Running
+Planning --> Failed
+Running --> Awaiting
+Running --> Completed
+Running --> Failed
+Awaiting --> Running
+Awaiting --> Cancelled
+Running --> Cancelled
+Failed --> [*]
+Completed --> [*]
+Cancelled --> [*]
 
 @enduml
 ```
 
-### 17.7 Invocation Sequence
+### 20.7 Agent Invocation Sequence
 
 ```plantuml
 @startuml
-title AgentHelix Invocation Sequence
+title AgentWorld Invocation Sequence
 
-participant "Scheduling Core" as Scheduler
-participant "Harness Core" as Harness
-participant "Invocation Core" as Invocation
-participant "OpenCode Adapter" as Adapter
-database "SQLite" as DB
-participant "SSE Stream" as SSE
-participant "Run Detail UI" as UI
+participant "executor-core" as Executor
+participant "harness-core" as Harness
+participant "memory-core" as Memory
+participant "provider-core" as Provider
+participant "tool adapters" as Tools
+participant "trace-core" as Trace
 
-Scheduler -> Harness : resolveHarness()
-Harness --> Scheduler : HarnessProfile
-Scheduler -> Invocation : start(InvocationPlan)
-Invocation -> DB : create ExecutionSession
-Invocation -> Adapter : startSession()
-Adapter --> Invocation : externalSessionId
-Invocation -> Adapter : sendPrompt()
-loop until terminal
-  Invocation -> Adapter : pollMessages()
-  Adapter --> Invocation : runtime messages
-  Invocation -> Invocation : normalize messages
-  Invocation -> DB : append ExecutionEvents
-  Invocation -> SSE : publish delta
-  SSE --> UI : live folded trace updates
-end
-UI -> Invocation : intervene(action)
-Invocation -> DB : append Intervention event
-Invocation -> Adapter : abortSession() or resumeSession()
-Adapter --> Invocation : ack
-Invocation -> DB : update session state
+Executor -> Harness : resolve(node, quest, team, agent, contract)
+Harness -> Memory : resolve visible memory scopes
+Harness --> Executor : invocation envelope
+Executor -> Trace : open span
+Executor -> Provider : start model stream
+Provider --> Trace : text_delta / thinking
+Provider -> Tools : tool call if allowed
+Tools --> Trace : tool_result
+Provider --> Trace : output events
+Trace --> Executor : approval_required if gate hit
+Executor --> Trace : finalize node state
 
 @enduml
 ```
 
-## 18. Implementation Order
+## 21. Conclusion
 
-Recommended order:
+The key to AgentWorld is not having many nouns. It is making this chain explicit and reliable:
 
-1. build the SQLite schema and base entities first
-2. implement the scheduling core
-3. implement the OpenCode invocation core
-4. implement the trace UI
-5. finish intervention, webhook, and wallboard
+Quest submission
+-> permission and budget validation
+-> DAG planning
+-> node scheduling
+-> agent invocation
+-> harness-constrained execution
+-> full trace, cost, and human intervention recording
 
-This order works because:
-
-- scheduling and invocation are the actual foundation
-- the UI can build on stable state and data
-- later features do not need to keep rewriting the base structure
-
-## 19. Summary
-
-If there is one thing to remember from this design, it is this:
-
-when work arrives, do not call the agent immediately; make scheduling state clear first, then make the invocation path clear.
-
-That is what allows AgentHelix to stay:
-
-- easy to install
-- easy to understand
-- easy to debug
-- easy to collaborate with
-- easy to extend
-
-## 20. Harness Design References
-
-This version of the design is especially informed by a few harness engineering ideas:
-
-- session, harness, and runtime should be decoupled
-- tool usage must be explicitly constrained
-- external configuration should not float outside runtime control
-- internal budgets and approval points must be hard rules
-
-For AgentHelix, that leads to three concrete conclusions:
-
-- the harness must be a platform object
-- the harness must participate in both scheduling and invocation
-- the harness must be recordable, auditable, and replayable
+If that chain is solid, AgentWorld is no longer a chat demo. It becomes a real agent operating system that teams can run.
