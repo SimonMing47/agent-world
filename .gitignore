@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.local
+.env.*.local
+node_modules
+.next
+dist
+coverage
+out
+*.log
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.turbo
+.pnpm-store
+playwright-report
+test-results
