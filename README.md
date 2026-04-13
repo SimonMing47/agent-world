@@ -33,7 +33,8 @@ AgentHelix 就是为这些问题设计的。
 ## Docs
 
 - 文档入口 / Documentation Index: [docs/README.md](/Users/mac/projects/未命名文件夹/docs/README.md)
-- 详细设计 / Detailed Design: [docs/detailed-design.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.md)
+- 中文详细设计 / Chinese Detailed Design: [docs/detailed-design.zh-CN.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
+- English Detailed Design: [docs/detailed-design.en.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
 
 ## Current Build Plan
 

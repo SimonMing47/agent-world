@@ -2,26 +2,30 @@
 
 ## 中文
 
-这个目录现在只保留一篇主设计文档：
+这个目录现在保留两篇主设计文档：
 
-- [详细设计文档](/Users/mac/projects/未命名文件夹/docs/detailed-design.md)
+- [中文详细设计](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
+- [English detailed design](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
 
-这篇文档里已经包含：
+两篇文档都包含：
 
-- 中英双语说明
+- 完整详细设计
+- 内嵌 PlantUML 图
 - 4+1 视图
 - 调度状态机
 - 调用时序图
 
 ## English
 
-This directory now keeps one primary design document:
+This directory now keeps two primary design documents:
 
-- [Detailed design document](/Users/mac/projects/未命名文件夹/docs/detailed-design.md)
+- [Chinese detailed design](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
+- [English detailed design](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
 
-That document already includes:
+Both documents include:
 
-- bilingual explanation
+- full detailed design
+- embedded PlantUML diagrams
 - 4+1 views
 - dispatch state machine
 - invocation sequence
