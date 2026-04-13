@@ -36,6 +36,16 @@ AgentHelix 就是为这些问题设计的。
 - 中文详细设计 / Chinese Detailed Design: [docs/detailed-design.zh-CN.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
 - English Detailed Design: [docs/detailed-design.en.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
 
+## Quick Start
+
+1. `pnpm install`
+2. `pnpm bootstrap`
+3. `pnpm dev`
+
+默认会创建本地 `.env.local` 和嵌入式 SQLite 数据库，适合直接起一个可演示的单机版本。
+
+By default, AgentHelix creates a local `.env.local` file and an embedded SQLite database so you can get a working single-node install quickly.
+
 ## Current Build Plan
 
 1. 完成仓库初始化

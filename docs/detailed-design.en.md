@@ -993,10 +993,10 @@ Security requirements:
 The install path should stay very simple:
 
 1. `pnpm install`
-2. `pnpm setup`
+2. `pnpm bootstrap`
 3. `pnpm dev`
 
-### 16.2 What pnpm setup Should Do
+### 16.2 What pnpm bootstrap Should Do
 
 - copy `.env.example` into `.env.local`
 - create a local encryption master key

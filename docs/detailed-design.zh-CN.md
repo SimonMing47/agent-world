@@ -991,10 +991,10 @@ Webhook 的作用不是直接执行业务逻辑，而是把外部事件变成统
 用户希望尽量简单，所以安装流程建议是：
 
 1. `pnpm install`
-2. `pnpm setup`
+2. `pnpm bootstrap`
 3. `pnpm dev`
 
-### 16.2 pnpm setup 要做什么
+### 16.2 pnpm bootstrap 要做什么
 
 - 复制 `.env.example` 到 `.env.local`
 - 生成本地加密 master key
