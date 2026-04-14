@@ -1,4 +1,5 @@
 import { addMinutes } from "date-fns";
+import { randomUUID } from "node:crypto";
 import {
   execute,
   queryAll,
@@ -22,9 +23,13 @@ import {
   type WebhookEndpoint,
   type World,
 } from "@/server/db";
-import { buildContractSummary } from "@/server/contract-core";
+import { buildContractSummary, evaluateContractAccess } from "@/server/contract-core";
 import { buildExecutionBoard, summarizeNodeState } from "@/server/executor-core";
-import { buildHarnessSummary } from "@/server/harness-core";
+import {
+  buildHarnessSummary,
+  composeHarnessProfile,
+  evaluateHarnessToolPolicy,
+} from "@/server/harness-core";
 import { buildInvocationPlan } from "@/server/invocation-core";
 import { discoverConfiguredRuntimes } from "@/server/opencode-adapter";
 import { buildQuestPriorityAssessment, listDueSchedules, listScheduleAssessments } from "@/server/scheduler-core";
@@ -159,6 +164,10 @@ export function getQuestDetail(questId: string) {
     executionBoard: buildExecutionBoard(nodes),
     interventions,
     groupedEvents: groupEventsByFoldGroup(events),
+    executionInsights: getQuestExecutionBoard(quest.id),
+    dependencyGraph: getQuestDependencyGraph(quest.id),
+    costBreakdown: getQuestCostBreakdown(quest.id),
+    policyHits: getQuestPolicyHits(quest.id),
     harness: teamHarness ? buildHarnessSummary(teamHarness) : null,
     invocationStages:
       world && kingdom && team && featuredAgent && teamHarness
@@ -325,6 +334,685 @@ export function getWallboardSnapshot() {
     topDevelopers: developers.slice(0, 3),
     kingdoms: kingdoms.map((kingdom) => buildKingdomSummary(kingdom)),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
+  };
+}
+
+type QuestNodeSpec = {
+  nodeKey: string;
+  agentId: string;
+  dependsOn?: string[];
+  input?: Record<string, unknown>;
+};
+
+type SubmitQuestInput = {
+  teamId: string;
+  sourceType: Quest["sourceType"];
+  sourceRef?: string | null;
+  requestedBy: string;
+  priority?: number;
+  contractId?: string | null;
+  plannerMode?: string;
+  summary?: string;
+  inputPayload: Record<string, unknown>;
+  nodes?: QuestNodeSpec[];
+};
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function getQuestNodes(questId: string) {
+  return queryAll<QuestNode>("SELECT * FROM quest_nodes WHERE quest_id = ? ORDER BY node_key ASC", questId);
+}
+
+function getNextEventSeq(questId: string) {
+  const row = queryOne<{ maxSeq: number | null }>("SELECT MAX(seq) as max_seq FROM event_logs WHERE quest_id = ?", questId);
+  return (row?.maxSeq ?? 0) + 1;
+}
+
+function appendQuestEvent(args: {
+  traceId: string;
+  questId: string;
+  nodeId?: string | null;
+  phase: string;
+  foldGroup: string;
+  title: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}) {
+  execute(
+    "INSERT INTO event_logs (id, trace_id, quest_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(),
+    args.traceId,
+    args.questId,
+    args.nodeId ?? null,
+    getNextEventSeq(args.questId),
+    args.phase,
+    args.foldGroup,
+    args.title,
+    args.content,
+    JSON.stringify(args.metadata ?? {}),
+    nowIso(),
+  );
+}
+
+function synthesizeTeamNodes(team: AgentTeam) {
+  const teamAgents = listAgents().filter((agent) => agent.teamId === team.id);
+  const captain = team.captainAgentId
+    ? teamAgents.find((agent) => agent.id === team.captainAgentId) ?? null
+    : null;
+  const specialist = teamAgents.find((agent) => agent.role.toLowerCase().includes("special")) ?? teamAgents[0] ?? null;
+  const reviewer = teamAgents.find((agent) => agent.role.toLowerCase().includes("review")) ?? teamAgents[teamAgents.length - 1] ?? null;
+
+  if (!captain && !specialist && !reviewer) return [];
+
+  if (team.workflowType === "single") {
+    const singleAgent = captain ?? specialist ?? reviewer;
+    if (!singleAgent) return [];
+    return [
+      {
+        nodeKey: "single",
+        agentId: singleAgent.id,
+        dependsOn: [],
+        input: { action: "analyze", tool: "memory.read" },
+      },
+    ] satisfies QuestNodeSpec[];
+  }
+
+  const defaultCaptain = captain ?? specialist ?? reviewer;
+  const defaultSpecialist = specialist ?? captain ?? reviewer;
+  const defaultReviewer = reviewer ?? captain ?? specialist;
+  if (!defaultCaptain || !defaultSpecialist || !defaultReviewer) return [];
+
+  return [
+    {
+      nodeKey: "plan",
+      agentId: defaultCaptain.id,
+      dependsOn: [],
+      input: { action: "plan", tool: "memory.read" },
+    },
+    {
+      nodeKey: "execute",
+      agentId: defaultSpecialist.id,
+      dependsOn: ["plan"],
+      input: { action: "execute", tool: "repo.read" },
+    },
+    {
+      nodeKey: "review",
+      agentId: defaultReviewer.id,
+      dependsOn: ["execute"],
+      input: { action: "review", tool: "repo.write" },
+    },
+  ] satisfies QuestNodeSpec[];
+}
+
+function loadComposedHarnessForQuest(quest: Quest) {
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
+  const profiles = listHarnessProfiles();
+  if (!team) return null;
+
+  return composeHarnessProfile({
+    profiles,
+    worldId: quest.worldId,
+    kingdomId: quest.kingdomId,
+    teamId: team.id,
+  });
+}
+
+function resolveQuestStatusFromNodes(nodes: QuestNode[]) {
+  if (nodes.every((node) => node.status === "completed")) return "completed";
+  if (nodes.some((node) => node.status === "awaiting")) return "awaiting";
+  if (nodes.some((node) => node.status === "failed")) return "failed";
+  if (nodes.some((node) => node.status === "running")) return "running";
+  return "running";
+}
+
+function classifyFailure(args: {
+  reason: string;
+  policyViolation?: boolean;
+  contractViolation?: boolean;
+  timeout?: boolean;
+}) {
+  if (args.policyViolation) return "policy_violation";
+  if (args.contractViolation) return "contract_violation";
+  if (args.timeout) return "timeout";
+  if (args.reason.toLowerCase().includes("budget")) return "budget_exceeded";
+  return "runtime_error";
+}
+
+export function submitQuest(input: SubmitQuestInput) {
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
+  if (!team) {
+    throw new Error("AgentTeam 不存在。");
+  }
+
+  const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE id = ?", team.kingdomId);
+  if (!kingdom) {
+    throw new Error("Kingdom 不存在。");
+  }
+
+  const world = queryOne<World>("SELECT * FROM worlds WHERE id = ?", kingdom.worldId);
+  if (!world) {
+    throw new Error("World 不存在。");
+  }
+
+  const questId = randomUUID();
+  const traceId = randomUUID();
+  const planId = randomUUID();
+  const createdAt = nowIso();
+  const nodeSpecs = input.nodes?.length ? input.nodes : synthesizeTeamNodes(team);
+  const dagNodes = nodeSpecs.map((node) => ({ id: node.nodeKey, agent: node.agentId }));
+  const dagEdges = nodeSpecs.flatMap((node) =>
+    (node.dependsOn ?? []).map((dependency) => [dependency, node.nodeKey]),
+  );
+
+  execute(
+    "INSERT INTO quests (id, world_id, kingdom_id, team_id, contract_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    questId,
+    world.id,
+    kingdom.id,
+    team.id,
+    input.contractId ?? null,
+    input.sourceType,
+    input.sourceRef ?? null,
+    "running",
+    input.priority ?? 50,
+    JSON.stringify(input.inputPayload),
+    null,
+    0,
+    0,
+    traceId,
+    input.requestedBy,
+    createdAt,
+    null,
+  );
+
+  execute(
+    "INSERT INTO quest_plans (id, quest_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    planId,
+    questId,
+    input.plannerMode ?? (team.workflowType === "dag" ? "captain_agent" : "rule"),
+    JSON.stringify({ nodes: dagNodes, edges: dagEdges }),
+    input.summary ?? "任务已提交并生成执行图。",
+    createdAt,
+  );
+
+  for (const node of nodeSpecs) {
+    execute(
+      "INSERT INTO quest_nodes (id, quest_id, plan_id, node_key, agent_id, depends_on_json, input_json, output_json, status, attempt_count, max_attempts, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      randomUUID(),
+      questId,
+      planId,
+      node.nodeKey,
+      node.agentId,
+      JSON.stringify(node.dependsOn ?? []),
+      JSON.stringify(node.input ?? {}),
+      null,
+      (node.dependsOn?.length ?? 0) > 0 ? "submitted" : "ready",
+      0,
+      3,
+      null,
+      null,
+    );
+  }
+
+  appendQuestEvent({
+    traceId,
+    questId,
+    phase: "planning",
+    foldGroup: "Planning",
+    title: "Quest submitted",
+    content: `Quest 已进入 ${team.name} 的执行队列。`,
+    metadata: {
+      workflowType: team.workflowType,
+      plannerMode: input.plannerMode ?? "rule",
+      nodeCount: nodeSpecs.length,
+    },
+  });
+
+  return getQuestDetail(questId);
+}
+
+export function executeQuestTick(questId: string, requestedBy = "system") {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+  if (!quest) throw new Error("Quest 不存在。");
+
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
+  const nodes = getQuestNodes(questId);
+  if (!team || nodes.length === 0) return getQuestDetail(questId);
+
+  const composedHarness = loadComposedHarnessForQuest(quest);
+  const contract = quest.contractId
+    ? queryOne<Contract>("SELECT * FROM contracts WHERE id = ?", quest.contractId)
+    : null;
+
+  for (const node of nodes) {
+    if (node.status !== "submitted") continue;
+    const dependencies = JSON.parse(node.dependsOnJson) as string[];
+    const dependencyNodes = nodes.filter((candidate) => dependencies.includes(candidate.nodeKey));
+    const ready = dependencyNodes.length === dependencies.length && dependencyNodes.every((candidate) => candidate.status === "completed");
+    if (ready) {
+      execute("UPDATE quest_nodes SET status = ? WHERE id = ?", "ready", node.id);
+      appendQuestEvent({
+        traceId: quest.traceId,
+        questId: quest.id,
+        nodeId: node.id,
+        phase: "planning",
+        foldGroup: "Planning",
+        title: "Node unlocked",
+        content: `节点 ${node.nodeKey} 依赖满足，进入可执行状态。`,
+      });
+    }
+  }
+
+  const refreshedNodes = getQuestNodes(questId);
+  const runnable = refreshedNodes.find((node) => node.status === "ready");
+  if (!runnable) {
+    execute("UPDATE quests SET status = ? WHERE id = ?", resolveQuestStatusFromNodes(refreshedNodes), quest.id);
+    return getQuestDetail(questId);
+  }
+
+  execute(
+    "UPDATE quest_nodes SET status = ?, started_at = ?, attempt_count = attempt_count + 1 WHERE id = ?",
+    "running",
+    nowIso(),
+    runnable.id,
+  );
+
+  appendQuestEvent({
+    traceId: quest.traceId,
+    questId: quest.id,
+    nodeId: runnable.id,
+    phase: "thinking",
+    foldGroup: "Analysis",
+    title: "Node started",
+    content: `节点 ${runnable.nodeKey} 开始执行，发起人：${requestedBy}。`,
+  });
+
+  const runtimeStartedAt = new Date();
+  const timeoutReached = runtimeStartedAt.getTime() - new Date(quest.createdAt).getTime() > team.timeoutMs;
+  const nodeInput = JSON.parse(runnable.inputJson) as { action?: string; tool?: string };
+  const action = nodeInput.action ?? "execute";
+  const tool = nodeInput.tool ?? "memory.read";
+
+  const contractDecision = evaluateContractAccess({
+    contract,
+    isCrossKingdomCall: Boolean(contract),
+    action,
+    tool,
+  });
+  if (!contractDecision.allowed) {
+    const failureClass = classifyFailure({
+      reason: contractDecision.reason,
+      contractViolation: true,
+    });
+    execute(
+      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "failed",
+      JSON.stringify({ failureClass, reason: contractDecision.reason }),
+      nowIso(),
+      runnable.id,
+    );
+    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
+    appendQuestEvent({
+      traceId: quest.traceId,
+      questId: quest.id,
+      nodeId: runnable.id,
+      phase: "contract_violation",
+      foldGroup: "Human Actions",
+      title: "Contract blocked",
+      content: contractDecision.reason,
+      metadata: { failureClass, violation: contractDecision.violation },
+    });
+    return getQuestDetail(questId);
+  }
+
+  const harnessDecision = composedHarness
+    ? evaluateHarnessToolPolicy(composedHarness.resolved, tool)
+    : {
+        allowed: true,
+        requiresApproval: false,
+        reason: "未配置 Harness，默认放行。",
+        policyHit: "allow" as const,
+      };
+
+  if (!harnessDecision.allowed) {
+    const failureClass = classifyFailure({
+      reason: harnessDecision.reason,
+      policyViolation: true,
+    });
+    execute(
+      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "failed",
+      JSON.stringify({ failureClass, reason: harnessDecision.reason }),
+      nowIso(),
+      runnable.id,
+    );
+    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
+    appendQuestEvent({
+      traceId: quest.traceId,
+      questId: quest.id,
+      nodeId: runnable.id,
+      phase: "policy_violation",
+      foldGroup: "Human Actions",
+      title: "Harness blocked",
+      content: harnessDecision.reason,
+      metadata: { failureClass, policyHit: harnessDecision.policyHit },
+    });
+    return getQuestDetail(questId);
+  }
+
+  if (harnessDecision.requiresApproval) {
+    execute("UPDATE quest_nodes SET status = ? WHERE id = ?", "awaiting", runnable.id);
+    execute("UPDATE quests SET status = ? WHERE id = ?", "awaiting", quest.id);
+    execute(
+      "INSERT INTO quest_interventions (id, quest_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      randomUUID(),
+      quest.id,
+      runnable.id,
+      "approval",
+      "pending",
+      `Approve tool ${tool} for node ${runnable.nodeKey}`,
+      null,
+      nowIso(),
+      null,
+    );
+    appendQuestEvent({
+      traceId: quest.traceId,
+      questId: quest.id,
+      nodeId: runnable.id,
+      phase: "approval_required",
+      foldGroup: "Human Actions",
+      title: "Approval required",
+      content: harnessDecision.reason,
+      metadata: { tool, policyHit: harnessDecision.policyHit },
+    });
+    return getQuestDetail(questId);
+  }
+
+  if (timeoutReached) {
+    const failureClass = classifyFailure({
+      reason: "节点执行超时",
+      timeout: true,
+    });
+    execute(
+      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "failed",
+      JSON.stringify({ failureClass, reason: "节点执行超时" }),
+      nowIso(),
+      runnable.id,
+    );
+    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
+    appendQuestEvent({
+      traceId: quest.traceId,
+      questId: quest.id,
+      nodeId: runnable.id,
+      phase: "timeout",
+      foldGroup: "Analysis",
+      title: "Node timeout",
+      content: `节点 ${runnable.nodeKey} 执行超时。`,
+      metadata: { failureClass },
+    });
+    return getQuestDetail(questId);
+  }
+
+  execute(
+    "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+    "completed",
+    JSON.stringify({
+      result: "ok",
+      action,
+      tool,
+      executedBy: requestedBy,
+      completedAt: nowIso(),
+    }),
+    nowIso(),
+    runnable.id,
+  );
+
+  appendQuestEvent({
+    traceId: quest.traceId,
+    questId: quest.id,
+    nodeId: runnable.id,
+    phase: "tool_result",
+    foldGroup: "Synthesis",
+    title: "Node completed",
+    content: `节点 ${runnable.nodeKey} 已完成，工具 ${tool} 执行成功。`,
+  });
+
+  const completedNodes = getQuestNodes(quest.id);
+  const questStatus = resolveQuestStatusFromNodes(completedNodes);
+  execute(
+    "UPDATE quests SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    questStatus,
+    questStatus === "completed" ? nowIso() : null,
+    Number((completedNodes.filter((node) => node.status === "completed").length * 0.5).toFixed(2)),
+    quest.id,
+  );
+
+  return getQuestDetail(questId);
+}
+
+export function retryQuestNode(args: { questId: string; nodeId: string; requestedBy: string }) {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", args.questId);
+  const node = queryOne<QuestNode>("SELECT * FROM quest_nodes WHERE id = ? AND quest_id = ?", args.nodeId, args.questId);
+  if (!quest || !node) {
+    throw new Error("Quest 或 Node 不存在。");
+  }
+
+  if (node.attemptCount >= node.maxAttempts) {
+    throw new Error("已达到最大重试次数。");
+  }
+
+  execute(
+    "UPDATE quest_nodes SET status = ?, output_json = ?, started_at = ?, completed_at = ? WHERE id = ?",
+    "ready",
+    null,
+    null,
+    null,
+    node.id,
+  );
+  execute("UPDATE quests SET status = ? WHERE id = ?", "running", quest.id);
+
+  appendQuestEvent({
+    traceId: quest.traceId,
+    questId: quest.id,
+    nodeId: node.id,
+    phase: "planning",
+    foldGroup: "Planning",
+    title: "Node retried",
+    content: `${args.requestedBy} 触发节点 ${node.nodeKey} 重试。`,
+  });
+
+  return getQuestDetail(args.questId);
+}
+
+export function resolveQuestIntervention(args: {
+  interventionId: string;
+  decision: "approved" | "rejected";
+  resolutionNote?: string;
+  resolvedBy: string;
+}) {
+  const intervention = queryOne<QuestIntervention>(
+    "SELECT * FROM quest_interventions WHERE id = ?",
+    args.interventionId,
+  );
+  if (!intervention) throw new Error("Intervention 不存在。");
+
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", intervention.questId);
+  if (!quest) throw new Error("Quest 不存在。");
+
+  execute(
+    "UPDATE quest_interventions SET status = ?, resolution_note = ?, resolved_at = ? WHERE id = ?",
+    args.decision,
+    args.resolutionNote ?? null,
+    nowIso(),
+    intervention.id,
+  );
+
+  if (intervention.nodeId) {
+    execute(
+      "UPDATE quest_nodes SET status = ? WHERE id = ?",
+      args.decision === "approved" ? "ready" : "failed",
+      intervention.nodeId,
+    );
+  }
+
+  execute("UPDATE quests SET status = ? WHERE id = ?", args.decision === "approved" ? "running" : "failed", quest.id);
+
+  appendQuestEvent({
+    traceId: quest.traceId,
+    questId: quest.id,
+    nodeId: intervention.nodeId,
+    phase: "approval_result",
+    foldGroup: "Human Actions",
+    title: "Intervention resolved",
+    content: `${args.resolvedBy} 将干预单 ${intervention.id} 标记为 ${args.decision}。`,
+    metadata: { resolutionNote: args.resolutionNote ?? null },
+  });
+
+  return getQuestDetail(quest.id);
+}
+
+export function resumeQuest(questId: string, requestedBy: string) {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+  if (!quest) throw new Error("Quest 不存在。");
+
+  execute("UPDATE quest_nodes SET status = ? WHERE quest_id = ? AND status = ?", "ready", questId, "awaiting");
+  execute("UPDATE quests SET status = ? WHERE id = ?", "running", questId);
+
+  appendQuestEvent({
+    traceId: quest.traceId,
+    questId,
+    phase: "approval_result",
+    foldGroup: "Human Actions",
+    title: "Quest resumed",
+    content: `${requestedBy} 恢复了任务执行。`,
+  });
+
+  return getQuestDetail(questId);
+}
+
+export function getQuestExecutionBoard(questId: string) {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+  if (!quest) return null;
+  const nodes = getQuestNodes(questId);
+
+  const readyByDependency = nodes.map((node) => {
+    const deps = JSON.parse(node.dependsOnJson) as string[];
+    const dependencyNodes = nodes.filter((candidate) => deps.includes(candidate.nodeKey));
+    const dependenciesReady =
+      deps.length === 0 ||
+      (dependencyNodes.length === deps.length &&
+        dependencyNodes.every((candidate) => candidate.status === "completed"));
+    return {
+      nodeId: node.id,
+      nodeKey: node.nodeKey,
+      status: node.status,
+      dependenciesReady,
+      dependencies: deps,
+    };
+  });
+
+  const total = nodes.length || 1;
+  const completedCount = nodes.filter((node) => node.status === "completed").length;
+  const failedCount = nodes.filter((node) => node.status === "failed").length;
+  const awaitingCount = nodes.filter((node) => node.status === "awaiting").length;
+  const retryableCount = nodes.filter((node) => node.status === "failed" && node.attemptCount < node.maxAttempts).length;
+
+  return {
+    questId,
+    questStatus: quest.status,
+    board: buildExecutionBoard(nodes),
+    readiness: readyByDependency,
+    metrics: {
+      throughput: Number((completedCount / total).toFixed(2)),
+      failureRate: Number((failedCount / total).toFixed(2)),
+      humanInterventionRate: Number((awaitingCount / total).toFixed(2)),
+      retryRecoveryPotential: Number((retryableCount / Math.max(failedCount, 1)).toFixed(2)),
+    },
+  };
+}
+
+export function getQuestDependencyGraph(questId: string) {
+  const plan = queryOne<QuestPlan>("SELECT * FROM quest_plans WHERE quest_id = ?", questId);
+  const nodes = getQuestNodes(questId);
+  if (!plan) return null;
+  const dag = JSON.parse(plan.dagJson) as {
+    nodes?: Array<{ id: string; agent: string }>;
+    edges?: string[][];
+  };
+  return {
+    questId,
+    plannerMode: plan.plannerMode,
+    summary: plan.summary,
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      nodeKey: node.nodeKey,
+      agentId: node.agentId,
+      status: node.status,
+      dependsOn: JSON.parse(node.dependsOnJson) as string[],
+    })),
+    edges: dag.edges ?? [],
+  };
+}
+
+export function getQuestCostBreakdown(questId: string) {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+  if (!quest) return null;
+  const nodes = getQuestNodes(questId);
+  const nodeCosts = nodes.map((node) => ({
+    nodeId: node.id,
+    nodeKey: node.nodeKey,
+    status: node.status,
+    attemptCount: node.attemptCount,
+    estimatedUsd: Number((0.25 + node.attemptCount * 0.2).toFixed(2)),
+    actualUsd: node.status === "completed" ? Number((0.3 + node.attemptCount * 0.2).toFixed(2)) : 0,
+  }));
+  const estimatedUsd = Number(nodeCosts.reduce((sum, node) => sum + node.estimatedUsd, 0).toFixed(2));
+  const actualUsd = Number(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0).toFixed(2));
+
+  return {
+    questId,
+    status: quest.status,
+    estimateFromQuest: quest.costEstimate,
+    actualFromQuest: quest.costActual,
+    estimatedUsd,
+    actualUsd,
+    nodeCosts,
+  };
+}
+
+export function getQuestPolicyHits(questId: string) {
+  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+  if (!quest) return null;
+  const events = queryAll<EventLog>(
+    "SELECT * FROM event_logs WHERE quest_id = ? ORDER BY seq ASC",
+    questId,
+  );
+  const policyPhases = [
+    "approval_required",
+    "policy_violation",
+    "contract_violation",
+    "approval_result",
+    "timeout",
+  ];
+
+  const hits = events
+    .filter((event) => policyPhases.includes(event.phase))
+    .map((event) => ({
+      seq: event.seq,
+      phase: event.phase,
+      title: event.title,
+      content: event.content,
+      createdAt: event.createdAt,
+      metadata: JSON.parse(event.metadataJson) as Record<string, unknown>,
+    }));
+
+  return {
+    questId,
+    hitCount: hits.length,
+    hits,
   };
 }
 

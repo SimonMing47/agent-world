@@ -1,8 +1,10 @@
 const labels = {
   status: {
     active: "启用中",
+    approved: "已批准",
     archived: "已归档",
     awaiting: "等待人工",
+    blocked: "被阻断",
     cancelled: "已取消",
     completed: "已完成",
     degraded: "已降级",
@@ -16,6 +18,8 @@ const labels = {
     pending: "待处理",
     planning: "规划中",
     ready: "就绪",
+    rejected: "已拒绝",
+    retrying: "重试中",
     running: "运行中",
     scheduled: "已排程",
     submitted: "已提交",
