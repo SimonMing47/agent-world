@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { IBM_Plex_Mono, Noto_Sans_SC } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
-const manrope = Manrope({
+const notoSansSc = Noto_Sans_SC({
   variable: "--font-manrope",
+  preload: true,
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -17,7 +19,7 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "AgentWorld",
   description:
-    "A TypeScript monolith for Worlds, Kingdoms, Quests, Contracts, Tavern listings, and harnessed agent execution.",
+    "一个面向 World、Kingdom、Quest、Contract、Tavern 与 Harness Agent 执行的 TypeScript 单体平台。",
 };
 
 export default function RootLayout({
@@ -27,8 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${manrope.variable} ${plexMono.variable} h-full bg-[var(--canvas)] text-[var(--ink)] antialiased`}
+      lang="zh-CN"
+      className={`${notoSansSc.variable} ${plexMono.variable} h-full bg-[var(--canvas)] text-[var(--ink)] antialiased`}
     >
       <body className="min-h-full">
         <AppShell>{children}</AppShell>

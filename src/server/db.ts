@@ -682,7 +682,7 @@ function seed(db: DatabaseSync) {
     }),
     JSON.stringify({ requiredOn: ["write_repo", "secret_access"] }),
     JSON.stringify({ maxRuntimeMs: 20 * 60 * 1000, maxSteps: 18, maxToolCalls: 24 }),
-    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true }),
+    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true, defaultLocale: "zh-CN" }),
     JSON.stringify({ promptScan: true, outputScan: true, redactSecrets: true }),
     iso(-1000 * 60 * 60 * 24 * 20),
   );
@@ -700,7 +700,7 @@ function seed(db: DatabaseSync) {
     }),
     JSON.stringify({ requiredOn: ["shell_exec"] }),
     JSON.stringify({ maxRuntimeMs: 15 * 60 * 1000, maxSteps: 14, maxToolCalls: 18 }),
-    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true }),
+    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true, defaultLocale: "zh-CN" }),
     JSON.stringify({ promptScan: true, outputScan: true }),
     iso(-1000 * 60 * 60 * 24 * 14),
   );
@@ -718,7 +718,7 @@ function seed(db: DatabaseSync) {
     }),
     JSON.stringify({ requiredOn: ["write_repo", "merge_pull_request"] }),
     JSON.stringify({ maxRuntimeMs: 18 * 60 * 1000, maxSteps: 16, maxToolCalls: 20 }),
-    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true }),
+    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true, defaultLocale: "zh-CN" }),
     JSON.stringify({ promptScan: true, outputScan: true }),
     iso(-1000 * 60 * 60 * 24 * 14),
   );
@@ -736,7 +736,7 @@ function seed(db: DatabaseSync) {
     }),
     JSON.stringify({ requiredOn: [] }),
     JSON.stringify({ maxRuntimeMs: 10 * 60 * 1000, maxSteps: 10, maxToolCalls: 12 }),
-    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true }),
+    JSON.stringify({ collapseThinkingByDefault: true, structuredOutput: true, defaultLocale: "zh-CN" }),
     JSON.stringify({ promptScan: true, outputScan: true }),
     iso(-1000 * 60 * 60 * 24 * 14),
   );

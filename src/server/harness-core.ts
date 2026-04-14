@@ -11,6 +11,7 @@ export type ResolvedHarness = {
   maxToolCalls: number;
   collapseThinkingByDefault: boolean;
   structuredOutput: boolean;
+  defaultLocale: string;
   promptScan: boolean;
   outputScan: boolean;
 };
@@ -29,6 +30,7 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
   const outputPolicy = JSON.parse(profile.outputPolicyJson) as {
     collapseThinkingByDefault?: boolean;
     structuredOutput?: boolean;
+    defaultLocale?: string;
   };
   const securityPolicy = JSON.parse(profile.securityPolicyJson) as {
     promptScan?: boolean;
@@ -46,6 +48,7 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
     maxToolCalls: budgetPolicy.maxToolCalls ?? 0,
     collapseThinkingByDefault: outputPolicy.collapseThinkingByDefault ?? true,
     structuredOutput: outputPolicy.structuredOutput ?? true,
+    defaultLocale: outputPolicy.defaultLocale ?? "zh-CN",
     promptScan: securityPolicy.promptScan ?? true,
     outputScan: securityPolicy.outputScan ?? true,
   };
@@ -69,6 +72,7 @@ export function buildHarnessSummary(profile: HarnessProfile) {
     safety: {
       collapseThinkingByDefault: resolved.collapseThinkingByDefault,
       structuredOutput: resolved.structuredOutput,
+      defaultLocale: resolved.defaultLocale,
       promptScan: resolved.promptScan,
       outputScan: resolved.outputScan,
     },

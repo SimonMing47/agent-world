@@ -1,5 +1,10 @@
 import { notFound } from "next/navigation";
 import { TraceGroup } from "@/components/trace-group";
+import {
+  localizeDemoCopy,
+  translateSourceType,
+  translateStatus,
+} from "@/lib/presentation";
 import { getQuestDetail } from "@/server/queries";
 
 export default async function QuestDetailPage({
@@ -19,37 +24,38 @@ export default async function QuestDetailPage({
       <section className="space-y-4">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Quest summary
+            Quest 概览
           </div>
           <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
             {detail.quest.sourceRef ?? detail.quest.sourceType}
           </h3>
           <div className="mt-5 space-y-2 text-sm text-[var(--ink-muted)]">
-            <div>Status: {detail.quest.status}</div>
-            <div>World: {detail.world?.name ?? "Unknown world"}</div>
-            <div>Kingdom: {detail.kingdom?.name ?? "Unknown kingdom"}</div>
-            <div>Team: {detail.team?.name ?? "Unknown team"}</div>
-            <div>Requested by: {detail.quest.requestedBy}</div>
-            <div>Estimated cost: ${detail.quest.costEstimate}</div>
-            <div>Actual cost: ${detail.quest.costActual}</div>
+            <div>状态: {translateStatus(detail.quest.status)}</div>
+            <div>来源类型: {translateSourceType(detail.quest.sourceType)}</div>
+            <div>World: {detail.world?.name ?? "未知 World"}</div>
+            <div>Kingdom: {detail.kingdom?.name ?? "未知 Kingdom"}</div>
+            <div>团队: {detail.team?.name ?? "未知 AgentTeam"}</div>
+            <div>提交人: {detail.quest.requestedBy}</div>
+            <div>预估成本: ${detail.quest.costEstimate}</div>
+            <div>实际成本: ${detail.quest.costActual}</div>
           </div>
         </div>
 
         {detail.contract ? (
           <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-              Contract
+              Contract 合约
             </div>
             <div className="mt-3 text-lg font-semibold text-[var(--ink)]">
               {detail.contract.serviceAccountRef}
             </div>
             <div className="mt-3 space-y-2 text-sm text-[var(--ink-muted)]">
-              <div>Status: {detail.contract.status}</div>
+              <div>状态: {translateStatus(detail.contract.status)}</div>
               <div>
-                Scope: {(detail.contract.scope.actions ?? []).join(", ") || "No actions"}
+                动作范围: {(detail.contract.scope.actions ?? []).join(", ") || "无"}
               </div>
               <div>
-                Tools: {(detail.contract.scope.tools ?? []).join(", ") || "No tools"}
+                工具范围: {(detail.contract.scope.tools ?? []).join(", ") || "无"}
               </div>
               <div>
                 SLA: {detail.contract.sla.responseSeconds ?? 0}s / {Math.round((detail.contract.sla.successRateFloor ?? 0) * 100)}%
@@ -61,29 +67,31 @@ export default async function QuestDetailPage({
         {detail.harness ? (
           <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-              Harness
+              Harness 约束
             </div>
             <div className="mt-3 text-lg font-semibold text-[var(--ink)]">{detail.harness.name}</div>
             <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
               {detail.harness.instruction}
             </p>
             <div className="mt-4 space-y-2 text-sm text-[var(--ink-muted)]">
-              <div>Allowed tools: {detail.harness.allowedTools.join(", ")}</div>
-              <div>Approval required: {detail.harness.approvalRequiredTools.join(", ") || "None"}</div>
-              <div>Blocked tools: {detail.harness.blockedTools.join(", ") || "None"}</div>
+              <div>允许工具: {detail.harness.allowedTools.join(", ")}</div>
+              <div>需人工批准: {detail.harness.approvalRequiredTools.join(", ") || "无"}</div>
+              <div>阻断工具: {detail.harness.blockedTools.join(", ") || "无"}</div>
               <div>
-                Budget: {detail.harness.budget.maxRuntimeMinutes}m / {detail.harness.budget.maxSteps} steps / {detail.harness.budget.maxToolCalls} tool calls
+                预算: {detail.harness.budget.maxRuntimeMinutes} 分钟 / {detail.harness.budget.maxSteps} 步 / {detail.harness.budget.maxToolCalls} 次工具调用
               </div>
+              <div>默认语言: {detail.harness.safety.defaultLocale}</div>
+              <div>默认折叠思考: {detail.harness.safety.collapseThinkingByDefault ? "是" : "否"}</div>
             </div>
           </div>
         ) : null}
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Plan and nodes
+            计划与节点
           </div>
           <div className="mt-3 text-sm text-[var(--ink-muted)]">
-            {detail.plan?.summary ?? "No plan summary"}
+            {detail.plan?.summary ? localizeDemoCopy(detail.plan.summary) : "当前没有计划摘要"}
           </div>
           <div className="mt-4 space-y-3">
             {detail.nodes.map((node) => (
@@ -96,12 +104,12 @@ export default async function QuestDetailPage({
                     {node.nodeKey} · {node.agentName}
                   </div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {node.status}
+                    {translateStatus(node.status)}
                   </div>
                 </div>
                 <div className="mt-2 grid gap-2 text-sm text-[var(--ink-muted)] md:grid-cols-2">
-                  <div>Attempts: {node.attemptLabel}</div>
-                  <div>Dependencies: {node.dependencyCount}</div>
+                  <div>尝试次数: {node.attemptLabel}</div>
+                  <div>依赖节点数: {node.dependencyCount}</div>
                 </div>
               </div>
             ))}
@@ -111,7 +119,7 @@ export default async function QuestDetailPage({
         {detail.interventions.length > 0 ? (
           <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-              Human intervention
+              人工干预
             </div>
             <div className="mt-4 space-y-3">
               {detail.interventions.map((intervention) => (
@@ -121,10 +129,10 @@ export default async function QuestDetailPage({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-base font-semibold text-[var(--ink)]">
-                      {intervention.requestedAction}
+                      {localizeDemoCopy(intervention.requestedAction)}
                     </div>
                     <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                      {intervention.status}
+                      {translateStatus(intervention.status)}
                     </div>
                   </div>
                 </div>
@@ -137,7 +145,7 @@ export default async function QuestDetailPage({
       <section className="space-y-4">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Invocation stages
+            调用阶段
           </div>
           <div className="mt-4 space-y-3">
             {detail.invocationStages.map((stage, index) => (
@@ -164,7 +172,7 @@ export default async function QuestDetailPage({
           </div>
           <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-              Provider rationale
+              Provider 选择依据
             </div>
             <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
               {detail.providerRationale.map((line) => (

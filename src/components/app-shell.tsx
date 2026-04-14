@@ -10,10 +10,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               AgentWorld
             </div>
             <h1 className="mt-3 max-w-[14rem] text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-              Worlds, kingdoms, quests, and governed agent execution.
+              面向 World、Kingdom、Quest 的可治理 Agent 执行平台。
             </h1>
             <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
-              One surface for Tavern, contracts, runtime discovery, trace replay, and human gates.
+              一个界面统一承载 Tavern、Contract、Runtime 发现、Trace 回放和人工门禁。
             </p>
           </div>
           <SidebarNav />
@@ -23,15 +23,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <header className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                Agent operating surface
+                Agent 运营工作台
               </div>
               <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                AgentWorld command center
+                AgentWorld 控制台
               </h2>
             </div>
             <div className="grid gap-2 text-sm text-[var(--ink-muted)] sm:text-right">
-              <div>Quest scheduling, DAG execution, and agent invocation stay explicit on purpose.</div>
-              <div>Harness constraints remain visible before, during, and after every Quest.</div>
+              <div>Quest 调度、DAG 执行和 Agent 调用会被明确拆开展示。</div>
+              <div>Harness 约束会在 Quest 之前、过程中和结果里持续可见。</div>
             </div>
           </header>
           <div className="flex-1">{children}</div>

@@ -13,7 +13,10 @@
 - World / Kingdom / AgentTeam / Agent / Tavern / Quest / Contract 领域设计
 - Harness 工程约束设计
 - 调度、DAG 执行、调用链路、人工干预设计
-- 内嵌 PlantUML 的 4+1 视图
+- 默认中文能力设计
+- 提示词工程设计
+- 多轮 Agent 调用设计
+- 内嵌 PlantUML 的 4+1 视图和补充状态图
 
 ## English
 
@@ -28,4 +31,7 @@ Both documents include:
 - the World / Kingdom / AgentTeam / Agent / Tavern / Quest / Contract model
 - harness engineering constraints
 - scheduling, DAG execution, invocation, and human intervention design
-- embedded PlantUML 4+1 views
+- Chinese-first default behavior design
+- prompt engineering design
+- multi-turn agent invocation design
+- embedded PlantUML 4+1 views and additional state diagrams

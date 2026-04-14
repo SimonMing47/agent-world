@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/lib/utils";
+import { localizeDemoCopy, translateStatus, translateWorkflowType } from "@/lib/presentation";
 import { getWallboardSnapshot } from "@/server/queries";
 
 export default function WallboardPage() {
@@ -9,7 +10,7 @@ export default function WallboardPage() {
       <section className="space-y-4">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Active quests
+            活跃 Quest
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.activeQuests.map((quest) => (
@@ -22,11 +23,11 @@ export default function WallboardPage() {
                     {quest.sourceRef ?? quest.sourceType}
                   </div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {quest.status}
+                    {translateStatus(quest.status)}
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  Requested by {quest.requestedBy} · {formatDateTime(quest.createdAt)}
+                  提交人 {quest.requestedBy} · {formatDateTime(quest.createdAt)}
                 </div>
               </div>
             ))}
@@ -35,7 +36,7 @@ export default function WallboardPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Runtime health
+            Runtime 健康度
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {snapshot.runtimes.map((runtime) => (
@@ -46,11 +47,11 @@ export default function WallboardPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">{runtime.name}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {runtime.healthStatus}
+                    {translateStatus(runtime.healthStatus)}
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {runtime.activeRunCount} active / {runtime.concurrencyLimit} slots
+                  {runtime.activeRunCount} 个活跃运行 / {runtime.concurrencyLimit} 个槽位
                 </div>
               </div>
             ))}
@@ -61,7 +62,7 @@ export default function WallboardPage() {
       <section className="space-y-4">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Top teams
+            核心 AgentTeam
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topTeams.map((team) => (
@@ -71,7 +72,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{team.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {team.workflowType} · {team.agentCount} agents · {Math.round(team.successRateTarget * 100)}% target
+                  {translateWorkflowType(team.workflowType)} · {team.agentCount} 个 Agent · 成功率目标 {Math.round(team.successRateTarget * 100)}%
                 </div>
               </div>
             ))}
@@ -80,7 +81,7 @@ export default function WallboardPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Active repositories
+            活跃代码仓
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topRepositories.map((repository) => (
@@ -90,7 +91,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{repository.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {repository.provider} · {repository.branch} · {repository.lastQuestCount} recent quests
+                  {repository.provider} · {repository.branch} · 最近 {repository.lastQuestCount} 个 Quest
                 </div>
               </div>
             ))}
@@ -99,7 +100,7 @@ export default function WallboardPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Active developers
+            活跃开发者
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topDevelopers.map((developer) => (
@@ -109,7 +110,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{developer.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {developer.focus} · last active {formatDateTime(developer.lastActiveAt)}
+                  {localizeDemoCopy(developer.focus)} · 最近活跃于 {formatDateTime(developer.lastActiveAt)}
                 </div>
               </div>
             ))}

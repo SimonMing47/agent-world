@@ -137,7 +137,7 @@ export function getQuestDetail(questId: string) {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["Provider selection is unavailable."] };
+      : { provider: null, rationale: ["当前无法给出 Provider 选择结果。"] };
 
   return {
     quest,
@@ -154,7 +154,7 @@ export function getQuestDetail(questId: string) {
       : null,
     nodes: nodes.map((node) => ({
       ...summarizeNodeState(node),
-      agentName: agents.find((agent) => agent.id === node.agentId)?.name ?? "Unknown agent",
+      agentName: agents.find((agent) => agent.id === node.agentId)?.name ?? "未知 Agent",
     })),
     executionBoard: buildExecutionBoard(nodes),
     interventions,
@@ -203,7 +203,7 @@ export function getDashboardSnapshot() {
     const team = teams.find((item) => item.id === listing.teamId);
     return {
       ...buildTavernResume(listing),
-      teamName: team?.name ?? "Unknown team",
+      teamName: team?.name ?? "未知 AgentTeam",
     };
   });
 
@@ -240,7 +240,7 @@ export function getDashboardSnapshot() {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["No featured provider selection is available."] };
+      : { provider: null, rationale: ["当前没有可展示的 Provider 选择结果。"] };
   const featuredRuntime =
     featuredQuest
       ? runtimes.find((runtime) => runtime.kingdomId === featuredQuest.kingdomId) ?? null
@@ -249,24 +249,24 @@ export function getDashboardSnapshot() {
   return {
     metrics: [
       {
-        label: "Running quests",
+        label: "运行中的 Quest",
         value: String(runningQuests.length),
-        detail: "Quest execution is owned by the in-process executor slots.",
+        detail: "这些 Quest 正由进程内执行槽位接手运行。",
       },
       {
-        label: "Awaiting humans",
+        label: "等待人工处理",
         value: String(awaitingQuests.length),
-        detail: "These Quests crossed a Harness approval gate and are waiting for intervention.",
+        detail: "这些 Quest 命中了 Harness 人工门禁，正在等待介入。",
       },
       {
-        label: "Public teams",
+        label: "公开 AgentTeam",
         value: String(teams.filter((team) => team.visibility === "public").length),
-        detail: "These AgentTeams can be listed in Tavern and recruited across kingdoms.",
+        detail: "这些 AgentTeam 可以在 Tavern 上架，并被其他 Kingdom 招募。",
       },
       {
-        label: "Active contracts",
+        label: "生效中的 Contract",
         value: String(contracts.filter((contract) => contract.status === "active").length),
-        detail: "Cross-kingdom service access is only legal through these contracts.",
+        detail: "跨 Kingdom 的服务访问只能通过这些 Contract 合法发生。",
       },
     ],
     worldSummaries,
@@ -276,9 +276,9 @@ export function getDashboardSnapshot() {
     tavernResumes,
     contracts: contracts.map((contract) => ({
       ...buildContractSummary(contract),
-      providerTeamName: teams.find((team) => team.id === contract.providerTeamId)?.name ?? "Unknown team",
+      providerTeamName: teams.find((team) => team.id === contract.providerTeamId)?.name ?? "未知 AgentTeam",
       consumerKingdomName:
-        kingdoms.find((kingdom) => kingdom.id === contract.consumerKingdomId)?.name ?? "Unknown kingdom",
+        kingdoms.find((kingdom) => kingdom.id === contract.consumerKingdomId)?.name ?? "未知 Kingdom",
     })),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
     repositories,

@@ -19,10 +19,10 @@ export function RuntimeDiscoveryButton() {
           try {
             const response = await fetch("/api/runtimes/discover", { method: "POST" });
             const payload = (await response.json()) as { count: number };
-            setMessage(`Refreshed ${payload.count} runtime endpoint(s).`);
+            setMessage(`已刷新 ${payload.count} 个 runtime 端点。`);
             router.refresh();
           } catch {
-            setMessage("Runtime discovery failed. The UI kept the last known health snapshot.");
+            setMessage("Runtime 发现失败，界面会保留上一次健康状态快照。");
           } finally {
             setPending(false);
           }
@@ -30,7 +30,7 @@ export function RuntimeDiscoveryButton() {
         className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-[var(--canvas)] transition hover:opacity-90 disabled:opacity-60"
         disabled={pending}
       >
-        {pending ? "Discovering..." : "Discover runtimes"}
+        {pending ? "发现中..." : "发现 runtime"}
       </button>
       {message ? (
         <p className="text-sm text-[var(--ink-muted)]">{message}</p>

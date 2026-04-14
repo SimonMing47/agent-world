@@ -23,7 +23,7 @@ export function assessScheduleTemplate(template: ScheduleTemplate, now = new Dat
       state: "paused",
       cadence: template.cadence,
       nextRunAt: template.nextRunAt,
-      rationale: "This schedule template is disabled and will not produce a Quest.",
+      rationale: "这个定时模板已经停用，不会再生成新的 Quest。",
     } satisfies ScheduleAssessment;
   }
 
@@ -34,7 +34,7 @@ export function assessScheduleTemplate(template: ScheduleTemplate, now = new Dat
       state: "event_only",
       cadence: template.cadence,
       nextRunAt: template.nextRunAt,
-      rationale: "This entry is only triggered by incoming events such as a webhook.",
+      rationale: "这个入口只会由 webhook 这类外部事件触发。",
     } satisfies ScheduleAssessment;
   }
 
@@ -45,7 +45,7 @@ export function assessScheduleTemplate(template: ScheduleTemplate, now = new Dat
       state: "due",
       cadence: template.cadence,
       nextRunAt: template.nextRunAt,
-      rationale: "The next run window is already open and the scheduler can claim it now.",
+      rationale: "下一次执行窗口已经打开，调度器现在就可以认领它。",
     } satisfies ScheduleAssessment;
   }
 
@@ -55,7 +55,7 @@ export function assessScheduleTemplate(template: ScheduleTemplate, now = new Dat
     state: "scheduled",
     cadence: template.cadence,
     nextRunAt: template.nextRunAt,
-    rationale: "The schedule is valid, but its next run window is still in the future.",
+    rationale: "这个定时任务是有效的，只是下一次执行时间还没到。",
   } satisfies ScheduleAssessment;
 }
 
@@ -69,13 +69,13 @@ export function listDueSchedules(templates: ScheduleTemplate[], now = new Date()
 
 export function buildQuestPriorityAssessment(quest: Quest) {
   const rationale = [
-    `Base priority starts at ${quest.priority}.`,
+    `基础优先级从 ${quest.priority} 开始。`,
     quest.sourceType === "contract"
-      ? "Cross-kingdom contract work gets an SLA bias."
-      : "Local work keeps its base scheduling weight.",
+      ? "跨 Kingdom 的 Contract 任务会获得 SLA 倾斜。"
+      : "本地任务保持基础调度权重。",
     quest.status === "awaiting"
-      ? "Awaiting human input keeps a small urgency boost after approval."
-      : "No intervention carry-over boost is applied yet.",
+      ? "等待人工中的任务在恢复后会保留一小段紧急度加成。"
+      : "当前没有叠加人工干预带来的额外加成。",
   ];
 
   const effectivePriority =

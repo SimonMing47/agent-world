@@ -1,4 +1,9 @@
 import { MetricCard } from "@/components/metric-card";
+import {
+  translateRecruitmentMode,
+  translateScheduleState,
+  translateStatus,
+} from "@/lib/presentation";
 import { formatDateTime, formatPercent } from "@/lib/utils";
 import { getDashboardSnapshot } from "@/server/queries";
 
@@ -18,14 +23,14 @@ export default function OverviewPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                World governance
+                World 治理边界
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                World policy sets the outer boundary. Kingdoms and teams tighten it from there.
+                World 负责给出最外层规则，Kingdom 和 AgentTeam 在里面继续收紧。
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
-              Next scheduling window ends {formatDateTime(snapshot.upcomingWindow)}
+              下一轮调度窗口结束于 {formatDateTime(snapshot.upcomingWindow)}
             </div>
           </div>
 
@@ -38,13 +43,13 @@ export default function OverviewPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-lg font-semibold text-[var(--ink)]">{world.name}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {world.status}
+                    {translateStatus(world.status)}
                   </div>
                 </div>
                 <div className="mt-3 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>Kingdoms: {world.kingdomCount}</div>
-                  <div>Monthly quota: ${world.monthlyUsd}</div>
-                  <div>Max running quests: {world.maxRunningQuests}</div>
+                  <div>Kingdom 数量: {world.kingdomCount}</div>
+                  <div>月度预算上限: ${world.monthlyUsd}</div>
+                  <div>最大并发 Quest: {world.maxRunningQuests}</div>
                 </div>
               </div>
             ))}
@@ -53,7 +58,7 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Kingdom finances
+            Kingdom 财务视图
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.kingdomSummaries.map((kingdom) => (
@@ -64,13 +69,13 @@ export default function OverviewPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-lg font-semibold text-[var(--ink)]">{kingdom.name}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {kingdom.status}
+                    {translateStatus(kingdom.status)}
                   </div>
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>Balance: ${kingdom.balance}</div>
-                  <div>Credit limit: ${kingdom.creditLimit}</div>
-                  <div>Tool refs: {kingdom.toolRefCount}</div>
+                  <div>余额: ${kingdom.balance}</div>
+                  <div>信用额度: ${kingdom.creditLimit}</div>
+                  <div>工具引用数: {kingdom.toolRefCount}</div>
                 </div>
               </div>
             ))}
@@ -83,14 +88,14 @@ export default function OverviewPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                Scheduler
+                调度器
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                Due schedules and Quest priority stay visible before they turn into queue debt.
+                定时任务和 Quest 优先级会在进入排队拥堵之前被提前看见。
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
-              Due now: {snapshot.dueScheduleCount}
+              当前到点: {snapshot.dueScheduleCount}
             </div>
           </div>
           <div className="mt-5 space-y-3">
@@ -109,12 +114,12 @@ export default function OverviewPage() {
                     </p>
                   </div>
                   <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {assessment.state}
+                    {translateScheduleState(assessment.state)}
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
                   {assessment.cadence}
-                  {assessment.nextRunAt ? ` · Next run ${formatDateTime(assessment.nextRunAt)}` : ""}
+                  {assessment.nextRunAt ? ` · 下次执行 ${formatDateTime(assessment.nextRunAt)}` : ""}
                 </div>
               </div>
             ))}
@@ -123,10 +128,10 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Invocation chain
+            调用链路
           </div>
           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            Agent invocation is a governed pipeline, not a blind prompt handoff.
+            Agent 调用是一条受治理的流水线，不是一句提示词直接甩给模型。
           </h3>
           <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
             {snapshot.featuredPlanningMode}
@@ -158,7 +163,7 @@ export default function OverviewPage() {
           </div>
           <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-              Provider rationale
+              Provider 选择依据
             </div>
             <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
               {snapshot.featuredProviderRationale.map((line) => (
@@ -183,13 +188,13 @@ export default function OverviewPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-lg font-semibold text-[var(--ink)]">{listing.teamName}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {listing.recruitmentMode}
+                    {translateRecruitmentMode(listing.recruitmentMode)}
                   </div>
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>Success rate: {formatPercent(listing.resume.successRate ?? 0)}</div>
-                  <div>Avg latency: {Math.round((listing.resume.avgLatencyMs ?? 0) / 1000)}s</div>
-                  <div>Avg cost: ${listing.resume.avgCostUsd ?? 0}</div>
+                  <div>成功率: {formatPercent(listing.resume.successRate ?? 0)}</div>
+                  <div>平均耗时: {Math.round((listing.resume.avgLatencyMs ?? 0) / 1000)}s</div>
+                  <div>平均成本: ${listing.resume.avgCostUsd ?? 0}</div>
                 </div>
               </div>
             ))}
@@ -198,7 +203,7 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Quest priority board
+            Quest 优先级看板
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.questPriorityBoard.map((item) => {
@@ -214,7 +219,7 @@ export default function OverviewPage() {
                       {quest?.sourceRef ?? quest?.sourceType ?? "Quest"}
                     </div>
                     <div className="text-sm font-medium text-[var(--ink)]">
-                      {item.effectivePriority}
+                      优先级 {item.effectivePriority}
                     </div>
                   </div>
                   <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">

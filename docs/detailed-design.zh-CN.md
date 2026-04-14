@@ -1,1144 +1,1342 @@
 # AgentWorld 详细设计
 
-这份文档是 AgentWorld 的中文详细设计。
+这是一份面向开发落地的详细设计，不是概念稿。
 
-它不是概念稿，而是一个面向开发和落地的工程设计。目标很明确：把你提出的 World、Kingdom、AgentTeam、Agent、Tavern、Quest、Contract 这套模型，收敛成一个可以用全栈 TypeScript、单体服务、嵌入式数据库快速实现并持续演进的平台。
+文档的目标很直接：
 
-## 0. 文档目标
+1. 用正常人能看懂的话，把 AgentWorld 到底要做成什么讲清楚。
+2. 把最关键的 Agent 调度、Agent 调用、多轮执行、人工干预和 Harness 约束讲清楚。
+3. 明确为什么本项目采用全栈 TypeScript 单体服务、嵌入式数据库、零额外中间件依赖。
+4. 给出可直接指导开发的模块划分、数据模型、状态机、提示词工程和 4+1 视图。
 
-这份设计重点回答六个问题：
+## 1. 一句话定义
 
-1. AgentWorld 到底是什么系统
-2. 为什么最终选择单体 TypeScript，而不是再拆一堆服务
-3. Quest 的调度、规划、执行、人工干预到底怎么串起来
-4. Agent 调用链路怎么被 Harness 工程原则约束
-5. World / Kingdom / AgentTeam / Contract / Tavern 这些概念如何落到数据库和 API
-6. 第一版代码应该先做哪些部分
+AgentWorld 是一个多租户、可编排、可治理、可观测的 Agent 运行平台。它不是聊天框壳子，而是把 Agent 当成团队能力、服务单元和执行单元来运营的系统。
 
-## 1. 系统总体定位
+## 2. 这套系统到底解决什么问题
 
-### 1.1 一句话定义
+当 Agent 真正进入团队日常工作后，问题很快不再是“模型够不够聪明”，而是下面这些工程问题：
 
-AgentWorld 是一个多租户、可编排、可治理、可观察的 AI Agent Runtime 平台，支持跨团队 Agent 服务市场和协同执行。
+1. 谁可以提交任务。
+2. 任务属于哪个团队。
+3. 任务执行前有没有预算、权限、模型白名单、工具权限校验。
+4. 任务是单 Agent 处理，还是多个 Agent 协同处理。
+5. 执行到一半能不能人工接管。
+6. 跨团队调用到底有没有授权。
+7. 失败了怎么重试，暂停了怎么恢复。
+8. 整个过程能不能看见 thinking、工具调用、文字输出和成本。
+9. 平台默认是不是中文友好，而不是到处冒英文。
+10. 本地能不能一键启动，不靠 Redis、Kafka、Temporal、PostgreSQL 这类额外基础设施。
 
-### 1.2 用人话解释
+AgentWorld 就是围绕这十个问题设计的。
 
-AgentWorld 不是一个聊天工具。
+## 3. 本版设计的硬约束
 
-它也不是一个“接上模型、做几个工具调用”的轻量 Agent 页面。
+这次设计优化后，明确采用下面这些工程边界：
 
-它更像一个组织操作台：
+1. 全栈 TypeScript。
+2. Next.js 单体服务，前后端一体。
+3. 不依赖额外编排系统。
+4. 不依赖 Redis、Kafka、Temporal、PostgreSQL、Milvus、S3 等中间件。
+5. 数据库使用嵌入式 SQLite。
+6. 文件产物、附件、导出结果走本地文件系统。
+7. 允许接入 OpenAI 风格模型接口。
+8. 允许发现外部 OpenCode runtime，但平台本体不拆成微服务网格。
+9. 默认中文界面、默认中文输出、默认中文时间和数字格式。
 
-- World 是顶层租户空间
-- Kingdom 是 World 内部的团队空间
-- AgentTeam 是团队对外提供能力的服务单元
-- Agent 是真正执行步骤的单元
-- Quest 是一次被提交、被调度、被执行、被结算的任务
-- Tavern 是 AgentTeam 的注册中心和市场
-- Contract 是跨 Kingdom 调用的服务合约
+## 4. 设计结论先说清楚
 
-## 2. 设计收敛原则
+### 4.1 为什么是单体 TypeScript
 
-### 2.1 本次设计优化后的硬约束
+因为当前最大风险不是吞吐不够，而是边界不清。
 
-本项目明确采用下面这组工程边界：
+在边界还没清楚之前，先拆微服务、先接编排系统，只会把一条本来就复杂的调用链再切碎。这样一来，调试会更慢，定位问题更难，人工干预也更难做。
 
-- 全栈 TypeScript
-- 单体服务
-- 不依赖 Redis、Kafka、Temporal、PostgreSQL、Milvus、S3、Knative 之类额外中间件
-- 数据库必须是嵌入式
-- 可以一键本地安装和启动
-- 允许对接外部 OpenAI 风格模型服务
-- 允许发现外部 OpenCode runtime，但平台自身不是一个微服务网格
+所以本版设计收敛成：
 
-### 2.2 与原始方案相比，做了哪些收敛
+1. 一个 Next.js 应用。
+2. 一套明确的领域模型。
+3. 一个进程内调度核。
+4. 一个进程内执行核。
+5. 一份数据库状态机。
+6. 一套可解释的 Harness 约束体系。
 
-| 原始方向 | 优化后方案 | 原因 |
+### 4.2 为什么不是“再包一层聊天页面”
+
+因为聊天 UI 解决不了下面这些事：
+
+1. 定时任务。
+2. DAG 执行。
+3. 跨团队合约。
+4. 人工门禁。
+5. 运行时发现。
+6. 任务回放。
+7. 成本归集。
+8. 可运营的大屏。
+
+AgentWorld 的重点不是“对话”，而是“任务执行系统”。
+
+## 5. 核心概念，用人话解释
+
+| 术语 | 用人话解释 | 工程职责 |
 | --- | --- | --- |
-| Control Plane + Runtime Plane 分布式拆分 | 单体服务内的逻辑分层 | 先把领域闭环做通，再决定是否拆分 |
-| Quest Scheduler 独立服务 | 进程内调度核 | 调度逻辑本质上是数据库状态机，不需要先上编排系统 |
-| Serverless Agent Executor | 进程内 worker slots | MVP 阶段更容易控制成本、日志和人工干预 |
-| Redis 短期上下文 | SQLite 表 + 内存缓存 | 嵌入式部署更简单 |
-| VectorDB | SQLite FTS5 + 可选 embedding 字段 | 先做够用的检索，不强依赖向量库 |
-| S3 | 本地文件系统 artifact store | 单机部署更直接 |
-| Docker / WASM Sandbox | Harness 约束 + 受控工具适配器 + 进程级隔离 | 先保证治理，再逐步增强隔离强度 |
+| World | 顶层租户空间 | 负责配额、模型白名单、全局治理规则 |
+| Kingdom | World 内的团队空间 | 负责预算、工具引用、团队私有配置 |
+| AgentTeam | 团队提供的一项服务能力 | 接受标准输入，产出标准结果，内部可以编排多个 Agent |
+| Agent | 真正干活的执行单元 | 调用模型、调用工具、产出阶段结果 |
+| Tavern | AgentTeam 市场 | 展示、招募、订阅、托管 |
+| Quest | 一次真实任务 | 被提交、被调度、被规划、被执行、被记录、被结算 |
+| Contract | 跨 Kingdom 调用协议 | 规定谁可以调用谁、能做什么、多少钱、SLA 是多少 |
+| Harness | Agent 约束层 | 通过工具限制、外部配置、预算、审批和输出规则约束 Agent |
+| Captain Agent | 负责任务规划的 Agent | 用于生成执行计划或 DAG |
+| Watcher | 平台监督逻辑 | 做输出校验、成功率判断、SLA 检查和人工门禁触发 |
 
-### 2.3 这不代表设计退化
+## 6. 需求整理
 
-收敛成单体不是降级，而是让系统先拥有三件真正重要的能力：
+### 6.1 功能需求
 
-- 明确的领域模型
-- 稳定的调度和执行状态机
-- 可解释、可审计、可人工介入的调用链
+1. 支持 World、Kingdom、AgentTeam、Agent、Quest、Contract、Tavern 这套领域模型。
+2. 支持默认中文界面和默认中文输出。
+3. 支持接入 OpenAI 风格模型接口，并在界面中配置。
+4. 支持发现外部 OpenCode runtime。
+5. 支持同一团队下的多任务管理和定时任务。
+6. 支持查看完整任务过程，包括 thinking、工具调用、文本输出，并可折叠。
+7. 支持人工批准、人工打断、人工恢复。
+8. 支持大屏视图，展示任务执行状态、成功率、活跃 Agent、活跃开发者、活跃代码仓、runtime 健康度。
+9. 支持 webhook 入站，作为 Quest 的触发来源。
+10. 支持跨 Kingdom 的 Contract 调用。
 
-只要这三件事做扎实，后续不管是拆服务还是增加隔离层，都有清晰边界。
+### 6.2 非功能需求
 
-## 3. 核心术语
+1. 本地一键安装、一键启动。
+2. 平台可观测。
+3. 调用链可审计。
+4. 数据可回放。
+5. 失败可重试。
+6. 不依赖额外中间件。
+7. 代码结构清晰，后续可拆分。
 
-| 术语 | 含义 | 在系统中的职责 |
-| --- | --- | --- |
-| World | 顶层租户空间 | 隔离配额、策略、模型白名单、顶层风控 |
-| Kingdom | World 内部团队 | 团队预算、私有工具引用、私有知识空间 |
-| AgentTeam | 服务单元 | 接受输入、编排 Agent、产出标准结果 |
-| Agent | 执行单元 | 执行单个步骤、调用模型和工具 |
-| Tavern | 市场与注册中心 | 公开展示 AgentTeam，支持招募和订阅 |
-| Quest | 任务实例 | 一次真实执行，包含计划、节点、结果和成本 |
-| Contract | 服务调用协议 | 约束跨 Kingdom 调用权限、范围、定价和 SLA |
-| Harness | 约束层 | 通过工具约束、外部配置和内部策略限制 Agent 行为 |
-| Captain Agent | 规划代理 | 生成 Quest DAG 或执行计划 |
-| Watcher | 监督组件 | 做输出校验、SLA 检查、成功率判断和人工门禁 |
+### 6.3 当前版本不做的事
 
-## 4. 总体架构
+1. 不做真正的分布式多节点调度。
+2. 不做复杂的向量数据库集群。
+3. 不做强隔离的容器编排平台。
+4. 不做全自动财务计费系统。
+5. 不做多语言实时切换，先把默认中文做好。
 
-### 4.1 总体形态
+## 7. 设计思路
 
-AgentWorld 使用一个 Next.js 单体服务承载前后端：
+### 7.1 先把任务链路做通，再谈大规模拆分
 
-- UI 负责工作台、配置页、大屏、任务视图
-- Route Handlers 提供 API
-- Server Components 直接读取服务层
-- 服务层内部按领域拆模块
-- SQLite 是唯一持久化数据库
-- 本地文件系统保存 artifact、导出文件、附件和运行快照
+任务系统真正难的地方，不在于“调一个模型 API”，而在于把下面这条链路做完整：
 
-### 4.2 逻辑分层
+1. 任务进来。
+2. 任务被校验。
+3. 任务被排队。
+4. 任务被规划。
+5. 节点被执行。
+6. 过程中可能调用工具。
+7. 可能触发人工门禁。
+8. 可能重试。
+9. 最终有结果、有日志、有成本、有结论。
 
-虽然是单体服务，但内部仍然分四层：
+所以 AgentWorld 的设计重点是把这条链做成“显式可见的工程流水线”。
 
-1. Presentation Layer
-2. Application Layer
-3. Domain Layer
-4. Infrastructure Layer
+### 7.2 把调度、规划、执行、调用拆开
 
-对应职责如下：
+这些概念容易混，但必须拆开：
 
-| 分层 | 职责 |
-| --- | --- |
-| Presentation | 页面、表单、SSE trace 流、管理台、wallboard |
-| Application | 用例编排，处理提交 Quest、批准人工门禁、发现 runtime |
-| Domain | World、Kingdom、Quest、Contract、Tavern、Harness、Scheduler、Executor 规则 |
-| Infrastructure | SQLite、文件系统、OpenCode SDK、OpenAI 接口、Webhook 入站 |
+1. 调度：决定哪个 Quest 先执行。
+2. 规划：决定这个 Quest 应该拆成几个节点、按什么依赖关系执行。
+3. 执行：决定哪个节点现在可以跑、失败怎么处理、完成后怎么推进后继节点。
+4. 调用：决定单个 Agent 这一轮怎么组装 prompt、怎么选模型、怎么调工具、怎么记录 trace。
 
-### 4.3 主要模块
+拆开以后，系统才容易观察，也容易人工接管。
+
+### 7.3 把 Harness 当成平台级约束，而不是一句提示词
+
+Harness 的核心意思是：不要把安全、预算、工具权限、输出规范寄希望于模型“自己自觉”。
+
+AgentWorld 里，Harness 至少通过三种方式约束 Agent：
+
+1. 工具调用约束。
+2. 外部配置约束。
+3. 内部执行器约束。
+
+后面会专门展开。
+
+## 8. 总体架构
+
+### 8.1 逻辑分层
+
+虽然是单体服务，但内部仍然按职责分层：
+
+1. 展示层：页面、表单、列表、大屏、Quest 详情、trace 展示。
+2. 应用层：提交 Quest、批准人工门禁、刷新 runtime、配置 provider。
+3. 领域层：World、Kingdom、AgentTeam、Quest、Contract、Harness、Scheduler、Planner、Executor。
+4. 基础设施层：SQLite、文件系统、OpenCode SDK、OpenAI 风格 HTTP 接口、Webhook 入站。
+
+### 8.2 当前代码模块
 
 | 模块 | 作用 |
 | --- | --- |
-| tenant-core | 管理 World、Kingdom 及配额和边界 |
-| registry-core | 管理 AgentTeam、Agent、Tavern listing |
-| contract-core | 管理跨 Kingdom 合约、服务账号和授权 |
-| scheduler-core | 负责 schedule tick、排序、抢占、生成待执行 Quest |
-| planner-core | 由 Captain Agent 或规则规划器生成 DAG |
-| executor-core | 驱动 DAG 节点执行、重试、恢复 |
-| invocation-core | 负责单个 Agent 的模型调用、工具调用和流式输出 |
-| harness-core | 统一管理提示词、工具、预算、输出和人工门禁约束 |
-| memory-core | 管理短期上下文、工作记忆、检索记忆 |
-| trace-core | 记录 event log、span、cost、audit log |
-| provider-core | 管理 OpenAI 风格 provider、模型路由和限额 |
-| runtime-core | 发现 OpenCode runtime，保存健康状态和能力目录 |
+| `tenant-core` | World、Kingdom 及配额边界 |
+| `registry-core` | AgentTeam、Agent、Tavern |
+| `contract-core` | Contract、服务账号、授权范围 |
+| `scheduler-core` | 调度评估、优先级排序、到点任务识别 |
+| `planner-core` | 规划模式、DAG 摘要 |
+| `executor-core` | 节点状态汇总、执行看板 |
+| `invocation-core` | 单次 Agent 调用链设计 |
+| `harness-core` | Harness 解析与摘要 |
+| `provider-core` | Provider 选择和说明 |
+| `runtime-core` | runtime 能力目录和状态 |
+| `trace-core` | 事件分组和回放基础 |
+| `queries` | 工作台和页面查询聚合 |
 
-## 5. 技术栈
-
-### 5.1 选型
+### 8.3 技术选型
 
 | 层 | 技术 |
 | --- | --- |
 | 前后端一体 | Next.js + TypeScript |
 | UI | React 19 + Server Components |
-| API | Next.js Route Handlers |
-| 数据库 | SQLite（`node:sqlite`） |
+| 数据库 | SQLite |
 | 校验 | Zod |
 | Runtime 发现 | OpenCode SDK |
-| LLM 对接 | OpenAI 风格 HTTP 接口 |
+| Provider | OpenAI 风格 HTTP 接口 |
 | Artifact | 本地文件系统 |
-| 搜索 / Memory | SQLite FTS5 |
+| 搜索 | SQLite FTS5 |
 
-### 5.2 为什么不引入额外中间件
+## 9. 默认中文能力设计
 
-因为这个项目第一阶段最大风险不是吞吐，而是边界不清。
+这部分必须单独说，因为它不是“把页面翻译一下”那么简单。
 
-在边界没有清楚之前，先上 Redis、消息队列、编排系统、向量库，只会让调试和交付更慢。
+### 9.1 默认中文的目标
 
-## 6. 领域模型设计
+默认中文能力包含四层：
 
-这一节只写会进入第一版数据库的核心对象。
+1. 界面默认中文。
+2. 时间、数字、状态标签默认中文。
+3. Agent 默认中文输出。
+4. Trace、人工门禁、任务详情默认中文展示。
 
-### 6.1 World
+### 9.2 语言优先级
 
-```ts
-type World = {
-  id: string;
-  slug: string;
-  name: string;
-  ownerUserId: string;
-  status: "active" | "suspended" | "archived";
-  quotaLimitJson: string;
-  modelWhitelistJson: string;
-  globalGuardrailsJson: string;
-  defaultHarnessId: string | null;
-  createdAt: string;
-};
+默认语言的覆盖顺序如下：
+
+1. Quest 显式指定的 `locale`
+2. AgentTeam 的语言配置
+3. Kingdom 的默认语言
+4. World 的默认语言
+5. 平台默认语言 `zh-CN`
+
+也就是说，平台默认是中文，但任务可以按需覆盖成英文。
+
+### 9.3 平台层落点
+
+默认中文能力在平台里落到五个点：
+
+1. HTML `lang` 默认 `zh-CN`。
+2. 日期、数字、百分比格式默认使用 `zh-CN`。
+3. Harness 输出策略里包含 `defaultLocale`。
+4. Prompt 组装时会注入“默认使用简体中文输出”的语言规则。
+5. 页面显示层把状态、工作流、招募模式、事件分组映射成中文。
+
+### 9.4 什么时候允许不是中文
+
+下面几种情况可以合法输出非中文：
+
+1. 用户明确要求英文。
+2. 外部 webhook 指定英文。
+3. 目标代码仓要求固定英文摘要。
+4. 调用下游 Contract 的接口文档要求英文结构化字段。
+
+这时 Agent 仍然要在 trace 里保留中文说明标签，避免工作台变成中英混杂。
+
+## 10. 领域模型
+
+### 10.1 World
+
+World 是平台最外层治理边界，负责：
+
+1. 总配额。
+2. 模型白名单。
+3. 全局风控规则。
+4. 默认 Harness。
+
+### 10.2 Kingdom
+
+Kingdom 是 World 内的团队边界，负责：
+
+1. 团队余额和信用额度。
+2. 私有工具引用。
+3. 团队私有记忆命名空间。
+4. 团队偏好的 Provider。
+
+### 10.3 AgentTeam
+
+AgentTeam 不是“Agent 列表”，而是一项服务。
+
+它对外暴露：
+
+1. 输入约定。
+2. 输出约定。
+3. 工作流类型。
+4. 并发和超时。
+5. 默认 Harness。
+6. 是否公开到 Tavern。
+
+### 10.4 Agent
+
+Agent 是执行单元，保存：
+
+1. 角色设定。
+2. persona prompt。
+3. 模型偏好。
+4. 工具绑定。
+5. 短期上下文窗口。
+6. 记忆范围。
+
+### 10.5 Quest
+
+Quest 是任务实例，是系统最核心的记录对象。
+
+它必须保存：
+
+1. 来源。
+2. 所属 World、Kingdom、AgentTeam。
+3. 输入输出。
+4. 状态。
+5. 成本预估和实际成本。
+6. 关联 trace。
+7. 计划和节点。
+8. 人工干预记录。
+
+### 10.6 Contract
+
+Contract 是跨 Kingdom 调用的唯一合法入口，负责：
+
+1. 访问范围。
+2. 服务账号。
+3. 定价规则。
+4. SLA 约束。
+
+### 10.7 Tavern
+
+Tavern 是 AgentTeam 的市场视图，而不是执行引擎。
+
+它负责：
+
+1. 展示团队能力。
+2. 展示成功率、耗时、成本。
+3. 提供招募模式。
+4. 提供公开发现能力。
+
+## 11. Quest 状态机
+
+推荐状态如下：
+
+1. `draft`
+2. `submitted`
+3. `validating`
+4. `planning`
+5. `running`
+6. `awaiting`
+7. `completed`
+8. `failed`
+9. `cancelled`
+
+状态解释：
+
+1. `draft`：草稿，还没有正式提交。
+2. `submitted`：任务进入系统，等待校验。
+3. `validating`：预算、权限、Contract、Harness 正在检查。
+4. `planning`：Captain Agent 或规则规划器正在生成计划。
+5. `running`：至少有一个节点在运行。
+6. `awaiting`：任务被人工门禁暂停。
+7. `completed`：任务结束且结果有效。
+8. `failed`：任务失败，且超出自动恢复范围。
+9. `cancelled`：被用户或系统取消。
+
+## 12. Agent 调度设计
+
+这一节是整份设计里最关键的部分之一。
+
+### 12.1 Quest 的统一入口
+
+不管任务来自哪里，在调度器看来都必须先变成 Quest。
+
+统一入口有三类：
+
+1. 手动提交。
+2. 定时任务。
+3. Webhook 事件。
+
+统一成 Quest 之后，后面的预算、权限、规划、执行、回放才有一致模型。
+
+### 12.2 调度器在单体里怎么工作
+
+本版不引入外部编排系统，而是采用进程内调度核。
+
+调度器定时做四件事：
+
+1. 扫描到点的 schedule template。
+2. 把 webhook 或手动提交的任务写成 Quest。
+3. 按优先级排序可运行 Quest。
+4. 为 Quest 认领执行槽位。
+
+### 12.3 调度周期
+
+调度器建议每 1 到 3 秒 tick 一次。
+
+每次 tick 做下面这些动作：
+
+1. 打开 SQLite 事务。
+2. 查询可进入 `validating` 或 `planning` 的 Quest。
+3. 查询已经 `running` 但有可执行节点的 Quest。
+4. 基于优先级和并发限制认领一批工作。
+5. 提交事务。
+
+### 12.4 优先级公式
+
+推荐使用简单可解释的公式：
+
+```txt
+effectivePriority
+= basePriority
++ sourceBonus
++ humanResumeBonus
++ deadlineBonus
+- retryPenalty
+- budgetPressurePenalty
 ```
 
-约束：
+每一项都必须可解释，不能只给模型一个黑箱分值。
 
-- World 是最外层治理边界
-- World 级别可以限制模型白名单和总配额
-- World 级别 guardrails 会被所有 Kingdom 继承
+### 12.5 为什么调度器不能直接调 Agent
 
-### 6.2 Kingdom
+因为调度器只负责“谁先跑”，不负责“怎么跑”。
 
-```ts
-type Kingdom = {
-  id: string;
-  worldId: string;
-  slug: string;
-  name: string;
-  lordUserId: string;
-  status: "active" | "suspended" | "archived";
-  balance: number;
-  creditLimit: number;
-  privateToolRefsJson: string;
-  privateMemoryNamespace: string;
-  policyJson: string;
-  createdAt: string;
-};
-```
+真正调用 Agent 之前，还要经过：
 
-约束：
+1. Harness 解析。
+2. Contract 校验。
+3. Provider 选择。
+4. Runtime 选择。
+5. Prompt 组装。
+6. 工具调用门禁。
 
-- Kingdom 不能绕过 World 的模型白名单
-- privateToolRefs 只保存引用，不存明文 secret
-- Kingdom 有独立成本归集和信用额度
+所以调度器只把 Quest 送到正确的执行入口。
 
-### 6.3 AgentTeam
+## 13. 任务规划设计
 
-```ts
-type AgentTeam = {
-  id: string;
-  kingdomId: string;
-  slug: string;
-  name: string;
-  description: string;
-  captainAgentId: string | null;
-  workflowType: "single" | "sequential" | "parallel" | "dag";
-  inputSchemaJson: string;
-  outputSchemaJson: string;
-  maxConcurrency: number;
-  timeoutMs: number;
-  successRateThreshold: number;
-  pricingModelJson: string;
-  visibility: "private" | "public";
-  defaultHarnessId: string | null;
-  createdAt: string;
-};
-```
+### 13.1 规划模式
 
-约束：
+AgentWorld 支持四类规划模式：
 
-- AgentTeam 是平台对外暴露的服务接口
-- 一个 AgentTeam 可以包含多个 Agent
-- 如果 visibility 为 public，它才允许进 Tavern
+1. 单节点。
+2. 串行。
+3. 并行。
+4. DAG。
 
-### 6.4 Agent
+### 13.2 什么时候用 Captain Agent
 
-```ts
-type Agent = {
-  id: string;
-  teamId: string;
-  slug: string;
-  name: string;
-  role: string;
-  personaPrompt: string;
-  model: string;
-  shortTermWindow: number;
-  ragConfigJson: string;
-  toolBindingsJson: string;
-  memoryScope: "private" | "team_shared";
-  safetyPolicyJson: string;
-  status: "active" | "disabled";
-  createdAt: string;
-};
-```
+Captain Agent 适合下面这类任务：
 
-约束：
+1. 输入复杂，无法固定成死板流程。
+2. 需要根据上下文动态拆步骤。
+3. 需要先研究，再分析，再写总结。
 
-- Agent 不直接拥有跨 Kingdom 权限
-- Agent 的工具可见性必须经过 Harness 和 Contract 双重校验
+如果任务本身是稳定流程，例如“PR 评审后再回写”，完全可以直接用规则规划，不需要每次都让模型重新发明 DAG。
 
-### 6.5 Quest
+### 13.3 规划结果必须落库
 
-```ts
-type Quest = {
-  id: string;
-  worldId: string;
-  kingdomId: string;
-  teamId: string;
-  sourceType: "manual" | "schedule" | "webhook" | "contract";
-  sourceRef: string | null;
-  status:
-    | "draft"
-    | "submitted"
-    | "validating"
-    | "planning"
-    | "running"
-    | "awaiting"
-    | "completed"
-    | "failed"
-    | "cancelled";
-  priority: number;
-  inputPayloadJson: string;
-  outputPayloadJson: string | null;
-  costEstimate: number;
-  costActual: number;
-  traceId: string;
-  createdAt: string;
-  completedAt: string | null;
-};
-```
+规划不是临时内存对象，而是平台数据。
 
-### 6.6 QuestPlan 与 QuestNode
+规划结果至少包含：
 
-```ts
-type QuestPlan = {
-  id: string;
-  questId: string;
-  plannerMode: "rule" | "captain_agent";
-  dagJson: string;
-  summary: string;
-  createdAt: string;
-};
+1. 规划模式。
+2. DAG 节点。
+3. 依赖边。
+4. 规划摘要。
+5. 规划时间。
 
-type QuestNode = {
-  id: string;
-  questId: string;
-  planId: string;
-  nodeKey: string;
-  agentId: string;
-  dependsOnJson: string;
-  inputJson: string;
-  outputJson: string | null;
-  status: "pending" | "ready" | "running" | "awaiting" | "completed" | "failed" | "cancelled";
-  attemptCount: number;
-  maxAttempts: number;
-  startedAt: string | null;
-  completedAt: string | null;
-};
-```
+这样失败、重试、人工查看时，才能知道系统原本打算怎么做。
 
-### 6.7 Contract
+## 14. 执行器设计
+
+### 14.1 执行器只关心节点
+
+调度器关心 Quest，执行器关心 QuestNode。
+
+执行器要做的事：
+
+1. 找出当前 ready 的节点。
+2. 判断依赖是否满足。
+3. 选择合适的 Agent。
+4. 启动单次调用。
+5. 根据结果推进后继节点。
+
+### 14.2 节点状态
+
+推荐节点状态：
+
+1. `ready`
+2. `running`
+3. `awaiting`
+4. `completed`
+5. `failed`
+
+### 14.3 节点重试
+
+自动重试只能在明确安全的场景发生，例如：
+
+1. Provider 暂时失败。
+2. runtime 短时不可用。
+3. 工具超时。
+4. 输出结构校验失败，但没有副作用动作发生。
+
+如果节点已经触发写代码、发消息、回写仓库这类副作用动作，必须更谨慎，通常要转人工确认。
+
+## 15. 多轮 Agent 调用设计
+
+这是第二个最关键的部分。
+
+### 15.1 为什么一定是多轮
+
+Agent 真正干活时，通常不是“一次提示词，一次回答”。
+
+更常见的真实过程是：
+
+1. 先看任务。
+2. 想下一步。
+3. 调一个工具。
+4. 看工具结果。
+5. 再想下一步。
+6. 可能继续调工具。
+7. 最后产出结果。
+
+所以平台必须把一次 Agent 执行理解成“多轮状态推进”。
+
+### 15.2 单轮内部结构
+
+每一轮建议固定成下面六步：
+
+1. Observe：读取当前输入、上下文、上轮结果。
+2. Think：形成简短推理摘要。
+3. Decide：决定下一步是继续思考、调工具还是结束。
+4. Act：执行工具或生成文本输出。
+5. Check：做 Harness、结构化输出、预算检查。
+6. Persist：把本轮结果写入 trace 和节点状态。
+
+### 15.3 单轮数据结构
+
+建议抽象为下面这种结构：
 
 ```ts
-type Contract = {
-  id: string;
-  providerTeamId: string;
-  consumerKingdomId: string;
-  pricingModelJson: string;
-  slaJson: string;
-  accessScopeJson: string;
-  serviceAccountRef: string;
-  status: "draft" | "active" | "suspended" | "expired";
-  createdAt: string;
-};
-```
-
-### 6.8 TavernListing
-
-```ts
-type TavernListing = {
-  id: string;
-  teamId: string;
-  resumeJson: string;
-  recruitmentMode: "copy" | "subscribe" | "dedicated";
-  tagsJson: string;
-  status: "listed" | "hidden" | "suspended";
-  createdAt: string;
-};
-```
-
-### 6.9 HarnessProfile
-
-```ts
-type HarnessProfile = {
-  id: string;
-  worldId: string | null;
-  kingdomId: string | null;
-  teamId: string | null;
-  name: string;
-  systemInstruction: string;
-  toolPolicyJson: string;
-  approvalPolicyJson: string;
-  budgetPolicyJson: string;
-  outputPolicyJson: string;
-  securityPolicyJson: string;
-  createdAt: string;
-};
-```
-
-### 6.10 Trace 与 Audit
-
-```ts
-type TraceSpan = {
-  id: string;
-  traceId: string;
-  parentSpanId: string | null;
-  questId: string;
-  nodeId: string | null;
-  kind: "quest" | "planning" | "agent" | "tool" | "approval" | "contract";
-  status: "open" | "ok" | "error";
-  startedAt: string;
-  endedAt: string | null;
-  attributesJson: string;
-};
-
-type EventLog = {
-  id: string;
-  traceId: string;
-  questId: string;
-  nodeId: string | null;
-  seq: number;
-  phase: string;
-  foldGroup: string;
-  title: string;
-  content: string;
-  metadataJson: string;
-  createdAt: string;
-};
-```
-
-## 7. Quest 状态机
-
-### 7.1 顶层状态
-
-| 状态 | 含义 |
-| --- | --- |
-| Draft | 草稿，尚未真正提交 |
-| Submitted | 已提交，等待进入校验 |
-| Validating | 正在做权限、预算、contract 和 harness 预检 |
-| Planning | 正在生成 DAG 或执行计划 |
-| Running | 正在执行节点 |
-| Awaiting | 等待人工批准或补充输入 |
-| Completed | 成功完成 |
-| Failed | 执行失败 |
-| Cancelled | 被取消 |
-
-### 7.2 关键原则
-
-- Quest 的真实状态以数据库为准，不以内存对象为准
-- 每次状态变化都写入 event log
-- 人工干预不是旁路，而是正式状态跃迁
-
-## 8. 调度设计
-
-这是平台最重要的部分之一。
-
-### 8.1 为什么不依赖外部编排系统
-
-因为 Quest 调度在第一阶段主要做四件事：
-
-1. 找到到期任务
-2. 抢占执行权
-3. 生成 Quest
-4. 驱动 Quest 从一个稳定状态走向下一个稳定状态
-
-这本质上是数据库状态机，不需要先引入额外 orchestrator。
-
-### 8.2 调度对象
-
-调度核处理三类对象：
-
-- ScheduleTemplate：周期任务模板
-- Quest：顶层任务实例
-- QuestNode：Quest 内部 DAG 节点
-
-### 8.3 调度循环
-
-单体服务内启动两个轻量循环：
-
-- Schedule Tick：每 5 秒扫描到期 schedule
-- Executor Tick：每 1 秒扫描可运行 Quest 与 QuestNode
-
-### 8.4 Schedule Tick 算法
-
-1. 查询 `next_run_at <= now` 的 schedule template
-2. 按 World、Kingdom、priority、SLA 排序
-3. 用 SQLite 更新语句抢占 lease
-4. 生成 Quest
-5. 回写下次执行时间
-
-### 8.5 Executor Tick 算法
-
-1. 选择 `status in (submitted, validating, planning, running, awaiting)` 的 Quest
-2. 根据当前状态分派到对应处理器
-3. 如果 Quest 已经进入 Running，则寻找 `ready` 的 QuestNode
-4. 根据 team 的 `max_concurrency` 和 runtime 空闲情况启动节点
-
-### 8.6 优先级
-
-最终优先级由以下因素组成：
-
-- Quest.priority
-- Kingdom 是否 VIP
-- Contract SLA 等级
-- 是否已经等待过人工
-- 是否接近超时
-
-## 9. 规划与 DAG 设计
-
-### 9.1 规划入口
-
-每个 Quest 在进入 Running 之前，必须先拥有一个 QuestPlan。
-
-### 9.2 两种规划模式
-
-| 模式 | 使用场景 |
-| --- | --- |
-| rule | 简单、固定流程 |
-| captain_agent | 复杂任务，需要根据输入动态生成 DAG |
-
-### 9.3 Captain Agent 的职责
-
-Captain Agent 只负责三件事：
-
-- 根据输入生成 DAG
-- 说明每个节点的目标和依赖
-- 给出预估成本和风险提示
-
-Captain Agent 不直接执行重型工具。
-
-### 9.4 DAG 约束
-
-DAG 生成后会经过结构校验：
-
-- 必须无环
-- 节点数不能超过 team 的限制
-- 每个节点必须绑定明确的 Agent
-- 输出必须能映射到 team 的 output schema
-
-### 9.5 节点恢复
-
-如果某个节点失败：
-
-- 可重试节点进入重试队列
-- 不可重试节点会让 Quest 进入 Failed 或 Awaiting
-- 已完成节点不会被重复执行
-
-## 10. Agent 调用设计
-
-这是另一个最关键的部分。
-
-### 10.1 调用目标
-
-Agent 调用不是一句 prompt 丢给模型这么简单。
-
-在 AgentWorld 里，一次调用是一个受控管线：
-
-1. 构造 InvocationEnvelope
-2. 合并 World / Kingdom / Team / Agent Harness
-3. 裁剪可见工具和 memory
-4. 校验 Contract 范围
-5. 选择 provider 和 model
-6. 流式执行并写 trace
-7. 碰到人工门禁时暂停
-8. 做输出校验并回写节点结果
-
-### 10.2 InvocationEnvelope
-
-```ts
-type InvocationEnvelope = {
+type AgentTurn = {
   questId: string;
   nodeId: string;
-  worldId: string;
-  kingdomId: string;
-  teamId: string;
-  agentId: string;
-  inputJson: string;
-  contractId: string | null;
-  visibleToolsJson: string;
-  visibleMemoryScopesJson: string;
-  providerPolicyJson: string;
-  harnessProfileId: string;
+  turnIndex: number;
+  observationRef: string[];
+  reasoningSummary: string;
+  actionType: "tool_call" | "message" | "finish" | "handoff";
+  actionName?: string;
+  actionPayloadJson?: string;
+  resultRef?: string;
+  finishReason?: string;
+  tokenUsage?: {
+    input: number;
+    output: number;
+  };
+  createdAt: string;
 };
 ```
 
-### 10.3 为什么调用前要先做 Harness Resolve
+### 15.4 多轮停止条件
 
-因为 Agent 不能自己决定它能做什么。
+一轮 QuestNode 何时结束，必须由平台判断，不能只靠模型说“我觉得结束了”。
 
-AgentWorld 采用 Harness 工程思路，把约束前置到调用前：
+停止条件建议包含：
 
-- 哪些工具可见
-- 哪些工具需要人工批准
-- 哪些模型允许被使用
-- 最大 token、最大步骤数、最大耗时是多少
-- 输出是否必须结构化
+1. 已产出满足 schema 的最终结果。
+2. 达到最大步数。
+3. 达到最大工具调用次数。
+4. 达到最大运行时长。
+5. 命中人工门禁。
+6. 进入不可恢复错误。
 
-### 10.4 工具调用链
+### 15.5 thinking 怎么展示
 
-工具调用会经过四层判断：
+thinking 需要可见，但默认折叠。
 
-1. Agent 自身是否绑定该工具
-2. Harness 是否允许
-3. Contract 是否允许该访问范围
-4. Runtime 安全策略是否允许实际执行
+原因很简单：
 
-只要有一层不通过，就阻断。
+1. 不可见，团队很难诊断问题。
+2. 全展开，界面会非常吵。
 
-### 10.5 模型调用链
+所以工作台里：
 
-provider-core 会根据下面规则挑选模型：
+1. thinking 默认折叠。
+2. tool result 单独分组。
+3. 最终文字输出单独分组。
+4. 人工门禁单独分组并默认展开。
 
-- World 模型白名单
-- Kingdom 成本策略
-- Team 默认模型策略
-- Agent 指定模型
-- fallback 策略
+### 15.6 什么时候中断转人工
 
-### 10.6 流式输出
+下面几种情况必须优先考虑人工介入：
 
-所有 Agent 调用都必须产生可观察事件：
+1. 需要写代码仓。
+2. 需要发送外部消息。
+3. 需要调用高风险工具。
+4. 输出和 schema 连续多次不匹配。
+5. 预算即将超限。
+6. Contract 范围不明确。
 
-- `thinking`
-- `tool_call`
-- `tool_result`
-- `text_delta`
-- `approval_required`
-- `output_validated`
-- `node_completed`
+## 16. Agent 调用链设计
 
-这些事件统一进入 event log，前端用折叠组展示。
+这一节讲单个节点是怎么真正跑起来的。
 
-## 11. Harness 工程设计
+### 16.1 单次调用的标准链路
 
-### 11.1 Harness 在 AgentWorld 里的位置
+每次 Agent 调用都必须走下面这条显式链路：
 
-Harness 不是一个可选配置项，而是平台约束层。
+1. 组装调用上下文。
+2. 解析 Harness。
+3. 校验 Contract。
+4. 选择 Provider。
+5. 选择 runtime。
+6. 组装 Prompt。
+7. 发起模型调用。
+8. 捕获 tool call。
+9. 做 Harness 前置校验。
+10. 执行工具。
+11. 写入 trace。
+12. 判断是否继续下一轮。
+13. 校验结果。
+14. 提交节点状态。
 
-所有 Quest 在真正调用 Agent 之前，都要先经过 HarnessResolve。
+### 16.2 为什么要把 Provider 和 runtime 分开
 
-### 11.2 Harness 的三类约束来源
+因为这两个概念不是一回事：
+
+1. Provider 决定模型能力从哪来。
+2. runtime 决定 Agent 运行环境从哪来。
+
+例如：
+
+1. Provider 可以是 OpenAI 或任意 OpenAI 风格兼容服务。
+2. runtime 可以是本地 OpenCode 实例，也可以是别的外部执行端点。
+
+### 16.3 选择 Provider 的原则
+
+Provider 选择至少要看：
+
+1. World 模型白名单。
+2. Kingdom 偏好。
+3. Agent 模型偏好。
+4. Provider 是否启用。
+5. 成本与 fallback 规则。
+
+### 16.4 选择 runtime 的原则
+
+runtime 选择至少要看：
+
+1. 是否归属于当前 Kingdom。
+2. 是否健康。
+3. 当前并发是否够。
+4. 是否具备当前 Agent 需要的能力目录。
+
+## 17. 提示词工程设计
+
+这部分不能写虚的，必须写得能实现。
+
+### 17.1 Prompt 不是一段字符串，而是一叠分层约束
+
+推荐的 Prompt Stack 顺序如下：
+
+1. 平台层提示。
+2. Harness 约束层提示。
+3. World / Kingdom 治理层提示。
+4. AgentTeam 服务层提示。
+5. Agent persona 层提示。
+6. Quest / Node 任务层提示。
+7. 当前轮观察结果层提示。
+8. 输出格式层提示。
+
+### 17.2 平台层提示
+
+平台层提示负责告诉模型：
+
+1. 你运行在 AgentWorld。
+2. 你必须遵守工具权限、预算和人工门禁。
+3. 你不能自己跳过审批。
+4. 你必须如实暴露失败，不要伪造工具结果。
+
+### 17.3 Harness 层提示
+
+Harness 层提示负责告诉模型：
+
+1. 允许什么工具。
+2. 禁止什么工具。
+3. 什么操作必须人工批准。
+4. 最大步数、最大工具调用数、最大运行时长。
+5. 输出是否必须结构化。
+6. 默认语言是什么。
+
+### 17.4 默认中文提示
+
+默认中文能力在 Prompt 里必须明确，而不是暗示。
+
+建议固定加入一条：
+
+```text
+除非任务输入明确要求其他语言，否则默认使用简体中文输出。
+如果需要输出结构化 JSON，字段名保持英文稳定，字段值优先使用简体中文。
+```
+
+### 17.5 AgentTeam 层提示
+
+AgentTeam 层提示要说明：
+
+1. 这项服务是干什么的。
+2. 成功标准是什么。
+3. 输出结构是什么。
+4. 什么时候应该停止。
+
+### 17.6 Agent persona 层提示
+
+Agent persona 不是“写得越玄越好”，而是要明确：
+
+1. 这个 Agent 负责什么角色。
+2. 它优先关注什么。
+3. 它不应该越权做什么。
+
+### 17.7 多轮执行时的 Prompt 变化
+
+多轮调用不能每轮都塞一模一样的上下文。
+
+每一轮 Prompt 应该按下面顺序增量构造：
+
+1. 固定层：平台、Harness、World、Kingdom、AgentTeam、Agent。
+2. 本任务固定层：Quest 输入、节点目标、依赖结果。
+3. 本轮动态层：上轮工具结果、上轮总结、当前可用动作。
+
+### 17.8 结构化输出规则
+
+如果 AgentTeam 定义了输出 schema，那么 Prompt 里必须明确：
+
+1. 输出字段有哪些。
+2. 哪些是必填。
+3. 缺失信息时怎么标记。
+4. 不要额外输出 schema 之外的自由文本。
+
+### 17.9 失败重试 Prompt
+
+重试不是把原 prompt 再发一遍。
+
+重试 Prompt 里必须附加：
+
+1. 上次失败原因。
+2. 哪些动作已经做过。
+3. 哪些动作不能重复做。
+4. 本轮只允许尝试什么修复策略。
+
+### 17.10 人工接力 Prompt
+
+如果任务从 Agent 转人工，平台需要生成一段人能看懂的摘要：
+
+1. 当前做到了哪一步。
+2. 为什么暂停。
+3. 需要人决定什么。
+4. 如果批准，后续会做什么。
+
+### 17.11 推荐 Prompt 模板
+
+下面是一份建议的执行 Prompt 模板：
+
+```text
+[平台角色]
+你运行在 AgentWorld 中，必须遵守平台的工具、预算、审批和输出规则。
+
+[语言规则]
+除非任务明确指定其他语言，否则默认使用简体中文输出。
+
+[Harness 约束]
+允许工具：{{allowed_tools}}
+禁止工具：{{blocked_tools}}
+需人工批准的工具：{{approval_tools}}
+最大步数：{{max_steps}}
+最大工具调用数：{{max_tool_calls}}
+最大运行时长：{{max_runtime_ms}}
+
+[服务目标]
+当前 AgentTeam：{{team_name}}
+当前 Agent：{{agent_name}}
+当前节点目标：{{node_goal}}
+
+[上下文]
+任务输入：{{quest_input}}
+依赖节点结果：{{dependency_outputs}}
+当前轮观察：{{current_observation}}
+
+[输出要求]
+先给出简短结论，再根据需要调用工具。
+如果要结束，必须输出满足 schema 的结果。
+如果信息不够，请明确说明缺口，不要编造。
+```
+
+## 18. Harness 工程设计
+
+Harness 是本平台最重要的治理层之一。
+
+### 18.1 Harness 的三类约束
 
 #### 1. 工具调用约束
 
-- allow list
-- block list
-- approval-required list
-- 每种工具的最大调用次数
+平台在执行器里硬限制：
+
+1. 只允许白名单工具。
+2. 阻断黑名单工具。
+3. 命中高风险工具时先转人工。
 
 #### 2. 外部配置约束
 
-- World 模型白名单
-- Kingdom 预算和 credit limit
-- Contract access scope
-- runtime 健康状态
+通过 World、Kingdom、AgentTeam、HarnessProfile 配置：
 
-#### 3. 内部策略约束
+1. 模型白名单。
+2. Provider 偏好。
+3. 默认语言。
+4. 输出结构化要求。
+5. 成本与时长预算。
 
-- 最大耗时
-- 最大 token
-- 最大步骤数
-- 输出结构校验
-- prompt scan / output scan
+#### 3. 内部执行器约束
 
-### 11.3 Harness 解析顺序
+通过平台内核硬执行：
 
-最终策略按以下顺序叠加：
+1. 最大步数。
+2. 最大工具调用数。
+3. 最大运行时长。
+4. 节点重试上限。
+5. 结构化输出校验。
+6. Prompt scan 和 output scan。
 
-1. World Harness
-2. Kingdom Harness
-3. AgentTeam Harness
-4. Agent Safety Policy
-5. Contract 附加限制
-6. 运行时安全补丁
+### 18.2 为什么 Harness 必须是多层继承
 
-后面的策略只能收紧，不能放宽。
+因为平台里不同层次的治理目标不同：
 
-### 11.4 Harness Preview
+1. World 负责“最外层不能突破什么”。
+2. Kingdom 负责“这个团队额外要收紧什么”。
+3. AgentTeam 负责“这项服务自己的执行规则是什么”。
 
-在 UI 中，用户可以在真正提交前看到：
+最终合成规则时，只允许越收越紧，不允许下层放松上层限制。
 
-- 当前会用哪个 model
-- 可见工具有哪些
-- 哪些工具会触发人工门禁
-- 预算上限是多少
-- 任务大概会在哪些地方被阻断
+### 18.3 Harness 合成原则
 
-## 12. Tavern 设计
+建议的合成规则：
 
-### 12.1 Tavern 的本质
+1. 工具白名单取交集。
+2. 工具黑名单取并集。
+3. 人工门禁工具取并集。
+4. 预算取最小值。
+5. 输出规则取更严格的一侧。
+6. 默认语言按最具体层覆盖。
 
-Tavern 不是“聊天应用列表”，而是 AgentTeam 市场。
+## 19. 数据模型与表设计
 
-它展示的是可被别的 Kingdom 招募、订阅或托管的服务单元。
+### 19.1 核心表
 
-### 12.2 Hero Resume 自动生成
+第一版至少需要下面这些表：
 
-系统会根据 Quest 历史自动计算：
+1. `worlds`
+2. `kingdoms`
+3. `harness_profiles`
+4. `agent_teams`
+5. `agents`
+6. `provider_profiles`
+7. `runtime_endpoints`
+8. `contracts`
+9. `tavern_listings`
+10. `schedule_templates`
+11. `quests`
+12. `quest_plans`
+13. `quest_nodes`
+14. `trace_spans`
+15. `event_logs`
+16. `quest_interventions`
+17. `repository_profiles`
+18. `developer_profiles`
+19. `webhook_endpoints`
 
-- success_rate
-- avg_latency
-- avg_cost
-- top_tasks
-- domain_tags
-- recent_failures
+### 19.2 Quest 为什么拆三张表
 
-### 12.3 招募模式
+Quest 本身只描述任务头信息，不适合把一切都堆进去。
 
-| 模式 | 含义 |
-| --- | --- |
-| Copy | 复制一份 team 配置到当前 Kingdom |
-| Subscribe | 通过 Contract 调用对方服务 |
-| Dedicated | 对方为当前 Kingdom 提供专属托管实例 |
+所以推荐拆成：
 
-### 12.4 Tavern Sandbox
+1. `quests`：任务头。
+2. `quest_plans`：规划结果。
+3. `quest_nodes`：节点执行状态。
 
-Tavern 模式下默认强制：
+这样：
 
-- 禁止写入高风险工具
-- 禁止访问 provider 侧密钥明文
-- 禁止访问对方 Kingdom 的私有 memory
-- 禁止提升模型权限
+1. 查询列表更轻。
+2. 查看详情更清楚。
+3. DAG 恢复更容易。
 
-## 13. Contract 设计
+### 19.3 Trace 为什么单独建表
 
-### 13.1 Contract 的作用
+因为 trace 不是“日志附件”，而是核心产品功能。
 
-Contract 是跨 Kingdom 调用的唯一正式入口。
+它要支撑：
 
-没有 Contract，就不存在合法跨 Kingdom 服务访问。
+1. thinking 折叠展示。
+2. 工具调用回放。
+3. 人工审计。
+4. 故障诊断。
+5. 成本归因。
 
-### 13.2 调用链
+## 20. API 设计
 
-Consumer Kingdom
--> Contract Validate
--> Service Account Scope
--> Provider AgentTeam
+### 20.1 推荐 API 入口
 
-### 13.3 Contract 至少定义四件事
+第一版建议提供下面这些接口：
 
-- 谁可以调用
-- 能调用什么输入输出接口
-- 成本怎么算
-- SLA 怎么承诺
+1. `POST /api/quests`
+2. `POST /api/quests/:id/approve`
+3. `POST /api/quests/:id/cancel`
+4. `POST /api/runtimes/discover`
+5. `POST /api/webhooks/:pathKey`
+6. `GET /api/quests/:id/trace`
+7. `GET /api/dashboard`
+8. `POST /api/providers`
+9. `POST /api/contracts`
 
-### 13.4 安全边界
+### 20.2 webhook 入站
 
-Contract 不会授予下面这些权限：
+Webhook 接口要做四件事：
 
-- 访问对方 Kingdom 的原始 secret
-- 访问对方私有 memory 原文
-- 访问对方本地文件系统
-- 绕过 Tavern Sandbox 直接调用高风险工具
+1. 鉴权。
+2. 校验请求 schema。
+3. 映射到目标 AgentTeam。
+4. 生成 Quest。
 
-## 14. Memory、Artifact 与 Trace
+Webhook 自己不直接调 Agent。
 
-### 14.1 Memory
+## 21. UI 设计
 
-第一版不做外部向量库，改为：
+### 21.1 左侧导航
 
-- SQLite 短期上下文表
-- SQLite FTS5 文本索引
-- memory summary 表
-- 可选 embedding JSON 字段
+左侧导航建议包含：
 
-### 14.2 Artifact
+1. 总览
+2. World
+3. Kingdom
+4. AgentTeam
+5. Quest
+6. Tavern
+7. Contract
+8. Runtime
+9. Harness
+10. 大屏
+11. 设置
 
-artifact 保存到本地目录：
+### 21.2 Quest 详情页必须展示什么
 
-- run transcript
-- tool output
-- exported report
-- uploaded attachment
+Quest 详情页必须至少展示：
 
-数据库只存 metadata，不把大文件塞进 SQLite。
-
-### 14.3 Trace
-
-Trace 有两层：
-
-- span 适合算耗时、父子关系、成本
-- event log 适合展示 thinking、tool call、文本输出
-
-## 15. API 与 UI 设计
-
-### 15.1 左侧导航
-
-第一版建议包含：
-
-- Overview
-- Worlds
-- Kingdoms
-- AgentTeams
-- Quests
-- Tavern
-- Contracts
-- Runtimes
-- Harness
-- Wallboard
-- Settings
-
-### 15.2 核心页面
-
-| 页面 | 作用 |
-| --- | --- |
-| Overview | 总览状态、成本、成功率、待处理 Quest |
-| World Detail | World 级配额、模型白名单、治理策略 |
-| Kingdom Detail | 团队预算、tool refs、私有任务视图 |
-| Quest List | 可筛选的任务列表 |
-| Quest Detail | DAG、trace、人工干预、artifact |
-| Tavern | 浏览和招募 AgentTeam |
-| Contract Center | 查看合约、SLA、费用和权限 |
-| Runtime Center | 发现 OpenCode runtime 和健康状态 |
-| Harness Center | 查看和预演约束效果 |
-| Wallboard | 大屏，展示活跃 agent、开发者、代码仓、Quest 成功率 |
-
-### 15.3 Webhook
-
-Webhook 由单体服务直接暴露：
-
-- path 可配置
-- method 可配置
-- request schema 可配置
-- 目标 AgentTeam 可配置
-
-Webhook 进入系统后先变成 Quest，不直接触发内部执行器。
-
-## 16. 安全与隔离
-
-### 16.1 隔离模型
-
-| 层级 | 第一版实现 |
-| --- | --- |
-| World | 租户字段隔离，支持后续按 World 拆独立 SQLite 文件 |
-| Kingdom | namespace 隔离、预算隔离、工具引用隔离 |
-| Agent | memory scope、tool scope、harness scope |
-| Contract | API 级范围隔离 |
-
-### 16.2 工具安全
-
-第一版不承诺强 OS 沙箱，而是做到：
-
-- 工具适配器白名单
-- cwd allowlist
-- 参数 schema 校验
-- 网络访问白名单
-- 高风险工具人工批准
-- 每次调用写审计日志
-
-### 16.3 风控
-
-- prompt scan
-- output scan
-- PII redaction
-- 成本阈值阻断
-- 重复失败熔断
-
-## 17. 可观测性与成本
-
-### 17.1 指标
-
-至少统计：
-
-- World cost
-- Kingdom cost
-- Team cost
-- Agent success rate
-- Quest latency
-- Node retry count
-- Human intervention count
-
-### 17.2 成本结算
-
-一次 Quest 的成本至少拆成：
-
-- model token cost
-- tool execution cost
-- platform fee
-- contract revenue share
-
-## 18. 安装与部署
-
-### 18.1 本地启动
-
-1. `pnpm install`
-2. `pnpm bootstrap`
-3. `pnpm dev`
-
-### 18.2 生产部署
-
-第一版就是一个 Node 服务：
-
-- 一个 Next.js 进程
-- 一个 SQLite 文件
-- 一个 artifacts 目录
-
-如果后续增长，可以先把 SQLite 文件和 artifact 目录放到稳定磁盘，再考虑拆模块。
-
-## 19. MVP 开发顺序
+1. 任务概览。
+2. Contract 信息。
+3. Harness 信息。
+4. 计划摘要和节点。
+5. 调用阶段。
+6. Trace 分组。
+7. 人工干预记录。
+
+### 21.3 大屏必须展示什么
+
+大屏至少展示：
+
+1. 活跃 Quest。
+2. runtime 健康度。
+3. 核心 AgentTeam。
+4. 活跃代码仓。
+5. 活跃开发者。
+
+## 22. 可观测性设计
+
+### 22.1 三层观察对象
+
+平台需要同时观察三层：
+
+1. Quest 层。
+2. 节点层。
+3. 单轮调用层。
+
+### 22.2 Event Log 设计原则
+
+Event Log 必须满足：
+
+1. 有顺序。
+2. 有分组。
+3. 能折叠。
+4. 能回放。
+5. 能标出人工动作。
+
+### 22.3 推荐事件分组
+
+推荐分组：
+
+1. `Planning`
+2. `Thinking`
+3. `Tool Result`
+4. `Text Output`
+5. `Human Actions`
+6. `Final Result`
+
+## 23. 安全与隔离
+
+### 23.1 多租户边界
+
+1. World 是租户边界。
+2. Kingdom 是团队边界。
+3. Contract 是跨边界调用边界。
+4. Harness 是行为边界。
+
+### 23.2 工具安全
+
+1. 工具密钥不落到 Agent prompt。
+2. 工具执行前做 Harness 校验。
+3. 高风险工具必须人工批准。
+4. 工具返回值要被 trace 记录。
+
+### 23.3 输出安全
+
+1. Prompt scan。
+2. Output scan。
+3. 结构化输出校验。
+4. 预算和步数硬限制。
+
+## 24. 4+1 视图
+
+### 24.1 场景视图
+
+这个视图回答：一个真实业务场景里，系统到底怎么流转。
+
+```plantuml
+@startuml
+title AgentWorld 场景视图 - GitHub PR 进入受治理 Quest
+actor Developer
+participant "GitHub Webhook" as Webhook
+participant "AgentWorld API" as API
+participant "Scheduler" as Scheduler
+participant "Planner" as Planner
+participant "Executor" as Executor
+participant "Harness" as Harness
+participant "Provider" as Provider
+participant "Runtime" as Runtime
+participant "Human Gate" as Gate
+
+Developer -> Webhook : PR opened / updated
+Webhook -> API : POST /api/webhooks/github-pr
+API -> Scheduler : create Quest
+Scheduler -> Planner : build plan
+Planner -> Executor : ready nodes
+Executor -> Harness : resolve constraints
+Harness --> Executor : policy bundle
+Executor -> Provider : select model provider
+Provider --> Executor : provider choice
+Executor -> Runtime : invoke agent
+Runtime --> Executor : stream thinking / tool / text
+Executor -> Gate : approval required?
+Gate --> Executor : approve / reject
+Executor --> API : final Quest result
+@enduml
+```
+
+### 24.2 逻辑视图
+
+这个视图回答：系统内部有哪些核心逻辑块，它们怎么分工。
+
+```plantuml
+@startuml
+title AgentWorld 逻辑视图
+package "Presentation" {
+  [Dashboard UI]
+  [Quest Detail UI]
+  [Wallboard UI]
+  [Settings UI]
+}
+
+package "Application" {
+  [Quest API]
+  [Runtime Discovery API]
+  [Webhook API]
+}
+
+package "Domain" {
+  [Tenant Core]
+  [Registry Core]
+  [Contract Core]
+  [Scheduler Core]
+  [Planner Core]
+  [Executor Core]
+  [Invocation Core]
+  [Harness Core]
+  [Provider Core]
+  [Trace Core]
+}
+
+package "Infrastructure" {
+  [SQLite]
+  [Local Artifact Store]
+  [OpenCode SDK]
+  [OpenAI-compatible Provider]
+}
+
+[Dashboard UI] --> [Quest API]
+[Quest Detail UI] --> [Quest API]
+[Wallboard UI] --> [Quest API]
+[Settings UI] --> [Runtime Discovery API]
+[Settings UI] --> [Webhook API]
+
+[Quest API] --> [Scheduler Core]
+[Quest API] --> [Planner Core]
+[Quest API] --> [Executor Core]
+[Runtime Discovery API] --> [OpenCode SDK]
+[Webhook API] --> [Scheduler Core]
+
+[Scheduler Core] --> [SQLite]
+[Planner Core] --> [SQLite]
+[Executor Core] --> [Invocation Core]
+[Invocation Core] --> [Harness Core]
+[Invocation Core] --> [Provider Core]
+[Invocation Core] --> [Trace Core]
+[Invocation Core] --> [OpenAI-compatible Provider]
+[Invocation Core] --> [OpenCode SDK]
+[Trace Core] --> [SQLite]
+[Executor Core] --> [Local Artifact Store]
+@enduml
+```
+
+### 24.3 进程视图
+
+这个视图回答：运行时有哪些进程内角色，它们怎么协作。
+
+```plantuml
+@startuml
+title AgentWorld 进程视图
+participant "HTTP Request Loop" as HTTP
+participant "Scheduler Tick Loop" as Tick
+participant "Executor Worker Slots" as Worker
+participant "Human Approval Loop" as Human
+database "SQLite" as DB
+
+HTTP -> DB : create / query Quest
+Tick -> DB : scan due schedules
+Tick -> DB : claim runnable Quest
+Tick -> Worker : dispatch node
+Worker -> DB : update node state
+Worker -> DB : append event logs
+Worker -> Human : request approval when gated
+Human -> DB : resolve intervention
+Worker -> DB : resume or finalize
+@enduml
+```
+
+### 24.4 开发视图
+
+这个视图回答：代码仓里应该怎么组织。
+
+```plantuml
+@startuml
+title AgentWorld 开发视图
+folder "src/app" {
+  [page.tsx]
+  [quests]
+  [runtimes]
+  [settings]
+  [wallboard]
+}
+
+folder "src/components" {
+  [app-shell]
+  [trace-group]
+  [runtime-discovery-button]
+}
+
+folder "src/server" {
+  [db.ts]
+  [queries.ts]
+  [scheduler-core.ts]
+  [planner-core.ts]
+  [executor-core.ts]
+  [invocation-core.ts]
+  [harness-core.ts]
+  [provider-core.ts]
+  [runtime-core.ts]
+}
+
+folder "docs" {
+  [detailed-design.zh-CN.md]
+  [detailed-design.en.md]
+}
+
+[page.tsx] --> [queries.ts]
+[quests] --> [queries.ts]
+[runtimes] --> [queries.ts]
+[settings] --> [queries.ts]
+[wallboard] --> [queries.ts]
+[queries.ts] --> [db.ts]
+[queries.ts] --> [scheduler-core.ts]
+[queries.ts] --> [planner-core.ts]
+[queries.ts] --> [executor-core.ts]
+[queries.ts] --> [invocation-core.ts]
+[queries.ts] --> [harness-core.ts]
+[queries.ts] --> [provider-core.ts]
+[queries.ts] --> [runtime-core.ts]
+@enduml
+```
+
+### 24.5 物理视图
+
+这个视图回答：系统最终怎么部署。
+
+```plantuml
+@startuml
+title AgentWorld 物理视图
+node "Single Host / VM / Laptop" {
+  node "AgentWorld Next.js Process" {
+    component "UI + API + Scheduler + Executor"
+  }
+
+  database "SQLite File"
+  folder "Artifact Directory"
+}
+
+cloud "OpenAI-compatible Provider" as Provider
+cloud "OpenCode Runtime" as Runtime
+cloud "Webhook Source\n(GitHub / CI / Repo Service)" as Webhook
+
+"AgentWorld Next.js Process" --> "SQLite File"
+"AgentWorld Next.js Process" --> "Artifact Directory"
+"AgentWorld Next.js Process" --> Provider
+"AgentWorld Next.js Process" --> Runtime
+Webhook --> "AgentWorld Next.js Process"
+@enduml
+```
+
+## 25. 补充图：Quest 状态机
+
+```plantuml
+@startuml
+title Quest 状态机
+[*] --> draft
+draft --> submitted
+submitted --> validating
+validating --> planning
+planning --> running
+running --> awaiting
+awaiting --> running
+running --> completed
+running --> failed
+draft --> cancelled
+submitted --> cancelled
+validating --> cancelled
+planning --> cancelled
+running --> cancelled
+awaiting --> cancelled
+completed --> [*]
+failed --> [*]
+cancelled --> [*]
+@enduml
+```
+
+## 26. 补充图：Prompt 组装顺序
+
+```plantuml
+@startuml
+title Prompt 组装顺序
+actor Executor
+participant "Platform Prompt" as P1
+participant "Harness Prompt" as P2
+participant "World/Kingdom Policy" as P3
+participant "AgentTeam Contract" as P4
+participant "Agent Persona" as P5
+participant "Quest/Node Context" as P6
+participant "Current Turn Observation" as P7
+participant "Output Schema" as P8
+
+Executor -> P1 : platform role
+Executor -> P2 : tools / budget / approvals / default locale
+Executor -> P3 : whitelist / provider preference / guardrails
+Executor -> P4 : team objective / io contract
+Executor -> P5 : agent role
+Executor -> P6 : quest input / dependency outputs
+Executor -> P7 : tool result / current observation
+Executor -> P8 : finish format
+P8 --> Executor : final prompt payload
+@enduml
+```
+
+## 27. MVP 开发路径
 
 ### Phase 1
 
-- World / Kingdom
-- AgentTeam / Agent
-- Quest 基本流程
-- Harness 核心约束
-- 单节点执行
-- Trace 页面
+1. World / Kingdom / AgentTeam / Quest 基础模型。
+2. 默认中文界面。
+3. Quest 列表、详情、大屏。
+4. runtime 发现。
+5. provider 配置。
 
 ### Phase 2
 
-- Captain Agent 规划
-- DAG 执行
-- Tavern
-- Contract
-- Wallboard
+1. 真正的 Quest 提交 API。
+2. 进程内调度 tick。
+3. 节点推进和状态变更。
+4. 人工批准闭环。
+5. 基础 webhook 入口。
 
 ### Phase 3
 
-- 成本系统
-- 更强的 tool 安全隔离
-- 每个 World 的独立数据文件
-- 更精细的 memory 检索
+1. 更完整的 Prompt 组装器。
+2. 多轮 Agent 调用状态持久化。
+3. Contract 调用闭环。
+4. Tavern 招募流程。
+5. 成本与成功率统计。
 
-## 20. 4+1 视图与关键图
+## 28. 风险与后续演进
 
-下面的图直接内嵌在文档中。
+### 28.1 当前方案的风险
 
-### 20.1 逻辑视图
+1. 单进程并发上限有限。
+2. SQLite 更适合单机，不适合一开始就多机并发写。
+3. 外部 runtime 发现目前更像能力目录，不是完整执行网格。
 
-```plantuml
-@startuml
-title AgentWorld 逻辑视图 / Logical View
+### 28.2 为什么这些风险当前可接受
 
-entity World
-entity Kingdom
-entity AgentTeam
-entity Agent
-entity TavernListing
-entity Contract
-entity Quest
-entity QuestPlan
-entity QuestNode
-entity HarnessProfile
-entity RuntimeEndpoint
-entity ProviderProfile
+因为当前最重要的是：
 
-World ||--o{ Kingdom
-Kingdom ||--o{ AgentTeam
-AgentTeam ||--o{ Agent
-AgentTeam ||--o{ TavernListing
-AgentTeam ||--o{ Quest
-Quest ||--|| QuestPlan
-Quest ||--o{ QuestNode
-Kingdom ||--o{ Contract
-AgentTeam ||--o{ Contract
-World ||--o{ HarnessProfile
-Kingdom ||--o{ HarnessProfile
-AgentTeam ||--o{ HarnessProfile
-World ||--o{ RuntimeEndpoint
-World ||--o{ ProviderProfile
+1. 把任务模型跑通。
+2. 把调度和调用边界讲清楚。
+3. 把治理、审计、人工介入做对。
 
-@enduml
-```
+这些事做对之后，再拆服务、再增强隔离，才不会把系统拆坏。
 
-### 20.2 过程视图
+## 29. 最后总结
 
-```plantuml
-@startuml
-title AgentWorld 过程视图 / Process View
+AgentWorld 不是一个“会聊天的网页”。
 
-actor User
-participant "UI / API" as API
-participant "scheduler-core" as Scheduler
-participant "planner-core" as Planner
-participant "executor-core" as Executor
-participant "invocation-core" as Invocation
-participant "harness-core" as Harness
-participant "provider-core" as Provider
-database "SQLite" as DB
+它本质上是三件东西合在一起：
 
-User -> API : submit quest
-API -> DB : create Quest(Submitted)
-Scheduler -> DB : claim submitted quest
-Scheduler -> Planner : build plan
-Planner -> DB : write QuestPlan + QuestNodes
-Executor -> DB : pick ready node
-Executor -> Harness : resolve harness
-Harness -> Invocation : invocation envelope
-Invocation -> Provider : call model / tool
-Invocation -> DB : write event log + spans
-Executor -> DB : update node and quest state
+1. 一个 Agent 任务执行引擎。
+2. 一个团队级治理平台。
+3. 一个可被运营的 Agent 服务市场入口。
 
-@enduml
-```
+本版设计最重要的收敛有四点：
 
-### 20.3 开发视图
+1. 用单体 TypeScript 先把链路做通。
+2. 用 SQLite 和本地文件系统降低部署门槛。
+3. 把调度、规划、执行、调用明确拆开。
+4. 用 Harness 工程原则约束 Agent，而不是靠模型“自觉”。
 
-```plantuml
-@startuml
-title AgentWorld 开发视图 / Development View
-
-package "src/app" {
-  [pages]
-  [route handlers]
-}
-
-package "src/server" {
-  [tenant-core]
-  [registry-core]
-  [contract-core]
-  [scheduler-core]
-  [planner-core]
-  [executor-core]
-  [invocation-core]
-  [harness-core]
-  [memory-core]
-  [trace-core]
-  [provider-core]
-  [runtime-core]
-}
-
-package "src/db" {
-  [schema]
-  [seed]
-  [queries]
-}
-
-[pages] --> [route handlers]
-[route handlers] --> [tenant-core]
-[route handlers] --> [registry-core]
-[route handlers] --> [scheduler-core]
-[scheduler-core] --> [planner-core]
-[executor-core] --> [invocation-core]
-[invocation-core] --> [harness-core]
-[invocation-core] --> [provider-core]
-[memory-core] --> [schema]
-[trace-core] --> [schema]
-
-@enduml
-```
-
-### 20.4 物理视图
-
-```plantuml
-@startuml
-title AgentWorld 物理视图 / Physical View
-
-node "Single Node Deployment" {
-  component "Next.js Monolith"
-  database "SQLite\nagentworld.db"
-  folder "Artifacts\n./data/artifacts"
-}
-
-cloud "External Providers" {
-  component "OpenAI-Compatible APIs"
-  component "OpenCode Runtime"
-  component "Webhook Sources"
-}
-
-"Next.js Monolith" --> "SQLite\nagentworld.db"
-"Next.js Monolith" --> "Artifacts\n./data/artifacts"
-"Next.js Monolith" --> "OpenAI-Compatible APIs"
-"Next.js Monolith" --> "OpenCode Runtime"
-"Webhook Sources" --> "Next.js Monolith"
-
-@enduml
-```
-
-### 20.5 场景视图
-
-```plantuml
-@startuml
-title AgentWorld 场景视图 / Scenario View - Cross Kingdom Quest
-
-actor Operator
-participant "Kingdom A UI" as A
-participant "contract-core" as ContractCore
-participant "scheduler-core" as Scheduler
-participant "planner-core" as Planner
-participant "executor-core" as Executor
-participant "AgentTeam B" as TeamB
-participant "Watcher / Human Gate" as Watcher
-database "SQLite" as DB
-
-Operator -> A : submit quest
-A -> ContractCore : validate contract
-ContractCore -> DB : freeze budget + verify scope
-A -> DB : create Quest
-Scheduler -> Planner : generate DAG
-Planner -> DB : persist plan
-Executor -> TeamB : invoke node
-TeamB -> DB : write spans and events
-TeamB -> Watcher : approval required
-Watcher -> DB : record approval
-Executor -> DB : finalize quest
-
-@enduml
-```
-
-### 20.6 Quest 状态机
-
-```plantuml
-@startuml
-title AgentWorld Quest 状态机 / Quest State Machine
-
-[*] --> Draft
-Draft --> Submitted
-Submitted --> Validating
-Validating --> Planning
-Validating --> Failed
-Planning --> Running
-Planning --> Failed
-Running --> Awaiting
-Running --> Completed
-Running --> Failed
-Awaiting --> Running
-Awaiting --> Cancelled
-Running --> Cancelled
-Failed --> [*]
-Completed --> [*]
-Cancelled --> [*]
-
-@enduml
-```
-
-### 20.7 Agent 调用时序图
-
-```plantuml
-@startuml
-title AgentWorld Agent 调用时序图 / Invocation Sequence
-
-participant "executor-core" as Executor
-participant "harness-core" as Harness
-participant "memory-core" as Memory
-participant "provider-core" as Provider
-participant "tool adapters" as Tools
-participant "trace-core" as Trace
-
-Executor -> Harness : resolve(node, quest, team, agent, contract)
-Harness -> Memory : resolve visible memory scopes
-Harness --> Executor : invocation envelope
-Executor -> Trace : open span
-Executor -> Provider : start model stream
-Provider --> Trace : text_delta / thinking
-Provider -> Tools : tool call if allowed
-Tools --> Trace : tool_result
-Provider --> Trace : output events
-Trace --> Executor : approval_required if gate hit
-Executor --> Trace : finalize node state
-
-@enduml
-```
-
-## 21. 结论
-
-AgentWorld 的关键不是把名词堆多，而是把下面这条链路做扎实：
-
-Quest 提交
--> 权限和预算校验
--> 规划 DAG
--> 调度节点
--> 调用 Agent
--> 用 Harness 约束过程
--> 把 trace、成本、人工干预完整记录下来
-
-只要这条链路是清楚的，这个平台就不是一个“会聊天的 demo”，而是一个真正能被团队运营起来的 Agent 系统。
+如果这四点稳定下来，AgentWorld 后面不管走向更强的 runtime、更多的团队协作，还是更复杂的服务市场，都会有非常清晰的底座。

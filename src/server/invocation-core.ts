@@ -28,64 +28,64 @@ export function buildInvocationPlan(args: {
   contract: Contract | null;
 }) {
   const harness = buildHarnessSummary(args.harness);
-  const runtimeName = args.runtime?.name ?? "No runtime selected";
-  const providerName = args.provider?.name ?? "No provider selected";
+  const runtimeName = args.runtime?.name ?? "未选择 runtime";
+  const providerName = args.provider?.name ?? "未选择 Provider";
 
   const stages: InvocationStage[] = [
     {
       key: "envelope",
-      label: "Build invocation envelope",
+      label: "组装调用上下文",
       owner: "invocation-core",
-      description: `Assemble world, kingdom, team, agent, and quest context before the first token is requested.`,
+      description: "在请求首个 token 之前，先把 world、kingdom、team、agent 和 quest 上下文拼装完整。",
     },
     {
       key: "harness",
-      label: "Resolve harness constraints",
+      label: "解析 Harness 约束",
       owner: "harness-core",
-      description: `Merge ${harness.name} with team and world policy so tool, budget, and output rules are explicit.`,
+      description: `把 ${harness.name} 与 team、world 策略合并，让工具、预算、输出规则都变成显式约束。`,
     },
     {
       key: "contract",
-      label: "Validate contract scope",
+      label: "校验 Contract 范围",
       owner: "contract-core",
       description: args.contract
-        ? `Apply access scope and pricing limits from the active contract before external service work starts.`
-        : `Skip cross-kingdom scope expansion because this invocation stays inside ${args.kingdom.name}.`,
+        ? "在开始外部服务动作之前，先应用生效中的 Contract 范围和定价限制。"
+        : `这次调用留在 ${args.kingdom.name} 内部，因此不需要做跨 Kingdom 的范围扩展。`,
     },
     {
       key: "provider",
-      label: "Select model provider",
+      label: "选择模型 Provider",
       owner: "provider-core",
-      description: `Route the call through ${providerName} while staying inside the World model whitelist of ${args.world.name}.`,
+      description: `在不突破 ${args.world.name} 模型白名单的前提下，把调用路由到 ${providerName}。`,
     },
     {
       key: "runtime",
-      label: "Attach execution runtime",
+      label: "挂载执行 runtime",
       owner: "runtime-core",
-      description: `Use ${runtimeName} if available and keep runtime health visible before the node commits to work.`,
+      description: `优先使用 ${runtimeName}，并在节点真正开工前把 runtime 健康状态显式展示出来。`,
     },
     {
       key: "trace",
-      label: "Stream trace and tool events",
+      label: "流式记录 Trace 与工具事件",
       owner: "trace-core",
-      description: `Write thinking, tool activity, approvals, and text output as replayable event groups for ${args.agent.name}.`,
+      description: `把 ${args.agent.name} 的思考、工具动作、人工批准和文本输出写成可回放的事件分组。`,
     },
   ];
 
   if (harness.approvalRequiredTools.length > 0) {
     stages.push({
       key: "gate",
-      label: "Pause on human gate",
+      label: "人工门禁暂停",
       owner: "human-gate",
-      description: `Pause before protected actions such as ${harness.approvalRequiredTools.join(", ")} and wait for explicit approval.`,
+      description: `在 ${harness.approvalRequiredTools.join(", ")} 这类受保护动作之前暂停，并等待显式批准。`,
     });
   }
 
   stages.push({
     key: "finalize",
-    label: "Finalize node result",
+    label: "完成节点收尾",
     owner: "executor-core",
-    description: `Validate output, record cost, and transition the Quest node to its next stable state.`,
+    description: "校验输出、记录成本，并把 Quest 节点推进到下一个稳定状态。",
   });
 
   return stages;

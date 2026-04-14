@@ -1,4 +1,5 @@
 import { listProviders, listWebhooks } from "@/server/queries";
+import { translateBoolean } from "@/lib/presentation";
 
 export default function SettingsPage() {
   const providers = listProviders();
@@ -8,7 +9,7 @@ export default function SettingsPage() {
     <div className="grid gap-6 xl:grid-cols-2">
       <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
         <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-          Provider profiles
+          Provider 配置
         </div>
         <div className="mt-4 space-y-3">
           {providers.map((provider) => (
@@ -24,8 +25,8 @@ export default function SettingsPage() {
               </div>
               <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
                 <div>Base URL: {provider.baseUrl}</div>
-                <div>Default model: {provider.defaultModel}</div>
-                <div>Enabled: {provider.isEnabled ? "Yes" : "No"}</div>
+                <div>默认模型: {provider.defaultModel}</div>
+                <div>是否启用: {translateBoolean(provider.isEnabled)}</div>
               </div>
             </div>
           ))}
@@ -34,7 +35,7 @@ export default function SettingsPage() {
 
       <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
         <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-          Webhooks
+          Webhook 配置
         </div>
         <div className="mt-4 space-y-3">
           {webhooks.map((webhook) => (
@@ -49,9 +50,9 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
-                <div>Path key: {webhook.pathKey}</div>
-                <div>Secret hint: {webhook.secretHint}</div>
-                <div>Enabled: {webhook.isEnabled ? "Yes" : "No"}</div>
+                <div>路径标识: {webhook.pathKey}</div>
+                <div>密钥提示: {webhook.secretHint}</div>
+                <div>是否启用: {translateBoolean(webhook.isEnabled)}</div>
               </div>
             </div>
           ))}

@@ -1,1142 +1,1321 @@
 # AgentWorld Detailed Design
 
-This is the English detailed design for AgentWorld.
+This is an implementation-oriented design document for AgentWorld.
 
-It is not a concept note. It is an implementation-oriented design for turning the World, Kingdom, AgentTeam, Agent, Tavern, Quest, and Contract model into a real platform built with a full TypeScript stack, a single deployable service, and an embedded database.
+The goal is simple:
 
-## 0. Document Goal
+1. Explain the system in plain language.
+2. Make the scheduling, invocation, multi-turn execution, human intervention, and harness constraints explicit.
+3. Show why this version is a full TypeScript monolith with an embedded database and no extra middleware.
+4. Provide enough detail to guide real development instead of hand-wavy architecture talk.
 
-This document answers six practical questions:
+## 1. One-Sentence Definition
 
-1. What exactly AgentWorld is
-2. Why the design is now a TypeScript monolith instead of a distributed control plane
-3. How Quest scheduling, planning, execution, and human intervention work together
-4. How harness engineering constrains agent invocation
-5. How World, Kingdom, AgentTeam, Contract, and Tavern map into database objects and APIs
-6. What the first development milestones should be
+AgentWorld is a multi-tenant, orchestrated, governable, observable agent runtime platform. It is not a chat wrapper. It is a system for operating agents as team capabilities, service units, and execution units.
 
-## 1. System Positioning
+## 2. What Problem the System Actually Solves
 
-### 1.1 One-Sentence Definition
+Once agents become part of real team workflows, the hard questions are no longer only about model quality. The hard questions are:
 
-AgentWorld is a multi-tenant, orchestrated, governable, observable AI agent runtime platform that supports cross-team agent marketplaces and collaborative execution.
+1. Who submitted the task.
+2. Which team owns the task.
+3. Whether budget, permissions, model policy, and tool policy were checked before execution.
+4. Whether the task is handled by one agent or multiple collaborating agents.
+5. Whether humans can intervene mid-flight.
+6. Whether cross-team calls are truly authorized.
+7. How retries, pauses, and resumes work.
+8. Whether the full run is visible, including thinking, tool calls, text output, and cost.
+9. Whether the platform is friendly to Chinese-first teams by default.
+10. Whether the whole system can run locally with one command and no extra infrastructure.
 
-### 1.2 Plain-Language Explanation
+AgentWorld is designed around those ten problems.
 
-AgentWorld is not a chat app.
+## 3. Hard Constraints for This Version
 
-It is also not just a thin agent shell around a model endpoint.
+This version intentionally converges on these constraints:
 
-It is an operating surface for teams:
+1. Full-stack TypeScript.
+2. One Next.js monolithic service.
+3. No external orchestration system.
+4. No Redis, Kafka, Temporal, PostgreSQL, Milvus, S3, or similar middleware.
+5. Embedded SQLite database.
+6. Local filesystem for artifacts and attachments.
+7. OpenAI-compatible provider integration.
+8. External OpenCode runtime discovery support.
+9. Chinese-first defaults for UI, output, and formatting.
 
-- World is the top-level tenant boundary
-- Kingdom is the team boundary inside a world
-- AgentTeam is the service unit exposed to users or other kingdoms
-- Agent is the execution unit
-- Quest is the actual job instance that gets scheduled, executed, observed, and settled
-- Tavern is the registry and marketplace for AgentTeams
-- Contract is the formal permission model for cross-kingdom calls
+## 4. Design Conclusion Up Front
 
-## 2. Design Convergence Principles
+### 4.1 Why a TypeScript Monolith
 
-### 2.1 Hard Constraints for This Version
+The first risk is not throughput. The first risk is unclear boundaries.
 
-This version of AgentWorld is deliberately constrained as follows:
+If the execution chain is still fuzzy, splitting into microservices only makes the system harder to reason about. So this version focuses on:
 
-- full-stack TypeScript
-- monolithic service
-- no Redis, Kafka, Temporal, PostgreSQL, Milvus, S3, Knative, or similar extra middleware
-- embedded database only
-- one-command local install and startup
-- support for external OpenAI-compatible model providers
-- support for discovering external OpenCode runtimes without making the platform itself a service mesh
+1. One deployable service.
+2. One explicit domain model.
+3. One in-process scheduler core.
+4. One in-process executor core.
+5. One database-backed state machine.
+6. One visible and auditable harness layer.
 
-### 2.2 What Was Intentionally Simplified
+### 4.2 Why This Is Not “Another Agent Chat UI”
 
-| Original direction | Optimized design | Why |
+Because a chat shell does not solve:
+
+1. Scheduled tasks.
+2. DAG execution.
+3. Cross-team contracts.
+4. Human gates.
+5. Runtime discovery.
+6. Replayable task traces.
+7. Cost attribution.
+8. Operational wallboards.
+
+AgentWorld is a task execution platform first.
+
+## 5. Core Terms in Plain Language
+
+| Term | Plain meaning | Engineering responsibility |
 | --- | --- | --- |
-| distributed control plane and runtime plane | logical layers inside one monolith | the domain needs to stabilize before service splits |
-| standalone quest scheduler service | in-process scheduling core | scheduling is a database-driven state machine first |
-| serverless agent executors | in-process worker slots | simpler logging, tracing, cost control, and intervention |
-| Redis for short context | SQLite tables plus in-memory cache | easier embedded deployment |
-| separate vector database | SQLite FTS5 plus optional embedding fields | enough for v1 retrieval without new infrastructure |
-| S3 | local filesystem artifacts | simpler single-node setup |
-| Docker or WASM sandbox by default | harness constraints plus controlled tool adapters and selective process isolation | governance first, stronger isolation later |
+| World | top tenant space | quota, model whitelist, top-level guardrails |
+| Kingdom | team space inside a World | balance, tool references, team policy |
+| AgentTeam | a service provided by a team | standard input, standard output, internal orchestration |
+| Agent | the worker unit | model calls, tool calls, intermediate output |
+| Tavern | team capability marketplace | discovery, recruitment, subscription |
+| Quest | one real task run | submission, planning, execution, logging, settlement |
+| Contract | the legal cross-Kingdom path | access scope, service account, pricing, SLA |
+| Harness | the constraint layer | tools, budget, approval, output, scanning |
+| Captain Agent | the planner | creates an execution plan or DAG |
+| Watcher | platform supervision logic | validation, SLA checks, human gate decisions |
 
-### 2.3 Why This Is Not a Regression
+## 6. Requirements
 
-This convergence is not a downgrade. It gives the platform the three things it actually needs first:
+### 6.1 Functional Requirements
 
-- a clear domain model
-- a stable scheduling and execution state machine
-- an explainable, auditable, human-interruptible invocation chain
+1. Support the World, Kingdom, AgentTeam, Agent, Quest, Contract, and Tavern model.
+2. Provide Chinese-first defaults for UI and output.
+3. Support OpenAI-style provider configuration from the UI.
+4. Discover external OpenCode runtimes.
+5. Support team-scoped tasks and scheduled tasks.
+6. Show the full run process, including thinking, tool calls, and text output, with collapsible sections.
+7. Support human approval, interruption, and resume.
+8. Provide a wallboard with task status, success state, active agents, active developers, active repositories, and runtime health.
+9. Support webhook ingestion as a Quest trigger source.
+10. Support cross-Kingdom invocation through Contracts.
 
-Once those are solid, later splits become much safer.
+### 6.2 Non-Functional Requirements
 
-## 3. Core Terms
+1. One-command local install and startup.
+2. Strong observability.
+3. Auditable execution chain.
+4. Replayable run history.
+5. Safe retry behavior.
+6. No dependency on external middleware.
+7. Clear module boundaries for later evolution.
 
-| Term | Meaning | Role in the platform |
-| --- | --- | --- |
-| World | top-level tenant space | quota, model whitelist, top-level guardrails |
-| Kingdom | team space inside a world | team budget, private tool refs, private memory scope |
-| AgentTeam | service unit | receives input, orchestrates agents, returns a contractable result |
-| Agent | execution unit | performs a step and can call models and tools |
-| Tavern | marketplace and registry | exposes AgentTeams for discovery and recruitment |
-| Quest | job instance | one real execution with plan, nodes, result, and cost |
-| Contract | service agreement | constrains cross-kingdom access, price, scope, and SLA |
-| Harness | constraint layer | limits agent behavior through tools, config, and internal policy |
-| Captain Agent | planning agent | generates the Quest DAG or execution plan |
-| Watcher | supervisory component | validates outputs, enforces SLA, and triggers human gates |
+### 6.3 Explicit Non-Goals for This Version
 
-## 4. Overall Architecture
+1. Distributed multi-node scheduling.
+2. A separate vector database cluster.
+3. A full container orchestration layer.
+4. A full billing platform.
+5. Real-time multi-language switching. Chinese-first defaults come first.
 
-### 4.1 Shape of the System
+## 7. Design Thinking
 
-AgentWorld is implemented as a single Next.js service:
+### 7.1 Make the Task Chain Explicit
 
-- UI for dashboards, configuration, wallboard, trace views, and intervention
-- Route Handlers for APIs
-- Server Components reading service-layer queries directly
-- service modules grouped by domain responsibility
-- SQLite as the only persistent database
-- local filesystem for artifacts, reports, and attachments
+The hard engineering problem is not “call a model API.” The hard problem is making this chain explicit:
 
-### 4.2 Logical Layers
+1. A task enters the system.
+2. The task is validated.
+3. The task is scheduled.
+4. The task is planned.
+5. Nodes are executed.
+6. Tools may be called.
+7. Human approval may be required.
+8. Retries may happen.
+9. A final result, trace, and cost record must exist.
 
-Although the deployment is monolithic, the codebase is still layered:
+That is why AgentWorld models the system as an execution pipeline instead of a conversational shell.
 
-1. Presentation Layer
-2. Application Layer
-3. Domain Layer
-4. Infrastructure Layer
+### 7.2 Separate Scheduling, Planning, Execution, and Invocation
 
-| Layer | Responsibility |
-| --- | --- |
-| Presentation | pages, forms, SSE trace streams, admin surfaces, wallboard |
-| Application | use-case orchestration such as submit Quest, approve gate, discover runtime |
-| Domain | World, Kingdom, Quest, Contract, Tavern, Harness, Scheduler, Executor rules |
-| Infrastructure | SQLite, filesystem, OpenCode SDK, OpenAI-compatible HTTP providers, webhook ingestion |
+These concepts are easy to mix up, so the system must keep them separate:
 
-### 4.3 Major Modules
+1. Scheduling decides which Quest should run first.
+2. Planning decides how the Quest is broken into nodes.
+3. Execution decides which node can run now and how failures are handled.
+4. Invocation decides how one agent turn is actually composed and executed.
+
+This separation makes the system debuggable and governable.
+
+### 7.3 Treat Harness as a Platform Rule, Not a Prompt Wish
+
+Harness means the platform does not rely on the model to behave well on its own.
+
+AgentWorld constrains agents through:
+
+1. Tool restrictions.
+2. External configuration.
+3. Internal executor rules.
+
+## 8. Overall Architecture
+
+### 8.1 Logical Layers
+
+Even though deployment is monolithic, the code should remain layered:
+
+1. Presentation layer.
+2. Application layer.
+3. Domain layer.
+4. Infrastructure layer.
+
+### 8.2 Main Modules
 
 | Module | Responsibility |
 | --- | --- |
-| tenant-core | manages Worlds, Kingdoms, quota, and boundaries |
-| registry-core | manages AgentTeams, Agents, and Tavern listings |
-| contract-core | manages cross-kingdom contracts, scopes, and service accounts |
-| scheduler-core | handles schedule ticks, prioritization, leasing, and Quest creation |
-| planner-core | creates DAGs through a captain agent or rule planner |
-| executor-core | drives DAG node execution, retry, and recovery |
-| invocation-core | performs single-agent invocation including model and tool calls |
-| harness-core | resolves prompts, tool policy, budget policy, output policy, and human gates |
-| memory-core | manages short-term memory, summaries, and searchable notes |
-| trace-core | records spans, event logs, cost, and audits |
-| provider-core | manages OpenAI-compatible providers, model routing, and limits |
-| runtime-core | discovers OpenCode runtimes and stores health and capability catalogs |
+| `tenant-core` | World, Kingdom, quota, tenant boundaries |
+| `registry-core` | AgentTeam, Agent, Tavern |
+| `contract-core` | Contract scope, service account, access rules |
+| `scheduler-core` | due schedules, prioritization, runnable Quest selection |
+| `planner-core` | planning mode and DAG summary |
+| `executor-core` | node state transitions and execution board |
+| `invocation-core` | one agent invocation chain |
+| `harness-core` | harness resolution and summary |
+| `provider-core` | provider selection and rationale |
+| `runtime-core` | runtime health and capability catalog |
+| `trace-core` | event grouping and replay basics |
+| `queries` | dashboard and page-level aggregation |
 
-## 5. Technology Stack
-
-### 5.1 Selected Stack
+### 8.3 Technology Choices
 
 | Layer | Technology |
 | --- | --- |
 | full-stack app | Next.js + TypeScript |
 | UI | React 19 + Server Components |
-| APIs | Next.js Route Handlers |
-| database | SQLite via `node:sqlite` |
+| database | SQLite |
 | validation | Zod |
 | runtime discovery | OpenCode SDK |
-| model connectivity | OpenAI-compatible HTTP APIs |
-| artifacts | local filesystem |
-| search and memory | SQLite FTS5 |
+| provider access | OpenAI-compatible HTTP APIs |
+| artifact storage | local filesystem |
+| search | SQLite FTS5 |
 
-### 5.2 Why No Extra Middleware
+## 9. Chinese-First Default Design
 
-The first real risk is not throughput. It is architectural ambiguity.
+This is not only a translation task. It is a product behavior rule.
 
-Before the domain and execution chain are stable, adding Redis, queues, orchestration systems, and vector databases mostly adds debugging cost and deployment noise.
+### 9.1 Goals
 
-## 6. Domain Model
+Chinese-first defaults mean:
 
-This section focuses on the objects that should exist in the first real database schema.
+1. The UI is Chinese by default.
+2. Dates, numbers, and status labels are Chinese by default.
+3. Agent output is Chinese by default.
+4. Trace viewers and intervention surfaces stay readable for Chinese-speaking teams.
 
-### 6.1 World
+### 9.2 Locale Precedence
 
-```ts
-type World = {
-  id: string;
-  slug: string;
-  name: string;
-  ownerUserId: string;
-  status: "active" | "suspended" | "archived";
-  quotaLimitJson: string;
-  modelWhitelistJson: string;
-  globalGuardrailsJson: string;
-  defaultHarnessId: string | null;
-  createdAt: string;
-};
+The locale resolution order should be:
+
+1. explicit Quest locale
+2. AgentTeam default locale
+3. Kingdom default locale
+4. World default locale
+5. platform default `zh-CN`
+
+### 9.3 Where It Lands in the System
+
+Chinese-first behavior lands in five places:
+
+1. HTML `lang` is `zh-CN`.
+2. date and number formatters default to `zh-CN`.
+3. Harness output policy includes `defaultLocale`.
+4. prompt composition injects a Simplified Chinese default rule.
+5. the presentation layer maps statuses, workflow types, and trace groups into Chinese labels.
+
+### 9.4 When Non-Chinese Output Is Allowed
+
+Non-Chinese output is allowed when:
+
+1. the user explicitly asks for English,
+2. the webhook payload specifies another locale,
+3. the downstream repository workflow expects English-only summaries,
+4. a Contract requires English-valued structured fields.
+
+The workbench should still keep Chinese labels around the run.
+
+## 10. Domain Model
+
+### 10.1 World
+
+World is the outer governance boundary. It owns:
+
+1. total quota,
+2. model whitelist,
+3. global guardrails,
+4. default Harness.
+
+### 10.2 Kingdom
+
+Kingdom is the team boundary inside a World. It owns:
+
+1. balance and credit limit,
+2. private tool references,
+3. private memory namespace,
+4. team-level provider preference.
+
+### 10.3 AgentTeam
+
+AgentTeam is not just a list of agents. It is a service definition.
+
+It exposes:
+
+1. input contract,
+2. output contract,
+3. workflow type,
+4. concurrency and timeout,
+5. default Harness,
+6. Tavern visibility.
+
+### 10.4 Agent
+
+Agent is the execution unit. It stores:
+
+1. role,
+2. persona prompt,
+3. model preference,
+4. tool bindings,
+5. context window,
+6. memory scope.
+
+### 10.5 Quest
+
+Quest is the core runtime record. It must store:
+
+1. source,
+2. owning World, Kingdom, and AgentTeam,
+3. input and output,
+4. state,
+5. estimated and actual cost,
+6. trace reference,
+7. plan and nodes,
+8. human intervention records.
+
+### 10.6 Contract
+
+Contract is the only legal cross-Kingdom invocation path. It defines:
+
+1. access scope,
+2. service account,
+3. pricing model,
+4. SLA.
+
+### 10.7 Tavern
+
+Tavern is the marketplace surface, not the execution engine. It is responsible for:
+
+1. presenting team capabilities,
+2. showing success rate, latency, and cost,
+3. exposing recruitment modes,
+4. enabling discovery.
+
+## 11. Quest State Machine
+
+Recommended Quest states:
+
+1. `draft`
+2. `submitted`
+3. `validating`
+4. `planning`
+5. `running`
+6. `awaiting`
+7. `completed`
+8. `failed`
+9. `cancelled`
+
+They mean:
+
+1. `draft`: not formally submitted.
+2. `submitted`: entered the system, waiting for validation.
+3. `validating`: budget, permission, Contract, and Harness are being checked.
+4. `planning`: a captain agent or rule planner is generating a plan.
+5. `running`: at least one node is running.
+6. `awaiting`: the run is paused by a human gate.
+7. `completed`: finished successfully with a valid result.
+8. `failed`: failed and is outside automatic recovery.
+9. `cancelled`: cancelled by a user or the system.
+
+## 12. Agent Scheduling Design
+
+This is one of the two most important parts of the design.
+
+### 12.1 A Unified Quest Entry
+
+Every task source must become a Quest first.
+
+There are three entry types:
+
+1. manual submission,
+2. scheduled task,
+3. webhook event.
+
+Once everything is normalized into a Quest, policy, planning, execution, and replay all become consistent.
+
+### 12.2 How the Scheduler Works in a Monolith
+
+This version uses an in-process scheduler core instead of an external orchestrator.
+
+The scheduler does four things:
+
+1. scans due schedule templates,
+2. materializes webhook and manual events into Quests,
+3. ranks runnable Quests,
+4. claims execution slots.
+
+### 12.3 Scheduler Tick
+
+The scheduler should tick every 1 to 3 seconds.
+
+Each tick:
+
+1. opens a SQLite transaction,
+2. selects Quests that can move into validation or planning,
+3. selects running Quests with ready nodes,
+4. claims a batch according to priority and concurrency limits,
+5. commits the transaction.
+
+### 12.4 Priority Formula
+
+Use a small and explainable formula:
+
+```txt
+effectivePriority
+= basePriority
++ sourceBonus
++ humanResumeBonus
++ deadlineBonus
+- retryPenalty
+- budgetPressurePenalty
 ```
 
-Invariants:
+Every term should be explainable in the UI. No opaque score.
 
-- World is the outermost governance boundary
-- World-level guardrails are inherited by all kingdoms
-- no Kingdom may bypass the World model whitelist
+### 12.5 Why the Scheduler Must Not Invoke Agents Directly
 
-### 6.2 Kingdom
+Because scheduling only answers “what should run first.”
 
-```ts
-type Kingdom = {
-  id: string;
-  worldId: string;
-  slug: string;
-  name: string;
-  lordUserId: string;
-  status: "active" | "suspended" | "archived";
-  balance: number;
-  creditLimit: number;
-  privateToolRefsJson: string;
-  privateMemoryNamespace: string;
-  policyJson: string;
-  createdAt: string;
-};
-```
+Before an agent can run, the system still has to:
 
-Invariants:
+1. resolve Harness,
+2. validate Contract,
+3. pick a provider,
+4. pick a runtime,
+5. build the prompt,
+6. enforce tool gates.
 
-- privateToolRefs store references, not raw secrets
-- Kingdom has independent cost attribution and credit control
-- Kingdom policies can tighten but not loosen World policies
+So the scheduler only hands work to the correct execution entry.
 
-### 6.3 AgentTeam
+## 13. Planning Design
 
-```ts
-type AgentTeam = {
-  id: string;
-  kingdomId: string;
-  slug: string;
-  name: string;
-  description: string;
-  captainAgentId: string | null;
-  workflowType: "single" | "sequential" | "parallel" | "dag";
-  inputSchemaJson: string;
-  outputSchemaJson: string;
-  maxConcurrency: number;
-  timeoutMs: number;
-  successRateThreshold: number;
-  pricingModelJson: string;
-  visibility: "private" | "public";
-  defaultHarnessId: string | null;
-  createdAt: string;
-};
-```
+### 13.1 Planning Modes
 
-Invariants:
+AgentWorld supports four planning modes:
 
-- AgentTeam is the service interface exposed by the platform
-- a public AgentTeam is eligible for Tavern listing
-- a team may contain multiple Agents and one optional captain
+1. single node,
+2. sequential,
+3. parallel,
+4. DAG.
 
-### 6.4 Agent
+### 13.2 When to Use a Captain Agent
 
-```ts
-type Agent = {
-  id: string;
-  teamId: string;
-  slug: string;
-  name: string;
-  role: string;
-  personaPrompt: string;
-  model: string;
-  shortTermWindow: number;
-  ragConfigJson: string;
-  toolBindingsJson: string;
-  memoryScope: "private" | "team_shared";
-  safetyPolicyJson: string;
-  status: "active" | "disabled";
-  createdAt: string;
-};
-```
+A captain agent is useful when:
 
-Invariants:
+1. the input is complex,
+2. the steps cannot be hardcoded safely,
+3. the task needs dynamic decomposition.
 
-- the agent never owns cross-kingdom access by itself
-- tool visibility is constrained by both Harness and Contract
+If the workflow is stable, such as “review PR then prepare write-back,” rule-based planning is usually better.
 
-### 6.5 Quest
+### 13.3 Planning Output Must Be Stored
 
-```ts
-type Quest = {
-  id: string;
-  worldId: string;
-  kingdomId: string;
-  teamId: string;
-  sourceType: "manual" | "schedule" | "webhook" | "contract";
-  sourceRef: string | null;
-  status:
-    | "draft"
-    | "submitted"
-    | "validating"
-    | "planning"
-    | "running"
-    | "awaiting"
-    | "completed"
-    | "failed"
-    | "cancelled";
-  priority: number;
-  inputPayloadJson: string;
-  outputPayloadJson: string | null;
-  costEstimate: number;
-  costActual: number;
-  traceId: string;
-  createdAt: string;
-  completedAt: string | null;
-};
-```
+Planning is not ephemeral memory. It is platform data.
 
-### 6.6 QuestPlan and QuestNode
+The plan must store:
 
-```ts
-type QuestPlan = {
-  id: string;
-  questId: string;
-  plannerMode: "rule" | "captain_agent";
-  dagJson: string;
-  summary: string;
-  createdAt: string;
-};
+1. planning mode,
+2. DAG nodes,
+3. dependency edges,
+4. planning summary,
+5. creation time.
 
-type QuestNode = {
-  id: string;
-  questId: string;
-  planId: string;
-  nodeKey: string;
-  agentId: string;
-  dependsOnJson: string;
-  inputJson: string;
-  outputJson: string | null;
-  status: "pending" | "ready" | "running" | "awaiting" | "completed" | "failed" | "cancelled";
-  attemptCount: number;
-  maxAttempts: number;
-  startedAt: string | null;
-  completedAt: string | null;
-};
-```
+That is what makes retries, replay, and human debugging possible.
 
-### 6.7 Contract
+## 14. Executor Design
+
+### 14.1 The Executor Thinks in Nodes
+
+The scheduler thinks in Quests. The executor thinks in QuestNodes.
+
+It must:
+
+1. find ready nodes,
+2. check dependencies,
+3. choose the correct Agent,
+4. run the invocation,
+5. advance downstream nodes.
+
+### 14.2 Node States
+
+Recommended node states:
+
+1. `ready`
+2. `running`
+3. `awaiting`
+4. `completed`
+5. `failed`
+
+### 14.3 Retry Rules
+
+Automatic retry is only safe for clearly bounded cases:
+
+1. temporary provider failure,
+2. temporary runtime unavailability,
+3. tool timeout,
+4. schema validation failure when no side effects happened.
+
+If a node already touched a repository, sent an external message, or created another side effect, the system should prefer human review.
+
+## 15. Multi-Turn Agent Invocation Design
+
+This is the second most important part of the design.
+
+### 15.1 Why Invocation Must Be Multi-Turn
+
+Real agent work is usually not “one prompt, one answer.”
+
+It is more like:
+
+1. read the task,
+2. think,
+3. call a tool,
+4. inspect the tool result,
+5. think again,
+6. maybe call another tool,
+7. produce the result.
+
+That is why one node execution must be modeled as a series of turns.
+
+### 15.2 Standard Turn Shape
+
+Each turn should follow six steps:
+
+1. Observe: read current input, memory, and prior results.
+2. Think: produce a short reasoning summary.
+3. Decide: choose whether to continue, call a tool, or finish.
+4. Act: execute the tool call or generate output.
+5. Check: enforce Harness, schema, and budget rules.
+6. Persist: write the turn result into trace and node state.
+
+### 15.3 Suggested Turn Model
 
 ```ts
-type Contract = {
-  id: string;
-  providerTeamId: string;
-  consumerKingdomId: string;
-  pricingModelJson: string;
-  slaJson: string;
-  accessScopeJson: string;
-  serviceAccountRef: string;
-  status: "draft" | "active" | "suspended" | "expired";
-  createdAt: string;
-};
-```
-
-### 6.8 TavernListing
-
-```ts
-type TavernListing = {
-  id: string;
-  teamId: string;
-  resumeJson: string;
-  recruitmentMode: "copy" | "subscribe" | "dedicated";
-  tagsJson: string;
-  status: "listed" | "hidden" | "suspended";
-  createdAt: string;
-};
-```
-
-### 6.9 HarnessProfile
-
-```ts
-type HarnessProfile = {
-  id: string;
-  worldId: string | null;
-  kingdomId: string | null;
-  teamId: string | null;
-  name: string;
-  systemInstruction: string;
-  toolPolicyJson: string;
-  approvalPolicyJson: string;
-  budgetPolicyJson: string;
-  outputPolicyJson: string;
-  securityPolicyJson: string;
-  createdAt: string;
-};
-```
-
-### 6.10 Trace and Audit
-
-```ts
-type TraceSpan = {
-  id: string;
-  traceId: string;
-  parentSpanId: string | null;
-  questId: string;
-  nodeId: string | null;
-  kind: "quest" | "planning" | "agent" | "tool" | "approval" | "contract";
-  status: "open" | "ok" | "error";
-  startedAt: string;
-  endedAt: string | null;
-  attributesJson: string;
-};
-
-type EventLog = {
-  id: string;
-  traceId: string;
-  questId: string;
-  nodeId: string | null;
-  seq: number;
-  phase: string;
-  foldGroup: string;
-  title: string;
-  content: string;
-  metadataJson: string;
-  createdAt: string;
-};
-```
-
-## 7. Quest State Machine
-
-### 7.1 Top-Level Statuses
-
-| Status | Meaning |
-| --- | --- |
-| Draft | not fully submitted yet |
-| Submitted | accepted and waiting to enter validation |
-| Validating | permissions, budget, contract, and harness pre-checks are running |
-| Planning | DAG or execution plan is being created |
-| Running | one or more nodes are being executed |
-| Awaiting | blocked on human approval or missing user input |
-| Completed | finished successfully |
-| Failed | execution failed |
-| Cancelled | cancelled by a person or policy |
-
-### 7.2 Key Rules
-
-- database state is the source of truth
-- every status change writes an event
-- human intervention is a first-class state transition, not a side channel
-
-## 8. Scheduling Design
-
-This is one of the most important sections of the platform.
-
-### 8.1 Why There Is No External Orchestrator
-
-In the first phase, Quest scheduling mainly does four things:
-
-1. find due work
-2. claim ownership
-3. create or advance Quests
-4. move Quests from one stable state to another stable state
-
-That is fundamentally a database state machine. It does not require a separate orchestration platform yet.
-
-### 8.2 What the Scheduler Operates On
-
-The scheduling core works with three object types:
-
-- ScheduleTemplate
-- Quest
-- QuestNode
-
-### 8.3 Internal Loops
-
-The monolith runs two lightweight loops:
-
-- Schedule Tick: every 5 seconds
-- Executor Tick: every 1 second
-
-### 8.4 Schedule Tick Algorithm
-
-1. query schedule templates where `next_run_at <= now`
-2. sort by World, Kingdom, priority, and SLA
-3. claim a lease through SQLite update semantics
-4. create a Quest
-5. write the next schedule time
-
-### 8.5 Executor Tick Algorithm
-
-1. load Quests in `submitted`, `validating`, `planning`, `running`, or `awaiting`
-2. route each Quest to the correct state handler
-3. when a Quest is running, pick `ready` QuestNodes
-4. start nodes within the team `max_concurrency` and runtime slot limits
-
-### 8.6 Priority Model
-
-Effective priority combines:
-
-- Quest priority
-- Kingdom priority class
-- Contract SLA
-- human wait time
-- time-to-timeout
-
-## 9. Planning and DAG Design
-
-### 9.1 Planning Entry
-
-Every Quest must have a QuestPlan before it enters Running.
-
-### 9.2 Two Planning Modes
-
-| Mode | Use case |
-| --- | --- |
-| rule | simple, predictable flows |
-| captain_agent | dynamic or complex work where the DAG depends on the input |
-
-### 9.3 Responsibility of the Captain Agent
-
-The captain agent should do only three things:
-
-- generate a DAG from the input
-- explain node goals and dependencies
-- estimate cost and risk
-
-The captain should not directly run heavyweight tools.
-
-### 9.4 DAG Validation
-
-Every generated DAG is validated:
-
-- it must be acyclic
-- node count must stay within team limits
-- every node must bind to a concrete Agent
-- final outputs must map back to the team output schema
-
-### 9.5 Node Recovery
-
-If a node fails:
-
-- retryable nodes re-enter the retry queue
-- non-retryable failures move the Quest to Failed or Awaiting
-- completed nodes are never re-executed unnecessarily
-
-## 10. Agent Invocation Design
-
-This is the other most important section.
-
-### 10.1 Invocation Goal
-
-An agent call is not just a prompt sent to a model.
-
-Inside AgentWorld, invocation is a controlled pipeline:
-
-1. build the InvocationEnvelope
-2. merge World, Kingdom, Team, and Agent harness layers
-3. trim visible tools and memory scopes
-4. validate Contract scope
-5. select provider and model
-6. execute as a stream and write trace data
-7. pause if a human gate is reached
-8. validate output and persist node results
-
-### 10.2 InvocationEnvelope
-
-```ts
-type InvocationEnvelope = {
+type AgentTurn = {
   questId: string;
   nodeId: string;
-  worldId: string;
-  kingdomId: string;
-  teamId: string;
-  agentId: string;
-  inputJson: string;
-  contractId: string | null;
-  visibleToolsJson: string;
-  visibleMemoryScopesJson: string;
-  providerPolicyJson: string;
-  harnessProfileId: string;
+  turnIndex: number;
+  observationRef: string[];
+  reasoningSummary: string;
+  actionType: "tool_call" | "message" | "finish" | "handoff";
+  actionName?: string;
+  actionPayloadJson?: string;
+  resultRef?: string;
+  finishReason?: string;
+  tokenUsage?: {
+    input: number;
+    output: number;
+  };
+  createdAt: string;
 };
 ```
 
-### 10.3 Why Harness Resolution Happens Before the First Token
+### 15.4 Stop Conditions
 
-Because the agent does not get to decide what it is allowed to do.
+The platform, not the model alone, decides when a node is done.
 
-AgentWorld applies harness engineering before execution begins:
+Stop when:
 
-- which tools are visible
-- which tools need human approval
-- which models are allowed
-- max tokens, max steps, and max runtime
-- whether output must be structured
+1. a valid final result satisfying schema exists,
+2. max steps is reached,
+3. max tool calls is reached,
+4. max runtime is reached,
+5. a human gate is triggered,
+6. a non-recoverable error occurs.
 
-### 10.4 Tool Call Decision Chain
+### 15.5 How Thinking Should Be Shown
 
-Every tool call passes four checks:
+Thinking should be visible, but collapsed by default.
 
-1. is the tool bound to the Agent
-2. is it allowed by the Harness
-3. is it allowed by the Contract scope
-4. is it allowed by runtime safety policy
+If it is hidden, debugging is weak. If it is always expanded, the UI becomes noisy.
 
-If any layer denies it, the call stops.
+So the workbench should:
 
-### 10.5 Model Call Decision Chain
+1. collapse thinking by default,
+2. group tool results separately,
+3. group final text output separately,
+4. keep human actions visible and open by default.
 
-provider-core selects the model using:
+### 15.6 When to Escalate to a Human
 
-- World model whitelist
-- Kingdom cost policy
-- Team default model policy
-- Agent preferred model
-- fallback strategy
+Prefer human intervention when:
 
-### 10.6 Streaming Output
+1. the node is about to write to a repository,
+2. the node is about to send an external message,
+3. a high-risk tool is requested,
+4. output repeatedly fails validation,
+5. budget is close to the limit,
+6. Contract scope is unclear.
 
-Every invocation must emit observable events:
+## 16. Invocation Chain Design
 
-- `thinking`
-- `tool_call`
-- `tool_result`
-- `text_delta`
-- `approval_required`
-- `output_validated`
-- `node_completed`
+This section explains how one node actually runs.
 
-These events are written into a unified event log and rendered as foldable trace groups in the UI.
+### 16.1 Standard Invocation Chain
 
-## 11. Harness Engineering Design
+Each invocation should go through this explicit path:
 
-### 11.1 Position of Harness in AgentWorld
+1. assemble invocation context,
+2. resolve Harness,
+3. validate Contract,
+4. choose provider,
+5. choose runtime,
+6. assemble prompt,
+7. call the model,
+8. capture tool calls,
+9. run Harness pre-checks,
+10. execute tools,
+11. append trace,
+12. decide whether another turn is needed,
+13. validate the result,
+14. commit node state.
 
-Harness is not optional configuration. It is the platform constraint layer.
+### 16.2 Why Provider and Runtime Are Separate
 
-Every Quest goes through HarnessResolve before a real Agent invocation can start.
+Because they solve different problems:
 
-### 11.2 Three Sources of Constraints
+1. Provider is where model capability comes from.
+2. Runtime is where the agent execution environment comes from.
 
-#### 1. Tool-Calling Constraints
+For example:
 
-- allow list
-- block list
-- approval-required list
-- per-tool call limits
+1. Provider may be OpenAI or any OpenAI-compatible service.
+2. Runtime may be a local OpenCode endpoint or another execution endpoint.
+
+### 16.3 Provider Selection Rules
+
+Provider selection should look at:
+
+1. World model whitelist,
+2. Kingdom preference,
+3. Agent model preference,
+4. enablement state,
+5. cost and fallback rules.
+
+### 16.4 Runtime Selection Rules
+
+Runtime selection should look at:
+
+1. Kingdom affinity,
+2. health state,
+3. current concurrency,
+4. capability catalog.
+
+## 17. Prompt Engineering Design
+
+This section must stay practical.
+
+### 17.1 Prompt Is a Stack, Not One String
+
+Recommended prompt stack order:
+
+1. platform prompt,
+2. Harness prompt,
+3. World and Kingdom policy prompt,
+4. AgentTeam contract prompt,
+5. Agent persona prompt,
+6. Quest and node prompt,
+7. current turn observation prompt,
+8. output schema prompt.
+
+### 17.2 Platform Prompt
+
+The platform prompt tells the model:
+
+1. you run inside AgentWorld,
+2. you must obey tool, budget, approval, and output rules,
+3. you cannot self-approve restricted actions,
+4. you must not fabricate tool results.
+
+### 17.3 Harness Prompt
+
+The Harness prompt explicitly states:
+
+1. allowed tools,
+2. blocked tools,
+3. approval-required tools,
+4. max steps, max tool calls, max runtime,
+5. structured output requirement,
+6. default locale.
+
+### 17.4 Chinese Default Prompt Rule
+
+This should be explicit:
+
+```text
+Unless the task input explicitly requests another language, use Simplified Chinese by default.
+If output must be structured JSON, keep field names stable in English and prefer Simplified Chinese values.
+```
+
+### 17.5 AgentTeam Prompt
+
+The AgentTeam layer explains:
+
+1. what this service does,
+2. what success means,
+3. what the output contract is,
+4. when the node should stop.
+
+### 17.6 Agent Persona Prompt
+
+Persona should say:
+
+1. what the agent is responsible for,
+2. what it should prioritize,
+3. what it must not do.
+
+It should not be mystical or vague.
+
+### 17.7 Prompt Changes Across Turns
+
+Multi-turn execution should not resend the exact same context every time.
+
+Each turn should compose:
+
+1. fixed layers: platform, Harness, World, Kingdom, AgentTeam, Agent,
+2. task-fixed layers: Quest input, node goal, dependency outputs,
+3. turn-dynamic layers: tool result, prior turn summary, current available actions.
+
+### 17.8 Structured Output Rules
+
+If the AgentTeam defines an output schema, the prompt must state:
+
+1. required fields,
+2. optional fields,
+3. how to mark missing information,
+4. that extra free-form text is not allowed outside the contract.
+
+### 17.9 Retry Prompt
+
+Retry is not “send the same prompt again.”
+
+Retry prompts should include:
+
+1. the failure reason,
+2. what already ran,
+3. what must not be repeated,
+4. what the new recovery strategy is.
+
+### 17.10 Human Handoff Prompt
+
+When work is handed to a human, the platform should generate a human-readable summary:
+
+1. where execution stopped,
+2. why it stopped,
+3. what decision is required,
+4. what will happen after approval.
+
+### 17.11 Recommended Execution Prompt Template
+
+```text
+[Platform Role]
+You run inside AgentWorld and must obey platform rules for tools, budget, approvals, and output.
+
+[Locale Rule]
+Unless another language is explicitly requested, use Simplified Chinese by default.
+
+[Harness Constraints]
+Allowed tools: {{allowed_tools}}
+Blocked tools: {{blocked_tools}}
+Approval-required tools: {{approval_tools}}
+Max steps: {{max_steps}}
+Max tool calls: {{max_tool_calls}}
+Max runtime: {{max_runtime_ms}}
+
+[Service Goal]
+AgentTeam: {{team_name}}
+Agent: {{agent_name}}
+Node objective: {{node_goal}}
+
+[Context]
+Quest input: {{quest_input}}
+Dependency outputs: {{dependency_outputs}}
+Current observation: {{current_observation}}
+
+[Output Rules]
+Give a short conclusion first, then call tools if needed.
+If you finish, the result must satisfy the schema.
+If information is missing, say so clearly and do not invent it.
+```
+
+## 18. Harness Engineering Design
+
+Harness is one of the most important governance layers in the system.
+
+### 18.1 Three Types of Constraints
+
+#### 1. Tool Invocation Constraints
+
+The executor enforces:
+
+1. tool allow-lists,
+2. tool block-lists,
+3. human approval before high-risk tools.
 
 #### 2. External Configuration Constraints
 
-- World model whitelist
-- Kingdom budget and credit limit
-- Contract access scope
-- runtime health state
+Configured through World, Kingdom, AgentTeam, and HarnessProfile:
 
-#### 3. Internal Policy Constraints
+1. model whitelist,
+2. provider preference,
+3. default locale,
+4. structured output rules,
+5. cost and runtime budgets.
 
-- max runtime
-- max tokens
-- max step count
-- structured output validation
-- prompt scan and output scan
+#### 3. Internal Engine Constraints
 
-### 11.3 Harness Resolution Order
+Hard-enforced inside the platform:
 
-Final policy is composed in this order:
+1. max steps,
+2. max tool calls,
+3. max runtime,
+4. retry ceiling,
+5. output schema validation,
+6. prompt scan and output scan.
 
-1. World Harness
-2. Kingdom Harness
-3. AgentTeam Harness
-4. Agent Safety Policy
-5. Contract restrictions
-6. runtime safety patch
+### 18.2 Why Harness Must Be Layered
 
-Later layers may only tighten policy, never relax it.
+Different layers care about different boundaries:
 
-### 11.4 Harness Preview
+1. World defines outer limits.
+2. Kingdom tightens rules for one team space.
+3. AgentTeam defines service-level execution rules.
 
-Before submission, the UI should be able to show:
+Lower layers may tighten upper layers, but they must not loosen them.
 
-- the model that would be used
-- which tools would be visible
-- which tools would trigger approval
-- the effective budget ceiling
-- where the Quest is likely to pause or fail
+### 18.3 Merge Rules
 
-## 12. Tavern Design
+Suggested merge rules:
 
-### 12.1 What Tavern Really Is
+1. tool allow-lists use intersection,
+2. tool block-lists use union,
+3. approval-required tools use union,
+4. budgets use the stricter minimum,
+5. output rules choose the stricter side,
+6. locale follows the most specific override.
 
-Tavern is not a list of chatbots.
+## 19. Data Model and Tables
 
-It is the marketplace for AgentTeams that can be recruited, subscribed to, or hosted for another Kingdom.
+### 19.1 Core Tables
 
-### 12.2 Hero Resume Generation
+The first version should at least contain:
 
-The platform automatically computes:
+1. `worlds`
+2. `kingdoms`
+3. `harness_profiles`
+4. `agent_teams`
+5. `agents`
+6. `provider_profiles`
+7. `runtime_endpoints`
+8. `contracts`
+9. `tavern_listings`
+10. `schedule_templates`
+11. `quests`
+12. `quest_plans`
+13. `quest_nodes`
+14. `trace_spans`
+15. `event_logs`
+16. `quest_interventions`
+17. `repository_profiles`
+18. `developer_profiles`
+19. `webhook_endpoints`
 
-- success rate
-- average latency
-- average cost
-- top tasks
-- domain tags
-- recent failures
+### 19.2 Why Quest Is Split
 
-### 12.3 Recruitment Modes
+Quest should not hold everything in one row.
 
-| Mode | Meaning |
-| --- | --- |
-| Copy | clone the team configuration into the current Kingdom |
-| Subscribe | call the remote service through a Contract |
-| Dedicated | the provider offers a dedicated hosted team instance |
+Split it into:
 
-### 12.4 Tavern Sandbox
+1. `quests` for run headers,
+2. `quest_plans` for planning output,
+3. `quest_nodes` for execution state.
 
-Tavern mode always enforces:
+This keeps list queries lighter and recovery logic cleaner.
 
-- no unrestricted write tools
-- no raw provider secret exposure
-- no access to another Kingdom's private memory
-- no privilege escalation on model usage
+### 19.3 Why Trace Deserves Its Own Tables
 
-## 13. Contract Design
+Trace is not an attachment. It is core product data.
 
-### 13.1 Role of Contracts
+It supports:
 
-Contract is the only formal entry point for cross-kingdom service access.
+1. collapsed thinking display,
+2. tool replay,
+3. human audit,
+4. failure diagnosis,
+5. cost attribution.
 
-No Contract means no legitimate cross-kingdom invocation.
+## 20. API Design
 
-### 13.2 Call Chain
+### 20.1 Suggested API Surface
 
-Consumer Kingdom
--> Contract validation
--> Service account scope
--> Provider AgentTeam
+The first version should expose:
 
-### 13.3 A Contract Must Define
+1. `POST /api/quests`
+2. `POST /api/quests/:id/approve`
+3. `POST /api/quests/:id/cancel`
+4. `POST /api/runtimes/discover`
+5. `POST /api/webhooks/:pathKey`
+6. `GET /api/quests/:id/trace`
+7. `GET /api/dashboard`
+8. `POST /api/providers`
+9. `POST /api/contracts`
 
-- who can call
-- which input and output interface is exposed
-- how pricing works
-- what SLA is promised
+### 20.2 Webhook Ingestion
 
-### 13.4 Security Boundary
+The webhook entry should do four things:
 
-A Contract must not grant:
+1. authenticate,
+2. validate the request schema,
+3. map the request to a target AgentTeam,
+4. create a Quest.
 
-- raw secret access in the provider Kingdom
-- raw private memory access in the provider Kingdom
-- local filesystem access on the provider side
-- direct bypass of the Tavern sandbox for high-risk tools
+The webhook must not invoke the Agent directly.
 
-## 14. Memory, Artifact, and Trace
+## 21. UI Design
 
-### 14.1 Memory
+### 21.1 Left Navigation
 
-The first version does not depend on an external vector database. It uses:
+The left navigation should include:
 
-- SQLite tables for short-term working memory
-- SQLite FTS5 for text retrieval
-- summary tables for condensed memory
-- optional embedding JSON fields for later use
+1. Overview
+2. World
+3. Kingdom
+4. AgentTeam
+5. Quest
+6. Tavern
+7. Contract
+8. Runtime
+9. Harness
+10. Wallboard
+11. Settings
 
-### 14.2 Artifacts
+### 21.2 What the Quest Detail Page Must Show
 
-Artifacts are stored on local disk:
+At minimum:
 
-- run transcripts
-- tool outputs
-- exported reports
-- uploaded attachments
+1. Quest summary,
+2. Contract information,
+3. Harness information,
+4. plan summary and nodes,
+5. invocation stages,
+6. trace groups,
+7. human intervention records.
+
+### 21.3 What the Wallboard Must Show
 
-SQLite stores metadata, not large binary payloads.
+At minimum:
 
-### 14.3 Trace
+1. active Quests,
+2. runtime health,
+3. key AgentTeams,
+4. active repositories,
+5. active developers.
 
-Trace is modeled in two layers:
+## 22. Observability Design
 
-- spans for latency, parent-child structure, and cost
-- event logs for thinking, tool calls, and human-readable streaming output
+### 22.1 Three Observation Levels
 
-## 15. API and UI Design
+The platform should observe:
 
-### 15.1 Left Navigation
+1. Quest level,
+2. node level,
+3. turn level.
 
-The first version should include:
+### 22.2 Event Log Principles
 
-- Overview
-- Worlds
-- Kingdoms
-- AgentTeams
-- Quests
-- Tavern
-- Contracts
-- Runtimes
-- Harness
-- Wallboard
-- Settings
+Event logs should be:
 
-### 15.2 Core Pages
+1. ordered,
+2. grouped,
+3. collapsible,
+4. replayable,
+5. explicit about human actions.
 
-| Page | Responsibility |
-| --- | --- |
-| Overview | high-level system status, cost, success rate, pending Quest work |
-| World Detail | quota, model whitelist, global governance |
-| Kingdom Detail | team budget, tool refs, private task view |
-| Quest List | filterable job list |
-| Quest Detail | DAG, trace, intervention, and artifacts |
-| Tavern | browse and recruit AgentTeams |
-| Contract Center | inspect permissions, SLA, and cost rules |
-| Runtime Center | discover OpenCode runtimes and show health |
-| Harness Center | inspect and preview constraints |
-| Wallboard | big-screen view for active agents, developers, repositories, and Quest health |
+### 22.3 Recommended Event Groups
 
-### 15.3 Webhooks
+Recommended groups:
 
-The monolith exposes webhook endpoints directly:
+1. `Planning`
+2. `Thinking`
+3. `Tool Result`
+4. `Text Output`
+5. `Human Actions`
+6. `Final Result`
 
-- configurable path
-- configurable method
-- configurable request schema
-- configurable target AgentTeam
+## 23. Security and Isolation
 
-After ingestion, a webhook becomes a Quest. It does not bypass the internal execution model.
+### 23.1 Multi-Tenant Boundaries
 
-## 16. Security and Isolation
+1. World is the tenant boundary.
+2. Kingdom is the team boundary.
+3. Contract is the cross-boundary access path.
+4. Harness is the behavior boundary.
 
-### 16.1 Isolation Model
+### 23.2 Tool Safety
 
-| Level | First-version implementation |
-| --- | --- |
-| World | tenant field isolation, with a future path to per-World SQLite files |
-| Kingdom | namespace, budget, and tool-ref isolation |
-| Agent | memory scope, tool scope, and harness scope |
-| Contract | API-level scope isolation |
+1. Tool secrets never go into prompts.
+2. Harness checks happen before tool execution.
+3. High-risk tools require approval.
+4. Tool results are recorded in trace.
 
-### 16.2 Tool Safety
+### 23.3 Output Safety
 
-The first version does not promise a full OS sandbox. It does promise:
+1. prompt scan,
+2. output scan,
+3. structured output validation,
+4. budget and step ceilings.
 
-- allowlisted tool adapters
-- cwd allowlists
-- schema validation for arguments
-- network allowlists
-- human approval for high-risk actions
-- audit logs for every tool execution
+## 24. 4+1 Views
 
-### 16.3 Risk Controls
+### 24.1 Scenario View
 
-- prompt scan
-- output scan
-- PII redaction
-- cost threshold blocking
-- repeated-failure circuit breaking
+This view answers: what happens in a real business flow.
 
-## 17. Observability and Cost
+```plantuml
+@startuml
+title AgentWorld Scenario View - GitHub PR becomes a governed Quest
+actor Developer
+participant "GitHub Webhook" as Webhook
+participant "AgentWorld API" as API
+participant "Scheduler" as Scheduler
+participant "Planner" as Planner
+participant "Executor" as Executor
+participant "Harness" as Harness
+participant "Provider" as Provider
+participant "Runtime" as Runtime
+participant "Human Gate" as Gate
 
-### 17.1 Metrics
+Developer -> Webhook : PR opened / updated
+Webhook -> API : POST /api/webhooks/github-pr
+API -> Scheduler : create Quest
+Scheduler -> Planner : build plan
+Planner -> Executor : ready nodes
+Executor -> Harness : resolve constraints
+Harness --> Executor : policy bundle
+Executor -> Provider : select model provider
+Provider --> Executor : provider choice
+Executor -> Runtime : invoke agent
+Runtime --> Executor : stream thinking / tool / text
+Executor -> Gate : approval required?
+Gate --> Executor : approve / reject
+Executor --> API : final Quest result
+@enduml
+```
 
-At minimum the platform should track:
+### 24.2 Logical View
 
-- World cost
-- Kingdom cost
-- Team cost
-- Agent success rate
-- Quest latency
-- node retry count
-- human intervention count
-
-### 17.2 Cost Settlement
-
-Quest cost should be broken into at least:
-
-- model token cost
-- tool execution cost
-- platform fee
-- contract revenue share
-
-## 18. Installation and Deployment
-
-### 18.1 Local Startup
-
-1. `pnpm install`
-2. `pnpm bootstrap`
-3. `pnpm dev`
-
-### 18.2 Production Deployment
-
-The first version is just one Node service:
-
-- one Next.js process
-- one SQLite file
-- one artifacts directory
-
-If the system grows, the first step is to place the SQLite file and artifact directory on stable storage before splitting modules.
-
-## 19. MVP Development Order
-
-### Phase 1
-
-- World and Kingdom
-- AgentTeam and Agent
-- Quest base lifecycle
-- Harness constraints
-- single-node execution
-- trace pages
-
-### Phase 2
-
-- captain planning
-- DAG execution
-- Tavern
-- Contracts
-- Wallboard
-
-### Phase 3
-
-- cost accounting
-- stronger tool isolation
-- per-World data files
-- richer memory retrieval
-
-## 20. 4+1 Views and Key Diagrams
-
-The diagrams are embedded directly in this document.
-
-### 20.1 Logical View
+This view answers: what major logical parts exist and how they relate.
 
 ```plantuml
 @startuml
 title AgentWorld Logical View
+package "Presentation" {
+  [Dashboard UI]
+  [Quest Detail UI]
+  [Wallboard UI]
+  [Settings UI]
+}
 
-entity World
-entity Kingdom
-entity AgentTeam
-entity Agent
-entity TavernListing
-entity Contract
-entity Quest
-entity QuestPlan
-entity QuestNode
-entity HarnessProfile
-entity RuntimeEndpoint
-entity ProviderProfile
+package "Application" {
+  [Quest API]
+  [Runtime Discovery API]
+  [Webhook API]
+}
 
-World ||--o{ Kingdom
-Kingdom ||--o{ AgentTeam
-AgentTeam ||--o{ Agent
-AgentTeam ||--o{ TavernListing
-AgentTeam ||--o{ Quest
-Quest ||--|| QuestPlan
-Quest ||--o{ QuestNode
-Kingdom ||--o{ Contract
-AgentTeam ||--o{ Contract
-World ||--o{ HarnessProfile
-Kingdom ||--o{ HarnessProfile
-AgentTeam ||--o{ HarnessProfile
-World ||--o{ RuntimeEndpoint
-World ||--o{ ProviderProfile
+package "Domain" {
+  [Tenant Core]
+  [Registry Core]
+  [Contract Core]
+  [Scheduler Core]
+  [Planner Core]
+  [Executor Core]
+  [Invocation Core]
+  [Harness Core]
+  [Provider Core]
+  [Trace Core]
+}
 
+package "Infrastructure" {
+  [SQLite]
+  [Local Artifact Store]
+  [OpenCode SDK]
+  [OpenAI-compatible Provider]
+}
+
+[Dashboard UI] --> [Quest API]
+[Quest Detail UI] --> [Quest API]
+[Wallboard UI] --> [Quest API]
+[Settings UI] --> [Runtime Discovery API]
+[Settings UI] --> [Webhook API]
+
+[Quest API] --> [Scheduler Core]
+[Quest API] --> [Planner Core]
+[Quest API] --> [Executor Core]
+[Runtime Discovery API] --> [OpenCode SDK]
+[Webhook API] --> [Scheduler Core]
+
+[Scheduler Core] --> [SQLite]
+[Planner Core] --> [SQLite]
+[Executor Core] --> [Invocation Core]
+[Invocation Core] --> [Harness Core]
+[Invocation Core] --> [Provider Core]
+[Invocation Core] --> [Trace Core]
+[Invocation Core] --> [OpenAI-compatible Provider]
+[Invocation Core] --> [OpenCode SDK]
+[Trace Core] --> [SQLite]
+[Executor Core] --> [Local Artifact Store]
 @enduml
 ```
 
-### 20.2 Process View
+### 24.3 Process View
+
+This view answers: what in-process roles collaborate at runtime.
 
 ```plantuml
 @startuml
 title AgentWorld Process View
-
-actor User
-participant "UI / API" as API
-participant "scheduler-core" as Scheduler
-participant "planner-core" as Planner
-participant "executor-core" as Executor
-participant "invocation-core" as Invocation
-participant "harness-core" as Harness
-participant "provider-core" as Provider
+participant "HTTP Request Loop" as HTTP
+participant "Scheduler Tick Loop" as Tick
+participant "Executor Worker Slots" as Worker
+participant "Human Approval Loop" as Human
 database "SQLite" as DB
 
-User -> API : submit quest
-API -> DB : create Quest(Submitted)
-Scheduler -> DB : claim submitted quest
-Scheduler -> Planner : build plan
-Planner -> DB : write QuestPlan + QuestNodes
-Executor -> DB : pick ready node
-Executor -> Harness : resolve harness
-Harness -> Invocation : invocation envelope
-Invocation -> Provider : call model / tool
-Invocation -> DB : write event log + spans
-Executor -> DB : update node and quest state
-
+HTTP -> DB : create / query Quest
+Tick -> DB : scan due schedules
+Tick -> DB : claim runnable Quest
+Tick -> Worker : dispatch node
+Worker -> DB : update node state
+Worker -> DB : append event logs
+Worker -> Human : request approval when gated
+Human -> DB : resolve intervention
+Worker -> DB : resume or finalize
 @enduml
 ```
 
-### 20.3 Development View
+### 24.4 Development View
+
+This view answers: how the codebase should be organized.
 
 ```plantuml
 @startuml
 title AgentWorld Development View
-
-package "src/app" {
-  [pages]
-  [route handlers]
+folder "src/app" {
+  [page.tsx]
+  [quests]
+  [runtimes]
+  [settings]
+  [wallboard]
 }
 
-package "src/server" {
-  [tenant-core]
-  [registry-core]
-  [contract-core]
-  [scheduler-core]
-  [planner-core]
-  [executor-core]
-  [invocation-core]
-  [harness-core]
-  [memory-core]
-  [trace-core]
-  [provider-core]
-  [runtime-core]
+folder "src/components" {
+  [app-shell]
+  [trace-group]
+  [runtime-discovery-button]
 }
 
-package "src/db" {
-  [schema]
-  [seed]
-  [queries]
+folder "src/server" {
+  [db.ts]
+  [queries.ts]
+  [scheduler-core.ts]
+  [planner-core.ts]
+  [executor-core.ts]
+  [invocation-core.ts]
+  [harness-core.ts]
+  [provider-core.ts]
+  [runtime-core.ts]
 }
 
-[pages] --> [route handlers]
-[route handlers] --> [tenant-core]
-[route handlers] --> [registry-core]
-[route handlers] --> [scheduler-core]
-[scheduler-core] --> [planner-core]
-[executor-core] --> [invocation-core]
-[invocation-core] --> [harness-core]
-[invocation-core] --> [provider-core]
-[memory-core] --> [schema]
-[trace-core] --> [schema]
+folder "docs" {
+  [detailed-design.zh-CN.md]
+  [detailed-design.en.md]
+}
 
+[page.tsx] --> [queries.ts]
+[quests] --> [queries.ts]
+[runtimes] --> [queries.ts]
+[settings] --> [queries.ts]
+[wallboard] --> [queries.ts]
+[queries.ts] --> [db.ts]
+[queries.ts] --> [scheduler-core.ts]
+[queries.ts] --> [planner-core.ts]
+[queries.ts] --> [executor-core.ts]
+[queries.ts] --> [invocation-core.ts]
+[queries.ts] --> [harness-core.ts]
+[queries.ts] --> [provider-core.ts]
+[queries.ts] --> [runtime-core.ts]
 @enduml
 ```
 
-### 20.4 Physical View
+### 24.5 Physical View
+
+This view answers: how the system is deployed.
 
 ```plantuml
 @startuml
 title AgentWorld Physical View
+node "Single Host / VM / Laptop" {
+  node "AgentWorld Next.js Process" {
+    component "UI + API + Scheduler + Executor"
+  }
 
-node "Single Node Deployment" {
-  component "Next.js Monolith"
-  database "SQLite\nagentworld.db"
-  folder "Artifacts\n./data/artifacts"
+  database "SQLite File"
+  folder "Artifact Directory"
 }
 
-cloud "External Providers" {
-  component "OpenAI-Compatible APIs"
-  component "OpenCode Runtime"
-  component "Webhook Sources"
-}
+cloud "OpenAI-compatible Provider" as Provider
+cloud "OpenCode Runtime" as Runtime
+cloud "Webhook Source\n(GitHub / CI / Repo Service)" as Webhook
 
-"Next.js Monolith" --> "SQLite\nagentworld.db"
-"Next.js Monolith" --> "Artifacts\n./data/artifacts"
-"Next.js Monolith" --> "OpenAI-Compatible APIs"
-"Next.js Monolith" --> "OpenCode Runtime"
-"Webhook Sources" --> "Next.js Monolith"
-
+"AgentWorld Next.js Process" --> "SQLite File"
+"AgentWorld Next.js Process" --> "Artifact Directory"
+"AgentWorld Next.js Process" --> Provider
+"AgentWorld Next.js Process" --> Runtime
+Webhook --> "AgentWorld Next.js Process"
 @enduml
 ```
 
-### 20.5 Scenario View
+## 25. Extra Diagram: Quest State Machine
 
 ```plantuml
 @startuml
-title AgentWorld Scenario View - Cross Kingdom Quest
-
-actor Operator
-participant "Kingdom A UI" as A
-participant "contract-core" as ContractCore
-participant "scheduler-core" as Scheduler
-participant "planner-core" as Planner
-participant "executor-core" as Executor
-participant "AgentTeam B" as TeamB
-participant "Watcher / Human Gate" as Watcher
-database "SQLite" as DB
-
-Operator -> A : submit quest
-A -> ContractCore : validate contract
-ContractCore -> DB : freeze budget + verify scope
-A -> DB : create Quest
-Scheduler -> Planner : generate DAG
-Planner -> DB : persist plan
-Executor -> TeamB : invoke node
-TeamB -> DB : write spans and events
-TeamB -> Watcher : approval required
-Watcher -> DB : record approval
-Executor -> DB : finalize quest
-
+title Quest State Machine
+[*] --> draft
+draft --> submitted
+submitted --> validating
+validating --> planning
+planning --> running
+running --> awaiting
+awaiting --> running
+running --> completed
+running --> failed
+draft --> cancelled
+submitted --> cancelled
+validating --> cancelled
+planning --> cancelled
+running --> cancelled
+awaiting --> cancelled
+completed --> [*]
+failed --> [*]
+cancelled --> [*]
 @enduml
 ```
 
-### 20.6 Quest State Machine
+## 26. Extra Diagram: Prompt Assembly Order
 
 ```plantuml
 @startuml
-title AgentWorld Quest State Machine
+title Prompt Assembly Order
+actor Executor
+participant "Platform Prompt" as P1
+participant "Harness Prompt" as P2
+participant "World/Kingdom Policy" as P3
+participant "AgentTeam Contract" as P4
+participant "Agent Persona" as P5
+participant "Quest/Node Context" as P6
+participant "Current Turn Observation" as P7
+participant "Output Schema" as P8
 
-[*] --> Draft
-Draft --> Submitted
-Submitted --> Validating
-Validating --> Planning
-Validating --> Failed
-Planning --> Running
-Planning --> Failed
-Running --> Awaiting
-Running --> Completed
-Running --> Failed
-Awaiting --> Running
-Awaiting --> Cancelled
-Running --> Cancelled
-Failed --> [*]
-Completed --> [*]
-Cancelled --> [*]
-
+Executor -> P1 : platform role
+Executor -> P2 : tools / budget / approvals / default locale
+Executor -> P3 : whitelist / provider preference / guardrails
+Executor -> P4 : team objective / io contract
+Executor -> P5 : agent role
+Executor -> P6 : quest input / dependency outputs
+Executor -> P7 : tool result / current observation
+Executor -> P8 : finish format
+P8 --> Executor : final prompt payload
 @enduml
 ```
 
-### 20.7 Agent Invocation Sequence
+## 27. MVP Delivery Path
 
-```plantuml
-@startuml
-title AgentWorld Invocation Sequence
+### Phase 1
 
-participant "executor-core" as Executor
-participant "harness-core" as Harness
-participant "memory-core" as Memory
-participant "provider-core" as Provider
-participant "tool adapters" as Tools
-participant "trace-core" as Trace
+1. core World, Kingdom, AgentTeam, and Quest model,
+2. Chinese-first UI defaults,
+3. Quest list, Quest detail, and wallboard,
+4. runtime discovery,
+5. provider configuration.
 
-Executor -> Harness : resolve(node, quest, team, agent, contract)
-Harness -> Memory : resolve visible memory scopes
-Harness --> Executor : invocation envelope
-Executor -> Trace : open span
-Executor -> Provider : start model stream
-Provider --> Trace : text_delta / thinking
-Provider -> Tools : tool call if allowed
-Tools --> Trace : tool_result
-Provider --> Trace : output events
-Trace --> Executor : approval_required if gate hit
-Executor --> Trace : finalize node state
+### Phase 2
 
-@enduml
-```
+1. real Quest submission API,
+2. in-process scheduler tick,
+3. node transitions and execution flow,
+4. human approval loop,
+5. basic webhook entry.
 
-## 21. Conclusion
+### Phase 3
 
-The key to AgentWorld is not having many nouns. It is making this chain explicit and reliable:
+1. fuller prompt composer,
+2. persisted multi-turn execution state,
+3. Contract invocation loop,
+4. Tavern recruitment loop,
+5. cost and success-rate reporting.
 
-Quest submission
--> permission and budget validation
--> DAG planning
--> node scheduling
--> agent invocation
--> harness-constrained execution
--> full trace, cost, and human intervention recording
+## 28. Risks and Evolution
 
-If that chain is solid, AgentWorld is no longer a chat demo. It becomes a real agent operating system that teams can run.
+### 28.1 Risks in the Current Shape
+
+1. single-process concurrency is limited,
+2. SQLite is better for single-node operation than multi-node writes,
+3. runtime discovery is still a capability catalog, not a full execution mesh.
+
+### 28.2 Why These Risks Are Acceptable Now
+
+Because the first job is to get the foundations right:
+
+1. normalize the task model,
+2. make scheduling and invocation boundaries clear,
+3. make governance, audit, and human intervention correct.
+
+Once those are stable, stronger isolation and service splits become much safer.
+
+## 29. Summary
+
+AgentWorld is not a smart chat page.
+
+It is three things combined:
+
+1. an agent task execution engine,
+2. a team governance platform,
+3. an operable entry point for an agent service marketplace.
+
+The most important design decisions in this version are:
+
+1. use a TypeScript monolith first,
+2. use SQLite and local files to lower the install cost,
+3. keep scheduling, planning, execution, and invocation explicitly separate,
+4. use harness engineering instead of trusting the model to self-govern.
+
+If those four decisions hold, AgentWorld will have a strong base for more advanced runtimes, more teams, and a deeper service marketplace later.

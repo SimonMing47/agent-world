@@ -20,12 +20,12 @@ export function summarizeQuestPlan(plan: QuestPlan, nodes: QuestNode[], agents: 
 export function buildTeamPlanningMode(team: AgentTeam) {
   switch (team.workflowType) {
     case "dag":
-      return "Captain agent can create a multi-node DAG and the executor will validate it before running.";
+      return "Captain Agent 可以先产出多节点 DAG，执行器会在真正运行前校验它。";
     case "parallel":
-      return "Multiple nodes may become ready at the same time as long as dependencies stay satisfied.";
+      return "只要依赖满足，多个节点就可以同时进入可执行状态。";
     case "sequential":
-      return "Nodes are advanced one-by-one in a deterministic order.";
+      return "节点会按确定顺序一个接一个推进。";
     default:
-      return "This team defaults to a single-node execution plan.";
+      return "这个团队默认使用单节点执行计划。";
   }
 }

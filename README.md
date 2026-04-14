@@ -30,6 +30,7 @@ AgentWorld 就是针对这些问题来设计的。
 - 调度、规划、执行、观察、人工干预都在一条清晰链路里
 - 用 Harness 工程原则约束 Agent，不靠“提示词自觉”
 - 兼容 OpenAI 风格模型接口，也支持通过 OpenCode SDK 发现 runtime
+- 默认中文界面和默认中文输出，更适合直接给中文团队落地试跑
 
 ## Architecture Direction
 
@@ -50,6 +51,13 @@ AgentWorld 就是针对这些问题来设计的。
 - 文档入口 / Documentation Index: [docs/README.md](/Users/mac/projects/未命名文件夹/docs/README.md)
 - 中文详细设计 / Chinese Detailed Design: [docs/detailed-design.zh-CN.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
 - English Detailed Design: [docs/detailed-design.en.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
+
+这次文档已经专门补齐了：
+
+- 默认中文能力设计
+- 详细提示词工程设计
+- 多轮 Agent 调用设计
+- 基于 PlantUML Markdown 的 4+1 视图
 
 ## Quick Start
 

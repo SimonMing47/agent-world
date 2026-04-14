@@ -24,17 +24,17 @@ import {
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/worlds", label: "Worlds", icon: Globe },
-  { href: "/kingdoms", label: "Kingdoms", icon: Users },
-  { href: "/agent-teams", label: "AgentTeams", icon: Workflow },
-  { href: "/quests", label: "Quests", icon: Activity },
-  { href: "/tavern", label: "Tavern", icon: Store },
-  { href: "/contracts", label: "Contracts", icon: ScrollText },
-  { href: "/runtimes", label: "Runtimes", icon: Cable },
-  { href: "/harness", label: "Harness", icon: ShieldCheck },
-  { href: "/wallboard", label: "Wallboard", icon: ChartNoAxesCombined },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "总览", icon: LayoutDashboard },
+  { href: "/worlds", label: "World 空间", icon: Globe },
+  { href: "/kingdoms", label: "Kingdom 团队", icon: Users },
+  { href: "/agent-teams", label: "AgentTeam 服务", icon: Workflow },
+  { href: "/quests", label: "Quest 任务", icon: Activity },
+  { href: "/tavern", label: "Tavern 市场", icon: Store },
+  { href: "/contracts", label: "Contract 合约", icon: ScrollText },
+  { href: "/runtimes", label: "Runtime 运行时", icon: Cable },
+  { href: "/harness", label: "Harness 约束", icon: ShieldCheck },
+  { href: "/wallboard", label: "大屏", icon: ChartNoAxesCombined },
+  { href: "/settings", label: "设置", icon: Settings },
 ];
 
 export function SidebarNav() {
@@ -68,28 +68,28 @@ export function SidebarNav() {
       <div className="mt-6 space-y-3 rounded-[26px] border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
           <Command className="h-3.5 w-3.5" />
-          Operating lenses
+          关键视角
         </div>
         <div className="space-y-2 text-sm text-[var(--ink-muted)]">
           <div className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            Active agents
+            活跃 Agent
           </div>
           <div className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Contract edges
+            合约调用边
           </div>
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4" />
-            Active repositories
+            活跃代码仓
           </div>
           <div className="flex items-center gap-2">
             <AlarmClock className="h-4 w-4" />
-            Scheduled quests
+            定时 Quest
           </div>
           <div className="flex items-center gap-2">
             <ShieldPlus className="h-4 w-4" />
-            Human gates
+            人工门禁
           </div>
         </div>
       </div>

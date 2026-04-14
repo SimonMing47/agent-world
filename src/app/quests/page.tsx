@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getDashboardSnapshot } from "@/server/queries";
 
@@ -23,18 +24,18 @@ export default function QuestsPage() {
                   {quest.sourceRef ?? quest.sourceType}
                 </div>
                 <div className="mt-1 text-sm text-[var(--ink-muted)]">
-                  {team?.name ?? "Unknown team"} · {kingdom?.name ?? "Unknown kingdom"}
+                  {team?.name ?? "未知团队"} · {kingdom?.name ?? "未知 Kingdom"}
                 </div>
               </div>
               <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                {quest.status}
+                {translateStatus(quest.status)}
               </div>
             </div>
             <div className="mt-4 grid gap-3 text-sm text-[var(--ink-muted)] md:grid-cols-4">
-              <div>Source: {quest.sourceType}</div>
-              <div>Priority: {quest.priority}</div>
-              <div>Estimate: ${quest.costEstimate}</div>
-              <div>Created: {formatDateTime(quest.createdAt)}</div>
+              <div>来源: {translateSourceType(quest.sourceType)}</div>
+              <div>优先级: {quest.priority}</div>
+              <div>预估成本: ${quest.costEstimate}</div>
+              <div>创建时间: {formatDateTime(quest.createdAt)}</div>
             </div>
           </Link>
         );

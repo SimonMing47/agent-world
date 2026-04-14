@@ -29,10 +29,10 @@ export function buildProviderSelection(args: {
     whitelist,
     rationale: preferred
       ? [
-          `World whitelist allows ${whitelist.join(", ")}.`,
-          `Kingdom preference points to ${kingdomPolicy.preferredProvider ?? "no explicit provider"}.`,
-          `Agent ${args.agent.name} prefers ${args.agent.model}.`,
+          `World 白名单允许使用 ${whitelist.join(", ")}。`,
+          `Kingdom 的偏好 Provider 为 ${kingdomPolicy.preferredProvider ?? "未显式指定"}。`,
+          `Agent ${args.agent.name} 当前偏好模型是 ${args.agent.model}。`,
         ]
-      : ["No enabled provider satisfies the current model whitelist."],
+      : ["当前没有启用中的 Provider 同时满足模型白名单约束。"],
   };
 }
