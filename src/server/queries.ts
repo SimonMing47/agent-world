@@ -489,10 +489,10 @@ function classifyFailure(args: {
   return "runtime_error";
 }
 
-const COST_PER_COMPLETED_NODE = 0.5;
-const BASE_ESTIMATED_NODE_COST = 0.25;
-const BASE_ACTUAL_NODE_COST = 0.3;
-const PER_ATTEMPT_NODE_COST = 0.2;
+const COST_PER_COMPLETED_NODE_USD = 0.5;
+const BASE_ESTIMATED_NODE_COST_USD = 0.25;
+const BASE_ACTUAL_NODE_COST_USD = 0.3;
+const PER_ATTEMPT_NODE_COST_USD = 0.2;
 
 function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
@@ -501,17 +501,17 @@ function roundCurrency(value: number) {
 export function submitQuest(input: SubmitQuestInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
   if (!team) {
-    throw new Error("Agent 团队不存在。");
+    throw new Error("代理团队不存在。");
   }
 
   const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE id = ?", team.kingdomId);
   if (!kingdom) {
-    throw new Error("Kingdom 团队空间不存在。");
+    throw new Error("王国团队空间不存在。");
   }
 
   const world = queryOne<World>("SELECT * FROM worlds WHERE id = ?", kingdom.worldId);
   if (!world) {
-    throw new Error("World 空间不存在。");
+    throw new Error("世界空间不存在。");
   }
 
   const questId = randomUUID();
@@ -808,7 +808,7 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     questStatus === "completed" ? nowIso() : null,
     roundCurrency(
       completedNodes.filter((node) => node.status === "completed").length *
-        COST_PER_COMPLETED_NODE,
+        COST_PER_COMPLETED_NODE_USD,
     ),
     quest.id,
   );
@@ -994,11 +994,11 @@ export function getQuestCostBreakdown(questId: string) {
     status: node.status,
     attemptCount: node.attemptCount,
     estimatedUsd: roundCurrency(
-      BASE_ESTIMATED_NODE_COST + node.attemptCount * PER_ATTEMPT_NODE_COST,
+      BASE_ESTIMATED_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD,
     ),
     actualUsd:
       node.status === "completed"
-        ? roundCurrency(BASE_ACTUAL_NODE_COST + node.attemptCount * PER_ATTEMPT_NODE_COST)
+        ? roundCurrency(BASE_ACTUAL_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD)
         : 0,
   }));
   const estimatedUsd = roundCurrency(

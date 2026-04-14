@@ -142,6 +142,7 @@ export function composeHarnessProfile(args: {
       collapseThinkingByDefault: resolved.collapseThinkingByDefault,
       structuredOutput: resolved.structuredOutput,
       defaultLocale: resolved.defaultLocale ?? composed.defaultLocale,
+      // 安全扫描采用“任一层开启即开启”的并集策略，避免下层意外关闭上层防护。
       promptScan: composed.promptScan || resolved.promptScan,
       outputScan: composed.outputScan || resolved.outputScan,
     };
