@@ -9,6 +9,8 @@ type QuestOpsConsoleProps = {
   pendingInterventionId?: string;
 };
 
+const OPS_ACTOR = "UI console";
+
 async function postJson(url: string, body: Record<string, unknown>) {
   const response = await fetch(url, {
     method: "POST",
@@ -50,7 +52,7 @@ export function QuestOpsConsole(props: QuestOpsConsoleProps) {
           type="button"
           disabled={isPending}
           onClick={() =>
-            runAction(() => postJson(`/api/quests/${props.questId}/tick`, { requestedBy: "UI console" }))
+            runAction(() => postJson(`/api/quests/${props.questId}/tick`, { requestedBy: OPS_ACTOR }))
           }
           className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
         >
@@ -60,7 +62,7 @@ export function QuestOpsConsole(props: QuestOpsConsoleProps) {
           type="button"
           disabled={isPending}
           onClick={() =>
-            runAction(() => postJson(`/api/quests/${props.questId}/resume`, { requestedBy: "UI console" }))
+            runAction(() => postJson(`/api/quests/${props.questId}/resume`, { requestedBy: OPS_ACTOR }))
           }
           className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
         >
@@ -73,7 +75,7 @@ export function QuestOpsConsole(props: QuestOpsConsoleProps) {
             onClick={() =>
               runAction(() =>
                 postJson(`/api/quests/${props.questId}/nodes/${props.retryNodeId}/retry`, {
-                  requestedBy: "UI console",
+                  requestedBy: OPS_ACTOR,
                 }),
               )
             }
@@ -91,7 +93,7 @@ export function QuestOpsConsole(props: QuestOpsConsoleProps) {
                 runAction(() =>
                   postJson(`/api/interventions/${props.pendingInterventionId}/resolve`, {
                     decision: "approved",
-                    resolvedBy: "UI console",
+                    resolvedBy: OPS_ACTOR,
                     resolutionNote: "Approved from quest console",
                   }),
                 )
@@ -107,7 +109,7 @@ export function QuestOpsConsole(props: QuestOpsConsoleProps) {
                 runAction(() =>
                   postJson(`/api/interventions/${props.pendingInterventionId}/resolve`, {
                     decision: "rejected",
-                    resolvedBy: "UI console",
+                    resolvedBy: OPS_ACTOR,
                     resolutionNote: "Rejected from quest console",
                   }),
                 )

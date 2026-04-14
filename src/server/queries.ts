@@ -366,7 +366,10 @@ function getQuestNodes(questId: string) {
 }
 
 function getNextEventSeq(questId: string) {
-  const row = queryOne<{ maxSeq: number | null }>("SELECT MAX(seq) as max_seq FROM event_logs WHERE quest_id = ?", questId);
+  const row = queryOne<{ maxSeq: number | null }>(
+    "SELECT MAX(seq) as maxSeq FROM event_logs WHERE quest_id = ?",
+    questId,
+  );
   return (row?.maxSeq ?? 0) + 1;
 }
 
@@ -479,6 +482,8 @@ function classifyFailure(args: {
   if (args.reason.toLowerCase().includes("budget")) return "budget_exceeded";
   return "runtime_error";
 }
+
+const COST_PER_COMPLETED_NODE = 0.5;
 
 export function submitQuest(input: SubmitQuestInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
@@ -629,8 +634,10 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     content: `节点 ${runnable.nodeKey} 开始执行，发起人：${requestedBy}。`,
   });
 
-  const runtimeStartedAt = new Date();
-  const timeoutReached = runtimeStartedAt.getTime() - new Date(quest.createdAt).getTime() > team.timeoutMs;
+  const runtimeStartedAt = nowIso();
+  const timeoutReference = runnable.startedAt ?? runtimeStartedAt;
+  const timeoutReached =
+    new Date(runtimeStartedAt).getTime() - new Date(timeoutReference).getTime() > team.timeoutMs;
   const nodeInput = JSON.parse(runnable.inputJson) as { action?: string; tool?: string };
   const action = nodeInput.action ?? "execute";
   const tool = nodeInput.tool ?? "memory.read";
@@ -786,7 +793,12 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     "UPDATE quests SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
     questStatus,
     questStatus === "completed" ? nowIso() : null,
-    Number((completedNodes.filter((node) => node.status === "completed").length * 0.5).toFixed(2)),
+    Number(
+      (
+        completedNodes.filter((node) => node.status === "completed").length *
+        COST_PER_COMPLETED_NODE
+      ).toFixed(2),
+    ),
     quest.id,
   );
 
@@ -914,11 +926,15 @@ export function getQuestExecutionBoard(questId: string) {
     };
   });
 
-  const total = nodes.length || 1;
+  const total = nodes.length;
   const completedCount = nodes.filter((node) => node.status === "completed").length;
   const failedCount = nodes.filter((node) => node.status === "failed").length;
   const awaitingCount = nodes.filter((node) => node.status === "awaiting").length;
   const retryableCount = nodes.filter((node) => node.status === "failed" && node.attemptCount < node.maxAttempts).length;
+  const throughput = total === 0 ? 0 : completedCount / total;
+  const failureRate = total === 0 ? 0 : failedCount / total;
+  const humanInterventionRate = total === 0 ? 0 : awaitingCount / total;
+  const retryRecoveryPotential = failedCount === 0 ? 0 : retryableCount / failedCount;
 
   return {
     questId,
@@ -926,10 +942,10 @@ export function getQuestExecutionBoard(questId: string) {
     board: buildExecutionBoard(nodes),
     readiness: readyByDependency,
     metrics: {
-      throughput: Number((completedCount / total).toFixed(2)),
-      failureRate: Number((failedCount / total).toFixed(2)),
-      humanInterventionRate: Number((awaitingCount / total).toFixed(2)),
-      retryRecoveryPotential: Number((retryableCount / Math.max(failedCount, 1)).toFixed(2)),
+      throughput: Number(throughput.toFixed(2)),
+      failureRate: Number(failureRate.toFixed(2)),
+      humanInterventionRate: Number(humanInterventionRate.toFixed(2)),
+      retryRecoveryPotential: Number(retryRecoveryPotential.toFixed(2)),
     },
   };
 }
