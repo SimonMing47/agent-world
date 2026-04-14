@@ -501,17 +501,17 @@ function roundCurrency(value: number) {
 export function submitQuest(input: SubmitQuestInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
   if (!team) {
-    throw new Error("AgentTeam 不存在。");
+    throw new Error("Agent 团队不存在。");
   }
 
   const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE id = ?", team.kingdomId);
   if (!kingdom) {
-    throw new Error("Kingdom 不存在。");
+    throw new Error("Kingdom 团队空间不存在。");
   }
 
   const world = queryOne<World>("SELECT * FROM worlds WHERE id = ?", kingdom.worldId);
   if (!world) {
-    throw new Error("World 不存在。");
+    throw new Error("World 空间不存在。");
   }
 
   const questId = randomUUID();
@@ -593,7 +593,7 @@ export function submitQuest(input: SubmitQuestInput) {
 
 export function executeQuestTick(questId: string, requestedBy = "system") {
   const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) throw new Error("Quest 不存在。");
+  if (!quest) throw new Error("任务不存在。");
 
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
   const nodes = getQuestNodes(questId);
@@ -820,7 +820,7 @@ export function retryQuestNode(args: { questId: string; nodeId: string; requeste
   const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", args.questId);
   const node = queryOne<QuestNode>("SELECT * FROM quest_nodes WHERE id = ? AND quest_id = ?", args.nodeId, args.questId);
   if (!quest || !node) {
-    throw new Error("Quest 或 Node 不存在。");
+    throw new Error("任务或节点不存在。");
   }
 
   if (node.attemptCount >= node.maxAttempts) {
@@ -860,10 +860,10 @@ export function resolveQuestIntervention(args: {
     "SELECT * FROM quest_interventions WHERE id = ?",
     args.interventionId,
   );
-  if (!intervention) throw new Error("Intervention 不存在。");
+  if (!intervention) throw new Error("人工干预单不存在。");
 
   const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", intervention.questId);
-  if (!quest) throw new Error("Quest 不存在。");
+  if (!quest) throw new Error("任务不存在。");
 
   execute(
     "UPDATE quest_interventions SET status = ?, resolution_note = ?, resolved_at = ? WHERE id = ?",
@@ -899,7 +899,7 @@ export function resolveQuestIntervention(args: {
 
 export function resumeQuest(questId: string, requestedBy: string) {
   const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) throw new Error("Quest 不存在。");
+  if (!quest) throw new Error("任务不存在。");
 
   execute("UPDATE quest_nodes SET status = ? WHERE quest_id = ? AND status = ?", "ready", questId, "awaiting");
   execute("UPDATE quests SET status = ? WHERE id = ?", "running", questId);

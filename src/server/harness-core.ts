@@ -63,7 +63,7 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
 }
 
 function intersectAllowedTools(current: string[], incoming: string[]) {
-  // 空数组表示“这一层不额外收紧”，因此沿用上层结果；仅当某层显式给出 allow 清单时才做交集收敛。
+  // 空数组表示“这一层不额外收紧”，因此沿用上层结果，仅当某层显式给出 allow 清单时才做交集收敛。
   if (incoming.length === 0) return current;
   if (current.length === 0) return incoming;
   return current.filter((tool) => incoming.includes(tool));
