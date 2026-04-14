@@ -62,7 +62,7 @@ export function resolveHarnessProfile(profile: HarnessProfile): ResolvedHarness 
   };
 }
 
-function mergeAllowedTools(current: string[], incoming: string[]) {
+function intersectAllowedTools(current: string[], incoming: string[]) {
   if (incoming.length === 0) return current;
   if (current.length === 0) return incoming;
   return current.filter((tool) => incoming.includes(tool));
@@ -129,7 +129,7 @@ export function composeHarnessProfile(args: {
       systemInstruction: [composed.systemInstruction, resolved.systemInstruction]
         .filter(Boolean)
         .join("\n"),
-      allowedTools: mergeAllowedTools(composed.allowedTools, resolved.allowedTools),
+      allowedTools: intersectAllowedTools(composed.allowedTools, resolved.allowedTools),
       blockedTools: dedupe([...composed.blockedTools, ...resolved.blockedTools]),
       approvalRequiredTools: dedupe([
         ...composed.approvalRequiredTools,
@@ -140,7 +140,7 @@ export function composeHarnessProfile(args: {
       maxToolCalls: pickMinPositive(composed.maxToolCalls, resolved.maxToolCalls),
       collapseThinkingByDefault: resolved.collapseThinkingByDefault,
       structuredOutput: resolved.structuredOutput,
-      defaultLocale: resolved.defaultLocale || composed.defaultLocale,
+      defaultLocale: resolved.defaultLocale ?? composed.defaultLocale,
       promptScan: composed.promptScan || resolved.promptScan,
       outputScan: composed.outputScan || resolved.outputScan,
     };
