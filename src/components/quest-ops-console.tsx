@@ -9,7 +9,7 @@ type QuestOpsConsoleProps = {
   pendingInterventionId?: string;
 };
 
-const OPS_ACTOR = "UI console";
+const OPS_ACTOR = "console";
 
 async function postJson(url: string, body: Record<string, unknown>) {
   const response = await fetch(url, {

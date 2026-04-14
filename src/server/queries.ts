@@ -404,8 +404,14 @@ function synthesizeTeamNodes(team: AgentTeam) {
   const captain = team.captainAgentId
     ? teamAgents.find((agent) => agent.id === team.captainAgentId) ?? null
     : null;
-  const specialist = teamAgents.find((agent) => agent.role.toLowerCase().includes("special")) ?? teamAgents[0] ?? null;
-  const reviewer = teamAgents.find((agent) => agent.role.toLowerCase().includes("review")) ?? teamAgents[teamAgents.length - 1] ?? null;
+  const specialist =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "specialist") ??
+    teamAgents[0] ??
+    null;
+  const reviewer =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "reviewer") ??
+    teamAgents[teamAgents.length - 1] ??
+    null;
 
   if (!captain && !specialist && !reviewer) return [];
 
@@ -484,6 +490,13 @@ function classifyFailure(args: {
 }
 
 const COST_PER_COMPLETED_NODE = 0.5;
+const BASE_ESTIMATED_NODE_COST = 0.25;
+const BASE_ACTUAL_NODE_COST = 0.3;
+const PER_ATTEMPT_NODE_COST = 0.2;
+
+function roundCurrency(value: number) {
+  return Math.round(value * 100) / 100;
+}
 
 export function submitQuest(input: SubmitQuestInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
@@ -553,7 +566,7 @@ export function submitQuest(input: SubmitQuestInput) {
       JSON.stringify(node.dependsOn ?? []),
       JSON.stringify(node.input ?? {}),
       null,
-      (node.dependsOn?.length ?? 0) > 0 ? "submitted" : "ready",
+      "submitted",
       0,
       3,
       null,
@@ -634,11 +647,11 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     content: `节点 ${runnable.nodeKey} 开始执行，发起人：${requestedBy}。`,
   });
 
-  const runtimeStartedAt = nowIso();
-  const timeoutReference = runnable.startedAt ?? runtimeStartedAt;
-  const timeoutReached =
-    new Date(runtimeStartedAt).getTime() - new Date(timeoutReference).getTime() > team.timeoutMs;
   const nodeInput = JSON.parse(runnable.inputJson) as { action?: string; tool?: string };
+  const simulatedDurationMs = Number(
+    (nodeInput as { simulatedDurationMs?: unknown }).simulatedDurationMs ?? 0,
+  );
+  const timeoutReached = simulatedDurationMs > team.timeoutMs;
   const action = nodeInput.action ?? "execute";
   const tool = nodeInput.tool ?? "memory.read";
 
@@ -793,11 +806,9 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     "UPDATE quests SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
     questStatus,
     questStatus === "completed" ? nowIso() : null,
-    Number(
-      (
-        completedNodes.filter((node) => node.status === "completed").length *
-        COST_PER_COMPLETED_NODE
-      ).toFixed(2),
+    roundCurrency(
+      completedNodes.filter((node) => node.status === "completed").length *
+        COST_PER_COMPLETED_NODE,
     ),
     quest.id,
   );
@@ -982,11 +993,18 @@ export function getQuestCostBreakdown(questId: string) {
     nodeKey: node.nodeKey,
     status: node.status,
     attemptCount: node.attemptCount,
-    estimatedUsd: Number((0.25 + node.attemptCount * 0.2).toFixed(2)),
-    actualUsd: node.status === "completed" ? Number((0.3 + node.attemptCount * 0.2).toFixed(2)) : 0,
+    estimatedUsd: roundCurrency(
+      BASE_ESTIMATED_NODE_COST + node.attemptCount * PER_ATTEMPT_NODE_COST,
+    ),
+    actualUsd:
+      node.status === "completed"
+        ? roundCurrency(BASE_ACTUAL_NODE_COST + node.attemptCount * PER_ATTEMPT_NODE_COST)
+        : 0,
   }));
-  const estimatedUsd = Number(nodeCosts.reduce((sum, node) => sum + node.estimatedUsd, 0).toFixed(2));
-  const actualUsd = Number(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0).toFixed(2));
+  const estimatedUsd = roundCurrency(
+    nodeCosts.reduce((sum, node) => sum + node.estimatedUsd, 0),
+  );
+  const actualUsd = roundCurrency(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0));
 
   return {
     questId,
