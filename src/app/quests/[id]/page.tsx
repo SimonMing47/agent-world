@@ -5,6 +5,7 @@ import {
   translateSourceType,
   translateStatus,
 } from "@/lib/presentation";
+import { QuestOpsConsole } from "@/components/quest-ops-console";
 import { getQuestDetail } from "@/server/queries";
 
 export default async function QuestDetailPage({
@@ -22,6 +23,12 @@ export default async function QuestDetailPage({
   return (
     <div className="grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
       <section className="space-y-4">
+        <QuestOpsConsole
+          questId={detail.quest.id}
+          retryNodeId={detail.nodes.find((node) => node.status === "failed")?.id}
+          pendingInterventionId={detail.interventions.find((intervention) => intervention.status === "pending")?.id}
+        />
+
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             Quest 概览
@@ -140,6 +147,20 @@ export default async function QuestDetailPage({
             </div>
           </div>
         ) : null}
+
+        {detail.executionInsights ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              执行指标
+            </div>
+            <div className="mt-3 grid gap-2 text-sm text-[var(--ink-muted)] md:grid-cols-2">
+              <div>吞吐率: {Math.round(detail.executionInsights.metrics.throughput * 100)}%</div>
+              <div>失败率: {Math.round(detail.executionInsights.metrics.failureRate * 100)}%</div>
+              <div>人工介入率: {Math.round(detail.executionInsights.metrics.humanInterventionRate * 100)}%</div>
+              <div>失败可恢复率: {Math.round(detail.executionInsights.metrics.retryRecoveryPotential * 100)}%</div>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">
@@ -185,6 +206,17 @@ export default async function QuestDetailPage({
         {Object.entries(detail.groupedEvents).map(([group, events]) => (
           <TraceGroup key={group} title={group} events={events} />
         ))}
+
+        {detail.costBreakdown ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              成本明细
+            </div>
+            <div className="mt-2 text-sm text-[var(--ink-muted)]">
+              估算 ${detail.costBreakdown.estimatedUsd} / 实际 ${detail.costBreakdown.actualUsd}
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
