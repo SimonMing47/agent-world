@@ -1340,3 +1340,181 @@ AgentWorld 不是一个“会聊天的网页”。
 4. 用 Harness 工程原则约束 Agent，而不是靠模型“自觉”。
 
 如果这四点稳定下来，AgentWorld 后面不管走向更强的 runtime、更多的团队协作，还是更复杂的服务市场，都会有非常清晰的底座。
+
+## 30. MR 自动检视闭环设计
+
+这一节描述当前已经开始落地的第一个真实业务闭环：代码平台通过 webhook 把 MR 或 PR 推给 AgentWorld，AgentWorld 拉取 diff，按多层检视技能执行，生成评论，评论里带反馈链接，用户反馈后再写回 OpenViking 分层知识库。
+
+### 30.1 目标
+
+这条链路要先做到五件事：
+
+1. 代码平台有 MR 事件时能触发 AgentWorld。
+2. AgentWorld 能拿到 diff，优先用 payload 里的 diff，其次用 diffUrl，最后尝试用 git clone 和分支拉取生成 diff。
+3. 检视不是一个大提示词，而是按不同 skill 分层执行。
+4. 检视意见可以回写到 MR 评论，且每条意见都带反馈链接。
+5. 反馈结果写入 OpenViking 风格的分层知识库，后续检视可以复用。
+
+### 30.2 当前最小可用接口
+
+当前先提供两个接口：
+
+1. `POST /api/webhooks/{pathKey}`：接收 GitHub、GitLab 或通用 MR payload。
+2. `GET /api/review-feedback/{token}?verdict=correct|incorrect|unclear`：记录某条检视意见是否正确。
+3. `POST /api/review-feedback/{token}`：用 JSON 方式提交反馈，适合集成到页面或代码平台插件。
+
+默认种子里已有 `github-pr` webhook，所以本地可以直接调用：
+
+```txt
+POST /api/webhooks/github-pr
+```
+
+### 30.3 MR 检视流程
+
+```plantuml
+@startuml
+title MR 自动检视闭环
+actor Developer
+participant "Code Platform" as Code
+participant "AgentWorld Webhook API" as Webhook
+participant "Diff Fetcher" as Diff
+participant "Review Skill Loader" as Skills
+participant "Review Engine" as Review
+participant "OpenViking Knowledge Adapter" as Knowledge
+participant "Comment Writer" as Comment
+participant "Feedback API" as Feedback
+
+Developer -> Code : open or update MR
+Code -> Webhook : POST MR payload
+Webhook -> Diff : inline diff / diffUrl / git fetch
+Diff --> Webhook : normalized diff
+Webhook -> Skills : load enabled review skills
+Skills --> Review : layered skill prompts and rules
+Review -> Knowledge : store review context
+Review -> Knowledge : store findings by layer
+Review -> Comment : build markdown with feedback links
+Comment -> Code : post MR comment when token and API are configured
+Developer -> Feedback : click correct / incorrect link
+Feedback -> Knowledge : store feedback as learning record
+@enduml
+```
+
+### 30.4 分层检视 Skill
+
+当前默认有四层 skill：
+
+| Skill | 层级 | 主要职责 |
+| --- | --- | --- |
+| MR 结构检视 | `global/code-review` | 看 MR 是否过大、是否改了依赖、是否缺少范围说明 |
+| 安全敏感检视 | `security` | 看是否新增命令执行、动态执行、密钥、token、环境文件等风险信号 |
+| 测试影响检视 | `quality/test` | 看源码变化是否缺少对应测试或验证说明 |
+| 数据与接口契约检视 | `contract/data-api` | 看数据库、API、Webhook、schema 变化是否有兼容和回滚说明 |
+
+这样设计的原因很简单：代码检视不是一种能力，而是多种视角。把它拆成 skill 后，后续可以按仓库、团队、语言、框架继续扩展，而不是把所有判断塞进一个难维护的大提示词。
+
+### 30.5 OpenViking 分层知识库
+
+当前实现采用 OpenViking 风格 URI 和本地影子知识库：
+
+1. URI 形态：`viking://agent/resources/code-review/{layer}/{scope}/{id}.md`
+2. 本地落盘：`data/openviking-shadow/{layer}/{scope}/{id}.md`
+3. SQLite 索引：`openviking_knowledge_entries`
+4. 远端同步：配置 `OPENVIKING_BASE_URL` 后尝试同步；未配置时只走本地影子知识库。
+
+知识分层如下：
+
+| 层级 | 存什么 |
+| --- | --- |
+| `repository/code-review` | MR 上下文、文件列表、diff 获取方式 |
+| `global/code-review` | MR 结构类经验 |
+| `security` | 安全敏感类经验 |
+| `quality/test` | 测试影响类经验 |
+| `contract/data-api` | 数据和接口契约类经验 |
+| `feedback/correct` | 被用户确认正确的意见 |
+| `feedback/incorrect` | 被用户确认不正确的意见 |
+| `feedback/unclear` | 用户认为还需要解释的意见 |
+
+### 30.6 评论反馈设计
+
+每条评论都会带两个反馈链接：
+
+1. `这条正确`
+2. `这条不正确`
+
+链接本质上是一次回调：
+
+```txt
+/api/review-feedback/{token}?verdict=correct
+/api/review-feedback/{token}?verdict=incorrect
+```
+
+反馈写入后，系统会更新 `review_findings.feedback_state`，并把反馈内容写成一条 OpenViking 知识记录。这样以后可以做三件事：
+
+1. 找出经常误报的 skill。
+2. 找出某个仓库的特殊检视规则。
+3. 把“正确意见”沉淀成后续 prompt 的检索上下文。
+
+### 30.7 提示词工程原则
+
+MR 检视的提示词不追求花哨，遵守四条原则：
+
+1. 只对 diff 中有证据的内容给意见。
+2. 不把“可能需要关注”包装成确定缺陷。
+3. 每条意见必须说明风险、证据和建议。
+4. 如果缺少上下文，明确说需要人工确认，不假装知道。
+
+实际 prompt 会按这个顺序组装：
+
+```plantuml
+@startuml
+title MR 检视 Prompt 组装
+actor ReviewEngine
+participant "Platform Rule" as Platform
+participant "Repository Context" as Repo
+participant "Skill Prompt" as Skill
+participant "OpenViking Knowledge" as Knowledge
+participant "Diff Snippet" as Diff
+participant "Output Contract" as Output
+
+ReviewEngine -> Platform : default Chinese, evidence-only, no hidden assumptions
+ReviewEngine -> Repo : repository, MR title, author, source and target branch
+ReviewEngine -> Skill : layer-specific role and checklist
+ReviewEngine -> Knowledge : relevant accepted or rejected findings
+ReviewEngine -> Diff : changed files and hunks
+ReviewEngine -> Output : severity, file, line, body, suggestion
+@enduml
+```
+
+### 30.8 多轮 Agent 检视设计
+
+当前先用规则和 skill 配置打通闭环。后续接入真实模型后，MR 检视会按多轮执行：
+
+1. 第一轮：读取 MR 元信息和 diff 摘要，决定需要加载哪些 skill。
+2. 第二轮：每个 skill 独立检视，输出结构化 finding。
+3. 第三轮：合并重复意见，降低误报，按严重级别排序。
+4. 第四轮：生成 MR 评论，附带反馈链接。
+5. 第五轮：收到反馈后，把反馈写成知识，并更新 skill 的提示上下文。
+
+这个设计避免了“一个 Agent 一次性看完整个 MR 然后自由发挥”。平台会控制每轮输入、输出、停止条件和知识写入位置。
+
+### 30.9 安全边界
+
+这条链路里，写评论属于外部副作用动作，所以必须有明确边界：
+
+1. 未配置 `CODE_PLATFORM_TOKEN` 时，只生成评论内容，不真实回写。
+2. 配置 `CODE_PLATFORM_WEBHOOK_SECRET` 后，入站 webhook 必须带 `x-agentworld-webhook-secret`。
+3. git 拉取使用 `execFile`，不通过 shell 拼接命令。
+4. 默认只写 MR 评论，不合并、不推代码、不改分支。
+5. OpenViking 远端未配置时，只写本地影子知识库。
+
+### 30.10 当前落地状态
+
+当前已经落到代码里的内容：
+
+1. `code_review_skills` 默认四层 skill 种子。
+2. `merge_request_reviews` 记录每次 MR 检视。
+3. `review_findings` 记录每条检视意见和反馈 token。
+4. `review_feedback` 记录用户反馈。
+5. `openviking_knowledge_entries` 记录分层知识索引。
+6. `POST /api/webhooks/{pathKey}` 打通入站、diff 获取、skill 检视、评论生成。
+7. `GET/POST /api/review-feedback/{token}` 打通反馈和知识回写。

@@ -276,6 +276,84 @@ export type WebhookEndpoint = {
   isEnabled: number;
 };
 
+export type CodeReviewSkill = {
+  id: string;
+  name: string;
+  layer: string;
+  description: string;
+  isEnabled: number;
+  promptMd: string;
+  heuristicsJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OpenVikingKnowledgeEntry = {
+  id: string;
+  layer: string;
+  scopeKey: string;
+  skillId: string | null;
+  vikingUri: string;
+  title: string;
+  contentMd: string;
+  metadataJson: string;
+  sourceType: string;
+  syncStatus: string;
+  syncError: string | null;
+  createdAt: string;
+};
+
+export type MergeRequestReview = {
+  id: string;
+  webhookId: string;
+  platform: string;
+  repositorySlug: string;
+  repositoryCloneUrl: string | null;
+  mrIid: string;
+  mrTitle: string;
+  mrUrl: string | null;
+  sourceBranch: string | null;
+  targetBranch: string | null;
+  commitSha: string | null;
+  author: string | null;
+  status: string;
+  diffStatus: string;
+  commentStatus: string;
+  commentUrl: string | null;
+  commentMarkdown: string | null;
+  callbackBaseUrl: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type ReviewFinding = {
+  id: string;
+  reviewId: string;
+  skillId: string;
+  knowledgeLayer: string;
+  severity: string;
+  filePath: string | null;
+  lineNumber: number | null;
+  title: string;
+  body: string;
+  suggestion: string | null;
+  feedbackToken: string;
+  feedbackState: string;
+  createdAt: string;
+};
+
+export type ReviewFeedback = {
+  id: string;
+  findingId: string;
+  reviewId: string;
+  token: string;
+  verdict: string;
+  note: string | null;
+  sourceIp: string | null;
+  knowledgeUri: string | null;
+  createdAt: string;
+};
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "agentworld.db");
 
@@ -536,6 +614,84 @@ CREATE TABLE IF NOT EXISTS webhook_endpoints (
   request_schema_json TEXT NOT NULL,
   secret_hint TEXT NOT NULL,
   is_enabled INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS code_review_skills (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  layer TEXT NOT NULL,
+  description TEXT NOT NULL,
+  is_enabled INTEGER NOT NULL DEFAULT 1,
+  prompt_md TEXT NOT NULL,
+  heuristics_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
+  id TEXT PRIMARY KEY,
+  layer TEXT NOT NULL,
+  scope_key TEXT NOT NULL,
+  skill_id TEXT,
+  viking_uri TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content_md TEXT NOT NULL,
+  metadata_json TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  sync_status TEXT NOT NULL,
+  sync_error TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS merge_request_reviews (
+  id TEXT PRIMARY KEY,
+  webhook_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  repository_slug TEXT NOT NULL,
+  repository_clone_url TEXT,
+  mr_iid TEXT NOT NULL,
+  mr_title TEXT NOT NULL,
+  mr_url TEXT,
+  source_branch TEXT,
+  target_branch TEXT,
+  commit_sha TEXT,
+  author TEXT,
+  status TEXT NOT NULL,
+  diff_status TEXT NOT NULL,
+  comment_status TEXT NOT NULL,
+  comment_url TEXT,
+  comment_markdown TEXT,
+  callback_base_url TEXT,
+  created_at TEXT NOT NULL,
+  completed_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS review_findings (
+  id TEXT PRIMARY KEY,
+  review_id TEXT NOT NULL,
+  skill_id TEXT NOT NULL,
+  knowledge_layer TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  file_path TEXT,
+  line_number INTEGER,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  suggestion TEXT,
+  feedback_token TEXT NOT NULL UNIQUE,
+  feedback_state TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS review_feedback (
+  id TEXT PRIMARY KEY,
+  finding_id TEXT NOT NULL,
+  review_id TEXT NOT NULL,
+  token TEXT NOT NULL,
+  verdict TEXT NOT NULL,
+  note TEXT,
+  source_ip TEXT,
+  knowledge_uri TEXT,
+  created_at TEXT NOT NULL
 );
 `;
 
@@ -1428,12 +1584,101 @@ function seed(db: DatabaseSync) {
   );
 }
 
+function ensureCodeReviewSkillSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const insertSkill = db.prepare(
+    "INSERT OR IGNORE INTO code_review_skills (id, name, layer, description, is_enabled, prompt_md, heuristics_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  [
+    {
+      id: "mr-structure",
+      name: "MR 结构检视",
+      layer: "global/code-review",
+      description: "先判断 MR 是否足够小、范围是否清楚、是否有明显的依赖或锁文件风险。",
+      promptMd:
+        "你是代码检视的第一层守门员。只关注 MR 的范围、变更形状、是否容易回滚、是否需要拆分，不做没有证据的推断。",
+      heuristics: {
+        maxChangedFiles: 20,
+        largeDiffLineThreshold: 800,
+        watchFiles: ["package.json", "pnpm-lock.yaml", "yarn.lock", "package-lock.json"],
+      },
+    },
+    {
+      id: "security-sensitive",
+      name: "安全敏感检视",
+      layer: "security",
+      description: "扫描密钥、命令执行、动态代码执行、鉴权绕过等高风险信号。",
+      promptMd:
+        "你是安全检视员。优先指出可以被利用或会泄露权限的风险，每条意见都必须能在 diff 中找到证据。",
+      heuristics: {
+        riskyPatterns: [
+          "eval(",
+          "new Function(",
+          "child_process",
+          "exec(",
+          "spawn(",
+          "password",
+          "secret",
+          "token",
+          "private_key",
+          ".env",
+        ],
+      },
+    },
+    {
+      id: "test-impact",
+      name: "测试影响检视",
+      layer: "quality/test",
+      description: "判断业务或接口变更是否缺少测试、快照或验证入口。",
+      promptMd:
+        "你是测试策略检视员。关注变更有没有对应测试，不要求机械覆盖率，但要能解释缺失测试会带来什么风险。",
+      heuristics: {
+        sourcePatterns: ["/src/", ".ts", ".tsx"],
+        testPatterns: [".test.", ".spec.", "__tests__", "/tests/"],
+      },
+    },
+    {
+      id: "data-contract",
+      name: "数据与接口契约检视",
+      layer: "contract/data-api",
+      description: "检查数据库、API 入参出参、Webhook 契约、回调地址等是否有兼容性说明。",
+      promptMd:
+        "你是接口契约检视员。只在看到数据库结构、API route、schema、webhook 或序列化格式变化时给意见。",
+      heuristics: {
+        contractPatterns: [
+          "CREATE TABLE",
+          "ALTER TABLE",
+          "route.ts",
+          "NextResponse",
+          "request.json",
+          "schema",
+          "webhook",
+        ],
+      },
+    },
+  ].forEach((skill) => {
+    insertSkill.run(
+      skill.id,
+      skill.name,
+      skill.layer,
+      skill.description,
+      1,
+      skill.promptMd,
+      JSON.stringify(skill.heuristics),
+      now,
+      now,
+    );
+  });
+}
+
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     database = new DatabaseSync(DB_PATH);
     database.exec(schemaSql);
     seed(database);
+    ensureCodeReviewSkillSeed(database);
   }
 
   return database;
