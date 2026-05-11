@@ -17,6 +17,7 @@
 - 提示词工程设计
 - 多轮 Agent 调用设计
 - 内嵌 PlantUML 的 4+1 视图和补充状态图
+- MR/PR webhook 自动检视、评论回写、反馈回流 OpenViking 风格知识库的闭环设计
 
 ## English
 
@@ -35,3 +36,4 @@ Both documents include:
 - prompt engineering design
 - multi-turn agent invocation design
 - embedded PlantUML 4+1 views and additional state diagrams
+- MR/PR webhook review, comment write-back, and feedback-to-knowledge loop design

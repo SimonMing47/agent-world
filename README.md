@@ -31,6 +31,7 @@ AgentWorld 就是针对这些问题来设计的。
 - 用 Harness 工程原则约束 Agent，不靠“提示词自觉”
 - 兼容 OpenAI 风格模型接口，也支持通过 OpenCode SDK 发现 runtime
 - 默认中文界面和默认中文输出，更适合直接给中文团队落地试跑
+- 新增 MR/PR 自动检视闭环：Webhook 进来、拉 diff、分层 skill 检视、生成评论、反馈回写 OpenViking 风格知识库
 
 ## Architecture Direction
 
@@ -66,6 +67,29 @@ AgentWorld 就是针对这些问题来设计的。
 3. `pnpm dev`
 
 默认会创建本地 `.env.local` 和 SQLite 数据文件，适合先跑一个单机、可演示、可继续开发的版本。
+
+## Try The MR Review Loop
+
+启动后可以先用默认的 `github-pr` webhook 跑一个本地 dry run：
+
+```bash
+curl -X POST http://localhost:3002/api/webhooks/github-pr \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "repository": { "full_name": "demo/agentworld", "clone_url": "https://example.com/demo/agentworld.git" },
+    "pull_request": {
+      "number": 12,
+      "title": "Add webhook review flow",
+      "html_url": "https://example.com/demo/agentworld/pull/12",
+      "head": { "ref": "feature/review", "sha": "abc123" },
+      "base": { "ref": "main" },
+      "user": { "login": "reviewer" }
+    },
+    "diff": "diff --git a/src/server/example.ts b/src/server/example.ts\n+++ b/src/server/example.ts\n@@ -0,0 +1,3 @@\n+const token = process.env.SECRET_TOKEN;\n+export function run(input: string) { return eval(input); }\n"
+  }'
+```
+
+没有配置 `CODE_PLATFORM_TOKEN` 时，AgentWorld 只生成评论内容，不会真的回写代码平台。评论里的反馈链接会写回本地 OpenViking 影子知识库。
 
 ## Current Delivery Rhythm
 

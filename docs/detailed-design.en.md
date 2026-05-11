@@ -1319,3 +1319,181 @@ The most important design decisions in this version are:
 4. use harness engineering instead of trusting the model to self-govern.
 
 If those four decisions hold, AgentWorld will have a strong base for more advanced runtimes, more teams, and a deeper service marketplace later.
+
+## 30. Merge Request Review Loop
+
+This section describes the first real end-to-end case being implemented in AgentWorld: a code platform sends an MR or PR webhook, AgentWorld fetches the diff, runs layered review skills, generates a review comment, adds feedback links to every finding, and writes feedback back into an OpenViking-style layered knowledge base.
+
+### 30.1 Goal
+
+The first version must do five concrete things:
+
+1. receive MR events from a code platform,
+2. acquire the diff from inline payload content, a diff URL, or a git fetch fallback,
+3. run review as layered skills instead of one giant prompt,
+4. write a review comment with feedback callback links,
+5. store feedback in a layered knowledge base so later reviews can improve.
+
+### 30.2 Current Minimal API
+
+The current implementation exposes two API families:
+
+1. `POST /api/webhooks/{pathKey}` receives GitHub, GitLab, or generic MR payloads.
+2. `GET /api/review-feedback/{token}?verdict=correct|incorrect|unclear` records feedback for one finding.
+3. `POST /api/review-feedback/{token}` records the same feedback using JSON.
+
+The seeded webhook endpoint is `github-pr`, so local testing can call:
+
+```txt
+POST /api/webhooks/github-pr
+```
+
+### 30.3 Review Flow
+
+```plantuml
+@startuml
+title Merge Request Review Loop
+actor Developer
+participant "Code Platform" as Code
+participant "AgentWorld Webhook API" as Webhook
+participant "Diff Fetcher" as Diff
+participant "Review Skill Loader" as Skills
+participant "Review Engine" as Review
+participant "OpenViking Knowledge Adapter" as Knowledge
+participant "Comment Writer" as Comment
+participant "Feedback API" as Feedback
+
+Developer -> Code : open or update MR
+Code -> Webhook : POST MR payload
+Webhook -> Diff : inline diff / diffUrl / git fetch
+Diff --> Webhook : normalized diff
+Webhook -> Skills : load enabled review skills
+Skills --> Review : layered skill prompts and rules
+Review -> Knowledge : store review context
+Review -> Knowledge : store findings by layer
+Review -> Comment : build markdown with feedback links
+Comment -> Code : post MR comment when token and API are configured
+Developer -> Feedback : click correct / incorrect link
+Feedback -> Knowledge : store feedback as learning record
+@enduml
+```
+
+### 30.4 Layered Review Skills
+
+The default seed contains four review skills:
+
+| Skill | Layer | Responsibility |
+| --- | --- | --- |
+| MR Structure Review | `global/code-review` | checks MR size, dependency changes, and missing scope notes |
+| Security Sensitive Review | `security` | scans for command execution, dynamic execution, secrets, tokens, and environment files |
+| Test Impact Review | `quality/test` | checks whether source changes have tests or validation notes |
+| Data and API Contract Review | `contract/data-api` | checks database, API, webhook, and schema changes for compatibility notes |
+
+The reason for this split is practical: code review is not one capability. It is several different lenses. Keeping them as skills makes the system easier to extend by repository, team, language, and framework.
+
+### 30.5 OpenViking Layered Knowledge Base
+
+The current implementation uses OpenViking-style URIs with a local shadow knowledge base:
+
+1. URI format: `viking://agent/resources/code-review/{layer}/{scope}/{id}.md`
+2. local files: `data/openviking-shadow/{layer}/{scope}/{id}.md`
+3. SQLite index: `openviking_knowledge_entries`
+4. remote sync: when `OPENVIKING_BASE_URL` is configured, AgentWorld attempts to sync; otherwise it remains local-only.
+
+Knowledge layers are:
+
+| Layer | Stored content |
+| --- | --- |
+| `repository/code-review` | MR context, changed files, diff acquisition status |
+| `global/code-review` | MR structure findings and lessons |
+| `security` | security-sensitive findings and lessons |
+| `quality/test` | testing impact findings and lessons |
+| `contract/data-api` | data and API contract findings and lessons |
+| `feedback/correct` | findings confirmed as correct |
+| `feedback/incorrect` | findings confirmed as incorrect |
+| `feedback/unclear` | findings that need better explanation |
+
+### 30.6 Feedback Callback Design
+
+Every finding includes feedback links:
+
+1. `This is correct`
+2. `This is incorrect`
+
+The callback URLs are simple:
+
+```txt
+/api/review-feedback/{token}?verdict=correct
+/api/review-feedback/{token}?verdict=incorrect
+```
+
+After feedback is received, AgentWorld updates `review_findings.feedback_state` and writes an OpenViking knowledge entry. Later this can support three improvements:
+
+1. identify skills that often produce false positives,
+2. learn repository-specific review rules,
+3. retrieve accepted findings as prompt context for later reviews.
+
+### 30.7 Prompt Engineering Principles
+
+MR review prompts are intentionally plain:
+
+1. only comment on evidence visible in the diff,
+2. do not turn weak signals into certain defects,
+3. every finding must include risk, evidence, and a suggestion,
+4. when context is missing, say that human confirmation is needed.
+
+Prompt assembly follows this order:
+
+```plantuml
+@startuml
+title MR Review Prompt Assembly
+actor ReviewEngine
+participant "Platform Rule" as Platform
+participant "Repository Context" as Repo
+participant "Skill Prompt" as Skill
+participant "OpenViking Knowledge" as Knowledge
+participant "Diff Snippet" as Diff
+participant "Output Contract" as Output
+
+ReviewEngine -> Platform : default Chinese, evidence-only, no hidden assumptions
+ReviewEngine -> Repo : repository, MR title, author, source and target branch
+ReviewEngine -> Skill : layer-specific role and checklist
+ReviewEngine -> Knowledge : relevant accepted or rejected findings
+ReviewEngine -> Diff : changed files and hunks
+ReviewEngine -> Output : severity, file, line, body, suggestion
+@enduml
+```
+
+### 30.8 Multi-Turn Agent Review Design
+
+The current version uses rules and skill configuration to complete the loop. Once model-backed review is connected, MR review should become a controlled multi-turn process:
+
+1. first turn: read MR metadata and diff summary, then decide which skills to load,
+2. second turn: run each skill independently and emit structured findings,
+3. third turn: merge duplicates, reduce false positives, and sort by severity,
+4. fourth turn: generate the MR comment with feedback links,
+5. fifth turn: after feedback, write the feedback as knowledge and update future skill context.
+
+This avoids letting one agent read the whole MR and improvise. The platform controls each turn's input, output, stop condition, and knowledge write location.
+
+### 30.9 Safety Boundaries
+
+Comment write-back is an external side effect, so the boundary is explicit:
+
+1. without `CODE_PLATFORM_TOKEN`, AgentWorld only generates comment markdown,
+2. when `CODE_PLATFORM_WEBHOOK_SECRET` is configured, inbound webhook requests must include `x-agentworld-webhook-secret`,
+3. git fetch uses `execFile` and does not build shell commands,
+4. the default behavior only writes comments; it does not merge, push, or change branches,
+5. without OpenViking remote configuration, knowledge is written only to the local shadow store.
+
+### 30.10 Current Implementation Status
+
+The following pieces are now implemented:
+
+1. `code_review_skills` seeded with four review layers,
+2. `merge_request_reviews` for each MR review run,
+3. `review_findings` for individual findings and feedback tokens,
+4. `review_feedback` for human correctness feedback,
+5. `openviking_knowledge_entries` for layered knowledge indexing,
+6. `POST /api/webhooks/{pathKey}` for intake, diff acquisition, skill review, and comment generation,
+7. `GET/POST /api/review-feedback/{token}` for feedback and knowledge write-back.
