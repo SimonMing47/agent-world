@@ -91,6 +91,29 @@ curl -X POST http://localhost:3002/api/webhooks/github-pr \
 
 没有配置 `CODE_PLATFORM_TOKEN` 时，AgentWorld 只生成评论内容，不会真的回写代码平台。评论里的反馈链接会写回本地 OpenViking 影子知识库。
 
+## Real OpenViking Knowledge Base
+
+现在 AgentWorld 已经接入真实 OpenViking。第一次使用时执行：
+
+```bash
+pnpm openviking:install
+pnpm openviking:start
+```
+
+另开一个终端验证真实写入和读取：
+
+```bash
+pnpm openviking:smoke
+```
+
+默认 OpenViking 服务地址是 `http://127.0.0.1:1933`。AgentWorld 会把知识写入官方 URI 作用域：
+
+- `viking://resources/agentworld/...` 保存仓库、MR 上下文和全局经验
+- `viking://agent/skills/agentworld/...` 保存检视 skill 知识
+- `viking://user/memories/agentworld/...` 保存人工反馈记忆
+
+控制台里的 `知识库` 页面可以看到 OpenViking 健康状态、知识层、最近条目和远端树。
+
 ## Current Delivery Rhythm
 
 1. 设计先收敛成可落地的单体方案
