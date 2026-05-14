@@ -1518,3 +1518,111 @@ ReviewEngine -> Output : severity, file, line, body, suggestion
 5. `openviking_knowledge_entries` 记录分层知识索引。
 6. `POST /api/webhooks/{pathKey}` 打通入站、diff 获取、skill 检视、评论生成。
 7. `GET/POST /api/review-feedback/{token}` 打通反馈和知识回写。
+
+## 31. 真实 OpenViking 集成设计
+
+上一版只是保留了 OpenViking 风格 URI 和本地影子知识库。本版把真实 OpenViking 安装和接入补上，目标是让 AgentWorld 有一个可运行、可探活、可读写、可分层管理的知识系统。
+
+### 31.1 安装与启动
+
+项目提供三个脚本：
+
+```bash
+pnpm openviking:install
+pnpm openviking:start
+pnpm openviking:smoke
+```
+
+它们分别负责：
+
+1. 在项目本地创建 `.venv-openviking`。
+2. 安装 `openviking[local-embed]`，包含真实 OpenViking 服务和本地 embedding 依赖。
+3. 生成 `data/openviking/ov.conf`。
+4. 以 `127.0.0.1:1933` 启动 OpenViking。
+5. 通过 REST 写入和读回一条 smoke 知识。
+
+### 31.2 为什么仍然保留本地影子库
+
+真实 OpenViking 是主知识库，但 AgentWorld 仍然保留 SQLite 索引和本地 markdown 影子文件。
+
+原因很直接：
+
+1. OpenViking 临时未启动时，AgentWorld 不能丢失检视记录。
+2. SQLite 索引用来做页面列表、审计和回放更方便。
+3. 本地 markdown 便于开发环境排查。
+4. 当 OpenViking 恢复后，可以重新同步。
+
+所以写入策略是：
+
+```txt
+写 SQLite 索引
+写本地 markdown 影子文件
+写真实 OpenViking
+如果 OpenViking 失败，记录 remote_failed_local_shadow
+```
+
+### 31.3 官方 URI 作用域
+
+本版修正了 URI 形态，不再使用早期的 `viking://agent/resources/...`，而是使用 OpenViking 官方作用域：
+
+| 作用域 | AgentWorld 用途 |
+| --- | --- |
+| `viking://resources/agentworld/...` | 仓库、MR 上下文、全局检视经验 |
+| `viking://agent/skills/agentworld/...` | 检视 skill、提示词、启发式规则 |
+| `viking://user/memories/agentworld/...` | 人工反馈、误报记忆、正确意见沉淀 |
+| `viking://session/...` | 后续用于单次 Quest 运行的临时上下文 |
+
+### 31.4 知识层配置
+
+新增 `knowledge_layers` 表作为知识层注册表。
+
+当前默认层如下：
+
+| Layer Key | Viking Root | 用途 |
+| --- | --- | --- |
+| `repository/code-review` | `viking://resources/agentworld/code-review/repositories` | MR 上下文 |
+| `global/code-review` | `viking://resources/agentworld/code-review/global` | 全局检视经验 |
+| `security` | `viking://agent/skills/agentworld/code-review/security` | 安全检视知识 |
+| `quality/test` | `viking://agent/skills/agentworld/code-review/quality-test` | 测试影响知识 |
+| `contract/data-api` | `viking://agent/skills/agentworld/code-review/data-api` | 数据和接口契约知识 |
+| `feedback/correct` | `viking://user/memories/agentworld/code-review/feedback/correct` | 正确反馈 |
+| `feedback/incorrect` | `viking://user/memories/agentworld/code-review/feedback/incorrect` | 误报反馈 |
+| `feedback/unclear` | `viking://user/memories/agentworld/code-review/feedback/unclear` | 解释不足反馈 |
+
+### 31.5 OpenViking 三层读取
+
+AgentWorld 使用 OpenViking 的三层内容模型：
+
+1. L0 abstract：快速判断某个目录或知识块是否相关。
+2. L1 overview：理解目录结构和主题覆盖范围。
+3. L2 full content：真正生成检视意见时读取原文。
+
+多轮 Agent 检视时建议这样使用：
+
+```txt
+第一轮：读取 L0，决定哪些知识层可能相关
+第二轮：读取 L1，选择具体目录或 skill
+第三轮：读取 L2，生成有证据的 finding
+第四轮：评论生成后写入新的 finding
+第五轮：收到反馈后写入 user memory
+```
+
+### 31.6 API
+
+新增知识管理 API：
+
+1. `GET /api/knowledge/layers`：查看 OpenViking 健康状态、知识层、最近条目和远端树。
+2. `POST /api/knowledge/sync`：把当前启用的 review skills 写入 OpenViking。
+3. `GET /api/knowledge/read?uri=...&level=L0|L1|L2`：按层读取 OpenViking 内容。
+
+### 31.7 页面
+
+新增 `知识库` 页面，展示：
+
+1. OpenViking 是否连接。
+2. 已启用知识层。
+3. 最近写入的知识条目。
+4. OpenViking 远端树。
+5. L0、L1、L2 的使用策略。
+
+这个页面不是花架子，它的目标是让团队能看见 Agent 正在学什么、哪些意见被确认、哪些意见是误报。

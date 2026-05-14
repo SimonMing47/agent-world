@@ -37,6 +37,7 @@ yarn-error.log*
 # local app data
 /data
 output/
+/.venv-openviking
 /.playwright-cli
 
 # vercel

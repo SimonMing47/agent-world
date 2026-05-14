@@ -303,6 +303,21 @@ export type OpenVikingKnowledgeEntry = {
   createdAt: string;
 };
 
+export type KnowledgeLayer = {
+  id: string;
+  layerKey: string;
+  name: string;
+  scope: string;
+  vikingUri: string;
+  parentUri: string | null;
+  description: string;
+  loadOrder: number;
+  retentionPolicyJson: string;
+  isEnabled: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type MergeRequestReview = {
   id: string;
   webhookId: string;
@@ -641,6 +656,21 @@ CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
   sync_status TEXT NOT NULL,
   sync_error TEXT,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_layers (
+  id TEXT PRIMARY KEY,
+  layer_key TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  viking_uri TEXT NOT NULL,
+  parent_uri TEXT,
+  description TEXT NOT NULL,
+  load_order INTEGER NOT NULL,
+  retention_policy_json TEXT NOT NULL,
+  is_enabled INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS merge_request_reviews (
@@ -1589,6 +1619,107 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
   const insertSkill = db.prepare(
     "INSERT OR IGNORE INTO code_review_skills (id, name, layer, description, is_enabled, prompt_md, heuristics_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
+  const insertLayer = db.prepare(
+    "INSERT OR IGNORE INTO knowledge_layers (id, layer_key, name, scope, viking_uri, parent_uri, description, load_order, retention_policy_json, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  [
+    {
+      key: "repository/code-review",
+      name: "代码仓 MR 上下文",
+      scope: "resources",
+      uri: "viking://resources/agentworld/code-review/repositories",
+      parent: "viking://resources/agentworld/code-review",
+      order: 10,
+      description: "保存 MR 标题、作者、分支、文件列表、diff 获取方式和检视上下文。",
+      retention: { keepDays: 180, promoteWhenFeedbackCorrect: true },
+    },
+    {
+      key: "global/code-review",
+      name: "全局检视经验",
+      scope: "resources",
+      uri: "viking://resources/agentworld/code-review/global",
+      parent: "viking://resources/agentworld/code-review",
+      order: 20,
+      description: "保存 MR 结构、变更范围、依赖变化等跨仓库通用经验。",
+      retention: { keepDays: 365, promoteWhenFeedbackCorrect: true },
+    },
+    {
+      key: "security",
+      name: "安全检视技能知识",
+      scope: "agent",
+      uri: "viking://agent/skills/agentworld/code-review/security",
+      parent: "viking://agent/skills/agentworld/code-review",
+      order: 30,
+      description: "保存命令执行、动态执行、密钥、token、鉴权边界等安全检视知识。",
+      retention: { keepDays: 365, requireEvidence: true },
+    },
+    {
+      key: "quality/test",
+      name: "测试影响技能知识",
+      scope: "agent",
+      uri: "viking://agent/skills/agentworld/code-review/quality-test",
+      parent: "viking://agent/skills/agentworld/code-review",
+      order: 40,
+      description: "保存源码变化、测试缺口、验证说明等质量检视知识。",
+      retention: { keepDays: 365, requireEvidence: true },
+    },
+    {
+      key: "contract/data-api",
+      name: "数据与接口契约知识",
+      scope: "agent",
+      uri: "viking://agent/skills/agentworld/code-review/data-api",
+      parent: "viking://agent/skills/agentworld/code-review",
+      order: 50,
+      description: "保存数据库、API、Webhook、schema 兼容性和回滚知识。",
+      retention: { keepDays: 365, requireEvidence: true },
+    },
+    {
+      key: "feedback/correct",
+      name: "正确反馈记忆",
+      scope: "user",
+      uri: "viking://user/memories/agentworld/code-review/feedback/correct",
+      parent: "viking://user/memories/agentworld/code-review/feedback",
+      order: 60,
+      description: "保存用户确认正确的检视意见，用于增强后续检视上下文。",
+      retention: { keepDays: 540, promoteToSkill: true },
+    },
+    {
+      key: "feedback/incorrect",
+      name: "误报反馈记忆",
+      scope: "user",
+      uri: "viking://user/memories/agentworld/code-review/feedback/incorrect",
+      parent: "viking://user/memories/agentworld/code-review/feedback",
+      order: 70,
+      description: "保存用户确认不正确的检视意见，用于降低同类误报。",
+      retention: { keepDays: 540, suppressSimilarFinding: true },
+    },
+    {
+      key: "feedback/unclear",
+      name: "解释不足反馈记忆",
+      scope: "user",
+      uri: "viking://user/memories/agentworld/code-review/feedback/unclear",
+      parent: "viking://user/memories/agentworld/code-review/feedback",
+      order: 80,
+      description: "保存用户认为解释不清楚的检视意见，用于改进评论表达。",
+      retention: { keepDays: 270, improveExplanation: true },
+    },
+  ].forEach((layer) => {
+    insertLayer.run(
+      randomUUID(),
+      layer.key,
+      layer.name,
+      layer.scope,
+      layer.uri,
+      layer.parent,
+      layer.description,
+      layer.order,
+      JSON.stringify(layer.retention),
+      1,
+      now,
+      now,
+    );
+  });
 
   [
     {

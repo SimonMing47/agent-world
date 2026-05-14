@@ -6,6 +6,7 @@ import {
   Activity,
   AlarmClock,
   Bot,
+  BookOpen,
   Cable,
   ChartNoAxesCombined,
   Command,
@@ -33,6 +34,7 @@ const items = [
   { href: "/contracts", label: "Contract 合约", icon: ScrollText },
   { href: "/runtimes", label: "Runtime 运行时", icon: Cable },
   { href: "/harness", label: "Harness 约束", icon: ShieldCheck },
+  { href: "/knowledge", label: "知识库", icon: BookOpen },
   { href: "/wallboard", label: "大屏", icon: ChartNoAxesCombined },
   { href: "/settings", label: "设置", icon: Settings },
 ];

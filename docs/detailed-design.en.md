@@ -1497,3 +1497,111 @@ The following pieces are now implemented:
 5. `openviking_knowledge_entries` for layered knowledge indexing,
 6. `POST /api/webhooks/{pathKey}` for intake, diff acquisition, skill review, and comment generation,
 7. `GET/POST /api/review-feedback/{token}` for feedback and knowledge write-back.
+
+## 31. Real OpenViking Integration
+
+The previous version kept OpenViking-style URIs and a local shadow store. This version adds real OpenViking installation and integration so AgentWorld has a runnable, health-checkable, readable, writable, layered knowledge system.
+
+### 31.1 Install and Run
+
+The project now provides three scripts:
+
+```bash
+pnpm openviking:install
+pnpm openviking:start
+pnpm openviking:smoke
+```
+
+They do the following:
+
+1. create a local `.venv-openviking`,
+2. install `openviking[local-embed]`,
+3. generate `data/openviking/ov.conf`,
+4. start OpenViking on `127.0.0.1:1933`,
+5. verify real REST write and read with a smoke knowledge record.
+
+### 31.2 Why the Local Shadow Store Still Exists
+
+OpenViking is now the primary knowledge base, but AgentWorld still keeps a SQLite index and local markdown shadow files.
+
+The reasons are practical:
+
+1. MR review records must not be lost if OpenViking is temporarily offline,
+2. SQLite is better for UI listing, audit, and replay,
+3. local markdown files are useful for development debugging,
+4. failed remote writes can be retried later.
+
+The write strategy is:
+
+```txt
+write SQLite index
+write local markdown shadow file
+write real OpenViking
+if OpenViking fails, record remote_failed_local_shadow
+```
+
+### 31.3 Official URI Scopes
+
+The URI shape is now aligned with OpenViking's public scopes instead of the earlier `viking://agent/resources/...` form:
+
+| Scope | AgentWorld usage |
+| --- | --- |
+| `viking://resources/agentworld/...` | repositories, MR context, global review lessons |
+| `viking://agent/skills/agentworld/...` | review skills, prompts, and heuristics |
+| `viking://user/memories/agentworld/...` | human feedback, false positive memory, accepted findings |
+| `viking://session/...` | future temporary context for a single Quest run |
+
+### 31.4 Knowledge Layer Registry
+
+A new `knowledge_layers` table acts as the knowledge layer registry.
+
+The default layers are:
+
+| Layer Key | Viking Root | Purpose |
+| --- | --- | --- |
+| `repository/code-review` | `viking://resources/agentworld/code-review/repositories` | MR context |
+| `global/code-review` | `viking://resources/agentworld/code-review/global` | global review lessons |
+| `security` | `viking://agent/skills/agentworld/code-review/security` | security review knowledge |
+| `quality/test` | `viking://agent/skills/agentworld/code-review/quality-test` | test impact knowledge |
+| `contract/data-api` | `viking://agent/skills/agentworld/code-review/data-api` | data and API contract knowledge |
+| `feedback/correct` | `viking://user/memories/agentworld/code-review/feedback/correct` | accepted feedback |
+| `feedback/incorrect` | `viking://user/memories/agentworld/code-review/feedback/incorrect` | false positive feedback |
+| `feedback/unclear` | `viking://user/memories/agentworld/code-review/feedback/unclear` | unclear explanation feedback |
+
+### 31.5 OpenViking Three-Level Reads
+
+AgentWorld uses OpenViking's three-level content model:
+
+1. L0 abstract: quickly decide whether a directory or knowledge block is relevant,
+2. L1 overview: understand directory structure and topic coverage,
+3. L2 full content: read the source text when generating evidence-backed findings.
+
+For multi-turn MR review, the recommended flow is:
+
+```txt
+turn 1: read L0 and select relevant layers
+turn 2: read L1 and select concrete folders or skills
+turn 3: read L2 and generate evidence-backed findings
+turn 4: write the generated review finding
+turn 5: write user feedback into user memory
+```
+
+### 31.6 APIs
+
+New knowledge management APIs:
+
+1. `GET /api/knowledge/layers` returns OpenViking health, knowledge layers, recent entries, and remote tree data.
+2. `POST /api/knowledge/sync` writes enabled review skills into OpenViking.
+3. `GET /api/knowledge/read?uri=...&level=L0|L1|L2` reads OpenViking content by level.
+
+### 31.7 UI
+
+The new `知识库` page shows:
+
+1. OpenViking connection state,
+2. enabled knowledge layers,
+3. recently written knowledge entries,
+4. the remote OpenViking tree,
+5. the L0, L1, and L2 read strategy.
+
+The page exists so teams can see what the agent is learning, which findings were accepted, and which findings were false positives.
