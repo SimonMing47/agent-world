@@ -30,8 +30,8 @@ export function PageHeader({
         </div>
         {badges?.length ? (
           <div className="flex flex-wrap gap-2">
-            {badges.map((badge) => (
-              <Badge key={badge.label} variant={badge.variant}>
+            {badges.map((badge, index) => (
+              <Badge key={`${badge.label}-${index}`} variant={badge.variant}>
                 {badge.label}
               </Badge>
             ))}
