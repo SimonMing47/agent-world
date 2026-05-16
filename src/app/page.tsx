@@ -1,8 +1,17 @@
 import Link from "next/link";
-import { MetricCard } from "@/components/metric-card";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import { DefinitionList } from "@/components/ui/definition-list";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getDashboardSnapshot, getSettingsSnapshot } from "@/server/queries";
@@ -23,148 +32,208 @@ export default function OverviewPage() {
         ]}
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {snapshot.metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </section>
+      <SummaryStrip items={snapshot.metrics} />
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid gap-4 2xl:grid-cols-[1.35fr_0.65fr]">
         <Panel>
           <PanelHeader
             eyebrow="Runs"
             title="最近任务运行"
-            description="按任务来源和状态快速定位当前正在执行、等待处理或失败的任务。"
+            description="按来源、团队、状态和时间直接查看最近的任务执行。"
           />
-          <PanelBody className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
-                <div key={item.sourceType} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                  <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
-                  <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.taskRunCount}</div>
-                  <div className="mt-1 text-sm text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
-                </div>
-              ))}
-            </div>
+          <PanelBody className="p-0">
+            <DataTable>
+              <DataTableHeader>
+                <DataTableRow className="hover:bg-transparent">
+                  <DataTableHead>任务来源</DataTableHead>
+                  <DataTableHead>业务团队 / Agent 团队</DataTableHead>
+                  <DataTableHead>运行状态</DataTableHead>
+                  <DataTableHead>触发方式</DataTableHead>
+                  <DataTableHead align="right">创建时间</DataTableHead>
+                </DataTableRow>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.task_runs.slice(0, 8).map((taskRun) => {
+                  const team = snapshot.teamSummaries.find((item) => item.id === taskRun.teamId);
+                  const businessTeam = snapshot.businessTeamSummaries.find((item) => item.id === taskRun.businessTeamId);
 
-            <div className="overflow-hidden rounded-xl border border-[var(--line)]">
-              <div className="grid grid-cols-[1.4fr_120px_160px] bg-[var(--surface-muted)] px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-                <div>任务来源</div>
-                <div>状态</div>
-                <div>时间</div>
-              </div>
-              <div className="divide-y divide-[var(--line)]">
-                {snapshot.task_runs.slice(0, 6).map((taskRun) => (
-                  <Link
-                    key={taskRun.id}
-                    href={`/task-runs/${taskRun.id}`}
-                    className="grid grid-cols-1 gap-2 px-4 py-3 transition hover:bg-[var(--surface-muted)] md:grid-cols-[1.4fr_120px_160px] md:items-center"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-[var(--ink)]">
-                        {taskRun.sourceRef ?? taskRun.sourceType}
-                      </div>
-                      <div className="text-xs text-[var(--ink-muted)]">运行状态 {translateStatus(taskRun.runState)}</div>
-                    </div>
-                    <div>
-                      <Badge variant={taskRun.status === "failed" ? "danger" : taskRun.status === "running" ? "accent" : "neutral"}>
-                        {translateStatus(taskRun.status)}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-[var(--ink-muted)]">{formatDateTime(taskRun.createdAt)}</div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+                  return (
+                    <DataTableRow key={taskRun.id}>
+                      <DataTableCell className="min-w-[220px]">
+                        <Link href={`/task-runs/${taskRun.id}`} className="font-medium text-[var(--ink)] hover:underline">
+                          {taskRun.sourceRef ?? taskRun.sourceType}
+                        </Link>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{taskRun.idempotencyKey ?? "无幂等键"}</div>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <div className="font-medium text-[var(--ink)]">{businessTeam?.name ?? "未知业务团队"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{team?.name ?? "未知 Agent 团队"}</div>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <div>
+                          <Badge
+                            variant={
+                              taskRun.status === "failed"
+                                ? "danger"
+                                : taskRun.status === "running"
+                                  ? "accent"
+                                  : "neutral"
+                            }
+                          >
+                            {translateStatus(taskRun.status)}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 text-xs text-[var(--ink-muted)]">{translateStatus(taskRun.runState)}</div>
+                      </DataTableCell>
+                      <DataTableCell>{translateSourceType(taskRun.sourceType)}</DataTableCell>
+                      <DataTableCell align="right">{formatDateTime(taskRun.createdAt)}</DataTableCell>
+                    </DataTableRow>
+                  );
+                })}
+              </DataTableBody>
+            </DataTable>
           </PanelBody>
         </Panel>
 
         <Panel>
           <PanelHeader
-            eyebrow="Findings"
-            title="Finding 聚合"
-            description="观察当前问题分布和最近产出的结论。"
+            eyebrow="Load"
+            title="来源与问题分布"
+            description="值班时先看这里，判断负载来自哪里，问题集中在哪个等级。"
           />
-          <PanelBody className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {snapshot.findingDashboard.bySeverity.map((item) => (
-                <div key={item.severity} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                  <div className="text-sm uppercase text-[var(--ink-muted)]">{item.severity}</div>
-                  <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.count}</div>
-                </div>
-              ))}
+          <PanelBody className="space-y-6">
+            <div>
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                触发来源
+              </div>
+              <DataTable>
+                <DataTableHeader>
+                  <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>来源</DataTableHead>
+                    <DataTableHead align="right">运行数</DataTableHead>
+                    <DataTableHead align="right">活跃数</DataTableHead>
+                  </DataTableRow>
+                </DataTableHeader>
+                <DataTableBody>
+                  {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
+                    <DataTableRow key={item.sourceType}>
+                      <DataTableCell className="font-medium text-[var(--ink)]">
+                        {translateSourceType(item.sourceType)}
+                      </DataTableCell>
+                      <DataTableCell align="right">{item.taskRunCount}</DataTableCell>
+                      <DataTableCell align="right">{item.activeCount}</DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
             </div>
-            <div className="space-y-3">
-              {snapshot.findings.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--ink-muted)]">
-                  当前还没有 Finding 产出。
-                </div>
-              ) : (
-                snapshot.findings.map((finding) => (
-                  <div key={finding.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="text-sm font-medium text-[var(--ink)]">{finding.title}</div>
-                      <Badge variant={finding.severity === "high" || finding.severity === "critical" ? "danger" : "neutral"}>
-                        {finding.severity}
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-sm text-[var(--ink-muted)]">{finding.description}</div>
-                  </div>
-                ))
-              )}
+
+            <div>
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                Finding 严重级别
+              </div>
+              <DataTable>
+                <DataTableHeader>
+                  <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>级别</DataTableHead>
+                    <DataTableHead align="right">数量</DataTableHead>
+                  </DataTableRow>
+                </DataTableHeader>
+                <DataTableBody>
+                  {snapshot.findingDashboard.bySeverity.map((item) => (
+                    <DataTableRow key={item.severity}>
+                      <DataTableCell className="font-medium uppercase text-[var(--ink)]">
+                        {item.severity}
+                      </DataTableCell>
+                      <DataTableCell align="right">{item.count}</DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
             </div>
           </PanelBody>
         </Panel>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+      <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
           <PanelHeader
             eyebrow="Readiness"
             title="配置完整度"
             description="从模型接口、执行引擎、蓝图和 Webhook 观察平台可运行程度。"
           />
-          <PanelBody className="grid gap-3 sm:grid-cols-2">
-            {[
-              ["模型接口", `${settings.metrics.enabledProviderProfileCount}/${settings.metrics.providerProfileCount}`],
-              ["执行引擎", `${settings.metrics.enabledRuntimeBindingCount}/${settings.metrics.runtimeBindingCount}`],
-              ["任务蓝图", `${settings.metrics.enabledBlueprintCount}/${settings.metrics.blueprintCount}`],
-              ["Webhook / 环境", `${settings.webhooks.length}/${settings.environments.length}`],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                <div className="text-sm text-[var(--ink-muted)]">{label}</div>
-                <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{value}</div>
-              </div>
-            ))}
+          <PanelBody>
+            <DefinitionList
+              items={[
+                {
+                  label: "模型接口",
+                  value: `${settings.metrics.enabledProviderProfileCount}/${settings.metrics.providerProfileCount}`,
+                  detail: "已启用模型接口 / 全部接口",
+                },
+                {
+                  label: "执行引擎",
+                  value: `${settings.metrics.enabledRuntimeBindingCount}/${settings.metrics.runtimeBindingCount}`,
+                  detail: "已启用运行时绑定 / 全部运行时",
+                },
+                {
+                  label: "任务蓝图",
+                  value: `${settings.metrics.enabledBlueprintCount}/${settings.metrics.blueprintCount}`,
+                  detail: "激活蓝图 / 全部蓝图",
+                },
+                {
+                  label: "Webhook 与环境",
+                  value: `${settings.webhooks.length} / ${settings.environments.length}`,
+                  detail: "Webhook 入口 / 执行环境",
+                },
+              ]}
+            />
           </PanelBody>
         </Panel>
 
         <Panel>
           <PanelHeader
             eyebrow="Blueprints"
-            title="蓝图与调度"
-            description="直接进入任务蓝图，查看其触发器、运行次数和 Finding 产出。"
+            title="蓝图目录"
+            description="蓝图作为统一任务入口，直接在表格里看触发器、运行量和 Finding 产出。"
           />
-          <PanelBody className="space-y-3">
-            {snapshot.taskBlueprints.map((blueprint) => (
-              <Link
-                key={blueprint.id}
-                href={`/task-blueprints/${blueprint.id}`}
-                className="block rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4 transition hover:border-[var(--line-strong)] hover:bg-white"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-medium text-[var(--ink)]">{blueprint.name}</div>
-                    <div className="mt-1 text-sm text-[var(--ink-muted)]">
-                      {blueprint.category} · 运行 {blueprint.runCount} 次 · Finding {blueprint.findingCount}
-                    </div>
-                  </div>
-                  <Badge variant={blueprint.status === "active" ? "success" : "neutral"}>
-                    {translateStatus(blueprint.status)}
-                  </Badge>
-                </div>
-              </Link>
-            ))}
+          <PanelBody className="p-0">
+            <DataTable>
+              <DataTableHeader>
+                <DataTableRow className="hover:bg-transparent">
+                  <DataTableHead>蓝图</DataTableHead>
+                  <DataTableHead>类别</DataTableHead>
+                  <DataTableHead>触发器</DataTableHead>
+                  <DataTableHead align="right">运行数</DataTableHead>
+                  <DataTableHead align="right">Finding</DataTableHead>
+                </DataTableRow>
+              </DataTableHeader>
+              <DataTableBody>
+                {snapshot.taskBlueprints.map((blueprint) => (
+                  <DataTableRow key={blueprint.id}>
+                    <DataTableCell className="min-w-[220px]">
+                      <Link
+                        href={`/task-blueprints/${blueprint.id}`}
+                        className="font-medium text-[var(--ink)] hover:underline"
+                      >
+                        {blueprint.name}
+                      </Link>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{blueprint.businessTeamName}</div>
+                    </DataTableCell>
+                    <DataTableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="neutral">{blueprint.category}</Badge>
+                        <Badge variant={blueprint.status === "active" ? "success" : "neutral"}>
+                          {translateStatus(blueprint.status)}
+                        </Badge>
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell>{String((blueprint.trigger as Record<string, unknown>).type ?? "manual")}</DataTableCell>
+                    <DataTableCell align="right">{blueprint.runCount}</DataTableCell>
+                    <DataTableCell align="right">{blueprint.findingCount}</DataTableCell>
+                  </DataTableRow>
+                ))}
+              </DataTableBody>
+            </DataTable>
           </PanelBody>
         </Panel>
       </section>
