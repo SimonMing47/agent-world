@@ -221,17 +221,11 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 
 总览页按业务运营视角组织：
 
-- 运行中任务。
-- 等待人工处理。
-- 公开 Agent 团队。
-- 生效跨团队授权。
-- 按来源、业务团队、任务类别组织任务看板。
-- 任务蓝图运行次数、Finding 聚合和 Provider Adapter 概览。
-- 租户治理边界。
-- 业务团队财务视图。
-- 调度器状态。
-- 调用链路。
-- 服务目录和任务优先级看板。
+- 按来源统计任务运行。
+- 最近任务运行和状态。
+- Finding 聚合。
+- 配置完整度。
+- 任务蓝图入口。
 
 ### 4.2 任务空间
 
@@ -259,10 +253,10 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 设置页用于配置和审计：
 
 - Provider。
-- Provider 执行命令。
+- 执行引擎实例。
 - 插件扩展点。
 - 执行环境。
-- 任务模板。
+- 任务蓝图。
 - Webhook。
 
 ## 5. OpenViking 集成
@@ -429,6 +423,6 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 - 多 Agent 编排层：`planner-core.ts`、`executor-core.ts`、`invocation-core.ts`
 - Agent 团队任务执行层：`queries.ts`、`trace-core.ts`、`task-runs/[id]/page.tsx`
 - 业务团队管理层：`tenant-space-core.ts`、`access-grant-core.ts`
-- 任务执行展示层：`environment-core.ts`、`scheduler-core.ts`、`wallboard/page.tsx`
+- 任务执行展示层：`environment-core.ts`、`scheduler-core.ts`、`page.tsx`、`task-runs/[id]/page.tsx`
 - 环境层：`execution_environments`、`settings/page.tsx`
 - 记忆层：`openviking-core.ts`、`knowledge/page.tsx`

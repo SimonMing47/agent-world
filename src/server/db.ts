@@ -107,8 +107,29 @@ export type ProviderProfile = {
   apiStyle: string;
   defaultModel: string;
   modelsJson: string;
+  apiKeyRef: string;
+  configJson: string;
   isEnabled: number;
   createdAt: string;
+  updatedAt: string;
+};
+
+export type ProviderRuntimeBinding = {
+  id: string;
+  tenantSpaceId: string;
+  businessTeamId: string | null;
+  adapterDefinitionId: string;
+  name: string;
+  runtimeKind: string;
+  baseUrl: string;
+  command: string;
+  workspaceRoot: string;
+  defaultProviderProfileId: string | null;
+  apiKeyRef: string;
+  configJson: string;
+  isEnabled: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type RuntimeEndpoint = {
@@ -552,12 +573,15 @@ const requiredCurrentTables = [
   "task_runs",
   "task_events",
   "findings",
+  "provider_runtime_bindings",
   "provider_adapter_definitions",
   "environment_snapshots",
 ];
 
 const currentSchemaChecks = [
   { table: "agent_teams", column: "business_team_id" },
+  { table: "provider_profiles", column: "api_key_ref" },
+  { table: "provider_runtime_bindings", column: "adapter_definition_id" },
   { table: "task_blueprints", column: "permission_policy_json" },
   { table: "task_runs", column: "tenant_space_id" },
   { table: "task_runs", column: "blueprint_id" },
@@ -690,8 +714,11 @@ CREATE TABLE IF NOT EXISTS provider_profiles (
   api_style TEXT NOT NULL,
   default_model TEXT NOT NULL,
   models_json TEXT NOT NULL,
+  api_key_ref TEXT NOT NULL,
+  config_json TEXT NOT NULL,
   is_enabled INTEGER NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS runtime_endpoints (
@@ -708,6 +735,24 @@ CREATE TABLE IF NOT EXISTS runtime_endpoints (
   active_run_count INTEGER NOT NULL,
   last_discovered_at TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS provider_runtime_bindings (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT,
+  adapter_definition_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  runtime_kind TEXT NOT NULL,
+  base_url TEXT NOT NULL,
+  command TEXT NOT NULL,
+  workspace_root TEXT NOT NULL,
+  default_provider_profile_id TEXT,
+  api_key_ref TEXT NOT NULL,
+  config_json TEXT NOT NULL,
+  is_enabled INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS access_grants (
@@ -1146,7 +1191,10 @@ function seed(db: DatabaseSync) {
     "INSERT INTO agents (id, team_id, slug, name, role, persona_prompt, model, short_term_window, rag_config_json, tool_bindings_json, memory_scope, safety_policy_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertProvider = db.prepare(
-    "INSERT INTO provider_profiles (id, tenant_space_id, name, base_url, api_style, default_model, models_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO provider_profiles (id, tenant_space_id, name, base_url, api_style, default_model, models_json, api_key_ref, config_json, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertProviderRuntimeBinding = db.prepare(
+    "INSERT INTO provider_runtime_bindings (id, tenant_space_id, business_team_id, adapter_definition_id, name, runtime_kind, base_url, command, workspace_root, default_provider_profile_id, api_key_ref, config_json, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertRuntime = db.prepare(
     "INSERT INTO runtime_endpoints (id, tenant_space_id, business_team_id, name, base_url, runtime_kind, health_status, agent_catalog_json, provider_catalog_json, concurrency_limit, active_run_count, last_discovered_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1484,27 +1532,43 @@ function seed(db: DatabaseSync) {
   );
 
   updateLeader.run(leaderAgentId, researchTeamId);
+  const openAiProviderId = randomUUID();
+  const azureProviderId = randomUUID();
 
   insertProvider.run(
-    randomUUID(),
+    openAiProviderId,
     tenantSpaceId,
     "OpenAI Primary",
     "https://api.openai.com/v1",
     "openai",
     "gpt-5.4",
     JSON.stringify(["gpt-5.4", "gpt-5.4-mini", "o4-mini"]),
+    "env:OPENAI_API_KEY",
+    JSON.stringify({
+      supportsChatCompletions: true,
+      supportsResponsesApi: true,
+      headers: {},
+    }),
     1,
+    iso(-1000 * 60 * 60 * 24 * 6),
     iso(-1000 * 60 * 60 * 24 * 6),
   );
   insertProvider.run(
-    randomUUID(),
+    azureProviderId,
     tenantSpaceId,
     "Azure Fallback",
     "https://example-azure-openai.local/v1",
     "openai",
     "gpt-5.4-mini",
     JSON.stringify(["gpt-5.4-mini"]),
+    "env:AZURE_OPENAI_API_KEY",
+    JSON.stringify({
+      apiVersion: "2024-10-21",
+      supportsChatCompletions: true,
+      supportsResponsesApi: false,
+    }),
     1,
+    iso(-1000 * 60 * 60 * 24 * 6),
     iso(-1000 * 60 * 60 * 24 * 6),
   );
 
@@ -1521,6 +1585,31 @@ function seed(db: DatabaseSync) {
     3,
     1,
     iso(-1000 * 60 * 15),
+    iso(-1000 * 60 * 60 * 24 * 5),
+  );
+
+  insertProviderRuntimeBinding.run(
+    "runtime-binding-opencode-default",
+    tenantSpaceId,
+    releaseBusinessTeamId,
+    "opencode-provider",
+    "OpenCode 默认执行引擎",
+    "opencode",
+    "http://127.0.0.1:4096",
+    "opencode",
+    process.cwd(),
+    openAiProviderId,
+    "env:OPENCODE_API_KEY",
+    JSON.stringify({
+      defaultModel: "gpt-5.4",
+      providerMode: "sdk",
+      approvalMode: "standard",
+      env: {
+        OPENAI_API_KEY: "ref:env:OPENAI_API_KEY",
+      },
+    }),
+    1,
+    iso(-1000 * 60 * 60 * 24 * 5),
     iso(-1000 * 60 * 60 * 24 * 5),
   );
   insertRuntime.run(

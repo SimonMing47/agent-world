@@ -16,6 +16,7 @@ import {
   type BusinessTeam,
   type ProviderAdapterDefinition,
   type ProviderProfile,
+  type ProviderRuntimeBinding,
   type TaskBlueprint,
   type TaskEvent,
   type TaskRun,
@@ -116,6 +117,12 @@ export function listProviders() {
   return queryAll<ProviderProfile>("SELECT * FROM provider_profiles ORDER BY name ASC");
 }
 
+export function listProviderRuntimeBindings() {
+  return queryAll<ProviderRuntimeBinding>(
+    "SELECT * FROM provider_runtime_bindings ORDER BY is_enabled DESC, name ASC",
+  );
+}
+
 export function listRuntimeEndpoints() {
   return queryAll<RuntimeEndpoint>("SELECT * FROM runtime_endpoints ORDER BY name ASC");
 }
@@ -174,6 +181,90 @@ export function listExecutionEnvironments() {
   );
 }
 
+export function upsertProviderProfile(
+  input: Pick<
+    ProviderProfile,
+    | "id"
+    | "tenantSpaceId"
+    | "name"
+    | "baseUrl"
+    | "apiStyle"
+    | "defaultModel"
+    | "modelsJson"
+    | "apiKeyRef"
+    | "configJson"
+    | "isEnabled"
+  >,
+) {
+  const current = queryOne<ProviderProfile>("SELECT * FROM provider_profiles WHERE id = ?", input.id);
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  execute(
+    "INSERT OR REPLACE INTO provider_profiles (id, tenant_space_id, name, base_url, api_style, default_model, models_json, api_key_ref, config_json, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.tenantSpaceId,
+    input.name,
+    input.baseUrl,
+    input.apiStyle,
+    input.defaultModel,
+    input.modelsJson,
+    input.apiKeyRef,
+    input.configJson,
+    input.isEnabled,
+    createdAt,
+    new Date().toISOString(),
+  );
+
+  return queryOne<ProviderProfile>("SELECT * FROM provider_profiles WHERE id = ?", input.id);
+}
+
+export function upsertProviderRuntimeBinding(
+  input: Pick<
+    ProviderRuntimeBinding,
+    | "id"
+    | "tenantSpaceId"
+    | "businessTeamId"
+    | "adapterDefinitionId"
+    | "name"
+    | "runtimeKind"
+    | "baseUrl"
+    | "command"
+    | "workspaceRoot"
+    | "defaultProviderProfileId"
+    | "apiKeyRef"
+    | "configJson"
+    | "isEnabled"
+  >,
+) {
+  const current = queryOne<ProviderRuntimeBinding>(
+    "SELECT * FROM provider_runtime_bindings WHERE id = ?",
+    input.id,
+  );
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  execute(
+    "INSERT OR REPLACE INTO provider_runtime_bindings (id, tenant_space_id, business_team_id, adapter_definition_id, name, runtime_kind, base_url, command, workspace_root, default_provider_profile_id, api_key_ref, config_json, is_enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.tenantSpaceId,
+    input.businessTeamId ?? null,
+    input.adapterDefinitionId,
+    input.name,
+    input.runtimeKind,
+    input.baseUrl,
+    input.command,
+    input.workspaceRoot,
+    input.defaultProviderProfileId ?? null,
+    input.apiKeyRef,
+    input.configJson,
+    input.isEnabled,
+    createdAt,
+    new Date().toISOString(),
+  );
+
+  return queryOne<ProviderRuntimeBinding>(
+    "SELECT * FROM provider_runtime_bindings WHERE id = ?",
+    input.id,
+  );
+}
+
 export function getTaskBlueprintsSnapshot() {
   const blueprints = listTaskBlueprints();
   const businessTeams = listBusinessTeams();
@@ -204,6 +295,38 @@ export function getTaskBlueprintsSnapshot() {
   };
 }
 
+export function getSettingsSnapshot() {
+  const tenantSpaces = listTenantSpaces();
+  const businessTeams = listBusinessTeams();
+  const agentTeams = listAgentTeams();
+  const providers = listProviders();
+  const providerRuntimeBindings = listProviderRuntimeBindings();
+  const providerAdapters = listProviderAdapterDefinitions();
+  const environments = listExecutionEnvironments();
+  const webhooks = listWebhooks();
+  const taskBlueprints = listTaskBlueprints();
+
+  return {
+    tenantSpaces,
+    businessTeams,
+    agentTeams,
+    providers,
+    providerRuntimeBindings,
+    providerAdapters,
+    environments,
+    webhooks,
+    taskBlueprints,
+    metrics: {
+      providerProfileCount: providers.length,
+      enabledProviderProfileCount: providers.filter((provider) => provider.isEnabled).length,
+      runtimeBindingCount: providerRuntimeBindings.length,
+      enabledRuntimeBindingCount: providerRuntimeBindings.filter((binding) => binding.isEnabled).length,
+      blueprintCount: taskBlueprints.length,
+      enabledBlueprintCount: taskBlueprints.filter((blueprint) => blueprint.status === "active").length,
+    },
+  };
+}
+
 export function getTaskBlueprintDetail(blueprintId: string) {
   const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", blueprintId);
   if (!blueprint) return null;
@@ -218,6 +341,66 @@ export function getTaskBlueprintDetail(blueprintId: string) {
     taskRuns: listTaskRuns(),
     findings: listFindings(),
   });
+}
+
+export function upsertTaskBlueprint(
+  input: Pick<
+    TaskBlueprint,
+    | "id"
+    | "name"
+    | "category"
+    | "visibility"
+    | "ownerBusinessTeamId"
+    | "teamId"
+    | "environmentId"
+    | "providerAdapterId"
+    | "version"
+    | "status"
+    | "triggerJson"
+    | "inputSchemaJson"
+    | "environmentSelectorJson"
+    | "agentTeamRunPlanJson"
+    | "memoryPolicyJson"
+    | "providerPolicyJson"
+    | "permissionPolicyJson"
+    | "resultSchemaJson"
+    | "outputPolicyJson"
+    | "dashboardPolicyJson"
+    | "executionPolicyJson"
+    | "archivePolicyJson"
+  >,
+) {
+  const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  execute(
+    "INSERT OR REPLACE INTO task_blueprints (id, name, category, visibility, owner_business_team_id, team_id, environment_id, provider_adapter_id, version, status, trigger_json, input_schema_json, environment_selector_json, agent_team_run_plan_json, memory_policy_json, provider_policy_json, permission_policy_json, result_schema_json, output_policy_json, dashboard_policy_json, execution_policy_json, archive_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.name,
+    input.category,
+    input.visibility,
+    input.ownerBusinessTeamId,
+    input.teamId,
+    input.environmentId ?? null,
+    input.providerAdapterId,
+    input.version,
+    input.status,
+    input.triggerJson,
+    input.inputSchemaJson,
+    input.environmentSelectorJson,
+    input.agentTeamRunPlanJson,
+    input.memoryPolicyJson,
+    input.providerPolicyJson,
+    input.permissionPolicyJson,
+    input.resultSchemaJson,
+    input.outputPolicyJson,
+    input.dashboardPolicyJson,
+    input.executionPolicyJson,
+    input.archivePolicyJson,
+    createdAt,
+    new Date().toISOString(),
+  );
+
+  return queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
 }
 
 export function getTaskBlueprintPermissionPreview(blueprintId: string) {
@@ -270,6 +453,43 @@ export function upsertExecutionEnvironment(
 
 export function listWebhooks() {
   return queryAll<WebhookEndpoint>("SELECT * FROM webhook_endpoints ORDER BY name ASC");
+}
+
+export function getWebhookEndpointByPathKey(pathKey: string) {
+  return queryOne<WebhookEndpoint>(
+    "SELECT * FROM webhook_endpoints WHERE path_key = ? ORDER BY name ASC LIMIT 1",
+    pathKey,
+  );
+}
+
+export function upsertWebhookEndpoint(
+  input: Pick<
+    WebhookEndpoint,
+    | "id"
+    | "businessTeamId"
+    | "teamId"
+    | "name"
+    | "pathKey"
+    | "method"
+    | "requestSchemaJson"
+    | "secretHint"
+    | "isEnabled"
+  >,
+) {
+  execute(
+    "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.businessTeamId,
+    input.teamId,
+    input.name,
+    input.pathKey,
+    input.method,
+    input.requestSchemaJson,
+    input.secretHint,
+    input.isEnabled,
+  );
+
+  return queryOne<WebhookEndpoint>("SELECT * FROM webhook_endpoints WHERE id = ?", input.id);
 }
 
 export function getTaskRunDetail(taskRunId: string) {
@@ -1476,7 +1696,28 @@ export function getTaskRunPolicyHits(taskRunId: string) {
 
 export async function refreshRuntimeCatalogs() {
   const runtimes = listRuntimeEndpoints();
-  const discoveries = await discoverConfiguredRuntimes(runtimes);
+  const bindings = listProviderRuntimeBindings().filter((binding) => binding.baseUrl);
+  const syntheticRuntimes = bindings
+    .filter((binding) => !runtimes.some((runtime) => runtime.baseUrl === binding.baseUrl))
+    .map(
+      (binding) =>
+        ({
+          id: binding.id,
+          tenantSpaceId: binding.tenantSpaceId,
+          businessTeamId: binding.businessTeamId,
+          name: binding.name,
+          baseUrl: binding.baseUrl,
+          runtimeKind: binding.runtimeKind,
+          healthStatus: "unknown",
+          agentCatalogJson: "[]",
+          providerCatalogJson: "[]",
+          concurrencyLimit: 1,
+          activeRunCount: 0,
+          lastDiscoveredAt: "",
+          createdAt: new Date().toISOString(),
+        }) satisfies RuntimeEndpoint,
+    );
+  const discoveries = await discoverConfiguredRuntimes([...runtimes, ...syntheticRuntimes]);
 
   for (const discovery of discoveries) {
     const current = runtimes.find((runtime) => runtime.baseUrl === discovery.baseUrl);
@@ -1490,7 +1731,28 @@ export async function refreshRuntimeCatalogs() {
         new Date().toISOString(),
         current.id,
       );
+      continue;
     }
+
+    const binding = bindings.find((item) => item.baseUrl === discovery.baseUrl);
+    if (!binding) continue;
+
+    execute(
+      "INSERT INTO runtime_endpoints (id, tenant_space_id, business_team_id, name, base_url, runtime_kind, health_status, agent_catalog_json, provider_catalog_json, concurrency_limit, active_run_count, last_discovered_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      randomUUID(),
+      binding.tenantSpaceId,
+      binding.businessTeamId,
+      binding.name,
+      binding.baseUrl,
+      binding.runtimeKind,
+      discovery.status,
+      JSON.stringify(discovery.agents),
+      JSON.stringify(discovery.providers),
+      1,
+      0,
+      new Date().toISOString(),
+      new Date().toISOString(),
+    );
   }
 
   return discoveries;

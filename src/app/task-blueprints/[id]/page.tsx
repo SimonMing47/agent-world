@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BlueprintSubmitConsole } from "@/components/blueprint-submit-console";
+import { TaskBlueprintEditor } from "@/components/task-blueprint-editor";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getTaskBlueprintDetail } from "@/server/queries";
@@ -30,6 +31,31 @@ function Section({
   );
 }
 
+function buildInputDraft(schema: Record<string, unknown>) {
+  const properties =
+    schema.properties && typeof schema.properties === "object" && !Array.isArray(schema.properties)
+      ? (schema.properties as Record<string, Record<string, unknown>>)
+      : {};
+  const required =
+    Array.isArray(schema.required) ? new Set(schema.required.map(String)) : new Set<string>();
+
+  return Object.fromEntries(
+    Object.entries(properties).map(([key, definition]) => {
+      if (definition.default !== undefined) return [key, definition.default];
+      if (definition.enum && Array.isArray(definition.enum) && definition.enum.length > 0) {
+        return [key, definition.enum[0]];
+      }
+      if (!required.has(key)) return [key, null];
+      const type = definition.type;
+      if (type === "number" || type === "integer") return [key, 0];
+      if (type === "boolean") return [key, false];
+      if (type === "array") return [key, []];
+      if (type === "object") return [key, {}];
+      return [key, ""];
+    }),
+  );
+}
+
 export default async function TaskBlueprintDetailPage({
   params,
 }: {
@@ -45,7 +71,10 @@ export default async function TaskBlueprintDetailPage({
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <div className="space-y-4">
-        <BlueprintSubmitConsole blueprintId={detail.blueprint.id} />
+        <BlueprintSubmitConsole
+          blueprintId={detail.blueprint.id}
+          initialPayload={buildInputDraft(detail.inputSchema)}
+        />
 
         <Section title="任务蓝图">
           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
@@ -110,6 +139,8 @@ export default async function TaskBlueprintDetailPage({
       </div>
 
       <div className="space-y-4">
+        <TaskBlueprintEditor blueprint={detail.blueprint} options={detail.options} />
+
         <Section title="触发器与输入">
           <JsonBlock value={{ trigger: detail.trigger, inputSchema: detail.inputSchema }} />
         </Section>
