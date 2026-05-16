@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     requestedBy: string;
     priority?: number;
     contractId?: string | null;
+    environmentId?: string | null;
     plannerMode?: string;
     summary?: string;
     inputPayload: Record<string, unknown>;

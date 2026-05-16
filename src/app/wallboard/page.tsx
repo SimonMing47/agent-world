@@ -1,5 +1,5 @@
 import { formatDateTime } from "@/lib/utils";
-import { localizeDemoCopy, translateStatus, translateWorkflowType } from "@/lib/presentation";
+import { localizeDemoCopy, translateSourceType, translateStatus, translateWorkflowType } from "@/lib/presentation";
 import { getWallboardSnapshot } from "@/server/queries";
 
 export default function WallboardPage() {
@@ -53,6 +53,21 @@ export default function WallboardPage() {
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
                   {runtime.activeRunCount} 个活跃运行 / {runtime.concurrencyLimit} 个槽位
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            任务类别
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
+              <div key={item.sourceType} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
+                <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.questCount}</div>
+                <div className="mt-1 text-xs text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
               </div>
             ))}
           </div>

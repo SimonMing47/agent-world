@@ -13,6 +13,7 @@ import {
   type WebhookEndpoint,
 } from "@/server/db";
 import { writeLayeredKnowledge } from "@/server/openviking-core";
+import { submitQuest } from "@/server/queries";
 
 const execFileAsync = promisify(execFile);
 
@@ -685,6 +686,32 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
       ...stats.changedFiles.map((file) => `- ${file}`),
     ].join("\n"),
   });
+  const questDetail = (() => {
+    try {
+      return submitQuest({
+        teamId: webhook.teamId,
+        sourceType: "webhook",
+        sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
+        requestedBy: context.author ?? "webhook",
+        priority: 88,
+        environmentId: "env-shield-mr-review",
+        plannerMode: "rule",
+        summary: "神盾计划已把 MR webhook 转为可观测 Quest，并绑定分层检视记忆。",
+        inputPayload: {
+          caseKey: "shield",
+          taskCategory: "code_review",
+          reviewId,
+          repository: context.repositorySlug,
+          mergeRequest: context.mrIid,
+          diffStatus: diffBundle.status,
+          changedFiles: stats.changedFiles,
+          memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
+        },
+      });
+    } catch {
+      return null;
+    }
+  })();
 
   const drafts = skills.flatMap((skill) => reviewWithSkill(skill, diffBundle.diff, stats, diffBundle));
   const normalizedDrafts =
@@ -774,6 +801,7 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
     commentStatus: postResult.status,
     commentUrl: postResult.url,
     knowledgeUri: knowledge.vikingUri,
+    questId: questDetail?.quest.id ?? null,
     findings,
     commentMarkdown,
   };

@@ -107,6 +107,30 @@ export default async function KnowledgePage() {
         <div className="space-y-6">
           <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
             <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              Skill Registry
+            </div>
+            <div className="mt-4 space-y-3">
+              {snapshot.skills.map((skill) => (
+                <div
+                  key={skill.id}
+                  className="rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-[var(--ink)]">{skill.name}</div>
+                    <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                      {skill.layer}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
+                    {skill.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
               Recent Knowledge
             </div>
             <div className="mt-4 space-y-3">
@@ -148,4 +172,3 @@ export default async function KnowledgePage() {
     </div>
   );
 }
-

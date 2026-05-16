@@ -2,6 +2,7 @@ import { MetricCard } from "@/components/metric-card";
 import {
   translateRecruitmentMode,
   translateScheduleState,
+  translateSourceType,
   translateStatus,
 } from "@/lib/presentation";
 import { formatDateTime, formatPercent } from "@/lib/utils";
@@ -16,6 +17,54 @@ export default function OverviewPage() {
         {snapshot.metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
         ))}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            任务执行展示层
+          </div>
+          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
+            所有 Quest 按触发类别统一进入全局看板。
+          </h3>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
+              <div key={item.sourceType} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
+                <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.questCount}</div>
+                <div className="mt-1 text-sm text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            团队维度
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {snapshot.taskExecutionDashboard.byKingdom.map((item) => (
+              <div key={item.kingdomId} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-base font-semibold text-[var(--ink)]">{item.kingdomName}</div>
+                  <div className="text-sm text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
+                </div>
+                <div className="mt-2 text-sm text-[var(--ink-muted)]">
+                  {item.questCount} 个 Quest · {item.teamCount} 个 AgentTeam
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {snapshot.taskExecutionDashboard.byTaskCategory.map((item) => (
+              <div key={item.category} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+                <div className="text-base font-semibold text-[var(--ink)]">{item.category}</div>
+                <div className="mt-2 text-sm text-[var(--ink-muted)]">
+                  {item.questCount} 个 Quest · 活跃 {item.activeCount}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">

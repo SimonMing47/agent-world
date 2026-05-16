@@ -1,5 +1,43 @@
 import { type Agent, type Kingdom, type ProviderProfile, type World } from "@/server/db";
 
+export type ProviderExecutionMode = {
+  id: string;
+  name: string;
+  command: string;
+  secretRefs: string[];
+  status: "default" | "plugin";
+  note: string;
+};
+
+export function listProviderExecutionModes(): ProviderExecutionMode[] {
+  return [
+    {
+      id: "opencode-sdk",
+      name: "OpenCode SDK",
+      command: "opencode / @opencode-ai/sdk",
+      secretRefs: ["env:OPENCODE_API_KEY", "env:OPENAI_API_KEY"],
+      status: "default",
+      note: "默认执行层，当前主干可直接通过 SDK 做 runtime 发现。",
+    },
+    {
+      id: "claude-code-cli",
+      name: "Claude Code CLI",
+      command: "claude",
+      secretRefs: ["secret:claude-code-auth"],
+      status: "plugin",
+      note: "通过 provider-runtime 插件扩展，不修改主干执行流程。",
+    },
+    {
+      id: "openclaw-cli",
+      name: "OpenClaw CLI",
+      command: "openclaw",
+      secretRefs: ["secret:openclaw-auth"],
+      status: "plugin",
+      note: "通过 provider-runtime 插件扩展，作为 CLI Agent 引擎候选。",
+    },
+  ];
+}
+
 export function buildProviderSelection(args: {
   world: World;
   kingdom: Kingdom;

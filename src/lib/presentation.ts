@@ -27,8 +27,11 @@ const labels = {
     validating: "校验中",
   },
   visibility: {
+    global: "全局可见",
     private: "私有",
     public: "公开",
+    personal: "个人可见",
+    team: "团队可见",
   },
   workflow: {
     dag: "DAG",
@@ -60,6 +63,8 @@ const labels = {
     webhook: "Webhook 触发",
   },
   runtimeKind: {
+    "claude-code": "Claude Code",
+    openclaw: "OpenClaw",
     opencode: "OpenCode",
   },
   foldGroup: {

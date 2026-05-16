@@ -56,9 +56,25 @@ export default function ArchitecturePage() {
                 </ul>
               </div>
               <div>
+                <div className="font-semibold text-[var(--ink)]">API 边界</div>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--ink-muted)]">
+                  {layer.apiSurfaces.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
                 <div className="font-semibold text-[var(--ink)]">扩展点</div>
                 <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--ink-muted)]">
                   {layer.extensibility.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="font-semibold text-[var(--ink)]">设计校验</div>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-[var(--ink-muted)]">
+                  {layer.designCheckpoints.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
@@ -84,6 +100,11 @@ export default function ArchitecturePage() {
                   <li key={step}>{step}</li>
                 ))}
               </ol>
+              <div className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
+                <div>配置: {item.configuration.join(" · ")}</div>
+                <div>插件: {item.plugins.join(" · ")}</div>
+                <div>记忆层: {item.memoryLayers.join(" · ")}</div>
+              </div>
               <div className="mt-3">
                 <div className="text-sm font-semibold text-[var(--ink)]">产出</div>
                 <div className="mt-1 text-sm text-[var(--ink-muted)]">{item.output.join(" · ")}</div>
