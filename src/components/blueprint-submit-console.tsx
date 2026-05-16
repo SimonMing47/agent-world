@@ -3,38 +3,35 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const sampleInputs: Record<string, Record<string, unknown>> = {
-  shield_mr_review: {
-    repo_id: "agentworld",
-    mr_id: "481",
-    diff_ref: "refs/merge-requests/481/head",
-    author: "reviewer@example.com",
-    target_branch: "main",
-    source_commit_sha: "demo-sha-481",
-  },
-  daily_security_review: {
-    repo_scope: "all_authorized_repositories",
-    branch: "main",
-    run_date: new Date().toISOString().slice(0, 10),
-    repo_id: "release-team/*",
-    commit_sha: "daily-demo-sha",
-  },
-};
-
-export function BlueprintSubmitConsole({ blueprintId }: { blueprintId: string }) {
+export function BlueprintSubmitConsole({
+  blueprintId,
+  initialPayload,
+}: {
+  blueprintId: string;
+  initialPayload: Record<string, unknown>;
+}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [payloadText, setPayloadText] = useState(JSON.stringify(initialPayload, null, 2));
   const router = useRouter();
 
   async function submit() {
     setIsSubmitting(true);
     setError(null);
+    let inputPayload: Record<string, unknown>;
+    try {
+      inputPayload = JSON.parse(payloadText) as Record<string, unknown>;
+    } catch {
+      setIsSubmitting(false);
+      setError("输入 JSON 格式不正确。");
+      return;
+    }
     const response = await fetch(`/api/task-blueprints/${blueprintId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         requestedBy: "console",
-        inputPayload: sampleInputs[blueprintId] ?? {},
+        inputPayload,
       }),
     });
     const result = (await response.json()) as {
@@ -71,6 +68,11 @@ export function BlueprintSubmitConsole({ blueprintId }: { blueprintId: string })
           {isSubmitting ? "提交中" : "创建运行"}
         </button>
       </div>
+      <textarea
+        className="mt-3 min-h-36 w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--ink)]"
+        value={payloadText}
+        onChange={(event) => setPayloadText(event.target.value)}
+      />
       {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
     </div>
   );

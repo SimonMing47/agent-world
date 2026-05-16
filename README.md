@@ -15,9 +15,9 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 5. 插件扩展：Provider、触发器、邮件、IM、代码仓、输出发布和看板指标只通过插件清单、任务蓝图和环境配置接入。
 6. 记忆沉淀：OpenViking 作为开箱即用的分层记忆服务，保存检视上下文、Skill、结果、人工反馈和归档记忆。
 
-## 九层架构
+## 平台能力域
 
-- Provider 执行层：默认支持 OpenCode SDK；Claude Code、OpenClaw、企业 CLI 引擎通过 Provider 插件扩展。
+- Provider 执行层：默认内置 OpenCode Provider Adapter；Claude Code、OpenClaw、企业 CLI 引擎通过 Provider 插件扩展。
 - Agent 定义层：在线编辑 Agent 的角色、提示词、模型、权限、工具集和记忆范围。
 - 工具 / Skill 管理层：工具权限采用 allow / deny / approval 模型，与运行约束对齐。
 - 多 Agent 编排层：Agent 团队定义 Leader、成员、目标、交互提示词和依赖关系。
@@ -31,7 +31,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 
 - Next.js + TypeScript 单服务应用。
 - SQLite 本地持久化，启动时自动初始化领域模型、任务蓝图、Provider Adapter、环境模板和两个核心案例配置。
-- OpenCode SDK Provider Adapter 基线；Claude Code、OpenClaw、自定义 CLI Provider 通过插件扩展点声明。
+- OpenCode Provider Adapter 基线；Claude Code、OpenClaw、自定义 CLI Provider 通过插件扩展点声明。
 - 任务蓝图页面：`/task-blueprints`、`/task-blueprints/:id`。
 - 任务蓝图 API：`GET /api/task-blueprints`、`GET /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`GET /api/task-blueprints/:id/permission-preview`。
 - 插件清单和扩展包导入 API：`GET/POST /api/plugins/manifests`，支持导入插件、执行环境、任务模板、任务蓝图和触发模板。

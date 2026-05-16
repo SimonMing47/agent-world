@@ -117,6 +117,15 @@ export function buildTaskBlueprintDetail(args: {
   return {
     ...buildTaskBlueprintSummary(args),
     blueprint: args.blueprint,
+    options: {
+      businessTeams: args.businessTeams.map((team) => ({ id: team.id, name: team.name })),
+      agentTeams: args.teams.map((team) => ({ id: team.id, name: team.name })),
+      environments: args.environments.map((environment) => ({ id: environment.id, name: environment.name })),
+      providerAdapters: args.providerAdapters.map((adapter) => ({
+        id: adapter.id,
+        name: adapter.name,
+      })),
+    },
     trigger: parseRecord(args.blueprint.triggerJson),
     inputSchema: parseRecord(args.blueprint.inputSchemaJson),
     environmentSelector: parseRecord(args.blueprint.environmentSelectorJson),

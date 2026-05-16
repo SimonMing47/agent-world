@@ -33,7 +33,7 @@ const items = [
   { href: "/agent-teams", label: `${term("agentTeam")}服务`, icon: Workflow },
   { href: "/task-blueprints", label: "任务蓝图", icon: Boxes },
   { href: "/task-runs", label: term("task"), icon: Activity },
-  { href: "/architecture", label: "九层架构", icon: Network },
+  { href: "/architecture", label: "规格文档", icon: Network },
   { href: "/service-catalog", label: term("serviceDirectory"), icon: Store },
   { href: "/access-grants", label: term("accessPolicy"), icon: ScrollText },
   { href: "/runtimes", label: term("runtime"), icon: Cable },
