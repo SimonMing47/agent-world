@@ -69,6 +69,33 @@ type ExtensionTaskTemplateInput = {
   visibility?: string;
 };
 
+type ExtensionTaskBlueprintInput = {
+  id: string;
+  name: string;
+  category: string;
+  visibility?: string;
+  ownerBusinessTeamSlug?: string;
+  ownerBusinessTeamId?: string;
+  teamSlug?: string;
+  teamId?: string;
+  environmentId?: string | null;
+  providerAdapterId?: string;
+  version?: number;
+  status?: string;
+  trigger: Record<string, unknown>;
+  inputSchema: Record<string, unknown>;
+  environmentSelector: Record<string, unknown>;
+  agentTeamRunPlan: Record<string, unknown>;
+  memoryPolicy: Record<string, unknown>;
+  providerPolicy?: Record<string, unknown>;
+  permissionPolicy: Record<string, unknown>;
+  resultSchema?: Record<string, unknown>;
+  outputPolicy: Record<string, unknown>;
+  dashboardPolicy?: Record<string, unknown>;
+  executionPolicy: Record<string, unknown>;
+  archivePolicy?: Record<string, unknown>;
+};
+
 export type AgentWorldExtensionBundle = {
   id?: string;
   name?: string;
@@ -76,6 +103,7 @@ export type AgentWorldExtensionBundle = {
   plugins?: PluginManifest[];
   environments?: ExtensionEnvironmentInput[];
   taskTemplates?: ExtensionTaskTemplateInput[];
+  taskBlueprints?: ExtensionTaskBlueprintInput[];
   scheduleTemplates?: ExtensionScheduleTemplateInput[];
 };
 
@@ -158,6 +186,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   const importedPlugins: string[] = [];
   const importedEnvironments: string[] = [];
   const importedTaskTemplates: string[] = [];
+  const importedTaskBlueprints: string[] = [];
   const importedScheduleTemplates: string[] = [];
 
   for (const plugin of bundle.plugins ?? []) {
@@ -228,6 +257,42 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     importedTaskTemplates.push(taskTemplate.id);
   }
 
+  for (const blueprint of bundle.taskBlueprints ?? []) {
+    const ownerBusinessTeamId = resolveBusinessTeamId({
+      businessTeamId: blueprint.ownerBusinessTeamId,
+      businessTeamSlug: blueprint.ownerBusinessTeamSlug,
+    });
+    const teamId = resolveTeamId(blueprint);
+    execute(
+      "INSERT OR REPLACE INTO task_blueprints (id, name, category, visibility, owner_business_team_id, team_id, environment_id, provider_adapter_id, version, status, trigger_json, input_schema_json, environment_selector_json, agent_team_run_plan_json, memory_policy_json, provider_policy_json, permission_policy_json, result_schema_json, output_policy_json, dashboard_policy_json, execution_policy_json, archive_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      blueprint.id,
+      blueprint.name,
+      blueprint.category,
+      blueprint.visibility ?? "team",
+      ownerBusinessTeamId,
+      teamId,
+      blueprint.environmentId ?? null,
+      blueprint.providerAdapterId ?? "opencode-provider",
+      blueprint.version ?? 1,
+      blueprint.status ?? "active",
+      JSON.stringify(blueprint.trigger),
+      JSON.stringify(blueprint.inputSchema),
+      JSON.stringify(blueprint.environmentSelector),
+      JSON.stringify(blueprint.agentTeamRunPlan),
+      JSON.stringify(blueprint.memoryPolicy),
+      JSON.stringify(blueprint.providerPolicy ?? {}),
+      JSON.stringify(blueprint.permissionPolicy),
+      JSON.stringify(blueprint.resultSchema ?? {}),
+      JSON.stringify(blueprint.outputPolicy),
+      JSON.stringify(blueprint.dashboardPolicy ?? {}),
+      JSON.stringify(blueprint.executionPolicy),
+      JSON.stringify(blueprint.archivePolicy ?? { keepDays: 365 }),
+      createdAt,
+      createdAt,
+    );
+    importedTaskBlueprints.push(blueprint.id);
+  }
+
   for (const template of bundle.scheduleTemplates ?? []) {
     const businessTeamId = resolveBusinessTeamId(template);
     const teamId = resolveTeamId(template);
@@ -252,6 +317,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     importedPlugins,
     importedEnvironments,
     importedTaskTemplates,
+    importedTaskBlueprints,
     importedScheduleTemplates,
   };
 }
@@ -361,6 +427,67 @@ export function buildExtensionImportExample() {
         permissions: ["repo:read", "repo:mr:comment"],
         healthCheck: "connector self-check",
         extensionOnly: true,
+      },
+    ],
+    taskBlueprints: [
+      {
+        id: "enterprise_mr_review",
+        name: "企业 Git MR 代码检视",
+        category: "code_review",
+        visibility: "team",
+        ownerBusinessTeamSlug: "release-team",
+        teamSlug: "pr-vanguard",
+        environmentId: "env-enterprise-mr-review",
+        providerAdapterId: "opencode-provider",
+        trigger: {
+          type: "webhook",
+          connector: "enterprise.repo.git",
+          event: "merge_request.updated",
+          webhookPathKey: "enterprise-mr",
+          idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
+        },
+        inputSchema: { type: "object", required: ["repo_id", "mr_id", "diff_ref"] },
+        environmentSelector: {
+          type: "repository_workspace",
+          repoBinding: "${repo_id}",
+          checkoutMode: "diff_context",
+          privateKeyBinding: "enterprise_repo_executor_key",
+        },
+        agentTeamRunPlan: {
+          strategy: "leader_worker_parallel",
+          leader: "agent-shield-review-leader",
+          workers: [
+            { agent: "agent-code-quality-reviewer", task: "检查代码质量和兼容性。" },
+            { agent: "agent-security-reviewer", task: "检查安全风险。" },
+          ],
+          aggregation: {
+            agent: "agent-shield-review-leader",
+            method: "deduplicate_rank_and_publish",
+          },
+        },
+        memoryPolicy: {
+          requiredSpaces: ["viking://teams/security/code-review/", "viking://global/skills/code-review/"],
+          archiveOutputTo: ["viking://teams/security/review-cases/"],
+        },
+        permissionPolicy: {
+          defaultMode: "ask",
+          rules: [
+            { effect: "allow", resource: "tool.git.diff.read", scope: "repository" },
+            { effect: "allow", resource: "tool.mr.comment.write", scope: "current_merge_request" },
+            { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
+          ],
+        },
+        outputPolicy: {
+          publishers: [
+            { type: "merge_request_comment", pluginId: "enterprise.repo.git" },
+            { type: "dashboard" },
+          ],
+        },
+        executionPolicy: {
+          timeoutMinutes: 30,
+          retry: 1,
+          concurrencyKey: "${repo_id}:${mr_id}",
+        },
       },
     ],
     environments: [

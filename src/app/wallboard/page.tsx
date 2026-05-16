@@ -72,6 +72,20 @@ export default function WallboardPage() {
             ))}
           </div>
         </div>
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            Finding 聚合
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-5">
+            {snapshot.findingDashboard.bySeverity.map((item) => (
+              <div key={item.severity} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="text-sm uppercase text-[var(--ink-muted)]">{item.severity}</div>
+                <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.count}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="space-y-4">

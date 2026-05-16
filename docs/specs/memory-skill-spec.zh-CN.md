@@ -1,0 +1,152 @@
+# 记忆与 Skill 规格
+
+## 1. 定位
+
+记忆与 Skill 层负责为 AgentWorld 提供长期上下文、可复用能力、执行经验和人工反馈沉淀。默认记忆服务为 OpenViking，平台通过 `viking://` URI 组织资源、Agent Skill 和用户记忆空间。
+
+记忆读取属于 Agent 调用准备阶段，记忆写入属于调用收尾或人工反馈阶段。调度层只解析 Task Blueprint 中的记忆声明和权限，不直接拼接检索内容进入 Provider 请求。
+
+## 2. 设计目标
+
+- 使用 OpenViking `viking://` URI 作为稳定记忆地址。
+- 区分资源上下文、Agent Skill 和用户反馈记忆。
+- 支持 TaskBlueprint 声明 readScopes、writeScopes 和 skillRefs。
+- 将 Finding、人工反馈和任务总结写回可检索空间。
+- 支持远端 OpenViking 不可用时的受控降级和本地影子索引。
+
+## 3. URI 空间
+
+AgentWorld 默认使用三类 OpenViking URI：
+
+```text
+viking://resources/agentworld/...
+viking://agent/skills/agentworld/...
+viking://user/memories/agentworld/...
+```
+
+语义如下：
+
+- `viking://resources/agentworld/...`：项目、仓库、规范、接口、历史报告等相对客观资源。
+- `viking://agent/skills/agentworld/...`：Agent 可复用 Skill，包括检查方法、输出规范、领域提示和示例。
+- `viking://user/memories/agentworld/...`：人工反馈、偏好、误报判断、风险接受记录和团队经验。
+
+平台不得将 Secret 明文写入任何记忆空间。
+
+## 4. 记忆层级
+
+建议采用以下层级：
+
+- L0 Task Context：单次 TaskRun 的输入、节点输出、Artifact 和事件摘要，生命周期较短。
+- L1 Team Resources：业务团队、仓库、项目和服务相关资源。
+- L2 Global Skills：跨团队复用的 Skill、规则、检查清单和最佳实践。
+- L3 User Feedback：人工判断、误报、修复反馈、接受风险和解释改进记录。
+
+TaskBlueprint 可以声明读取层级，ProviderAdapter 在调用前通过记忆服务获取内容摘要或原文引用。
+
+## 5. Skill 模型
+
+Skill 是可版本化能力单元：
+
+```yaml
+apiVersion: agentworld.io/v1
+kind: Skill
+metadata:
+  id: skill-code-review-security
+  name: 代码安全检视 Skill
+  version: 1.0.0
+spec:
+  uri: viking://agent/skills/agentworld/code-review/security
+  domain: code-review
+  inputContractRef: schema-code-review-input
+  outputContractRef: schema-finding-list
+  promptSections:
+    - objective
+    - method
+    - evidence-policy
+  findingTaxonomyRefs:
+    - code-review-security
+  examplesRef:
+    uri: viking://resources/agentworld/code-review/examples/security
+```
+
+Skill 必须声明输入输出契约、适用领域、Finding 分类和版本。Skill 内容可以存储在 OpenViking，平台注册表保存索引和权限元数据。
+
+## 6. TaskBlueprint 记忆声明
+
+```yaml
+memory:
+  readScopes:
+    - viking://resources/agentworld/code-review/repositories
+    - viking://agent/skills/agentworld/code-review/security
+  writeScopes:
+    - viking://user/memories/agentworld/code-review/feedback
+  skillRefs:
+    - skill-code-review-security@1.0.0
+  retrieval:
+    mode: scoped-summary
+    maxItems: 12
+    includeCitations: true
+```
+
+读取范围必须显式声明。写入范围必须经过权限评估。Skill 引用应绑定版本，避免历史 TaskRun 因 Skill 更新而语义漂移。
+
+## 7. 读写流程
+
+读取流程：
+
+1. 调度器校验 Blueprint 的 URI 范围和权限。
+2. 调用层根据节点角色和 Skill 引用生成 retrieval request。
+3. OpenViking 返回摘要、引用或结构化片段。
+4. ProviderAdapter 将允许的内容注入调用上下文。
+5. 事件流记录 memory.read 事件和引用，不记录敏感原文。
+
+写入流程：
+
+1. 节点生成总结、Finding、Artifact 或反馈。
+2. 平台评估 memory.write 权限。
+3. allow 时写入 OpenViking；ask 时等待人工确认；deny 时拒绝写入。
+4. 远端失败时按可靠性策略写入本地影子索引并标记 degraded。
+5. 事件流记录 memory.write、memory.sync 或 memory.degraded。
+
+## 8. Finding 与反馈写回
+
+Finding 处理结果应写入用户记忆空间：
+
+```text
+viking://user/memories/agentworld/code-review/feedback/correct
+viking://user/memories/agentworld/code-review/feedback/incorrect
+viking://user/memories/agentworld/code-review/feedback/unclear
+viking://user/memories/agentworld/code-review/feedback/accepted-risk
+```
+
+写回内容应包含 Finding 引用、人工判断、证据摘要、适用范围、时间和处理人引用。不得写入未脱敏 Secret、私钥或访问令牌。
+
+## 9. 权限与隔离
+
+记忆权限同样采用 allow / ask / deny：
+
+- `memory.read`：读取指定 URI 范围。
+- `memory.write`：写入指定 URI 范围。
+- `skill.use`：使用指定 Skill。
+- `skill.update`：更新 Skill 内容或版本。
+
+业务团队私有记忆默认只允许本团队读取。跨团队读取必须通过服务目录、访问授权或显式 TaskBlueprint 配置完成。
+
+## 10. 降级策略
+
+OpenViking 远端不可用时：
+
+- 读取失败不得伪造记忆内容。
+- 可按 Blueprint 策略继续无记忆执行、等待人工处理或失败。
+- 写入可以落到本地影子索引，并记录 `remote_pending` 或 `remote_failed`。
+- 恢复后由同步任务重试，成功时记录 `remote_synced`。
+
+降级状态必须进入 TaskRun 可靠性状态机和看板。
+
+## 11. 验收标准
+
+- 所有记忆地址使用 `viking://` URI。
+- TaskBlueprint 可声明读写范围和 Skill 引用。
+- 调用层能将记忆读取结果与具体节点、事件和输出关联。
+- Finding 和人工反馈可写回用户记忆空间。
+- OpenViking 不可用时，平台能显式进入 degraded，而不是静默丢失记忆。

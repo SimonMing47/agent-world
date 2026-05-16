@@ -8,6 +8,14 @@ import {
 import { TaskRunOpsConsole } from "@/components/task-run-ops-console";
 import { getTaskRunDetail } from "@/server/queries";
 
+function JsonBlock({ value }: { value: unknown }) {
+  return (
+    <pre className="mt-3 max-h-[340px] overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-xs leading-5 text-[var(--ink-muted)]">
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+}
+
 export default async function TaskRunDetailPage({
   params,
 }: {
@@ -39,6 +47,9 @@ export default async function TaskRunDetailPage({
           <div className="mt-5 space-y-2 text-sm text-[var(--ink-muted)]">
             <div>状态: {translateStatus(detail.taskRun.status)}</div>
             <div>来源类型: {translateSourceType(detail.taskRun.sourceType)}</div>
+            <div>运行状态: {translateStatus(detail.taskRun.runState)}</div>
+            <div>任务蓝图: {detail.kernel.blueprint?.name ?? "未绑定"}</div>
+            <div>幂等键: {detail.taskRun.idempotencyKey ?? "无"}</div>
             <div>租户空间: {detail.tenantSpace?.name ?? "未知租户空间"}</div>
             <div>业务团队: {detail.businessTeam?.name ?? "未知业务团队"}</div>
             <div>Agent 团队: {detail.team?.name ?? "未知 Agent 团队"}</div>
@@ -47,6 +58,42 @@ export default async function TaskRunDetailPage({
             <div>实际成本: ${detail.taskRun.costActual}</div>
           </div>
         </div>
+
+        {detail.kernel.blueprint ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              蓝图快照
+            </div>
+            <div className="mt-3 text-lg font-semibold text-[var(--ink)]">
+              {detail.kernel.blueprint.name}
+            </div>
+            <div className="mt-3 grid gap-2 text-sm text-[var(--ink-muted)] md:grid-cols-2">
+              <div>类别: {detail.kernel.blueprint.category}</div>
+              <div>版本: v{detail.kernel.blueprint.version}</div>
+              <div>触发器: {String(detail.kernel.blueprint.trigger.type ?? "manual")}</div>
+              <div>当前状态: {translateStatus(detail.kernel.runState)}</div>
+            </div>
+          </div>
+        ) : null}
+
+        {detail.kernel.agentTeamRunPlan ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              编排协议
+            </div>
+            <div className="mt-3 text-lg font-semibold text-[var(--ink)]">
+              {detail.kernel.agentTeamRunPlan.strategy} · Leader {detail.kernel.agentTeamRunPlan.leader.agentName}
+            </div>
+            <div className="mt-4 space-y-3">
+              {detail.kernel.agentTeamRunPlan.workers.map((worker) => (
+                <div key={`${worker.agent}-${worker.task}`} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                  <div className="text-sm font-semibold text-[var(--ink)]">{worker.agentName}</div>
+                  <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{worker.task}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {detail.accessGrant ? (
           <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
@@ -218,6 +265,64 @@ export default async function TaskRunDetailPage({
         {Object.entries(detail.groupedEvents).map(([group, events]) => (
           <TraceGroup key={group} title={group} events={events} />
         ))}
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            标准事件流
+          </div>
+          <div className="mt-4 space-y-3">
+            {detail.kernel.events.map((event) => (
+              <div key={event.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-[var(--ink)]">{event.eventType}</div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                    {event.visibility}
+                  </div>
+                </div>
+                <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
+                  {String(event.payload.title ?? "")}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {detail.kernel.findings.length > 0 ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              Finding 输出
+            </div>
+            <div className="mt-4 space-y-3">
+              {detail.kernel.findings.map((finding) => (
+                <div key={finding.id} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-sm font-semibold text-[var(--ink)]">{finding.title}</div>
+                    <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                      {finding.severity} · {finding.category}
+                    </div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{finding.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {detail.kernel.environmentSnapshot ? (
+          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+              环境快照
+            </div>
+            <JsonBlock value={detail.kernel.environmentSnapshot} />
+          </div>
+        ) : null}
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            权限快照
+          </div>
+          <JsonBlock value={detail.kernel.permissionSnapshot} />
+        </div>
 
         {detail.costBreakdown ? (
           <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">

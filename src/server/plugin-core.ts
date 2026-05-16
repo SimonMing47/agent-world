@@ -4,7 +4,10 @@ export type PluginCapability =
   | "skill"
   | "notify_email"
   | "notify_im"
-  | "code_repo";
+  | "code_repo"
+  | "trigger"
+  | "output_publisher"
+  | "dashboard_metric";
 
 export type PluginLifecycle = "declared" | "configured" | "healthy" | "degraded";
 
@@ -84,6 +87,32 @@ export function listBuiltinPluginManifests(): PluginManifest[] {
       healthCheck: "connector self-check",
       extensionOnly: true,
     },
+    {
+      id: "builtin.trigger.webhook",
+      name: "Webhook Trigger",
+      version: "1.0.0",
+      capability: "trigger",
+      lifecycle: "configured",
+      mountPoint: "task-trigger",
+      configSchema: "{ pathKey, signatureHeader, secretRef, inputNormalizerRef }",
+      requiredSecretRefs: ["secret:webhook-signing-secret"],
+      permissions: ["trigger:webhook:receive"],
+      healthCheck: "GET /api/webhooks/{pathKey}",
+      extensionOnly: true,
+    },
+    {
+      id: "builtin.output.finding-dashboard",
+      name: "Finding Dashboard Publisher",
+      version: "1.0.0",
+      capability: "output_publisher",
+      lifecycle: "configured",
+      mountPoint: "output-publisher",
+      configSchema: "{ findingSchemaVersion, dashboardPolicy }",
+      requiredSecretRefs: [],
+      permissions: ["finding:write", "dashboard:publish"],
+      healthCheck: "in-process",
+      extensionOnly: true,
+    },
   ];
 }
 
@@ -117,6 +146,27 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
       implementationContract: "实现 clone/readDiff/comment/cleanup；凭据统一走 secret ref。",
       noCoreChangeRule: "代码平台差异留在插件内，主干只保存仓库、执行人、路径和私钥引用。",
     },
+    {
+      id: "task-trigger",
+      name: "触发器扩展点",
+      accepts: ["trigger"],
+      implementationContract: "实现 validate/normalize/idempotency 三个能力，输出标准任务输入。",
+      noCoreChangeRule: "Webhook、Cron、消息队列或企业事件总线只通过触发器插件接入。",
+    },
+    {
+      id: "output-publisher",
+      name: "输出发布扩展点",
+      accepts: ["output_publisher", "notify_email", "notify_im", "code_repo"],
+      implementationContract: "实现 publish/retry/audit；任务只产出标准 Finding、artifact 和报告。",
+      noCoreChangeRule: "MR 评论、邮件、IM、工单、看板指标都作为发布器插件声明。",
+    },
+    {
+      id: "dashboard-metric",
+      name: "看板指标扩展点",
+      accepts: ["dashboard_metric"],
+      implementationContract: "声明指标维度、聚合方式和可见性边界，读取标准事件与 Finding。",
+      noCoreChangeRule: "业务看板差异通过指标插件扩展，不写入核心任务引擎。",
+    },
   ];
 }
 
@@ -125,6 +175,7 @@ export function getPluginSecurityModel() {
     extensionOnly: true,
     secretPolicy: "主干只保存 secret ref，不保存明文 key。",
     permissionModel: "插件权限与运行约束工具权限对齐，执行前统一做 allow/deny/approval 判断。",
+    lifecycle: "插件生命周期包括安装、启用、禁用、升级、配置、健康检查、权限申请和审计日志。",
     openSourceBoundary: "开源主干提供协议和默认清单，企业内 IM/邮件/代码仓实现可闭源外挂。",
   };
 }

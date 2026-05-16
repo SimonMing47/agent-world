@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   AlarmClock,
+  Boxes,
   Bot,
   BookOpen,
   Cable,
@@ -30,6 +31,7 @@ const items = [
   { href: "/tenant-spaces", label: term("tenantSpace"), icon: Globe },
   { href: "/business-teams", label: term("businessTeam"), icon: Users },
   { href: "/agent-teams", label: `${term("agentTeam")}服务`, icon: Workflow },
+  { href: "/task-blueprints", label: "任务蓝图", icon: Boxes },
   { href: "/task-runs", label: term("task"), icon: Activity },
   { href: "/architecture", label: "九层架构", icon: Network },
   { href: "/service-catalog", label: term("serviceDirectory"), icon: Store },

@@ -181,11 +181,47 @@ export type TaskTemplate = {
   createdAt: string;
 };
 
+export type TaskBlueprint = {
+  id: string;
+  name: string;
+  category: string;
+  visibility: string;
+  ownerBusinessTeamId: string;
+  teamId: string;
+  environmentId: string | null;
+  providerAdapterId: string;
+  version: number;
+  status: string;
+  triggerJson: string;
+  inputSchemaJson: string;
+  environmentSelectorJson: string;
+  agentTeamRunPlanJson: string;
+  memoryPolicyJson: string;
+  providerPolicyJson: string;
+  permissionPolicyJson: string;
+  resultSchemaJson: string;
+  outputPolicyJson: string;
+  dashboardPolicyJson: string;
+  executionPolicyJson: string;
+  archivePolicyJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TaskRun = {
   id: string;
   tenantSpaceId: string;
   businessTeamId: string;
   teamId: string;
+  blueprintId: string | null;
+  blueprintVersion: number;
+  idempotencyKey: string | null;
+  parentTaskRunId: string | null;
+  runState: string;
+  environmentSnapshotId: string | null;
+  permissionSnapshotJson: string;
+  agentTeamRunPlanJson: string;
+  executionPolicyJson: string;
   accessGrantId: string | null;
   sourceType: string;
   sourceRef: string | null;
@@ -253,6 +289,18 @@ export type EventLog = {
   createdAt: string;
 };
 
+export type TaskEvent = {
+  id: string;
+  taskRunId: string;
+  agentRunId: string | null;
+  eventType: string;
+  eventTime: string;
+  visibility: string;
+  payloadJson: string;
+  rawPayloadRef: string | null;
+  parentEventId: string | null;
+};
+
 export type TaskRunIntervention = {
   id: string;
   taskRunId: string;
@@ -301,6 +349,31 @@ export type ExecutionEnvironment = {
   createdAt: string;
 };
 
+export type EnvironmentTemplate = {
+  id: string;
+  businessTeamId: string;
+  name: string;
+  environmentType: string;
+  repositorySelectorJson: string;
+  executorPolicyJson: string;
+  secretBindingsJson: string;
+  workspacePolicyJson: string;
+  sandboxPolicyJson: string;
+  memoryDefaultsJson: string;
+  visibility: string;
+  status: string;
+  createdAt: string;
+};
+
+export type EnvironmentSnapshot = {
+  id: string;
+  taskRunId: string;
+  templateId: string | null;
+  environmentId: string | null;
+  snapshotJson: string;
+  createdAt: string;
+};
+
 export type WebhookEndpoint = {
   id: string;
   businessTeamId: string;
@@ -327,6 +400,22 @@ export type ImportedPluginManifest = {
   extensionOnly: number;
   source: string;
   createdAt: string;
+};
+
+export type ProviderAdapterDefinition = {
+  id: string;
+  name: string;
+  adapterType: string;
+  entryRef: string;
+  version: string;
+  lifecycle: string;
+  capabilitiesJson: string;
+  configSchemaJson: string;
+  secretRefsJson: string;
+  permissionRefsJson: string;
+  healthStatus: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CodeReviewSkill = {
@@ -410,6 +499,25 @@ export type ReviewFinding = {
   createdAt: string;
 };
 
+export type Finding = {
+  id: string;
+  taskRunId: string;
+  sourceAgent: string;
+  category: string;
+  severity: string;
+  confidence: number;
+  title: string;
+  description: string;
+  evidenceJson: string;
+  recommendation: string;
+  skillRefsJson: string;
+  fingerprint: string;
+  status: string;
+  publicationJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ReviewFeedback = {
   id: string;
   findingId: string;
@@ -436,12 +544,30 @@ const legacySchemaTables = [
   "harness_profiles",
 ];
 
+const requiredCurrentTables = [
+  "tenant_spaces",
+  "business_teams",
+  "agent_teams",
+  "task_blueprints",
+  "task_runs",
+  "task_events",
+  "findings",
+  "provider_adapter_definitions",
+  "environment_snapshots",
+];
+
 const currentSchemaChecks = [
   { table: "agent_teams", column: "business_team_id" },
+  { table: "task_blueprints", column: "permission_policy_json" },
   { table: "task_runs", column: "tenant_space_id" },
+  { table: "task_runs", column: "blueprint_id" },
+  { table: "task_events", column: "event_type" },
   { table: "task_run_nodes", column: "task_run_id" },
+  { table: "findings", column: "fingerprint" },
+  { table: "provider_adapter_definitions", column: "capabilities_json" },
   { table: "tenant_spaces", column: "default_execution_policy_id" },
   { table: "execution_environments", column: "memory_layer_refs_json" },
+  { table: "environment_snapshots", column: "snapshot_json" },
 ];
 
 function tableExists(db: DatabaseSync, table: string) {
@@ -459,6 +585,7 @@ function tableHasColumn(db: DatabaseSync, table: string, column: string) {
 
 function databaseNeedsSchemaReset(db: DatabaseSync) {
   if (legacySchemaTables.some((table) => tableExists(db, table))) return true;
+  if (requiredCurrentTables.some((table) => !tableExists(db, table))) return true;
   return currentSchemaChecks.some((check) => !tableHasColumn(db, check.table, check.column));
 }
 
@@ -637,11 +764,47 @@ CREATE TABLE IF NOT EXISTS task_templates (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS task_blueprints (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  owner_business_team_id TEXT NOT NULL,
+  team_id TEXT NOT NULL,
+  environment_id TEXT,
+  provider_adapter_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  trigger_json TEXT NOT NULL,
+  input_schema_json TEXT NOT NULL,
+  environment_selector_json TEXT NOT NULL,
+  agent_team_run_plan_json TEXT NOT NULL,
+  memory_policy_json TEXT NOT NULL,
+  provider_policy_json TEXT NOT NULL,
+  permission_policy_json TEXT NOT NULL,
+  result_schema_json TEXT NOT NULL,
+  output_policy_json TEXT NOT NULL,
+  dashboard_policy_json TEXT NOT NULL,
+  execution_policy_json TEXT NOT NULL,
+  archive_policy_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS task_runs (
   id TEXT PRIMARY KEY,
   tenant_space_id TEXT NOT NULL,
   business_team_id TEXT NOT NULL,
   team_id TEXT NOT NULL,
+  blueprint_id TEXT,
+  blueprint_version INTEGER NOT NULL DEFAULT 0,
+  idempotency_key TEXT,
+  parent_task_run_id TEXT,
+  run_state TEXT NOT NULL DEFAULT 'running',
+  environment_snapshot_id TEXT,
+  permission_snapshot_json TEXT NOT NULL DEFAULT '{}',
+  agent_team_run_plan_json TEXT NOT NULL DEFAULT '{}',
+  execution_policy_json TEXT NOT NULL DEFAULT '{}',
   access_grant_id TEXT,
   source_type TEXT NOT NULL,
   source_ref TEXT,
@@ -656,6 +819,10 @@ CREATE TABLE IF NOT EXISTS task_runs (
   created_at TEXT NOT NULL,
   completed_at TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task_runs_blueprint_idempotency
+ON task_runs (blueprint_id, idempotency_key)
+WHERE blueprint_id IS NOT NULL AND idempotency_key IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS task_run_plans (
   id TEXT PRIMARY KEY,
@@ -709,6 +876,18 @@ CREATE TABLE IF NOT EXISTS event_logs (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS task_events (
+  id TEXT PRIMARY KEY,
+  task_run_id TEXT NOT NULL,
+  agent_run_id TEXT,
+  event_type TEXT NOT NULL,
+  event_time TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  raw_payload_ref TEXT,
+  parent_event_id TEXT
+);
+
 CREATE TABLE IF NOT EXISTS task_run_interventions (
   id TEXT PRIMARY KEY,
   task_run_id TEXT NOT NULL,
@@ -757,6 +936,31 @@ CREATE TABLE IF NOT EXISTS execution_environments (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS environment_templates (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  environment_type TEXT NOT NULL,
+  repository_selector_json TEXT NOT NULL,
+  executor_policy_json TEXT NOT NULL,
+  secret_bindings_json TEXT NOT NULL,
+  workspace_policy_json TEXT NOT NULL,
+  sandbox_policy_json TEXT NOT NULL,
+  memory_defaults_json TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS environment_snapshots (
+  id TEXT PRIMARY KEY,
+  task_run_id TEXT NOT NULL,
+  template_id TEXT,
+  environment_id TEXT,
+  snapshot_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS webhook_endpoints (
   id TEXT PRIMARY KEY,
   business_team_id TEXT NOT NULL,
@@ -783,6 +987,22 @@ CREATE TABLE IF NOT EXISTS plugin_manifests (
   extension_only INTEGER NOT NULL,
   source TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS provider_adapter_definitions (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  adapter_type TEXT NOT NULL,
+  entry_ref TEXT NOT NULL,
+  version TEXT NOT NULL,
+  lifecycle TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL,
+  config_schema_json TEXT NOT NULL,
+  secret_refs_json TEXT NOT NULL,
+  permission_refs_json TEXT NOT NULL,
+  health_status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS code_review_skills (
@@ -864,6 +1084,25 @@ CREATE TABLE IF NOT EXISTS review_findings (
   feedback_token TEXT NOT NULL UNIQUE,
   feedback_state TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS findings (
+  id TEXT PRIMARY KEY,
+  task_run_id TEXT NOT NULL,
+  source_agent TEXT NOT NULL,
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  evidence_json TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  skill_refs_json TEXT NOT NULL,
+  fingerprint TEXT NOT NULL,
+  status TEXT NOT NULL,
+  publication_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS review_feedback (
@@ -1957,6 +2196,96 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
   });
 }
 
+function ensureProviderAdapterSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const insertAdapter = db.prepare(
+    "INSERT OR IGNORE INTO provider_adapter_definitions (id, name, adapter_type, entry_ref, version, lifecycle, capabilities_json, config_schema_json, secret_refs_json, permission_refs_json, health_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  [
+    {
+      id: "opencode-provider",
+      name: "OpenCode Provider Adapter",
+      adapterType: "sdk",
+      entryRef: "@opencode-ai/sdk",
+      lifecycle: "configured",
+      capabilities: [
+        "session.create",
+        "event.stream",
+        "message.send",
+        "artifact.collect",
+        "runtime.discover",
+      ],
+      configSchema: {
+        type: "object",
+        required: ["baseUrl", "defaultModel"],
+        properties: {
+          baseUrl: { type: "string" },
+          apiKeySecretRef: { type: "string" },
+          defaultModel: { type: "string" },
+        },
+      },
+      secretRefs: ["env:OPENCODE_API_KEY", "env:OPENAI_API_KEY"],
+      permissions: ["provider.session.create", "provider.message.send", "provider.event.read"],
+      healthStatus: "offline",
+    },
+    {
+      id: "claude-code-provider",
+      name: "Claude Code Provider Adapter",
+      adapterType: "cli",
+      entryRef: "plugin://provider-runtime/claude-code",
+      lifecycle: "declared",
+      capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
+      configSchema: {
+        type: "object",
+        required: ["command"],
+        properties: {
+          command: { type: "string", default: "claude" },
+          authSecretRef: { type: "string" },
+        },
+      },
+      secretRefs: ["secret:claude-code-auth"],
+      permissions: ["provider.session.create", "provider.message.send"],
+      healthStatus: "declared",
+    },
+    {
+      id: "openclaw-provider",
+      name: "OpenClaw Provider Adapter",
+      adapterType: "cli",
+      entryRef: "plugin://provider-runtime/openclaw",
+      lifecycle: "declared",
+      capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
+      configSchema: {
+        type: "object",
+        required: ["command"],
+        properties: {
+          command: { type: "string", default: "openclaw" },
+          authSecretRef: { type: "string" },
+        },
+      },
+      secretRefs: ["secret:openclaw-auth"],
+      permissions: ["provider.session.create", "provider.message.send"],
+      healthStatus: "declared",
+    },
+  ].forEach((adapter) => {
+    insertAdapter.run(
+      adapter.id,
+      adapter.name,
+      adapter.adapterType,
+      adapter.entryRef,
+      "1.0.0",
+      adapter.lifecycle,
+      JSON.stringify(adapter.capabilities),
+      JSON.stringify(adapter.configSchema),
+      JSON.stringify(adapter.secretRefs),
+      JSON.stringify(adapter.permissions),
+      adapter.healthStatus,
+      now,
+      now,
+    );
+  });
+}
+
 function ensureCoreCaseSeed(db: DatabaseSync) {
   const now = new Date().toISOString();
   const tomorrow = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
@@ -1972,6 +2301,15 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   const insertEnvironment = db.prepare(
     "INSERT OR IGNORE INTO execution_environments (id, business_team_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
+  const insertEnvironmentTemplate = db.prepare(
+    "INSERT OR IGNORE INTO environment_templates (id, business_team_id, name, environment_type, repository_selector_json, executor_policy_json, secret_bindings_json, workspace_policy_json, sandbox_policy_json, memory_defaults_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertAgent = db.prepare(
+    "INSERT OR IGNORE INTO agents (id, team_id, slug, name, role, persona_prompt, model, short_term_window, rag_config_json, tool_bindings_json, memory_scope, safety_policy_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const updateReviewTeamLeader = db.prepare(
+    "UPDATE agent_teams SET leader_agent_id = ?, workflow_type = ? WHERE id = ?",
+  );
   const insertSchedule = db.prepare(
     "INSERT OR IGNORE INTO schedule_templates (id, business_team_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
@@ -1981,6 +2319,70 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   const insertTaskTemplate = db.prepare(
     "INSERT OR IGNORE INTO task_templates (id, name, case_key, plugin_id, team_id, environment_id, planner_mode, summary, input_schema_json, default_input_json, memory_layers_json, output_targets_json, nodes_json, webhook_parser_ref, visibility, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
+  const insertTaskBlueprint = db.prepare(
+    "INSERT OR REPLACE INTO task_blueprints (id, name, category, visibility, owner_business_team_id, team_id, environment_id, provider_adapter_id, version, status, trigger_json, input_schema_json, environment_selector_json, agent_team_run_plan_json, memory_policy_json, provider_policy_json, permission_policy_json, result_schema_json, output_policy_json, dashboard_policy_json, execution_policy_json, archive_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  [
+    {
+      id: "agent-shield-review-leader",
+      slug: "shield-review-leader",
+      name: "Shield Review Leader",
+      role: "leader",
+      prompt: "拆解 MR 检视任务，协调并行检视 Agent，合并 Finding 并控制输出质量。",
+      tools: ["repo.diff.read", "memory.retrieve", "finding.aggregate", "mr.comment.write"],
+    },
+    {
+      id: "agent-code-quality-reviewer",
+      slug: "code-quality-reviewer",
+      name: "Code Quality Reviewer",
+      role: "reviewer",
+      prompt: "检查代码质量、可维护性、边界条件和兼容性风险。",
+      tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
+    },
+    {
+      id: "agent-security-reviewer",
+      slug: "security-reviewer",
+      name: "Security Reviewer",
+      role: "reviewer",
+      prompt: "检查注入、越权、敏感信息、危险调用和依赖安全风险。",
+      tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
+    },
+    {
+      id: "agent-test-reviewer",
+      slug: "test-reviewer",
+      name: "Test Reviewer",
+      role: "reviewer",
+      prompt: "检查测试覆盖、回归风险和验证路径是否充分。",
+      tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
+    },
+    {
+      id: "agent-report-writer",
+      slug: "report-writer",
+      name: "Report Writer",
+      role: "publisher",
+      prompt: "把 Finding 汇总成 MR 评论、邮件报告和看板可读摘要。",
+      tools: ["finding.read", "mr.comment.write", "email.send", "artifact.write"],
+    },
+  ].forEach((agent) => {
+    insertAgent.run(
+      agent.id,
+      reviewTeam.id,
+      agent.slug,
+      agent.name,
+      agent.role,
+      agent.prompt,
+      "gpt-5.4",
+      12,
+      JSON.stringify({ retrieval: "openviking", topK: 8 }),
+      JSON.stringify(agent.tools),
+      "team_shared",
+      JSON.stringify({ requireEvidenceTrace: true, redactSecrets: true }),
+      "active",
+      now,
+    );
+  });
+  updateReviewTeamLeader.run("agent-shield-review-leader", "parallel", reviewTeam.id);
 
   insertEnvironment.run(
     "env-shield-mr-review",
@@ -2012,6 +2414,64 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     ".",
     JSON.stringify({ isolation: "future-sandbox", network: "read-only-egress", cloneDepth: "full" }),
     JSON.stringify(["security", "feedback/correct", "feedback/incorrect", "repository/code-review"]),
+    "global",
+    "active",
+    now,
+  );
+  insertEnvironmentTemplate.run(
+    "environment-template-repository-diff",
+    releaseBusinessTeam.id,
+    "代码仓 Diff 工作区模板",
+    "repository_workspace",
+    JSON.stringify({
+      repoBinding: "${repo_id}",
+      checkoutMode: "diff_context",
+      branchBinding: "${target_branch}",
+      commitBinding: "${source_commit_sha}",
+    }),
+    JSON.stringify({
+      executorIdentity: "repo_executor_key",
+      allowedWorkspaceRoots: ["."],
+      cleanup: "after_archive",
+    }),
+    JSON.stringify({
+      privateKeyRef: "secret:release-team/repo-private-key",
+      tokenRef: "secret:code-platform-token",
+      rawSecretReadable: false,
+    }),
+    JSON.stringify({ workspaceKind: "ephemeral", pathTemplate: "workspaces/${task_run_id}" }),
+    JSON.stringify({ isolation: "process", network: "egress-controlled", future: "sandbox-template" }),
+    JSON.stringify({
+      requiredSpaces: ["viking://teams/security/code-review/", "viking://global/skills/code-review/"],
+    }),
+    "global",
+    "active",
+    now,
+  );
+  insertEnvironmentTemplate.run(
+    "environment-template-repository-full-scan",
+    releaseBusinessTeam.id,
+    "代码仓全量扫描工作区模板",
+    "repository_workspace",
+    JSON.stringify({
+      repoScope: "all_authorized_repositories",
+      checkoutMode: "full_clone",
+      branchBinding: "${branch}",
+    }),
+    JSON.stringify({
+      executorIdentity: "security_scan_executor",
+      splitStrategy: "by_repository",
+      cleanup: "after_archive",
+    }),
+    JSON.stringify({
+      privateKeyRef: "secret:release-team/security-private-key",
+      rawSecretReadable: false,
+    }),
+    JSON.stringify({ workspaceKind: "ephemeral", pathTemplate: "workspaces/${task_run_id}/${repo_id}" }),
+    JSON.stringify({ isolation: "future-sandbox", network: "read-only-egress" }),
+    JSON.stringify({
+      requiredSpaces: ["viking://teams/security/security-review/", "viking://global/skills/security/"],
+    }),
     "global",
     "active",
     now,
@@ -2130,6 +2590,271 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     }),
     "template-daily-security-review",
   );
+
+  insertTaskBlueprint.run(
+    "shield_mr_review",
+    "神盾计划 MR 代码检视",
+    "code_review",
+    "global",
+    releaseBusinessTeam.id,
+    reviewTeam.id,
+    "env-shield-mr-review",
+    "opencode-provider",
+    1,
+    "active",
+    JSON.stringify({
+      type: "webhook",
+      connector: "builtin.repo.git",
+      event: "merge_request.updated",
+      webhookPathKey: "github-pr",
+      idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
+    }),
+    JSON.stringify({
+      type: "object",
+      required: ["repo_id", "mr_id", "diff_ref", "author", "target_branch"],
+      properties: {
+        repo_id: { type: "string" },
+        mr_id: { type: "string" },
+        diff_ref: { type: "string" },
+        author: { type: "string" },
+        target_branch: { type: "string" },
+        source_commit_sha: { type: "string" },
+      },
+    }),
+    JSON.stringify({
+      type: "repository_workspace",
+      templateId: "environment-template-repository-diff",
+      repoBinding: "${repo_id}",
+      checkoutMode: "diff_context",
+      privateKeyBinding: "repo_executor_key",
+      executorIdentity: "svc-release-reviewer",
+    }),
+    JSON.stringify({
+      strategy: "leader_worker_parallel",
+      leader: "agent-shield-review-leader",
+      workers: [
+        {
+          agent: "agent-code-quality-reviewer",
+          task: "检查代码质量、可维护性、边界条件和兼容性。",
+        },
+        {
+          agent: "agent-security-reviewer",
+          task: "检查注入、越权、敏感信息、危险调用和依赖风险。",
+        },
+        {
+          agent: "agent-test-reviewer",
+          task: "检查测试覆盖、回归风险和验证路径。",
+        },
+      ],
+      aggregation: {
+        agent: "agent-shield-review-leader",
+        method: "deduplicate_rank_and_publish",
+      },
+      conflictResolution: { method: "leader_decision" },
+    }),
+    JSON.stringify({
+      requiredSpaces: ["viking://teams/security/code-review/", "viking://global/skills/code-review/"],
+      skillSpaces: ["viking://global/skills/code-review/", "viking://teams/security/skills/shield-review/"],
+      archiveOutputTo: ["viking://teams/security/review-cases/"],
+      retrievalTrace: true,
+    }),
+    JSON.stringify({
+      adapterId: "opencode-provider",
+      mode: "session",
+      eventContract: "provider_event_v1",
+      timeoutMinutes: 30,
+    }),
+    JSON.stringify({
+      defaultMode: "ask",
+      rules: [
+        { effect: "allow", resource: "tool.git.diff.read", scope: "repository" },
+        { effect: "allow", resource: "tool.repo.context.read", scope: "current_merge_request" },
+        { effect: "allow", resource: "tool.memory.retrieve", scope: "declared_spaces" },
+        { effect: "allow", resource: "tool.mr.comment.write", scope: "current_merge_request" },
+        { effect: "deny", resource: "tool.repo.force_push", scope: "*" },
+        { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
+        { effect: "ask", resource: "tool.email.send", scope: "external_recipients" },
+      ],
+    }),
+    JSON.stringify({
+      type: "object",
+      required: ["findings", "publication"],
+      properties: {
+        findings: { type: "array" },
+        publication: { type: "object" },
+      },
+    }),
+    JSON.stringify({
+      publishers: [
+        { type: "merge_request_comment", pluginId: "builtin.repo.git" },
+        { type: "dashboard" },
+        { type: "artifact_archive" },
+      ],
+    }),
+    JSON.stringify({
+      views: ["global_task_board", "business_team_board", "code_review_board", "task_run_detail"],
+      dimensions: ["business_team", "repository", "severity", "category", "agent"],
+      metrics: ["review_count", "avg_duration", "finding_count", "false_positive_rate"],
+    }),
+    JSON.stringify({
+      stateMachine: [
+        "created",
+        "queued",
+        "preparing_environment",
+        "running",
+        "waiting_approval",
+        "publishing_output",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "archived",
+      ],
+      timeoutMinutes: 30,
+      retry: 1,
+      concurrencyKey: "${repo_id}:${mr_id}",
+      idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
+    }),
+    JSON.stringify({
+      keepDays: 540,
+      archiveEvents: true,
+      archiveFindings: true,
+      memoryTargets: ["viking://teams/security/review-cases/"],
+    }),
+    now,
+    now,
+  );
+
+  insertTaskBlueprint.run(
+    "daily_security_review",
+    "每日全量安全检视",
+    "security_review",
+    "global",
+    releaseBusinessTeam.id,
+    reviewTeam.id,
+    "env-daily-security-scan",
+    "opencode-provider",
+    1,
+    "active",
+    JSON.stringify({
+      type: "cron",
+      expression: "0 2 * * *",
+      timezone: "Asia/Shanghai",
+      idempotencyKey: "${task_blueprint_id}:${run_date}:${repo_id}:${branch}:${commit_sha}",
+    }),
+    JSON.stringify({
+      type: "object",
+      required: ["repo_scope", "branch"],
+      properties: {
+        repo_scope: { type: "string", enum: ["team_or_global", "all_authorized_repositories"] },
+        branch: { type: "string" },
+        run_date: { type: "string" },
+      },
+    }),
+    JSON.stringify({
+      type: "repository_workspace",
+      templateId: "environment-template-repository-full-scan",
+      checkoutMode: "full_clone",
+      repoScope: "all_authorized_repositories",
+      executorIdentity: "svc-security-reviewer",
+    }),
+    JSON.stringify({
+      strategy: "leader_worker_parallel",
+      leader: "agent-shield-review-leader",
+      splitStrategy: "by_repository",
+      workers: [
+        {
+          agent: "agent-security-reviewer",
+          task: "按仓库扫描敏感信息、危险调用、鉴权风险和依赖风险。",
+        },
+        {
+          agent: "agent-code-quality-reviewer",
+          task: "识别架构风险、长期可维护性风险和高风险调用链。",
+        },
+        {
+          agent: "agent-report-writer",
+          task: "汇总日报、邮件和看板摘要。",
+        },
+      ],
+      aggregation: {
+        agent: "agent-report-writer",
+        method: "merge_child_runs_and_publish_digest",
+      },
+      conflictResolution: { method: "leader_decision" },
+    }),
+    JSON.stringify({
+      requiredSpaces: ["viking://teams/security/security-review/", "viking://global/skills/security/"],
+      skillSpaces: ["viking://global/skills/security/", "viking://teams/security/skills/dependency-audit/"],
+      archiveOutputTo: ["viking://teams/security/security-findings/"],
+      retrievalTrace: true,
+      baseline: "viking://teams/security/memories/false-positive-rules/",
+    }),
+    JSON.stringify({
+      adapterId: "opencode-provider",
+      mode: "session",
+      eventContract: "provider_event_v1",
+      timeoutMinutes: 240,
+    }),
+    JSON.stringify({
+      defaultMode: "ask",
+      rules: [
+        { effect: "allow", resource: "tool.repo.clone.read", scope: "authorized_repositories" },
+        { effect: "allow", resource: "tool.memory.retrieve", scope: "declared_spaces" },
+        { effect: "allow", resource: "tool.artifact.write", scope: "task_archive" },
+        { effect: "ask", resource: "tool.email.send", scope: "approved_distribution_list" },
+        { effect: "deny", resource: "tool.repo.write", scope: "*" },
+        { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
+      ],
+    }),
+    JSON.stringify({
+      type: "object",
+      required: ["findings", "mailReport", "artifacts"],
+      properties: {
+        findings: { type: "array" },
+        mailReport: { type: "object" },
+        artifacts: { type: "array" },
+      },
+    }),
+    JSON.stringify({
+      publishers: [
+        { type: "email_report", pluginId: "builtin.notify.email" },
+        { type: "dashboard" },
+        { type: "artifact_archive" },
+      ],
+    }),
+    JSON.stringify({
+      views: ["global_task_board", "business_team_board", "security_review_board", "finding_trend_board"],
+      dimensions: ["business_team", "repository", "severity", "category", "day"],
+      metrics: ["scanned_repository_count", "new_findings", "repeat_findings", "email_status"],
+    }),
+    JSON.stringify({
+      stateMachine: [
+        "created",
+        "queued",
+        "preparing_environment",
+        "running",
+        "waiting_approval",
+        "publishing_output",
+        "partially_succeeded",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "archived",
+      ],
+      timeoutMinutes: 240,
+      retry: 2,
+      splitStrategy: "by_repository",
+      concurrencyKey: "${repo_scope}:${branch}",
+      idempotencyKey: "${task_blueprint_id}:${run_date}:${repo_id}:${branch}:${commit_sha}",
+    }),
+    JSON.stringify({
+      keepDays: 730,
+      archiveEvents: true,
+      archiveFindings: true,
+      memoryTargets: ["viking://teams/security/security-findings/"],
+    }),
+    now,
+    now,
+  );
 }
 
 export function getDb() {
@@ -2140,6 +2865,7 @@ export function getDb() {
     database.exec(schemaSql);
     seed(database);
     ensureCodeReviewSkillSeed(database);
+    ensureProviderAdapterSeed(database);
     ensureCoreCaseSeed(database);
   }
 

@@ -11,8 +11,13 @@ import {
   type EventLog,
   type ExecutionEnvironment,
   type ExecutionPolicy,
+  type EnvironmentSnapshot,
+  type Finding,
   type BusinessTeam,
+  type ProviderAdapterDefinition,
   type ProviderProfile,
+  type TaskBlueprint,
+  type TaskEvent,
   type TaskRun,
   type TaskRunIntervention,
   type TaskRunNode,
@@ -45,6 +50,17 @@ import {
   buildEnvironmentSummary,
   buildTaskExecutionDashboard,
 } from "@/server/environment-core";
+import { buildNodeSpecsFromRunPlan } from "@/server/agent-orchestration-core";
+import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
+import { buildFindingDashboard, summarizeFinding } from "@/server/finding-core";
+import {
+  buildTaskBlueprintDetail,
+  buildTaskBlueprintSummary,
+  buildTaskRunKernelView,
+  normalizeTriggerType,
+  renderTemplateValue,
+} from "@/server/task-blueprint-core";
+import { buildEffectivePermissionPreview } from "@/server/permission-core";
 
 export function listTenantSpaces() {
   return queryAll<TenantSpace>("SELECT * FROM tenant_spaces ORDER BY name ASC");
@@ -120,8 +136,28 @@ export function listTaskTemplates() {
   return queryAll<TaskTemplate>("SELECT * FROM task_templates ORDER BY created_at DESC");
 }
 
+export function listTaskBlueprints() {
+  return queryAll<TaskBlueprint>("SELECT * FROM task_blueprints ORDER BY category ASC, name ASC");
+}
+
 export function listTaskRuns() {
   return queryAll<TaskRun>("SELECT * FROM task_runs ORDER BY created_at DESC");
+}
+
+export function listTaskEvents(taskRunId?: string) {
+  return taskRunId
+    ? queryAll<TaskEvent>("SELECT * FROM task_events WHERE task_run_id = ? ORDER BY event_time ASC", taskRunId)
+    : queryAll<TaskEvent>("SELECT * FROM task_events ORDER BY event_time DESC");
+}
+
+export function listFindings() {
+  return queryAll<Finding>("SELECT * FROM findings ORDER BY created_at DESC");
+}
+
+export function listProviderAdapterDefinitions() {
+  return queryAll<ProviderAdapterDefinition>(
+    "SELECT * FROM provider_adapter_definitions ORDER BY lifecycle ASC, name ASC",
+  );
 }
 
 export function listRepositories() {
@@ -136,6 +172,58 @@ export function listExecutionEnvironments() {
   return queryAll<ExecutionEnvironment>(
     "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
   );
+}
+
+export function getTaskBlueprintsSnapshot() {
+  const blueprints = listTaskBlueprints();
+  const businessTeams = listBusinessTeams();
+  const teams = listAgentTeams();
+  const environments = listExecutionEnvironments();
+  const providerAdapters = listProviderAdapterDefinitions();
+  const taskRuns = listTaskRuns();
+  const findings = listFindings();
+
+  return {
+    blueprints: blueprints.map((blueprint) =>
+      buildTaskBlueprintSummary({
+        blueprint,
+        businessTeams,
+        teams,
+        environments,
+        providerAdapters,
+        taskRuns,
+        findings,
+      }),
+    ),
+    providerAdapters,
+    findingDashboard: buildFindingDashboard({
+      findings,
+      taskRuns,
+      businessTeams,
+    }),
+  };
+}
+
+export function getTaskBlueprintDetail(blueprintId: string) {
+  const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", blueprintId);
+  if (!blueprint) return null;
+
+  return buildTaskBlueprintDetail({
+    blueprint,
+    businessTeams: listBusinessTeams(),
+    teams: listAgentTeams(),
+    agents: listAgents(),
+    environments: listExecutionEnvironments(),
+    providerAdapters: listProviderAdapterDefinitions(),
+    taskRuns: listTaskRuns(),
+    findings: listFindings(),
+  });
+}
+
+export function getTaskBlueprintPermissionPreview(blueprintId: string) {
+  const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", blueprintId);
+  if (!blueprint) return null;
+  return buildEffectivePermissionPreview(blueprint.permissionPolicyJson);
 }
 
 export function upsertExecutionEnvironment(
@@ -195,6 +283,14 @@ export function getTaskRunDetail(taskRunId: string) {
   const accessGrant = taskRun.accessGrantId
     ? queryOne<AccessGrant>("SELECT * FROM access_grants WHERE id = ?", taskRun.accessGrantId)
     : null;
+  const blueprint = taskRun.blueprintId
+    ? queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", taskRun.blueprintId)
+    : null;
+  const taskEvents = listTaskEvents(taskRun.id);
+  const environmentSnapshot = taskRun.environmentSnapshotId
+    ? queryOne<EnvironmentSnapshot>("SELECT * FROM environment_snapshots WHERE id = ?", taskRun.environmentSnapshotId)
+    : null;
+  const findings = queryAll<Finding>("SELECT * FROM findings WHERE task_run_id = ? ORDER BY created_at DESC", taskRun.id);
   const plan = queryOne<TaskRunPlan>("SELECT * FROM task_run_plans WHERE task_run_id = ?", taskRun.id);
   const nodes = queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRun.id);
   const interventions = queryAll<TaskRunIntervention>(
@@ -252,6 +348,14 @@ export function getTaskRunDetail(taskRunId: string) {
     executionBoard: buildExecutionBoard(nodes),
     interventions,
     groupedEvents: groupEventsByFoldGroup(events),
+    kernel: buildTaskRunKernelView({
+      taskRun,
+      blueprint,
+      taskEvents,
+      environmentSnapshot,
+      findings,
+      agents: team ? agents.filter((agent) => agent.teamId === team.id) : agents,
+    }),
     executionInsights: getTaskRunExecutionBoard(taskRun.id),
     dependencyGraph: getTaskRunDependencyGraph(taskRun.id),
     costBreakdown: getTaskRunCostBreakdown(taskRun.id),
@@ -289,6 +393,9 @@ export function getDashboardSnapshot() {
   const developers = listDevelopers();
   const environments = listExecutionEnvironments();
   const executionPolicies = listExecutionPolicies();
+  const blueprints = listTaskBlueprints();
+  const providerAdapters = listProviderAdapterDefinitions();
+  const findings = listFindings();
 
   const runningTaskRuns = task_runs.filter((taskRun) => taskRun.status === "running");
   const awaitingTaskRuns = task_runs.filter((taskRun) => taskRun.status === "awaiting");
@@ -370,7 +477,24 @@ export function getDashboardSnapshot() {
     tenantSpaceSummaries,
     businessTeamSummaries,
     teamSummaries,
+    taskBlueprints: blueprints.map((blueprint) =>
+      buildTaskBlueprintSummary({
+        blueprint,
+        businessTeams: business_teams,
+        teams,
+        environments,
+        providerAdapters,
+        taskRuns: task_runs,
+        findings,
+      }),
+    ),
     task_runs,
+    findingDashboard: buildFindingDashboard({
+      findings,
+      taskRuns: task_runs,
+      businessTeams: business_teams,
+    }),
+    findings: findings.slice(0, 8).map(summarizeFinding),
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
@@ -425,6 +549,7 @@ export function getWallboardSnapshot() {
   const business_teams = listBusinessTeams();
   const runtimes = listRuntimeEndpoints();
   const schedules = listScheduleTemplates();
+  const findings = listFindings();
 
   return {
     activeTaskRuns: task_runs.filter((taskRun) => ["running", "awaiting"].includes(taskRun.status)),
@@ -439,6 +564,11 @@ export function getWallboardSnapshot() {
       teams,
       business_teams,
     }),
+    findingDashboard: buildFindingDashboard({
+      findings,
+      taskRuns: task_runs,
+      businessTeams: business_teams,
+    }),
   };
 }
 
@@ -451,6 +581,11 @@ type TaskRunNodeSpec = {
 
 type SubmitTaskRunInput = {
   teamId: string;
+  blueprintId?: string | null;
+  blueprintVersion?: number;
+  idempotencyKey?: string | null;
+  parentTaskRunId?: string | null;
+  runState?: string;
   sourceType: TaskRun["sourceType"];
   sourceRef?: string | null;
   requestedBy: string;
@@ -460,6 +595,14 @@ type SubmitTaskRunInput = {
   plannerMode?: string;
   summary?: string;
   inputPayload: Record<string, unknown>;
+  permissionSnapshot?: Record<string, unknown>;
+  agentTeamRunPlan?: Record<string, unknown>;
+  executionPolicySnapshot?: Record<string, unknown>;
+  environmentSnapshot?: {
+    templateId?: string | null;
+    environmentId?: string | null;
+    payload: Record<string, unknown>;
+  } | null;
   nodes?: TaskRunNodeSpec[];
 };
 
@@ -488,10 +631,15 @@ function appendTaskRunEvent(args: {
   title: string;
   content: string;
   metadata?: Record<string, unknown>;
+  visibility?: TaskEvent["visibility"];
+  parentEventId?: string | null;
 }) {
+  const eventId = randomUUID();
+  const createdAt = nowIso();
+
   execute(
     "INSERT INTO event_logs (id, trace_id, task_run_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    randomUUID(),
+    eventId,
     args.traceId,
     args.taskRunId,
     args.nodeId ?? null,
@@ -501,7 +649,24 @@ function appendTaskRunEvent(args: {
     args.title,
     args.content,
     JSON.stringify(args.metadata ?? {}),
-    nowIso(),
+    createdAt,
+  );
+  execute(
+    "INSERT INTO task_events (id, task_run_id, agent_run_id, event_type, event_time, visibility, payload_json, raw_payload_ref, parent_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    eventId,
+    args.taskRunId,
+    args.nodeId ?? null,
+    args.phase,
+    createdAt,
+    args.visibility ?? "team_only",
+    JSON.stringify({
+      title: args.title,
+      content: args.content,
+      foldGroup: args.foldGroup,
+      metadata: args.metadata ?? {},
+    }),
+    null,
+    args.parentEventId ?? null,
   );
 }
 
@@ -607,10 +772,30 @@ function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function parseJsonRecord(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 export function submitTaskRun(input: SubmitTaskRunInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
   if (!team) {
     throw new Error("代理团队不存在。");
+  }
+
+  if (input.blueprintId && input.idempotencyKey) {
+    const existing = queryOne<TaskRun>(
+      "SELECT * FROM task_runs WHERE blueprint_id = ? AND idempotency_key = ?",
+      input.blueprintId,
+      input.idempotencyKey,
+    );
+    if (existing) return getTaskRunDetail(existing.id);
   }
 
   const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", team.businessTeamId);
@@ -640,13 +825,39 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
   const dagEdges = nodeSpecs.flatMap((node) =>
     (node.dependsOn ?? []).map((dependency) => [dependency, node.nodeKey]),
   );
+  const environmentSnapshot = input.environmentSnapshot
+    ? {
+        ...input.environmentSnapshot,
+        payload: {
+          ...input.environmentSnapshot.payload,
+          taskRunId,
+          workspace:
+            typeof input.environmentSnapshot.payload.workspace === "object" &&
+            input.environmentSnapshot.payload.workspace !== null
+              ? {
+                  ...(input.environmentSnapshot.payload.workspace as Record<string, unknown>),
+                  id: `workspace:${taskRunId}`,
+                }
+              : { id: `workspace:${taskRunId}` },
+        },
+      }
+    : null;
 
   execute(
-    "INSERT INTO task_runs (id, tenant_space_id, business_team_id, team_id, access_grant_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO task_runs (id, tenant_space_id, business_team_id, team_id, blueprint_id, blueprint_version, idempotency_key, parent_task_run_id, run_state, environment_snapshot_id, permission_snapshot_json, agent_team_run_plan_json, execution_policy_json, access_grant_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     taskRunId,
     tenantSpace.id,
     businessTeam.id,
     team.id,
+    input.blueprintId ?? null,
+    input.blueprintVersion ?? 0,
+    input.idempotencyKey ?? null,
+    input.parentTaskRunId ?? null,
+    input.runState ?? "running",
+    environmentSnapshot ? `${taskRunId}:environment` : null,
+    JSON.stringify(input.permissionSnapshot ?? {}),
+    JSON.stringify(input.agentTeamRunPlan ?? {}),
+    JSON.stringify(input.executionPolicySnapshot ?? {}),
     input.accessGrantId ?? null,
     input.sourceType,
     input.sourceRef ?? null,
@@ -661,6 +872,18 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
     createdAt,
     null,
   );
+
+  if (environmentSnapshot) {
+    execute(
+      "INSERT INTO environment_snapshots (id, task_run_id, template_id, environment_id, snapshot_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      `${taskRunId}:environment`,
+      taskRunId,
+      environmentSnapshot.templateId ?? null,
+      environmentSnapshot.environmentId ?? null,
+      JSON.stringify(environmentSnapshot.payload),
+      createdAt,
+    );
+  }
 
   execute(
     "INSERT INTO task_run_plans (id, task_run_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
@@ -699,6 +922,8 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
     title: "任务已提交",
     content: `任务已进入 ${team.name} 的执行队列。`,
     metadata: {
+      blueprintId: input.blueprintId ?? null,
+      idempotencyKey: input.idempotencyKey ?? null,
       workflowType: team.workflowType,
       plannerMode: input.plannerMode ?? "rule",
       nodeCount: nodeSpecs.length,
@@ -706,6 +931,88 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
   });
 
   return getTaskRunDetail(taskRunId);
+}
+
+export function submitTaskRunFromBlueprint(args: {
+  blueprintId: string;
+  requestedBy?: string;
+  inputPayload?: Record<string, unknown>;
+  sourceRef?: string | null;
+  priority?: number;
+  parentTaskRunId?: string | null;
+}) {
+  const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", args.blueprintId);
+  if (!blueprint) throw new Error("任务蓝图不存在。");
+  if (blueprint.status !== "active") throw new Error("任务蓝图未启用。");
+
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", blueprint.teamId);
+  if (!team) throw new Error("任务蓝图绑定的 Agent 团队不存在。");
+
+  const agents = listAgents().filter((agent) => agent.teamId === team.id);
+  const environment = blueprint.environmentId
+    ? queryOne<ExecutionEnvironment>("SELECT * FROM execution_environments WHERE id = ?", blueprint.environmentId)
+    : null;
+  const trigger = parseJsonRecord(blueprint.triggerJson);
+  const executionPolicy = parseJsonRecord(blueprint.executionPolicyJson);
+  const inputPayload = {
+    taskCategory: blueprint.category,
+    taskBlueprintId: blueprint.id,
+    run_date: new Date().toISOString().slice(0, 10),
+    branch: environment?.defaultBranch ?? "main",
+    ...args.inputPayload,
+  };
+  const idempotencyTemplate =
+    typeof trigger.idempotencyKey === "string"
+      ? trigger.idempotencyKey
+      : typeof executionPolicy.idempotencyKey === "string"
+        ? executionPolicy.idempotencyKey
+        : "${task_blueprint_id}:${run_date}";
+  const idempotencyKey = renderTemplateValue(idempotencyTemplate, {
+    task_blueprint_id: blueprint.id,
+    ...inputPayload,
+  });
+  const sourceType = normalizeTriggerType(trigger.type) as TaskRun["sourceType"];
+  const environmentSnapshotPayload = buildEnvironmentSnapshotPayload({
+    taskRunId: "pending",
+    blueprint,
+    environment,
+    inputPayload,
+  });
+  const nodeSpecs = buildNodeSpecsFromRunPlan(blueprint.agentTeamRunPlanJson, agents);
+
+  return submitTaskRun({
+    teamId: blueprint.teamId,
+    blueprintId: blueprint.id,
+    blueprintVersion: blueprint.version,
+    idempotencyKey,
+    parentTaskRunId: args.parentTaskRunId ?? null,
+    sourceType,
+    sourceRef:
+      args.sourceRef ??
+      (sourceType === "webhook"
+        ? String(trigger.event ?? trigger.webhookPathKey ?? "webhook")
+        : String(trigger.expression ?? "manual")),
+    requestedBy: args.requestedBy ?? "blueprint-console",
+    priority: args.priority ?? 80,
+    environmentId: blueprint.environmentId,
+    plannerMode: parseJsonRecord(blueprint.agentTeamRunPlanJson).strategy === "leader_worker_parallel"
+      ? "leader_agent"
+      : "rule",
+    summary: `${blueprint.name} 已按任务蓝图生成运行实例。`,
+    inputPayload,
+    permissionSnapshot: buildEffectivePermissionPreview(blueprint.permissionPolicyJson),
+    agentTeamRunPlan: parseJsonRecord(blueprint.agentTeamRunPlanJson),
+    executionPolicySnapshot: executionPolicy,
+    environmentSnapshot: {
+      templateId:
+        typeof parseJsonRecord(blueprint.environmentSelectorJson).templateId === "string"
+          ? String(parseJsonRecord(blueprint.environmentSelectorJson).templateId)
+          : null,
+      environmentId: blueprint.environmentId,
+      payload: environmentSnapshotPayload,
+    },
+    nodes: nodeSpecs,
+  });
 }
 
 export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
