@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
         <div className="flex min-h-screen">
           <aside
-            className={`hidden border-r border-[var(--line)] bg-[var(--sidebar)] transition-[width] duration-200 lg:block ${
+            className={`hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] shadow-[8px_0_24px_rgba(15,23,42,0.08)] transition-[width] duration-200 lg:block ${
               collapsed ? "w-[88px]" : "w-[312px]"
             }`}
           >
@@ -79,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="hidden lg:inline-flex"
+                  className="hidden text-[var(--ink-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)] lg:inline-flex"
                   onClick={() => updateCollapsed(!collapsed)}
                 >
                   {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}

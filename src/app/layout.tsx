@@ -6,8 +6,10 @@ import "./globals.css";
 const notoSansSc = Noto_Sans_SC({
   variable: "--font-manrope",
   preload: true,
+  display: "swap",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  fallback: ["PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"],
 });
 
 const plexMono = IBM_Plex_Mono({

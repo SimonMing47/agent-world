@@ -24,10 +24,10 @@ export function SidebarNav({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 pb-3 pt-4">
+      <div className="flex items-center justify-between border-b border-[var(--sidebar-line)] px-4 pb-4 pt-5">
         <div className={cn("min-w-0", collapsed && "sr-only")}>
-          <div className="text-sm font-semibold text-[var(--sidebar-ink)]">AgentWorld</div>
-          <div className="text-xs text-[var(--sidebar-muted)]">任务平台控制台</div>
+          <div className="text-base font-semibold tracking-[0.01em] text-[var(--sidebar-ink)]">AgentWorld</div>
+          <div className="mt-1 text-xs font-medium text-[var(--sidebar-muted)]">任务平台控制台</div>
         </div>
         {onToggleCollapse ? (
           <Button
@@ -35,19 +35,19 @@ export function SidebarNav({
             variant="ghost"
             size="icon"
             onClick={onToggleCollapse}
-            className="hidden text-[var(--sidebar-muted)] hover:bg-white/6 hover:text-[var(--sidebar-ink)] lg:inline-flex"
+            className="hidden border border-transparent text-[var(--sidebar-muted)] hover:border-[var(--sidebar-line)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)] lg:inline-flex"
           >
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         ) : null}
       </div>
 
-      <AppScrollArea className="flex-1 px-2">
-        <nav className="space-y-5 pb-6">
+      <AppScrollArea className="flex-1 px-3 py-3">
+        <nav className="space-y-6 pb-6">
           {navigationGroups.map((group) => (
-            <div key={group.title} className="space-y-1.5">
+            <div key={group.title} className="space-y-2">
               {!collapsed ? (
-                <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--sidebar-muted)]">
+                <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sidebar-subtle)]">
                   {group.title}
                 </div>
               ) : null}
@@ -62,18 +62,30 @@ export function SidebarNav({
                     href={item.href}
                     onClick={onItemClick}
                     className={cn(
-                      "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                      "group flex min-h-[56px] items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
                       collapsed && "justify-center px-0",
                       isActive
-                        ? "bg-white/10 text-[var(--sidebar-ink)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-                        : "text-[var(--sidebar-muted)] hover:bg-white/6 hover:text-[var(--sidebar-ink)]",
+                        ? "border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] text-[var(--sidebar-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                        : "border-transparent text-[var(--sidebar-subtle)] hover:border-[var(--sidebar-line)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)]",
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive ? "text-[var(--sidebar-accent)]" : "text-current",
+                      )}
+                    />
                     {!collapsed ? (
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{item.label}</div>
-                        <div className="truncate text-xs text-[var(--sidebar-muted)] group-hover:text-[var(--sidebar-muted)]">
+                        <div className="truncate text-sm font-semibold tracking-[0.01em]">{item.label}</div>
+                        <div
+                          className={cn(
+                            "truncate pt-0.5 text-xs",
+                            isActive
+                              ? "text-[color:rgba(248,250,252,0.78)]"
+                              : "text-[var(--sidebar-muted)] group-hover:text-[var(--sidebar-muted)]",
+                          )}
+                        >
                           {item.description}
                         </div>
                       </div>
