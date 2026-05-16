@@ -1,4 +1,4 @@
-import { type Agent, type AgentTeam, type TavernListing } from "@/server/db";
+import { type Agent, type AgentTeam, type ServiceCatalogListing } from "@/server/db";
 
 export function buildAgentTeamSummary(team: AgentTeam, agents: Agent[]) {
   return {
@@ -12,7 +12,7 @@ export function buildAgentTeamSummary(team: AgentTeam, agents: Agent[]) {
   };
 }
 
-export function buildTavernResume(listing: TavernListing) {
+export function buildServiceCatalogEntry(listing: ServiceCatalogListing) {
   const resume = JSON.parse(listing.resumeJson) as {
     successRate?: number;
     avgLatencyMs?: number;

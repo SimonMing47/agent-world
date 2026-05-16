@@ -16,7 +16,7 @@ export default function RuntimesPage() {
             探测 OpenCode runtime，并刷新能力目录。
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)]">
-            AgentWorld 本身保持单体部署，但在 Quest 分发前，仍然可以发现并探活外部 runtime。
+            AgentWorld 本身保持单体部署，但在任务分发前，仍然可以发现并探活外部 runtime。
           </p>
         </div>
         <RuntimeDiscoveryButton />

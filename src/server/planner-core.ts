@@ -1,6 +1,6 @@
-import { type Agent, type AgentTeam, type QuestNode, type QuestPlan } from "@/server/db";
+import { type Agent, type AgentTeam, type TaskRunNode, type TaskRunPlan } from "@/server/db";
 
-export function summarizeQuestPlan(plan: QuestPlan, nodes: QuestNode[], agents: Agent[]) {
+export function summarizeTaskRunPlan(plan: TaskRunPlan, nodes: TaskRunNode[], agents: Agent[]) {
   const dag = JSON.parse(plan.dagJson) as {
     nodes?: Array<{ id: string; agent: string }>;
     edges?: string[][];
@@ -20,7 +20,7 @@ export function summarizeQuestPlan(plan: QuestPlan, nodes: QuestNode[], agents: 
 export function buildTeamPlanningMode(team: AgentTeam) {
   switch (team.workflowType) {
     case "dag":
-      return "Captain Agent 可以先产出多节点 DAG，执行器会在真正运行前校验它。";
+      return "Leader Agent 可以先产出多节点 DAG，执行器会在真正运行前校验它。";
     case "parallel":
       return "只要依赖满足，多个节点就可以同时进入可执行状态。";
     case "sequential":

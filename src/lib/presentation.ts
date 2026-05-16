@@ -50,14 +50,14 @@ const labels = {
     paused: "已暂停",
     scheduled: "已排程",
   },
-  harnessScope: {
-    AgentTeam: "AgentTeam 级",
+  executionPolicyScope: {
+    AgentTeam: "Agent 团队级",
     Global: "全局级",
-    Kingdom: "Kingdom 级",
-    World: "World 级",
+    BusinessTeam: "业务团队级",
+    TenantSpace: "租户级",
   },
   sourceType: {
-    contract: "合约调用",
+    access_grant: "跨团队授权调用",
     manual: "手动提交",
     schedule: "定时触发",
     webhook: "Webhook 触发",
@@ -88,15 +88,10 @@ const demoCopyMap: Record<string, string> = {
     "先收集信号，再整理面向负责人的事故处理建议。",
   "Failure Analyst is comparing billing alerts with worker queue lag to explain probable blast radius.":
     "Failure Analyst 正在比对计费告警与 worker 队列积压情况，以判断可能的影响范围。",
-  "GitHub PR webhook became a governed Quest before any repository action was attempted.":
-    "GitHub PR 的 webhook 已先转成受治理的 Quest，之后才允许进入代码仓动作。",
   "Market Scout gathered product pages, engineering writeups, and adoption notes for the comparison brief.":
     "Market Scout 已收集产品页、工程文章和采用情况说明，用于生成对比简报。",
-  "Merge Steward prepared repository write-back steps, but the Release Write Gate Harness paused execution for approval.":
-    "Merge Steward 已准备好代码仓回写步骤，但 Release Write Gate Harness 在执行前要求人工批准。",
   "Planning": "规划阶段",
   "Platform reliability": "平台稳定性",
-  "Quest accepted": "任务已接收",
   "Release automation": "发布自动化",
   "Release Reviewer found no blocking defects and prepared a concise recommendation.":
     "Release Reviewer 未发现阻塞性缺陷，并给出了简明建议。",
@@ -104,15 +99,15 @@ const demoCopyMap: Record<string, string> = {
   "Review the PR, then prepare write-back steps behind a human gate.":
     "先评审 PR，再在人工门禁之后准备回写步骤。",
   "Scanning market evidence": "扫描市场证据",
-  "Schedule tick created the quest and selected the Incident Observatory team.":
-    "调度器时间片已生成 Quest，并选择 Incident Observatory 团队接手。",
+  "Schedule tick created the task and selected the Incident Observatory team.":
+    "调度器时间片已生成任务，并选择 Incident Observatory 团队接手。",
   "Scout the market, then turn raw evidence into a leadership brief.":
     "先扫描市场，再把原始证据整理成管理层简报。",
   "Signal Scout clustered 5 incidents into 2 candidate reliability threads.":
     "Signal Scout 已将 5 个事故聚合成 2 条候选稳定性线索。",
   "Synthesis": "结果综合",
   "Write-back blocked": "回写被阻塞",
-  "Webhook quest created": "Webhook Quest 已创建",
+  "Webhook task created": "Webhook 任务已创建",
 };
 
 function translate(map: Record<string, string>, value: string) {
@@ -139,8 +134,8 @@ export function translateScheduleState(value: string) {
   return translate(labels.scheduleState, value);
 }
 
-export function translateHarnessScope(value: string) {
-  return translate(labels.harnessScope, value);
+export function translateExecutionPolicyScope(value: string) {
+  return translate(labels.executionPolicyScope, value);
 }
 
 export function translateSourceType(value: string) {

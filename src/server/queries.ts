@@ -6,56 +6,56 @@ import {
   queryOne,
   type Agent,
   type AgentTeam,
-  type Contract,
+  type AccessGrant,
   type DeveloperProfile,
   type EventLog,
   type ExecutionEnvironment,
-  type HarnessProfile,
-  type Kingdom,
+  type ExecutionPolicy,
+  type BusinessTeam,
   type ProviderProfile,
-  type Quest,
-  type QuestIntervention,
-  type QuestNode,
-  type QuestPlan,
+  type TaskRun,
+  type TaskRunIntervention,
+  type TaskRunNode,
+  type TaskRunPlan,
   type RepositoryProfile,
   type RuntimeEndpoint,
   type ScheduleTemplate,
   type TaskTemplate,
-  type TavernListing,
+  type ServiceCatalogListing,
   type WebhookEndpoint,
-  type World,
+  type TenantSpace,
 } from "@/server/db";
-import { buildContractSummary, evaluateContractAccess } from "@/server/contract-core";
+import { buildAccessGrantSummary, evaluateAccessGrantAccess } from "@/server/access-grant-core";
 import { buildExecutionBoard, summarizeNodeState } from "@/server/executor-core";
 import {
-  buildHarnessSummary,
-  composeHarnessProfile,
-  evaluateHarnessToolPolicy,
-} from "@/server/harness-core";
+  buildExecutionPolicySummary,
+  composeExecutionPolicy,
+  evaluateExecutionPolicyToolPolicy,
+} from "@/server/execution-policy-core";
 import { buildInvocationPlan } from "@/server/invocation-core";
 import { discoverConfiguredRuntimes } from "@/server/opencode-adapter";
-import { buildQuestPriorityAssessment, listDueSchedules, listScheduleAssessments } from "@/server/scheduler-core";
+import { buildTaskRunPriorityAssessment, listDueSchedules, listScheduleAssessments } from "@/server/scheduler-core";
 import { groupEventsByFoldGroup } from "@/server/trace-core";
-import { buildWorldSummary, buildKingdomSummary } from "@/server/tenant-core";
-import { buildAgentTeamSummary, buildTavernResume } from "@/server/registry-core";
+import { buildTenantSpaceSummary, buildBusinessTeamSummary } from "@/server/tenant-space-core";
+import { buildAgentTeamSummary, buildServiceCatalogEntry } from "@/server/registry-core";
 import { buildProviderSelection } from "@/server/provider-core";
-import { summarizeQuestPlan, buildTeamPlanningMode } from "@/server/planner-core";
+import { summarizeTaskRunPlan, buildTeamPlanningMode } from "@/server/planner-core";
 import { buildRuntimeSummary } from "@/server/runtime-core";
 import {
   buildEnvironmentSummary,
   buildTaskExecutionDashboard,
 } from "@/server/environment-core";
 
-export function listWorlds() {
-  return queryAll<World>("SELECT * FROM worlds ORDER BY name ASC");
+export function listTenantSpaces() {
+  return queryAll<TenantSpace>("SELECT * FROM tenant_spaces ORDER BY name ASC");
 }
 
-export function listKingdoms() {
-  return queryAll<Kingdom>("SELECT * FROM kingdoms ORDER BY name ASC");
+export function listBusinessTeams() {
+  return queryAll<BusinessTeam>("SELECT * FROM business_teams ORDER BY name ASC");
 }
 
-export function listHarnessProfiles() {
-  return queryAll<HarnessProfile>("SELECT * FROM harness_profiles ORDER BY name ASC");
+export function listExecutionPolicies() {
+  return queryAll<ExecutionPolicy>("SELECT * FROM execution_policies ORDER BY name ASC");
 }
 
 export function listAgentTeams() {
@@ -104,12 +104,12 @@ export function listRuntimeEndpoints() {
   return queryAll<RuntimeEndpoint>("SELECT * FROM runtime_endpoints ORDER BY name ASC");
 }
 
-export function listContracts() {
-  return queryAll<Contract>("SELECT * FROM contracts ORDER BY created_at DESC");
+export function listAccessGrants() {
+  return queryAll<AccessGrant>("SELECT * FROM access_grants ORDER BY created_at DESC");
 }
 
-export function listTavernListings() {
-  return queryAll<TavernListing>("SELECT * FROM tavern_listings ORDER BY created_at DESC");
+export function listServiceCatalogListings() {
+  return queryAll<ServiceCatalogListing>("SELECT * FROM service_catalog_listings ORDER BY created_at DESC");
 }
 
 export function listScheduleTemplates() {
@@ -120,8 +120,8 @@ export function listTaskTemplates() {
   return queryAll<TaskTemplate>("SELECT * FROM task_templates ORDER BY created_at DESC");
 }
 
-export function listQuests() {
-  return queryAll<Quest>("SELECT * FROM quests ORDER BY created_at DESC");
+export function listTaskRuns() {
+  return queryAll<TaskRun>("SELECT * FROM task_runs ORDER BY created_at DESC");
 }
 
 export function listRepositories() {
@@ -142,7 +142,7 @@ export function upsertExecutionEnvironment(
   input: Pick<
     ExecutionEnvironment,
     | "id"
-    | "kingdomId"
+    | "businessTeamId"
     | "name"
     | "repositoryProvider"
     | "repositoryName"
@@ -159,9 +159,9 @@ export function upsertExecutionEnvironment(
   },
 ) {
   execute(
-    "INSERT OR REPLACE INTO execution_environments (id, kingdom_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR REPLACE INTO execution_environments (id, business_team_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
-    input.kingdomId,
+    input.businessTeamId,
     input.name,
     input.repositoryProvider,
     input.repositoryName,
@@ -184,62 +184,62 @@ export function listWebhooks() {
   return queryAll<WebhookEndpoint>("SELECT * FROM webhook_endpoints ORDER BY name ASC");
 }
 
-export function getQuestDetail(questId: string) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
+export function getTaskRunDetail(taskRunId: string) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
 
-  if (!quest) return null;
+  if (!taskRun) return null;
 
-  const world = queryOne<World>("SELECT * FROM worlds WHERE id = ?", quest.worldId);
-  const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE id = ?", quest.kingdomId);
-  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
-  const contract = quest.contractId
-    ? queryOne<Contract>("SELECT * FROM contracts WHERE id = ?", quest.contractId)
+  const tenantSpace = queryOne<TenantSpace>("SELECT * FROM tenant_spaces WHERE id = ?", taskRun.tenantSpaceId);
+  const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", taskRun.businessTeamId);
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", taskRun.teamId);
+  const accessGrant = taskRun.accessGrantId
+    ? queryOne<AccessGrant>("SELECT * FROM access_grants WHERE id = ?", taskRun.accessGrantId)
     : null;
-  const plan = queryOne<QuestPlan>("SELECT * FROM quest_plans WHERE quest_id = ?", quest.id);
-  const nodes = queryAll<QuestNode>("SELECT * FROM quest_nodes WHERE quest_id = ? ORDER BY node_key ASC", quest.id);
-  const interventions = queryAll<QuestIntervention>(
-    "SELECT * FROM quest_interventions WHERE quest_id = ? ORDER BY requested_at DESC",
-    quest.id,
+  const plan = queryOne<TaskRunPlan>("SELECT * FROM task_run_plans WHERE task_run_id = ?", taskRun.id);
+  const nodes = queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRun.id);
+  const interventions = queryAll<TaskRunIntervention>(
+    "SELECT * FROM task_run_interventions WHERE task_run_id = ? ORDER BY requested_at DESC",
+    taskRun.id,
   );
   const events = queryAll<EventLog>(
-    "SELECT * FROM event_logs WHERE quest_id = ? ORDER BY seq ASC",
-    quest.id,
+    "SELECT * FROM event_logs WHERE task_run_id = ? ORDER BY seq ASC",
+    taskRun.id,
   );
   const agents = listAgents();
   const providers = listProviders();
   const runtimes = listRuntimeEndpoints();
-  const harnesses = listHarnessProfiles();
+  const executionPolicies = listExecutionPolicies();
 
-  const teamHarness = team?.defaultHarnessId
-    ? harnesses.find((item) => item.id === team.defaultHarnessId) ?? null
+  const teamExecutionPolicy = team?.defaultExecutionPolicyId
+    ? executionPolicies.find((item) => item.id === team.defaultExecutionPolicyId) ?? null
     : null;
-  const captain = team?.captainAgentId
-    ? agents.find((agent) => agent.id === team.captainAgentId) ?? null
+  const leader = team?.leaderAgentId
+    ? agents.find((agent) => agent.id === team.leaderAgentId) ?? null
     : null;
   const featuredAgent =
-    captain ?? agents.find((agent) => agent.teamId === team?.id) ?? null;
+    leader ?? agents.find((agent) => agent.teamId === team?.id) ?? null;
   const runtime =
-    runtimes.find((item) => item.kingdomId === quest.kingdomId) ??
-    runtimes.find((item) => item.worldId === quest.worldId) ??
+    runtimes.find((item) => item.businessTeamId === taskRun.businessTeamId) ??
+    runtimes.find((item) => item.tenantSpaceId === taskRun.tenantSpaceId) ??
     null;
   const providerSelection =
-    world && kingdom && featuredAgent
+    tenantSpace && businessTeam && featuredAgent
       ? buildProviderSelection({
-          world,
-          kingdom,
+          tenantSpace,
+          businessTeam,
           agent: featuredAgent,
           providers,
         })
       : { provider: null, rationale: ["当前无法给出 Provider 选择结果。"] };
 
   return {
-    quest,
-    world,
-    kingdom,
+    taskRun,
+    tenantSpace,
+    businessTeam,
     team,
-    contract: contract ? buildContractSummary(contract) : null,
+    accessGrant: accessGrant ? buildAccessGrantSummary(accessGrant) : null,
     plan: plan && team
-      ? summarizeQuestPlan(
+      ? summarizeTaskRunPlan(
           plan,
           nodes,
           agents.filter((agent) => agent.teamId === team.id),
@@ -252,22 +252,22 @@ export function getQuestDetail(questId: string) {
     executionBoard: buildExecutionBoard(nodes),
     interventions,
     groupedEvents: groupEventsByFoldGroup(events),
-    executionInsights: getQuestExecutionBoard(quest.id),
-    dependencyGraph: getQuestDependencyGraph(quest.id),
-    costBreakdown: getQuestCostBreakdown(quest.id),
-    policyHits: getQuestPolicyHits(quest.id),
-    harness: teamHarness ? buildHarnessSummary(teamHarness) : null,
+    executionInsights: getTaskRunExecutionBoard(taskRun.id),
+    dependencyGraph: getTaskRunDependencyGraph(taskRun.id),
+    costBreakdown: getTaskRunCostBreakdown(taskRun.id),
+    policyHits: getTaskRunPolicyHits(taskRun.id),
+    executionPolicy: teamExecutionPolicy ? buildExecutionPolicySummary(teamExecutionPolicy) : null,
     invocationStages:
-      world && kingdom && team && featuredAgent && teamHarness
+      tenantSpace && businessTeam && team && featuredAgent && teamExecutionPolicy
         ? buildInvocationPlan({
-            world,
-            kingdom,
+            tenantSpace,
+            businessTeam,
             team,
             agent: featuredAgent,
-            harness: teamHarness,
+            executionPolicy: teamExecutionPolicy,
             runtime,
             provider: providerSelection.provider,
-            contract,
+            accessGrant,
           })
         : [],
     providerRationale: providerSelection.rationale,
@@ -275,213 +275,213 @@ export function getQuestDetail(questId: string) {
 }
 
 export function getDashboardSnapshot() {
-  const worlds = listWorlds();
-  const kingdoms = listKingdoms();
+  const tenant_spaces = listTenantSpaces();
+  const business_teams = listBusinessTeams();
   const teams = listAgentTeams();
   const agents = listAgents();
-  const quests = listQuests();
+  const task_runs = listTaskRuns();
   const schedules = listScheduleTemplates();
-  const listings = listTavernListings();
-  const contracts = listContracts();
+  const listings = listServiceCatalogListings();
+  const access_grants = listAccessGrants();
   const providers = listProviders();
   const runtimes = listRuntimeEndpoints();
   const repositories = listRepositories();
   const developers = listDevelopers();
   const environments = listExecutionEnvironments();
-  const harnesses = listHarnessProfiles();
+  const executionPolicies = listExecutionPolicies();
 
-  const runningQuests = quests.filter((quest) => quest.status === "running");
-  const awaitingQuests = quests.filter((quest) => quest.status === "awaiting");
-  const completedQuests = quests.filter((quest) => quest.status === "completed");
+  const runningTaskRuns = task_runs.filter((taskRun) => taskRun.status === "running");
+  const awaitingTaskRuns = task_runs.filter((taskRun) => taskRun.status === "awaiting");
+  const completedTaskRuns = task_runs.filter((taskRun) => taskRun.status === "completed");
 
-  const worldSummaries = worlds.map((world) => buildWorldSummary(world, kingdoms));
-  const kingdomSummaries = kingdoms.map((kingdom) => buildKingdomSummary(kingdom));
+  const tenantSpaceSummaries = tenant_spaces.map((tenantSpace) => buildTenantSpaceSummary(tenantSpace, business_teams));
+  const businessTeamSummaries = business_teams.map((businessTeam) => buildBusinessTeamSummary(businessTeam));
   const teamSummaries = teams.map((team) => buildAgentTeamSummary(team, agents));
-  const tavernResumes = listings.map((listing) => {
+  const serviceCatalogResumes = listings.map((listing) => {
     const team = teams.find((item) => item.id === listing.teamId);
     return {
-      ...buildTavernResume(listing),
-      teamName: team?.name ?? "未知 AgentTeam",
+      ...buildServiceCatalogEntry(listing),
+      teamName: team?.name ?? "未知 Agent 团队",
     };
   });
 
   const scheduleAssessments = listScheduleAssessments(schedules);
   const dueSchedules = listDueSchedules(schedules);
-  const questPriorityBoard = quests
-    .map((quest) => buildQuestPriorityAssessment(quest))
+  const taskRunPriorityBoard = task_runs
+    .map((taskRun) => buildTaskRunPriorityAssessment(taskRun))
     .sort((left, right) => right.effectivePriority - left.effectivePriority);
 
-  const featuredQuest = runningQuests[0] ?? awaitingQuests[0] ?? quests[0] ?? null;
-  const featuredTeam = featuredQuest
-    ? teams.find((team) => team.id === featuredQuest.teamId) ?? null
+  const featuredTaskRun = runningTaskRuns[0] ?? awaitingTaskRuns[0] ?? task_runs[0] ?? null;
+  const featuredTeam = featuredTaskRun
+    ? teams.find((team) => team.id === featuredTaskRun.teamId) ?? null
     : null;
-  const featuredWorld = featuredQuest
-    ? worlds.find((world) => world.id === featuredQuest.worldId) ?? null
+  const featuredTenantSpace = featuredTaskRun
+    ? tenant_spaces.find((tenantSpace) => tenantSpace.id === featuredTaskRun.tenantSpaceId) ?? null
     : null;
-  const featuredKingdom = featuredQuest
-    ? kingdoms.find((kingdom) => kingdom.id === featuredQuest.kingdomId) ?? null
+  const featuredBusinessTeam = featuredTaskRun
+    ? business_teams.find((businessTeam) => businessTeam.id === featuredTaskRun.businessTeamId) ?? null
     : null;
-  const featuredHarness = featuredTeam?.defaultHarnessId
-    ? harnesses.find((harness) => harness.id === featuredTeam.defaultHarnessId) ?? null
+  const featuredExecutionPolicy = featuredTeam?.defaultExecutionPolicyId
+    ? executionPolicies.find((executionPolicy) => executionPolicy.id === featuredTeam.defaultExecutionPolicyId) ?? null
     : null;
   const featuredAgent =
-    (featuredTeam?.captainAgentId
-      ? agents.find((agent) => agent.id === featuredTeam.captainAgentId)
+    (featuredTeam?.leaderAgentId
+      ? agents.find((agent) => agent.id === featuredTeam.leaderAgentId)
       : null) ??
     agents.find((agent) => agent.teamId === featuredTeam?.id) ??
     null;
   const providerSelection =
-    featuredWorld && featuredKingdom && featuredAgent
+    featuredTenantSpace && featuredBusinessTeam && featuredAgent
       ? buildProviderSelection({
-          world: featuredWorld,
-          kingdom: featuredKingdom,
+          tenantSpace: featuredTenantSpace,
+          businessTeam: featuredBusinessTeam,
           agent: featuredAgent,
           providers,
         })
       : { provider: null, rationale: ["当前没有可展示的 Provider 选择结果。"] };
   const featuredRuntime =
-    featuredQuest
-      ? runtimes.find((runtime) => runtime.kingdomId === featuredQuest.kingdomId) ?? null
+    featuredTaskRun
+      ? runtimes.find((runtime) => runtime.businessTeamId === featuredTaskRun.businessTeamId) ?? null
       : null;
 
   return {
     metrics: [
       {
-        label: "运行中的 Quest",
-        value: String(runningQuests.length),
-        detail: "这些 Quest 正由进程内执行槽位接手运行。",
+        label: "运行中的任务",
+        value: String(runningTaskRuns.length),
+        detail: "这些任务正由进程内执行槽位接手运行。",
       },
       {
         label: "等待人工处理",
-        value: String(awaitingQuests.length),
-        detail: "这些 Quest 命中了 Harness 人工门禁，正在等待介入。",
+        value: String(awaitingTaskRuns.length),
+        detail: "这些任务命中了运行约束人工门禁，正在等待介入。",
       },
       {
-        label: "公开 AgentTeam",
+        label: "公开 Agent 团队",
         value: String(teams.filter((team) => team.visibility === "public").length),
-        detail: "这些 AgentTeam 可以在 Tavern 上架，并被其他 Kingdom 招募。",
+        detail: "这些 Agent 团队可以在服务目录上架，并被其他业务团队招募。",
       },
       {
-        label: "生效中的 Contract",
-        value: String(contracts.filter((contract) => contract.status === "active").length),
-        detail: "跨 Kingdom 的服务访问只能通过这些 Contract 合法发生。",
+        label: "生效中的跨团队授权",
+        value: String(access_grants.filter((accessGrant) => accessGrant.status === "active").length),
+        detail: "跨业务团队的服务访问只能通过这些授权合法发生。",
       },
     ],
-    worldSummaries,
-    kingdomSummaries,
+    tenantSpaceSummaries,
+    businessTeamSummaries,
     teamSummaries,
-    quests,
-    tavernResumes,
-    contracts: contracts.map((contract) => ({
-      ...buildContractSummary(contract),
-      providerTeamName: teams.find((team) => team.id === contract.providerTeamId)?.name ?? "未知 AgentTeam",
-      consumerKingdomName:
-        kingdoms.find((kingdom) => kingdom.id === contract.consumerKingdomId)?.name ?? "未知 Kingdom",
+    task_runs,
+    serviceCatalogResumes,
+    access_grants: access_grants.map((accessGrant) => ({
+      ...buildAccessGrantSummary(accessGrant),
+      providerTeamName: teams.find((team) => team.id === accessGrant.providerTeamId)?.name ?? "未知 Agent 团队",
+      consumerBusinessTeamName:
+        business_teams.find((businessTeam) => businessTeam.id === accessGrant.consumerBusinessTeamId)?.name ?? "未知业务团队",
     })),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
     repositories,
     developers,
     executionEnvironments: environments.map((environment) =>
-      buildEnvironmentSummary(environment, kingdoms),
+      buildEnvironmentSummary(environment, business_teams),
     ),
     taskExecutionDashboard: buildTaskExecutionDashboard({
-      quests,
+      task_runs,
       schedules,
       teams,
-      kingdoms,
+      business_teams,
     }),
     scheduleAssessments,
     dueScheduleCount: dueSchedules.length,
-    questPriorityBoard,
+    taskRunPriorityBoard,
     featuredInvocation:
-      featuredWorld && featuredKingdom && featuredTeam && featuredAgent && featuredHarness
+      featuredTenantSpace && featuredBusinessTeam && featuredTeam && featuredAgent && featuredExecutionPolicy
         ? buildInvocationPlan({
-            world: featuredWorld,
-            kingdom: featuredKingdom,
+            tenantSpace: featuredTenantSpace,
+            businessTeam: featuredBusinessTeam,
             team: featuredTeam,
             agent: featuredAgent,
-            harness: featuredHarness,
+            executionPolicy: featuredExecutionPolicy,
             runtime: featuredRuntime,
             provider: providerSelection.provider,
-            contract:
-              featuredQuest?.contractId
-                ? contracts.find((contract) => contract.id === featuredQuest.contractId) ?? null
+            accessGrant:
+              featuredTaskRun?.accessGrantId
+                ? access_grants.find((accessGrant) => accessGrant.id === featuredTaskRun.accessGrantId) ?? null
                 : null,
           })
         : [],
     featuredProviderRationale: providerSelection.rationale,
     featuredPlanningMode: featuredTeam ? buildTeamPlanningMode(featuredTeam) : null,
     upcomingWindow: addMinutes(new Date(), 60).toISOString(),
-    completedQuestCount: completedQuests.length,
+    completedTaskRunCount: completedTaskRuns.length,
   };
 }
 
 export function getWallboardSnapshot() {
-  const quests = listQuests();
+  const task_runs = listTaskRuns();
   const teams = listAgentTeams();
   const agents = listAgents();
   const repositories = listRepositories();
   const developers = listDevelopers();
-  const kingdoms = listKingdoms();
+  const business_teams = listBusinessTeams();
   const runtimes = listRuntimeEndpoints();
   const schedules = listScheduleTemplates();
 
   return {
-    activeQuests: quests.filter((quest) => ["running", "awaiting"].includes(quest.status)),
+    activeTaskRuns: task_runs.filter((taskRun) => ["running", "awaiting"].includes(taskRun.status)),
     topTeams: teams.slice(0, 3).map((team) => buildAgentTeamSummary(team, agents)),
     topRepositories: repositories.slice(0, 3),
     topDevelopers: developers.slice(0, 3),
-    kingdoms: kingdoms.map((kingdom) => buildKingdomSummary(kingdom)),
+    business_teams: business_teams.map((businessTeam) => buildBusinessTeamSummary(businessTeam)),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
     taskExecutionDashboard: buildTaskExecutionDashboard({
-      quests,
+      task_runs,
       schedules,
       teams,
-      kingdoms,
+      business_teams,
     }),
   };
 }
 
-type QuestNodeSpec = {
+type TaskRunNodeSpec = {
   nodeKey: string;
   agentId: string;
   dependsOn?: string[];
   input?: Record<string, unknown>;
 };
 
-type SubmitQuestInput = {
+type SubmitTaskRunInput = {
   teamId: string;
-  sourceType: Quest["sourceType"];
+  sourceType: TaskRun["sourceType"];
   sourceRef?: string | null;
   requestedBy: string;
   priority?: number;
-  contractId?: string | null;
+  accessGrantId?: string | null;
   environmentId?: string | null;
   plannerMode?: string;
   summary?: string;
   inputPayload: Record<string, unknown>;
-  nodes?: QuestNodeSpec[];
+  nodes?: TaskRunNodeSpec[];
 };
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function getQuestNodes(questId: string) {
-  return queryAll<QuestNode>("SELECT * FROM quest_nodes WHERE quest_id = ? ORDER BY node_key ASC", questId);
+function getTaskRunNodes(taskRunId: string) {
+  return queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRunId);
 }
 
-function getNextEventSeq(questId: string) {
+function getNextEventSeq(taskRunId: string) {
   const row = queryOne<{ maxSeq: number | null }>(
-    "SELECT MAX(seq) as maxSeq FROM event_logs WHERE quest_id = ?",
-    questId,
+    "SELECT MAX(seq) as maxSeq FROM event_logs WHERE task_run_id = ?",
+    taskRunId,
   );
   return (row?.maxSeq ?? 0) + 1;
 }
 
-function appendQuestEvent(args: {
+function appendTaskRunEvent(args: {
   traceId: string;
-  questId: string;
+  taskRunId: string;
   nodeId?: string | null;
   phase: string;
   foldGroup: string;
@@ -490,12 +490,12 @@ function appendQuestEvent(args: {
   metadata?: Record<string, unknown>;
 }) {
   execute(
-    "INSERT INTO event_logs (id, trace_id, quest_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO event_logs (id, trace_id, task_run_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     randomUUID(),
     args.traceId,
-    args.questId,
+    args.taskRunId,
     args.nodeId ?? null,
-    getNextEventSeq(args.questId),
+    getNextEventSeq(args.taskRunId),
     args.phase,
     args.foldGroup,
     args.title,
@@ -507,8 +507,8 @@ function appendQuestEvent(args: {
 
 function synthesizeTeamNodes(team: AgentTeam) {
   const teamAgents = listAgents().filter((agent) => agent.teamId === team.id);
-  const captain = team.captainAgentId
-    ? teamAgents.find((agent) => agent.id === team.captainAgentId) ?? null
+  const leader = team.leaderAgentId
+    ? teamAgents.find((agent) => agent.id === team.leaderAgentId) ?? null
     : null;
   const specialist =
     teamAgents.find((agent) => agent.role.toLowerCase() === "specialist") ??
@@ -522,10 +522,10 @@ function synthesizeTeamNodes(team: AgentTeam) {
     teamAgents[teamAgents.length - 1] ??
     null;
 
-  if (!captain && !specialist && !reviewer) return [];
+  if (!leader && !specialist && !reviewer) return [];
 
   if (team.workflowType === "single") {
-    const singleAgent = captain ?? specialist ?? reviewer;
+    const singleAgent = leader ?? specialist ?? reviewer;
     if (!singleAgent) return [];
     return [
       {
@@ -534,18 +534,18 @@ function synthesizeTeamNodes(team: AgentTeam) {
         dependsOn: [],
         input: { action: "analyze", tool: "memory.read" },
       },
-    ] satisfies QuestNodeSpec[];
+    ] satisfies TaskRunNodeSpec[];
   }
 
-  const defaultCaptain = captain ?? specialist ?? reviewer;
-  const defaultSpecialist = executor ?? specialist ?? captain ?? reviewer;
-  const defaultReviewer = reviewer ?? captain ?? specialist;
-  if (!defaultCaptain || !defaultSpecialist || !defaultReviewer) return [];
+  const defaultLeader = leader ?? specialist ?? reviewer;
+  const defaultSpecialist = executor ?? specialist ?? leader ?? reviewer;
+  const defaultReviewer = reviewer ?? leader ?? specialist;
+  if (!defaultLeader || !defaultSpecialist || !defaultReviewer) return [];
 
   return [
     {
       nodeKey: "plan",
-      agentId: defaultCaptain.id,
+      agentId: defaultLeader.id,
       dependsOn: [],
       input: { action: "plan", tool: "memory.read" },
     },
@@ -561,23 +561,23 @@ function synthesizeTeamNodes(team: AgentTeam) {
       dependsOn: ["execute"],
       input: { action: "review", tool: "repo.write" },
     },
-  ] satisfies QuestNodeSpec[];
+  ] satisfies TaskRunNodeSpec[];
 }
 
-function loadComposedHarnessForQuest(quest: Quest) {
-  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
-  const profiles = listHarnessProfiles();
+function loadComposedExecutionPolicyForTaskRun(taskRun: TaskRun) {
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", taskRun.teamId);
+  const profiles = listExecutionPolicies();
   if (!team) return null;
 
-  return composeHarnessProfile({
+  return composeExecutionPolicy({
     profiles,
-    worldId: quest.worldId,
-    kingdomId: quest.kingdomId,
+    tenantSpaceId: taskRun.tenantSpaceId,
+    businessTeamId: taskRun.businessTeamId,
     teamId: team.id,
   });
 }
 
-function resolveQuestStatusFromNodes(nodes: QuestNode[]) {
+function resolveTaskRunStatusFromNodes(nodes: TaskRunNode[]) {
   if (nodes.every((node) => node.status === "completed")) return "completed";
   if (nodes.some((node) => node.status === "awaiting")) return "awaiting";
   if (nodes.some((node) => node.status === "failed")) return "failed";
@@ -588,11 +588,11 @@ function resolveQuestStatusFromNodes(nodes: QuestNode[]) {
 function classifyFailure(args: {
   reason: string;
   policyViolation?: boolean;
-  contractViolation?: boolean;
+  accessGrantViolation?: boolean;
   timeout?: boolean;
 }) {
   if (args.policyViolation) return "policy_violation";
-  if (args.contractViolation) return "contract_violation";
+  if (args.accessGrantViolation) return "access_grant_violation";
   if (args.timeout) return "timeout";
   if (args.reason.toLowerCase().includes("budget")) return "budget_exceeded";
   return "runtime_error";
@@ -607,23 +607,23 @@ function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-export function submitQuest(input: SubmitQuestInput) {
+export function submitTaskRun(input: SubmitTaskRunInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
   if (!team) {
     throw new Error("代理团队不存在。");
   }
 
-  const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE id = ?", team.kingdomId);
-  if (!kingdom) {
-    throw new Error("王国团队空间不存在。");
+  const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", team.businessTeamId);
+  if (!businessTeam) {
+    throw new Error("业务团队不存在。");
   }
 
-  const world = queryOne<World>("SELECT * FROM worlds WHERE id = ?", kingdom.worldId);
-  if (!world) {
-    throw new Error("世界空间不存在。");
+  const tenantSpace = queryOne<TenantSpace>("SELECT * FROM tenant_spaces WHERE id = ?", businessTeam.tenantSpaceId);
+  if (!tenantSpace) {
+    throw new Error("租户空间不存在。");
   }
 
-  const questId = randomUUID();
+  const taskRunId = randomUUID();
   const traceId = randomUUID();
   const planId = randomUUID();
   const createdAt = nowIso();
@@ -642,12 +642,12 @@ export function submitQuest(input: SubmitQuestInput) {
   );
 
   execute(
-    "INSERT INTO quests (id, world_id, kingdom_id, team_id, contract_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    questId,
-    world.id,
-    kingdom.id,
+    "INSERT INTO task_runs (id, tenant_space_id, business_team_id, team_id, access_grant_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    taskRunId,
+    tenantSpace.id,
+    businessTeam.id,
     team.id,
-    input.contractId ?? null,
+    input.accessGrantId ?? null,
     input.sourceType,
     input.sourceRef ?? null,
     "running",
@@ -663,10 +663,10 @@ export function submitQuest(input: SubmitQuestInput) {
   );
 
   execute(
-    "INSERT INTO quest_plans (id, quest_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO task_run_plans (id, task_run_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
     planId,
-    questId,
-    input.plannerMode ?? (team.workflowType === "dag" ? "captain_agent" : "rule"),
+    taskRunId,
+    input.plannerMode ?? (team.workflowType === "dag" ? "leader_agent" : "rule"),
     JSON.stringify({ nodes: dagNodes, edges: dagEdges }),
     input.summary ?? "任务已提交并生成执行图。",
     createdAt,
@@ -674,9 +674,9 @@ export function submitQuest(input: SubmitQuestInput) {
 
   for (const node of nodeSpecs) {
     execute(
-      "INSERT INTO quest_nodes (id, quest_id, plan_id, node_key, agent_id, depends_on_json, input_json, output_json, status, attempt_count, max_attempts, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO task_run_nodes (id, task_run_id, plan_id, node_key, agent_id, depends_on_json, input_json, output_json, status, attempt_count, max_attempts, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       randomUUID(),
-      questId,
+      taskRunId,
       planId,
       node.nodeKey,
       node.agentId,
@@ -691,13 +691,13 @@ export function submitQuest(input: SubmitQuestInput) {
     );
   }
 
-  appendQuestEvent({
+  appendTaskRunEvent({
     traceId,
-    questId,
+    taskRunId,
     phase: "planning",
     foldGroup: "Planning",
-    title: "Quest submitted",
-    content: `Quest 已进入 ${team.name} 的执行队列。`,
+    title: "任务已提交",
+    content: `任务已进入 ${team.name} 的执行队列。`,
     metadata: {
       workflowType: team.workflowType,
       plannerMode: input.plannerMode ?? "rule",
@@ -705,20 +705,20 @@ export function submitQuest(input: SubmitQuestInput) {
     },
   });
 
-  return getQuestDetail(questId);
+  return getTaskRunDetail(taskRunId);
 }
 
-export function executeQuestTick(questId: string, requestedBy = "system") {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) throw new Error("任务不存在。");
+export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
+  if (!taskRun) throw new Error("任务不存在。");
 
-  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", quest.teamId);
-  const nodes = getQuestNodes(questId);
-  if (!team || nodes.length === 0) return getQuestDetail(questId);
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", taskRun.teamId);
+  const nodes = getTaskRunNodes(taskRunId);
+  if (!team || nodes.length === 0) return getTaskRunDetail(taskRunId);
 
-  const composedHarness = loadComposedHarnessForQuest(quest);
-  const contract = quest.contractId
-    ? queryOne<Contract>("SELECT * FROM contracts WHERE id = ?", quest.contractId)
+  const composedExecutionPolicy = loadComposedExecutionPolicyForTaskRun(taskRun);
+  const accessGrant = taskRun.accessGrantId
+    ? queryOne<AccessGrant>("SELECT * FROM access_grants WHERE id = ?", taskRun.accessGrantId)
     : null;
 
   for (const node of nodes) {
@@ -727,10 +727,10 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     const dependencyNodes = nodes.filter((candidate) => dependencies.includes(candidate.nodeKey));
     const ready = dependencyNodes.length === dependencies.length && dependencyNodes.every((candidate) => candidate.status === "completed");
     if (ready) {
-      execute("UPDATE quest_nodes SET status = ? WHERE id = ?", "ready", node.id);
-      appendQuestEvent({
-        traceId: quest.traceId,
-        questId: quest.id,
+      execute("UPDATE task_run_nodes SET status = ? WHERE id = ?", "ready", node.id);
+      appendTaskRunEvent({
+        traceId: taskRun.traceId,
+        taskRunId: taskRun.id,
         nodeId: node.id,
         phase: "planning",
         foldGroup: "Planning",
@@ -740,23 +740,23 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     }
   }
 
-  const refreshedNodes = getQuestNodes(questId);
+  const refreshedNodes = getTaskRunNodes(taskRunId);
   const runnable = refreshedNodes.find((node) => node.status === "ready");
   if (!runnable) {
-    execute("UPDATE quests SET status = ? WHERE id = ?", resolveQuestStatusFromNodes(refreshedNodes), quest.id);
-    return getQuestDetail(questId);
+    execute("UPDATE task_runs SET status = ? WHERE id = ?", resolveTaskRunStatusFromNodes(refreshedNodes), taskRun.id);
+    return getTaskRunDetail(taskRunId);
   }
 
   execute(
-    "UPDATE quest_nodes SET status = ?, started_at = ?, attempt_count = attempt_count + 1 WHERE id = ?",
+    "UPDATE task_run_nodes SET status = ?, started_at = ?, attempt_count = attempt_count + 1 WHERE id = ?",
     "running",
     nowIso(),
     runnable.id,
   );
 
-  appendQuestEvent({
-    traceId: quest.traceId,
-    questId: quest.id,
+  appendTaskRunEvent({
+    traceId: taskRun.traceId,
+    taskRunId: taskRun.id,
     nodeId: runnable.id,
     phase: "thinking",
     foldGroup: "Analysis",
@@ -772,80 +772,80 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
   const action = nodeInput.action ?? "execute";
   const tool = nodeInput.tool ?? "memory.read";
 
-  const contractDecision = evaluateContractAccess({
-    contract,
-    isCrossKingdomCall: Boolean(contract),
+  const accessGrantDecision = evaluateAccessGrantAccess({
+    accessGrant,
+    isCrossBusinessTeamCall: Boolean(accessGrant),
     action,
     tool,
   });
-  if (!contractDecision.allowed) {
+  if (!accessGrantDecision.allowed) {
     const failureClass = classifyFailure({
-      reason: contractDecision.reason,
-      contractViolation: true,
+      reason: accessGrantDecision.reason,
+      accessGrantViolation: true,
     });
     execute(
-      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "UPDATE task_run_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
       "failed",
-      JSON.stringify({ failureClass, reason: contractDecision.reason }),
+      JSON.stringify({ failureClass, reason: accessGrantDecision.reason }),
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
-    appendQuestEvent({
-      traceId: quest.traceId,
-      questId: quest.id,
+    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
       nodeId: runnable.id,
-      phase: "contract_violation",
+      phase: "access_grant_violation",
       foldGroup: "Human Actions",
-      title: "Contract blocked",
-      content: contractDecision.reason,
-      metadata: { failureClass, violation: contractDecision.violation },
+      title: "跨团队授权阻断",
+      content: accessGrantDecision.reason,
+      metadata: { failureClass, violation: accessGrantDecision.violation },
     });
-    return getQuestDetail(questId);
+    return getTaskRunDetail(taskRunId);
   }
 
-  const harnessDecision = composedHarness
-    ? evaluateHarnessToolPolicy(composedHarness.resolved, tool)
+  const executionPolicyDecision = composedExecutionPolicy
+    ? evaluateExecutionPolicyToolPolicy(composedExecutionPolicy.resolved, tool)
     : {
         allowed: true,
         requiresApproval: false,
-        reason: "未配置 Harness，默认放行。",
+        reason: "未配置运行约束，默认放行。",
         policyHit: "allow" as const,
       };
 
-  if (!harnessDecision.allowed) {
+  if (!executionPolicyDecision.allowed) {
     const failureClass = classifyFailure({
-      reason: harnessDecision.reason,
+      reason: executionPolicyDecision.reason,
       policyViolation: true,
     });
     execute(
-      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "UPDATE task_run_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
       "failed",
-      JSON.stringify({ failureClass, reason: harnessDecision.reason }),
+      JSON.stringify({ failureClass, reason: executionPolicyDecision.reason }),
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
-    appendQuestEvent({
-      traceId: quest.traceId,
-      questId: quest.id,
+    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
       nodeId: runnable.id,
       phase: "policy_violation",
       foldGroup: "Human Actions",
-      title: "Harness blocked",
-      content: harnessDecision.reason,
-      metadata: { failureClass, policyHit: harnessDecision.policyHit },
+      title: "运行约束阻断",
+      content: executionPolicyDecision.reason,
+      metadata: { failureClass, policyHit: executionPolicyDecision.policyHit },
     });
-    return getQuestDetail(questId);
+    return getTaskRunDetail(taskRunId);
   }
 
-  if (harnessDecision.requiresApproval) {
-    execute("UPDATE quest_nodes SET status = ? WHERE id = ?", "awaiting", runnable.id);
-    execute("UPDATE quests SET status = ? WHERE id = ?", "awaiting", quest.id);
+  if (executionPolicyDecision.requiresApproval) {
+    execute("UPDATE task_run_nodes SET status = ? WHERE id = ?", "awaiting", runnable.id);
+    execute("UPDATE task_runs SET status = ? WHERE id = ?", "awaiting", taskRun.id);
     execute(
-      "INSERT INTO quest_interventions (id, quest_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO task_run_interventions (id, task_run_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       randomUUID(),
-      quest.id,
+      taskRun.id,
       runnable.id,
       "approval",
       "pending",
@@ -854,17 +854,17 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
       nowIso(),
       null,
     );
-    appendQuestEvent({
-      traceId: quest.traceId,
-      questId: quest.id,
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
       nodeId: runnable.id,
       phase: "approval_required",
       foldGroup: "Human Actions",
       title: "Approval required",
-      content: harnessDecision.reason,
-      metadata: { tool, policyHit: harnessDecision.policyHit },
+      content: executionPolicyDecision.reason,
+      metadata: { tool, policyHit: executionPolicyDecision.policyHit },
     });
-    return getQuestDetail(questId);
+    return getTaskRunDetail(taskRunId);
   }
 
   if (timeoutReached) {
@@ -873,16 +873,16 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
       timeout: true,
     });
     execute(
-      "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+      "UPDATE task_run_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
       "failed",
       JSON.stringify({ failureClass, reason: "节点执行超时" }),
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE quests SET status = ? WHERE id = ?", "failed", quest.id);
-    appendQuestEvent({
-      traceId: quest.traceId,
-      questId: quest.id,
+    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
       nodeId: runnable.id,
       phase: "timeout",
       foldGroup: "Analysis",
@@ -890,11 +890,11 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
       content: `节点 ${runnable.nodeKey} 执行超时。`,
       metadata: { failureClass },
     });
-    return getQuestDetail(questId);
+    return getTaskRunDetail(taskRunId);
   }
 
   execute(
-    "UPDATE quest_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
+    "UPDATE task_run_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
     "completed",
     JSON.stringify({
       result: "ok",
@@ -907,9 +907,9 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     runnable.id,
   );
 
-  appendQuestEvent({
-    traceId: quest.traceId,
-    questId: quest.id,
+  appendTaskRunEvent({
+    traceId: taskRun.traceId,
+    taskRunId: taskRun.id,
     nodeId: runnable.id,
     phase: "tool_result",
     foldGroup: "Synthesis",
@@ -917,26 +917,26 @@ export function executeQuestTick(questId: string, requestedBy = "system") {
     content: `节点 ${runnable.nodeKey} 已完成，工具 ${tool} 执行成功。`,
   });
 
-  const completedNodes = getQuestNodes(quest.id);
-  const questStatus = resolveQuestStatusFromNodes(completedNodes);
+  const completedNodes = getTaskRunNodes(taskRun.id);
+  const taskRunStatus = resolveTaskRunStatusFromNodes(completedNodes);
   execute(
-    "UPDATE quests SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
-    questStatus,
-    questStatus === "completed" ? nowIso() : null,
+    "UPDATE task_runs SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    taskRunStatus,
+    taskRunStatus === "completed" ? nowIso() : null,
     roundCurrency(
       completedNodes.filter((node) => node.status === "completed").length *
         COST_PER_COMPLETED_NODE_USD,
     ),
-    quest.id,
+    taskRun.id,
   );
 
-  return getQuestDetail(questId);
+  return getTaskRunDetail(taskRunId);
 }
 
-export function retryQuestNode(args: { questId: string; nodeId: string; requestedBy: string }) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", args.questId);
-  const node = queryOne<QuestNode>("SELECT * FROM quest_nodes WHERE id = ? AND quest_id = ?", args.nodeId, args.questId);
-  if (!quest || !node) {
+export function retryTaskRunNode(args: { taskRunId: string; nodeId: string; requestedBy: string }) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", args.taskRunId);
+  const node = queryOne<TaskRunNode>("SELECT * FROM task_run_nodes WHERE id = ? AND task_run_id = ?", args.nodeId, args.taskRunId);
+  if (!taskRun || !node) {
     throw new Error("任务或节点不存在。");
   }
 
@@ -945,18 +945,18 @@ export function retryQuestNode(args: { questId: string; nodeId: string; requeste
   }
 
   execute(
-    "UPDATE quest_nodes SET status = ?, output_json = ?, started_at = ?, completed_at = ? WHERE id = ?",
+    "UPDATE task_run_nodes SET status = ?, output_json = ?, started_at = ?, completed_at = ? WHERE id = ?",
     "ready",
     null,
     null,
     null,
     node.id,
   );
-  execute("UPDATE quests SET status = ? WHERE id = ?", "running", quest.id);
+  execute("UPDATE task_runs SET status = ? WHERE id = ?", "running", taskRun.id);
 
-  appendQuestEvent({
-    traceId: quest.traceId,
-    questId: quest.id,
+  appendTaskRunEvent({
+    traceId: taskRun.traceId,
+    taskRunId: taskRun.id,
     nodeId: node.id,
     phase: "planning",
     foldGroup: "Planning",
@@ -964,26 +964,26 @@ export function retryQuestNode(args: { questId: string; nodeId: string; requeste
     content: `${args.requestedBy} 触发节点 ${node.nodeKey} 重试。`,
   });
 
-  return getQuestDetail(args.questId);
+  return getTaskRunDetail(args.taskRunId);
 }
 
-export function resolveQuestIntervention(args: {
+export function resolveTaskRunIntervention(args: {
   interventionId: string;
   decision: "approved" | "rejected";
   resolutionNote?: string;
   resolvedBy: string;
 }) {
-  const intervention = queryOne<QuestIntervention>(
-    "SELECT * FROM quest_interventions WHERE id = ?",
+  const intervention = queryOne<TaskRunIntervention>(
+    "SELECT * FROM task_run_interventions WHERE id = ?",
     args.interventionId,
   );
   if (!intervention) throw new Error("人工干预单不存在。");
 
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", intervention.questId);
-  if (!quest) throw new Error("任务不存在。");
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", intervention.taskRunId);
+  if (!taskRun) throw new Error("任务不存在。");
 
   execute(
-    "UPDATE quest_interventions SET status = ?, resolution_note = ?, resolved_at = ? WHERE id = ?",
+    "UPDATE task_run_interventions SET status = ?, resolution_note = ?, resolved_at = ? WHERE id = ?",
     args.decision,
     args.resolutionNote ?? null,
     nowIso(),
@@ -992,17 +992,17 @@ export function resolveQuestIntervention(args: {
 
   if (intervention.nodeId) {
     execute(
-      "UPDATE quest_nodes SET status = ? WHERE id = ?",
+      "UPDATE task_run_nodes SET status = ? WHERE id = ?",
       args.decision === "approved" ? "ready" : "failed",
       intervention.nodeId,
     );
   }
 
-  execute("UPDATE quests SET status = ? WHERE id = ?", args.decision === "approved" ? "running" : "failed", quest.id);
+  execute("UPDATE task_runs SET status = ? WHERE id = ?", args.decision === "approved" ? "running" : "failed", taskRun.id);
 
-  appendQuestEvent({
-    traceId: quest.traceId,
-    questId: quest.id,
+  appendTaskRunEvent({
+    traceId: taskRun.traceId,
+    taskRunId: taskRun.id,
     nodeId: intervention.nodeId,
     phase: "approval_result",
     foldGroup: "Human Actions",
@@ -1011,32 +1011,32 @@ export function resolveQuestIntervention(args: {
     metadata: { resolutionNote: args.resolutionNote ?? null },
   });
 
-  return getQuestDetail(quest.id);
+  return getTaskRunDetail(taskRun.id);
 }
 
-export function resumeQuest(questId: string, requestedBy: string) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) throw new Error("任务不存在。");
+export function resumeTaskRun(taskRunId: string, requestedBy: string) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
+  if (!taskRun) throw new Error("任务不存在。");
 
-  execute("UPDATE quest_nodes SET status = ? WHERE quest_id = ? AND status = ?", "ready", questId, "awaiting");
-  execute("UPDATE quests SET status = ? WHERE id = ?", "running", questId);
+  execute("UPDATE task_run_nodes SET status = ? WHERE task_run_id = ? AND status = ?", "ready", taskRunId, "awaiting");
+  execute("UPDATE task_runs SET status = ? WHERE id = ?", "running", taskRunId);
 
-  appendQuestEvent({
-    traceId: quest.traceId,
-    questId,
+  appendTaskRunEvent({
+    traceId: taskRun.traceId,
+    taskRunId,
     phase: "approval_result",
     foldGroup: "Human Actions",
-    title: "Quest resumed",
+    title: "任务已恢复",
     content: `${requestedBy} 恢复了任务执行。`,
   });
 
-  return getQuestDetail(questId);
+  return getTaskRunDetail(taskRunId);
 }
 
-export function getQuestExecutionBoard(questId: string) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) return null;
-  const nodes = getQuestNodes(questId);
+export function getTaskRunExecutionBoard(taskRunId: string) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
+  if (!taskRun) return null;
+  const nodes = getTaskRunNodes(taskRunId);
 
   const readyByDependency = nodes.map((node) => {
     const deps = JSON.parse(node.dependsOnJson) as string[];
@@ -1065,8 +1065,8 @@ export function getQuestExecutionBoard(questId: string) {
   const retryRecoveryPotential = failedCount === 0 ? 0 : retryableCount / failedCount;
 
   return {
-    questId,
-    questStatus: quest.status,
+    taskRunId,
+    taskRunStatus: taskRun.status,
     board: buildExecutionBoard(nodes),
     readiness: readyByDependency,
     metrics: {
@@ -1078,16 +1078,16 @@ export function getQuestExecutionBoard(questId: string) {
   };
 }
 
-export function getQuestDependencyGraph(questId: string) {
-  const plan = queryOne<QuestPlan>("SELECT * FROM quest_plans WHERE quest_id = ?", questId);
-  const nodes = getQuestNodes(questId);
+export function getTaskRunDependencyGraph(taskRunId: string) {
+  const plan = queryOne<TaskRunPlan>("SELECT * FROM task_run_plans WHERE task_run_id = ?", taskRunId);
+  const nodes = getTaskRunNodes(taskRunId);
   if (!plan) return null;
   const dag = JSON.parse(plan.dagJson) as {
     nodes?: Array<{ id: string; agent: string }>;
     edges?: string[][];
   };
   return {
-    questId,
+    taskRunId,
     plannerMode: plan.plannerMode,
     summary: plan.summary,
     nodes: nodes.map((node) => ({
@@ -1101,10 +1101,10 @@ export function getQuestDependencyGraph(questId: string) {
   };
 }
 
-export function getQuestCostBreakdown(questId: string) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) return null;
-  const nodes = getQuestNodes(questId);
+export function getTaskRunCostBreakdown(taskRunId: string) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
+  if (!taskRun) return null;
+  const nodes = getTaskRunNodes(taskRunId);
   const nodeCosts = nodes.map((node) => ({
     nodeId: node.id,
     nodeKey: node.nodeKey,
@@ -1124,27 +1124,27 @@ export function getQuestCostBreakdown(questId: string) {
   const actualUsd = roundCurrency(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0));
 
   return {
-    questId,
-    status: quest.status,
-    estimateFromQuest: quest.costEstimate,
-    actualFromQuest: quest.costActual,
+    taskRunId,
+    status: taskRun.status,
+    estimateFromTaskRun: taskRun.costEstimate,
+    actualFromTaskRun: taskRun.costActual,
     estimatedUsd,
     actualUsd,
     nodeCosts,
   };
 }
 
-export function getQuestPolicyHits(questId: string) {
-  const quest = queryOne<Quest>("SELECT * FROM quests WHERE id = ?", questId);
-  if (!quest) return null;
+export function getTaskRunPolicyHits(taskRunId: string) {
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
+  if (!taskRun) return null;
   const events = queryAll<EventLog>(
-    "SELECT * FROM event_logs WHERE quest_id = ? ORDER BY seq ASC",
-    questId,
+    "SELECT * FROM event_logs WHERE task_run_id = ? ORDER BY seq ASC",
+    taskRunId,
   );
   const policyPhases = [
     "approval_required",
     "policy_violation",
-    "contract_violation",
+    "access_grant_violation",
     "approval_result",
     "timeout",
   ];
@@ -1161,7 +1161,7 @@ export function getQuestPolicyHits(questId: string) {
     }));
 
   return {
-    questId,
+    taskRunId,
     hitCount: hits.length,
     hits,
   };

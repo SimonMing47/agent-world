@@ -5,7 +5,7 @@ import {
   queryOne,
   type AgentTeam,
   type ImportedPluginManifest,
-  type Kingdom,
+  type BusinessTeam,
   type ScheduleTemplate,
   type TaskTemplate,
 } from "@/server/db";
@@ -20,8 +20,8 @@ import {
 
 type ExtensionEnvironmentInput = {
   id: string;
-  kingdomSlug?: string;
-  kingdomId?: string;
+  businessTeamSlug?: string;
+  businessTeamId?: string;
   name: string;
   repositoryProvider: string;
   repositoryName: string;
@@ -38,8 +38,8 @@ type ExtensionEnvironmentInput = {
 
 type ExtensionScheduleTemplateInput = {
   id: string;
-  kingdomSlug?: string;
-  kingdomId?: string;
+  businessTeamSlug?: string;
+  businessTeamId?: string;
   teamSlug?: string;
   teamId?: string;
   name: string;
@@ -104,12 +104,12 @@ function toManifest(row: ImportedPluginManifest): PluginManifest {
   };
 }
 
-function resolveKingdomId(input: { kingdomId?: string; kingdomSlug?: string }) {
-  if (input.kingdomId) return input.kingdomId;
-  if (!input.kingdomSlug) throw new Error("kingdomId or kingdomSlug is required");
-  const kingdom = queryOne<Kingdom>("SELECT * FROM kingdoms WHERE slug = ?", input.kingdomSlug);
-  if (!kingdom) throw new Error(`kingdom not found: ${input.kingdomSlug}`);
-  return kingdom.id;
+function resolveBusinessTeamId(input: { businessTeamId?: string; businessTeamSlug?: string }) {
+  if (input.businessTeamId) return input.businessTeamId;
+  if (!input.businessTeamSlug) throw new Error("businessTeamId or businessTeamSlug is required");
+  const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE slug = ?", input.businessTeamSlug);
+  if (!businessTeam) throw new Error(`businessTeam not found: ${input.businessTeamSlug}`);
+  return businessTeam.id;
 }
 
 function resolveTeamId(input: { teamId?: string; teamSlug?: string }) {
@@ -182,11 +182,11 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   }
 
   for (const environment of bundle.environments ?? []) {
-    const kingdomId = resolveKingdomId(environment);
+    const businessTeamId = resolveBusinessTeamId(environment);
     execute(
-      "INSERT OR REPLACE INTO execution_environments (id, kingdom_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT OR REPLACE INTO execution_environments (id, business_team_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       environment.id,
-      kingdomId,
+      businessTeamId,
       environment.name,
       environment.repositoryProvider,
       environment.repositoryName,
@@ -229,12 +229,12 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   }
 
   for (const template of bundle.scheduleTemplates ?? []) {
-    const kingdomId = resolveKingdomId(template);
+    const businessTeamId = resolveBusinessTeamId(template);
     const teamId = resolveTeamId(template);
     execute(
-      "INSERT OR REPLACE INTO schedule_templates (id, kingdom_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT OR REPLACE INTO schedule_templates (id, business_team_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       template.id,
-      kingdomId,
+      businessTeamId,
       teamId,
       template.name,
       template.scheduleKind,
@@ -338,7 +338,7 @@ export function resolveWebhookTaskConfiguration(teamId: string, pathKey?: string
       taskTemplate?.summary ??
       (typeof scheduleInput.summary === "string"
         ? scheduleInput.summary
-        : "Webhook 已按任务模板转为可观测 Quest。"),
+        : "Webhook 已按任务模板转为可观测任务。"),
     nodes: taskTemplate ? parseJsonArray(taskTemplate.nodesJson) : [],
     defaultInput,
   };
@@ -366,14 +366,14 @@ export function buildExtensionImportExample() {
     environments: [
       {
         id: "env-enterprise-mr-review",
-        kingdomSlug: "release-guild",
+        businessTeamSlug: "release-team",
         name: "企业 Git MR 检视环境",
         repositoryProvider: "enterprise-git",
         repositoryName: "group/project",
         repositoryUrl: "ssh://git.example.com/group/project.git",
         defaultBranch: "main",
         executorRef: "svc-release-reviewer",
-        privateKeyRef: "secret:release-guild/enterprise-git-private-key",
+        privateKeyRef: "secret:release-team/enterprise-git-private-key",
         workingDirectory: ".",
         sandboxProfile: { isolation: "future-sandbox", network: "egress-controlled" },
         memoryLayerRefs: ["repository/code-review", "global/code-review", "security"],
@@ -393,7 +393,7 @@ export function buildExtensionImportExample() {
         inputSchema: { type: "object", required: ["repository", "changeRequest", "diff"] },
         defaultInput: { taskCategory: "code_review" },
         memoryLayers: ["repository/code-review", "global/code-review", "security"],
-        outputTargets: ["mr_comment", "quest_trace", "knowledge_archive"],
+        outputTargets: ["mr_comment", "task_trace", "knowledge_archive"],
         webhookParserRef: "enterprise.repo.git.webhookParser",
         visibility: "team",
       },
@@ -401,7 +401,7 @@ export function buildExtensionImportExample() {
     scheduleTemplates: [
       {
         id: `template-enterprise-mr-review-${randomUUID().slice(0, 8)}`,
-        kingdomSlug: "release-guild",
+        businessTeamSlug: "release-team",
         teamSlug: "pr-vanguard",
         name: "企业 Git MR webhook 检视",
         scheduleKind: "event",
@@ -414,7 +414,7 @@ export function buildExtensionImportExample() {
           environmentId: "env-enterprise-mr-review",
           memoryLayers: ["repository/code-review", "global/code-review", "security"],
           repositoryPlugin: "enterprise.repo.git",
-          output: ["mr_comment", "quest_trace", "knowledge_archive"],
+          output: ["mr_comment", "task_trace", "knowledge_archive"],
         },
       },
     ],

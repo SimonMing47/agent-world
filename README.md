@@ -1,201 +1,229 @@
 # AgentWorld
 
-AgentWorld 不是一个“再包一层聊天框”的 Agent 项目。
+AgentWorld 是一个团队级 Agent 平台，核心目标是把 Agent 从“单次对话”升级为可治理、可配置、可观测、可扩展的团队任务执行系统。
 
-它更像一个可以运营的 Agent 世界：有 World 作为租户边界，有 Kingdom 作为团队边界，有 AgentTeam 作为服务单元，有 Tavern 作为市场，有 Contract 作为跨团队调用协议，有 Quest 作为真正被调度和执行的任务。
+系统默认使用严肃标准术语：租户空间、业务团队、Agent、Agent 团队、服务目录、跨团队授权、任务执行、运行约束、执行环境、记忆层。产品名称保留 AgentWorld；风格化叙事不再作为默认表达。需要行业化或企业化命名时，可通过 `AGENTWORLD_TERMINOLOGY_JSON` / `NEXT_PUBLIC_AGENTWORLD_TERMINOLOGY_JSON` 做全局术语皮肤覆盖。
 
-AgentWorld is not another chat wrapper.
+## 主线方向
 
-It is a single-service TypeScript platform for operating agents as teams, services, and execution units. Worlds isolate tenants. Kingdoms isolate teams. AgentTeams expose runnable capabilities. Tavern acts as the marketplace. Contracts govern cross-kingdom access. Quests are the jobs that actually get planned, dispatched, executed, observed, and settled.
+AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent 平台的核心闭环：
 
-## Why This Project Exists
+1. Agent 调度：任务模板、Webhook、定时触发、手动提交统一进入任务执行队列。
+2. Agent 调用：任务节点在执行前经过 Provider 选择、运行约束、跨团队授权、执行环境和记忆层解析。
+3. 执行观测：任务空间记录 planning、thinking、tool use、tool result、approval、retry、cost、policy hit 等完整过程。
+4. 插件扩展：Provider、邮件、IM、代码仓只通过插件清单、任务模板和环境配置接入，不写死进主干。
+5. 记忆沉淀：OpenViking 作为开箱即用的分层记忆服务，保存检视上下文、Skill、结果和人工反馈。
 
-团队一旦真的开始把 Agent 用到日常工作里，问题很快就不再是“模型够不够强”，而是：
+## 九层架构
 
-- 任务是谁提交的
-- 这个任务属于哪个团队
-- 运行前有没有过预算和权限校验
-- 任务是单 Agent 还是 DAG
-- 过程中谁能人工接管
-- 跨团队调用到底有没有授权
-- 成本、成功率、耗时到底算到谁头上
+- Provider 执行层：默认支持 OpenCode SDK；Claude Code、OpenClaw、企业 CLI 引擎通过 Provider 插件扩展。
+- Agent 定义层：在线编辑 Agent 的角色、提示词、模型、权限、工具集和记忆范围。
+- 工具 / Skill 管理层：工具权限采用 allow / deny / approval 模型，与运行约束对齐。
+- 多 Agent 编排层：Agent 团队定义 Leader、成员、目标、交互提示词和依赖关系。
+- Agent 团队任务执行层：每个团队接受任务并在任务空间中展示全量执行过程。
+- 业务团队管理层：租户空间和业务团队管理预算、可见性、创建者、编辑者、使用者和跨团队调用。
+- 任务执行展示层：按业务团队、触发方式、任务类别、状态、成本和优先级展示全局任务看板。
+- 环境层：管理代码仓、执行人、PRIVATE_KEY 引用、执行路径、记忆依赖和未来沙箱。
+- 记忆层：基于 OpenViking 做分层、分域、分团队记忆管理，并给 OpenViking CLI 提供访问配置。
 
-AgentWorld 就是针对这些问题来设计的。
+## 当前实现
 
-## What Makes AgentWorld Different
+- Next.js + TypeScript 单服务应用。
+- SQLite 本地持久化，启动时自动初始化领域模型和两个核心案例。
+- OpenCode SDK Provider 基线。
+- 插件清单 API：`POST /api/plugins/manifests`。
+- 任务提交与执行 API：`POST /api/task-runs/submit`、`POST /api/task-runs/:id/tick`、`POST /api/task-runs/:id/resume`。
+- 任务空间 API：成本、依赖图、执行看板、策略命中和人工干预解析。
+- Webhook 入口：`POST /api/webhooks/:pathKey`。
+- OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/read`、`/api/knowledge/skills`。
 
-- 单体 TypeScript 服务，前后端一体，没有额外编排系统依赖
-- 嵌入式 SQLite，本地就能跑，不依赖 Redis、PostgreSQL、Kafka、Temporal
-- 支持 World、Kingdom、AgentTeam、Quest、Contract、Tavern 这套完整领域模型
-- 调度、规划、执行、观察、人工干预都在一条清晰链路里
-- 用 Harness 工程原则约束 Agent，不靠“提示词自觉”
-- 兼容 OpenAI 风格模型接口，也支持通过 OpenCode SDK 发现 runtime
-- 默认中文界面和默认中文输出，更适合直接给中文团队落地试跑
-- 支持用可导入案例包配置 MR/PR 检视、安全巡检等团队级任务，而不是把业务流程写死进主干
-
-## Architecture Direction
-
-当前仓库已经收敛到下面这条路线：
-
-- Monolith: `Next.js + TypeScript`
-- DB: embedded SQLite
-- Artifact store: local filesystem
-- Memory: SQLite tables + FTS
-- Scheduler: in-process tick loop + SQLite lease
-- DAG executor: in-process worker slots
-- Trace: internal event log + span tables
-- Provider gateway: OpenAI-compatible adapters
-- Runtime discovery: OpenCode SDK
-
-## Plan First, Execute Second
-
-AgentWorld 的 Quest 不应该从“收到请求”直接跳到“执行工具”。标准链路是：
-
-1. 用户提交目标，或导入 task template / webhook / schedule case pack。
-2. Planner 生成 plan、DAG、节点依赖、Agent 分工和交互提示词。
-3. Harness 校验工具权限、预算、secret ref、输出策略和人工审批点。
-4. Contract 校验跨 Kingdom 调用边界。
-5. 用户或团队可以审阅、修改、批准、暂停或接管。
-6. Scheduler / Executor 推进节点执行。
-7. Trace、tool use、tool result、thinking summary、人工操作和 OpenViking 记忆归档全部写回。
-
-## Platform Capabilities
-
-- AgentTeam / Agent definition: Leader、协作 Agent、角色、Prompt、模型、工具集、记忆范围和状态支持在线编辑。
-- Quest execution: 一次性、定时、Webhook、Contract 任务统一进入 Quest，并保留完整任务空间记录。
-- Provider gateway: 默认 opencode SDK，claude code、openclaw 等 CLI Agent 引擎通过 provider 插件接入。
-- Harness: 工具 allow/deny/approval、预算、输出、安全扫描和人工门禁。
-- Plugin registry: Provider、工具、Skill、IM、邮件、代码仓都通过 manifest 注册，权限与 Harness 对齐。
-- Execution environment: 代码仓、执行人、PRIVATE_KEY secret ref、工作路径、沙箱预留、依赖记忆和产出归档。
-- OpenViking memory: resources / agent skills / user feedback 三类 URI 作用域，支持 L0/L1/L2 读取。
-- Task board: 按业务团队、任务类别、触发方式和状态展示全局任务执行情况。
-
-## Docs
-
-- 文档入口 / Documentation Index: [docs/README.md](./docs/README.md)
-- 系统概要设计（中文）: [docs/system-design.zh-CN.md](./docs/system-design.zh-CN.md)
-- 系统详细设计（中文）: [docs/system-design-detailed.zh-CN.md](./docs/system-design-detailed.zh-CN.md)
-
-## Quick Start
-
-1. `pnpm install`
-2. `pnpm bootstrap`
-3. `pnpm dev`
-
-默认会创建本地 `.env.local` 和 SQLite 数据文件，适合先跑一个单机、可演示、可继续开发的版本。
-
-## Importable Case Packs
-
-神盾计划和每日安全检视是默认案例包，不是主干硬编码流程。一个案例包由这些对象组成：
-
-- `plugin manifest`: 代码仓、Provider、邮件、IM 等外部能力声明。
-- `task template`: 团队目标、Planner 模式、节点 DAG、输入 schema、输出目标和 webhook parser ref。
-- `execution environment`: 代码仓、执行人、私钥引用、工作路径、沙箱策略和记忆依赖。
-- `schedule/webhook template`: 一次性、定时或 Webhook 触发配置。
-- `knowledge bindings`: OpenViking skill、仓库上下文、全局经验和反馈记忆。
-
-默认内置两个配置：
-
-- `task-template-shield-mr-review` + `template-shield-mr-review`: MR diff 进入检视 AgentTeam，读取 Skill 后生成 MR 评论。
-- `task-template-daily-security-review` + `template-daily-security-review`: 每日拉取仓库集合做安全检视，并通过邮件插件发送结果。
-
-企业 Git、Gitea、GitLab、内部 MR 系统、企业邮箱、IM 都应该通过 `POST /api/plugins/manifests` 导入扩展包。主干只负责注册 manifest、解析模板、调度 Quest、校验权限和记录 trace。
-
-## Extension Import Example
-
-可以从 AgentWorld 导入企业代码仓插件和任务模板：
+## 快速开始
 
 ```bash
-curl -X POST http://localhost:3002/api/plugins/manifests \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "id": "enterprise-git-review",
-    "source": "enterprise-git-plugin",
-    "plugins": [{
-      "id": "enterprise.repo.git",
-      "name": "Enterprise Git Connector",
-      "version": "1.0.0",
-      "capability": "code_repo",
-      "lifecycle": "declared",
-      "mountPoint": "execution-environment",
-      "configSchema": "{ baseUrl, privateKeyRef, diffApiPath, commentApiPath }",
-      "requiredSecretRefs": ["secret:enterprise-git-private-key", "secret:enterprise-git-token"],
-      "permissions": ["repo:read", "repo:mr:comment"],
-      "healthCheck": "connector self-check",
-      "extensionOnly": true
-    }]
-  }'
+pnpm install
+pnpm bootstrap
+pnpm dev
 ```
 
-Settings 页面会展示当前 registry、扩展点、导入示例、任务模板和执行环境。
+默认访问地址：
 
-## Try The Default MR Review Case
-
-启动后可以先用默认案例包里的 `github-pr` webhook 跑一个本地 dry run。这个入口只是默认样例；企业代码仓应导入自己的 repo 插件、webhook parser 和 task template。
-
-```bash
-curl -X POST http://localhost:3002/api/webhooks/github-pr \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "repository": { "full_name": "demo/agentworld", "clone_url": "https://example.com/demo/agentworld.git" },
-    "pull_request": {
-      "number": 12,
-      "title": "Add webhook review flow",
-      "html_url": "https://example.com/demo/agentworld/pull/12",
-      "head": { "ref": "feature/review", "sha": "abc123" },
-      "base": { "ref": "main" },
-      "user": { "login": "reviewer" }
-    },
-    "diff": "diff --git a/src/server/example.ts b/src/server/example.ts\n+++ b/src/server/example.ts\n@@ -0,0 +1,3 @@\n+const token = process.env.SECRET_TOKEN;\n+export function run(input: string) { return eval(input); }\n"
-  }'
+```text
+http://localhost:3000
 ```
 
-没有配置代码平台 token 时，AgentWorld 只生成评论内容，不会真的回写代码平台。评论里的反馈链接会写回本地 OpenViking 影子知识库。
-
-## What Must Not Be Hardcoded
-
-- 不把神盾计划写成固定代码路径；它必须来自 task template、environment 和 plugin manifest。
-- 不把每日安全检视写成固定 cron 逻辑；它必须来自 schedule template。
-- 不把 GitHub、GitLab、Gitea、企业 Git、邮件、IM、Provider 写进 Quest 主流程。
-- 不保存明文 token、API key 或 PRIVATE_KEY，只保存 secret ref。
-- 新增代码平台、通知渠道或 Provider 时，应新增插件 manifest / adapter / template，而不是修改调度、执行、Quest 主流程。
-
-## Real OpenViking Knowledge Base
-
-现在 AgentWorld 已经接入真实 OpenViking。第一次使用时执行：
+常用校验：
 
 ```bash
-pnpm openviking:install
+pnpm typecheck
+pnpm lint
+pnpm build
+```
+
+## OpenViking 二进制集成
+
+OpenViking 不通过容器运行时集成。AgentWorld 优先使用服务端二进制：
+
+```text
+thirdparty/openviking/bin/openviking-server
+```
+
+也可以通过环境变量指定外部二进制：
+
+```bash
+OPENVIKING_SERVER_BIN=/opt/openviking/openviking-server
+```
+
+准备配置：
+
+```bash
+pnpm openviking:prepare
+pnpm openviking:cli-config
+```
+
+OpenViking doctor 要求 VLM provider/model 配置完整。生产部署前至少配置：
+
+```text
+OPENVIKING_VLM_PROVIDER=
+OPENVIKING_VLM_MODEL=
+OPENVIKING_VLM_API_BASE=
+OPENVIKING_VLM_API_KEY=
+```
+
+如需覆盖默认 embedding，也可以配置 `OPENVIKING_EMBEDDING_*`。未配置 VLM 时可以先运行 `pnpm openviking:init` 使用 OpenViking 官方初始化向导。
+
+首次初始化和诊断：
+
+```bash
+pnpm openviking:init
+pnpm openviking:doctor
+```
+
+启动 OpenViking：
+
+```bash
 pnpm openviking:start
 ```
 
-另开一个终端验证真实写入和读取：
+验证写入、读取和目录访问：
 
 ```bash
 pnpm openviking:smoke
 ```
 
-默认 OpenViking 服务地址是 `http://127.0.0.1:1933`。AgentWorld 会把知识写入官方 URI 作用域：
+开发机没有二进制时，可以用 Python venv 做本地 fallback：
 
-- `viking://resources/agentworld/...` 保存仓库、MR 上下文和全局经验
-- `viking://agent/skills/agentworld/...` 保存检视 skill 知识
-- `viking://user/memories/agentworld/...` 保存人工反馈记忆
+```bash
+pnpm openviking:install
+```
 
-控制台里的 `知识库` 页面可以看到 OpenViking 健康状态、知识层、最近条目和远端树。
+Linux 构建服务端二进制：
 
-OpenViking 不是某个案例专属存储，而是所有案例包复用的记忆层。神盾计划和每日安全检视只通过配置绑定对应 skill、仓库上下文和反馈记忆。
+```bash
+pnpm openviking:build-binary
+```
 
-## Current Delivery Rhythm
+构建产物会写入：
 
-1. 先拆解目标，明确平台能力、插件边界、配置案例和风险规避。
-2. 再把领域模型、调度核、调用核、追踪核和导入协议落到代码里。
-3. 每一步本地验证后再提交并推送到 GitHub。
+```text
+thirdparty/openviking/bin/openviking-server
+thirdparty/openviking/manifest.json
+```
 
-## Design References
+`thirdparty/openviking` 只用于标注和承载 OpenViking 第三方二进制，不属于 AgentWorld 主干源代码。
 
-- Anthropic Managed Agents
-- Harness engineering principles
-- Multica
-- 你给出的 World / Kingdom / AgentTeam / Tavern / Contract / Quest 设计方向
+## Linux 发布包
 
-AgentWorld 最终想做的，不是一个“聪明聊天 UI”，而是一个真正能被团队拿来运营 Agent 服务的系统。
+目标部署环境不要求容器运行时。Linux 构建机上执行：
+
+```bash
+pnpm openviking:build-binary
+pnpm package:linux
+```
+
+发布包会包含：
+
+- AgentWorld standalone Next.js 服务。
+- Node.js Linux runtime。
+- `thirdparty/openviking/bin/openviking-server`。
+- OpenViking 配置文件和 CLI 配置文件。
+- `agentworld` 与 `openviking-server` 两个启动脚本。
+
+## 插件扩展
+
+AgentWorld 开源主干只定义协议、清单、任务模板、权限校验和观测记录。企业 Git、GitLab、Gitea、内部 MR 系统、企业邮箱、IM 等差异通过扩展包导入：
+
+```http
+POST /api/plugins/manifests
+```
+
+扩展包可以声明：
+
+- 插件清单：Provider、通知、代码仓、工具、Skill。
+- 执行环境：代码仓地址、执行人、私钥引用、工作目录、记忆依赖。
+- 任务模板：输入 schema、默认输入、节点、输出目标、Webhook parser。
+- 触发模板：一次性、定时、Webhook、事件触发。
+
+主干不需要为了企业代码仓软件差异修改代码。
+
+## 核心案例
+
+### 神盾计划：MR 分层检视
+
+已内置全局配置：
+
+- 任务模板：`task-template-shield-mr-review`
+- 触发模板：`template-shield-mr-review`
+- 环境：`env-shield-mr-review`
+- 团队：`PR Vanguard`
+- 插件：`builtin.repo.git`
+- 记忆层：`repository/code-review`、`global/code-review`、`security`、`quality/test`、`data-interface`
+
+Webhook 把 MR diff 给到系统后，会生成可观测任务，由检视 Agent 团队读取 Skill 和记忆层，完成 MR 结构、安全、测试、数据与接口分层检视，并把评论提交到 MR。没有配置代码平台 token 时只生成评论内容，不回写外部系统。
+
+### 每日全量安全检视
+
+已内置全局配置：
+
+- 任务模板：`task-template-daily-security-review`
+- 触发模板：`template-daily-security-review`
+- 环境：`env-daily-security-scan`
+- 通知插件：`builtin.notify.email`
+- 记忆层：`security`、`feedback/correct`、`feedback/incorrect`
+
+调度器每天按仓库集合拉取代码，执行安全检视，生成风险报告并通过邮件插件发送。
+
+## 设计文档
+
+- [系统概要设计](docs/system-design.zh-CN.md)
+- [系统详细设计](docs/system-design-detailed.zh-CN.md)
+
+## 环境变量
+
+参考 `.env.example`。关键变量：
+
+```text
+OPENCODE_API_KEY=
+OPENAI_API_KEY=
+CODE_PLATFORM_TOKEN=
+CODE_PLATFORM_WEBHOOK_SECRET=
+OPENVIKING_BASE_URL=http://127.0.0.1:1933
+OPENVIKING_SERVER_BIN=thirdparty/openviking/bin/openviking-server
+OPENVIKING_CONFIG_FILE=data/openviking/ov.conf
+OPENVIKING_CLI_CONFIG_FILE=data/openviking/ovcli.conf
+OPENVIKING_VLM_PROVIDER=
+OPENVIKING_VLM_MODEL=
+OPENVIKING_VLM_API_BASE=
+OPENVIKING_VLM_API_KEY=
+```
+
+## 本轮执行计划
+
+本次主线打磨按以下措施执行：
+
+1. 通读代码仓，移除默认风格化语言，统一严肃标准术语。
+2. 将旧路由和 API 改为标准命名，不保留未上线前的兼容路径。
+3. 梳理并实现九层架构在前端、后端、数据模型和 API 中的落点。
+4. 将 Provider、邮件、IM、代码仓差异收敛到插件清单和导入机制。
+5. 将神盾计划和每日安全检视做成可配置案例，而不是写死流程。
+6. 将 OpenViking 改为二进制直连集成，提供 thirdparty 放置位、配置脚本、诊断脚本和 Linux 打包脚本。
+7. 更新 README 与设计文档，并用 typecheck、lint、build 验证。

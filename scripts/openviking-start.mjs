@@ -1,22 +1,32 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
-import path from "node:path";
+import {
+  resolveHost,
+  resolvePort,
+  resolveServerBin,
+  resolveServerConfigPath,
+  root,
+  writeCliConfig,
+  writeServerConfig,
+} from "./openviking-common.mjs";
 
-const root = process.cwd();
-const bin = path.join(root, ".venv-openviking", "bin", "openviking-server");
-const configPath = process.env.OPENVIKING_CONFIG_FILE ?? path.join(root, "data", "openviking", "ov.conf");
-const host = process.env.OPENVIKING_HOST ?? "127.0.0.1";
-const port = process.env.OPENVIKING_PORT ?? "1933";
+const bin = resolveServerBin({ allowVenvFallback: true });
+const configPath = resolveServerConfigPath();
+const host = resolveHost();
+const port = resolvePort();
 
-if (!fs.existsSync(bin)) {
-  console.error("OpenViking is not installed. Run: pnpm openviking:install");
+if (!bin || !fs.existsSync(bin)) {
+  console.error("OpenViking server binary is missing.");
+  console.error("Expected: thirdparty/openviking/bin/openviking-server");
+  console.error("Or set OPENVIKING_SERVER_BIN=/absolute/path/to/openviking-server");
+  console.error("For local development fallback: pnpm openviking:install");
   process.exit(1);
 }
 
 if (!fs.existsSync(configPath)) {
-  console.error("OpenViking config is missing. Run: pnpm openviking:install");
-  process.exit(1);
+  writeServerConfig();
 }
+writeCliConfig();
 
 const child = spawn(bin, ["--config", configPath, "--host", host, "--port", port], {
   cwd: root,
@@ -30,4 +40,3 @@ const child = spawn(bin, ["--config", configPath, "--host", host, "--port", port
 child.on("exit", (code) => {
   process.exit(code ?? 0);
 });
-

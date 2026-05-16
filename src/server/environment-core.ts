@@ -1,8 +1,8 @@
 import {
   type AgentTeam,
   type ExecutionEnvironment,
-  type Kingdom,
-  type Quest,
+  type BusinessTeam,
+  type TaskRun,
   type ScheduleTemplate,
 } from "@/server/db";
 
@@ -14,12 +14,12 @@ function parseJson<T>(value: string, fallback: T): T {
   }
 }
 
-export function buildEnvironmentSummary(environment: ExecutionEnvironment, kingdoms: Kingdom[]) {
+export function buildEnvironmentSummary(environment: ExecutionEnvironment, business_teams: BusinessTeam[]) {
   return {
     id: environment.id,
     name: environment.name,
-    kingdomName:
-      kingdoms.find((kingdom) => kingdom.id === environment.kingdomId)?.name ?? "未知 Kingdom",
+    businessTeamName:
+      business_teams.find((businessTeam) => businessTeam.id === environment.businessTeamId)?.name ?? "未知业务团队",
     repository: {
       provider: environment.repositoryProvider,
       name: environment.repositoryName,
@@ -37,12 +37,12 @@ export function buildEnvironmentSummary(environment: ExecutionEnvironment, kingd
 }
 
 export function buildTaskExecutionDashboard(args: {
-  quests: Quest[];
+  task_runs: TaskRun[];
   schedules: ScheduleTemplate[];
   teams: AgentTeam[];
-  kingdoms: Kingdom[];
+  business_teams: BusinessTeam[];
 }) {
-  const sourceTypes = ["manual", "schedule", "webhook", "contract"];
+  const sourceTypes = ["manual", "schedule", "webhook", "access_grant"];
   const templateKinds = ["manual", "cron", "event", "webhook"];
   const scheduleCategory = (template: ScheduleTemplate) =>
     template.scheduleKind === "cron"
@@ -52,9 +52,9 @@ export function buildTaskExecutionDashboard(args: {
         : template.scheduleKind;
   const taskCategories = Array.from(
     new Set([
-      ...args.quests.map((quest) => {
-        const payload = parseJson<Record<string, unknown>>(quest.inputPayloadJson, {});
-        return typeof payload.taskCategory === "string" ? payload.taskCategory : quest.sourceType;
+      ...args.task_runs.map((taskRun) => {
+        const payload = parseJson<Record<string, unknown>>(taskRun.inputPayloadJson, {});
+        return typeof payload.taskCategory === "string" ? payload.taskCategory : taskRun.sourceType;
       }),
       ...args.schedules.map((template) => {
         const payload = parseJson<Record<string, unknown>>(template.inputPayloadJson, {});
@@ -66,33 +66,33 @@ export function buildTaskExecutionDashboard(args: {
   return {
     bySourceType: sourceTypes.map((sourceType) => ({
       sourceType,
-      questCount: args.quests.filter((quest) => quest.sourceType === sourceType).length,
-      activeCount: args.quests.filter(
-        (quest) => quest.sourceType === sourceType && ["running", "awaiting"].includes(quest.status),
+      taskRunCount: args.task_runs.filter((taskRun) => taskRun.sourceType === sourceType).length,
+      activeCount: args.task_runs.filter(
+        (taskRun) => taskRun.sourceType === sourceType && ["running", "awaiting"].includes(taskRun.status),
       ).length,
     })),
-    byKingdom: args.kingdoms.map((kingdom) => ({
-      kingdomId: kingdom.id,
-      kingdomName: kingdom.name,
-      questCount: args.quests.filter((quest) => quest.kingdomId === kingdom.id).length,
-      activeCount: args.quests.filter(
-        (quest) => quest.kingdomId === kingdom.id && ["running", "awaiting"].includes(quest.status),
+    byBusinessTeam: args.business_teams.map((businessTeam) => ({
+      businessTeamId: businessTeam.id,
+      businessTeamName: businessTeam.name,
+      taskRunCount: args.task_runs.filter((taskRun) => taskRun.businessTeamId === businessTeam.id).length,
+      activeCount: args.task_runs.filter(
+        (taskRun) => taskRun.businessTeamId === businessTeam.id && ["running", "awaiting"].includes(taskRun.status),
       ).length,
-      teamCount: args.teams.filter((team) => team.kingdomId === kingdom.id).length,
+      teamCount: args.teams.filter((team) => team.businessTeamId === businessTeam.id).length,
     })),
     byTaskCategory: taskCategories.map((category) => ({
       category,
-      questCount: args.quests.filter((quest) => {
-        const payload = parseJson<Record<string, unknown>>(quest.inputPayloadJson, {});
+      taskRunCount: args.task_runs.filter((taskRun) => {
+        const payload = parseJson<Record<string, unknown>>(taskRun.inputPayloadJson, {});
         const currentCategory =
-          typeof payload.taskCategory === "string" ? payload.taskCategory : quest.sourceType;
+          typeof payload.taskCategory === "string" ? payload.taskCategory : taskRun.sourceType;
         return currentCategory === category;
       }).length,
-      activeCount: args.quests.filter((quest) => {
-        const payload = parseJson<Record<string, unknown>>(quest.inputPayloadJson, {});
+      activeCount: args.task_runs.filter((taskRun) => {
+        const payload = parseJson<Record<string, unknown>>(taskRun.inputPayloadJson, {});
         const currentCategory =
-          typeof payload.taskCategory === "string" ? payload.taskCategory : quest.sourceType;
-        return currentCategory === category && ["running", "awaiting"].includes(quest.status);
+          typeof payload.taskCategory === "string" ? payload.taskCategory : taskRun.sourceType;
+        return currentCategory === category && ["running", "awaiting"].includes(taskRun.status);
       }).length,
     })),
     templatesByKind: templateKinds.map((kind) => ({

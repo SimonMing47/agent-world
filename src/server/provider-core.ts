@@ -1,4 +1,4 @@
-import { type Agent, type Kingdom, type ProviderProfile, type World } from "@/server/db";
+import { type Agent, type BusinessTeam, type ProviderProfile, type TenantSpace } from "@/server/db";
 
 export type ProviderExecutionMode = {
   id: string;
@@ -39,13 +39,13 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
 }
 
 export function buildProviderSelection(args: {
-  world: World;
-  kingdom: Kingdom;
+  tenantSpace: TenantSpace;
+  businessTeam: BusinessTeam;
   agent: Agent;
   providers: ProviderProfile[];
 }) {
-  const whitelist = JSON.parse(args.world.modelWhitelistJson) as string[];
-  const kingdomPolicy = JSON.parse(args.kingdom.policyJson) as {
+  const whitelist = JSON.parse(args.tenantSpace.modelWhitelistJson) as string[];
+  const businessTeamPolicy = JSON.parse(args.businessTeam.policyJson) as {
     preferredProvider?: string;
   };
 
@@ -55,7 +55,7 @@ export function buildProviderSelection(args: {
   });
 
   const preferred =
-    availableProviders.find((provider) => provider.name === kingdomPolicy.preferredProvider) ??
+    availableProviders.find((provider) => provider.name === businessTeamPolicy.preferredProvider) ??
     availableProviders.find((provider) =>
       (JSON.parse(provider.modelsJson) as string[]).includes(args.agent.model),
     ) ??
@@ -67,8 +67,8 @@ export function buildProviderSelection(args: {
     whitelist,
     rationale: preferred
       ? [
-          `World 白名单允许使用 ${whitelist.join(", ")}。`,
-          `Kingdom 的偏好 Provider 为 ${kingdomPolicy.preferredProvider ?? "未显式指定"}。`,
+          `租户空间模型白名单允许使用 ${whitelist.join(", ")}。`,
+          `业务团队的偏好 Provider 为 ${businessTeamPolicy.preferredProvider ?? "未显式指定"}。`,
           `Agent ${args.agent.name} 当前偏好模型是 ${args.agent.model}。`,
         ]
       : ["当前没有启用中的 Provider 同时满足模型白名单约束。"],
