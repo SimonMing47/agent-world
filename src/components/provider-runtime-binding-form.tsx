@@ -29,6 +29,8 @@ type ProviderRuntimeBindingFormProps = {
   providerOptions: Array<{ id: string; name: string }>;
   adapterOptions: Array<{ id: string; name: string }>;
   businessTeamOptions: Array<{ id: string; name: string }>;
+  embedded?: boolean;
+  onSaved?: () => void;
 };
 
 function normalizeJson(value: string, fallback: string) {
@@ -54,6 +56,8 @@ export function ProviderRuntimeBindingForm({
   providerOptions,
   adapterOptions,
   businessTeamOptions,
+  embedded = false,
+  onSaved,
 }: ProviderRuntimeBindingFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -138,26 +142,25 @@ export function ProviderRuntimeBindingForm({
     }
 
     setMessage("已保存");
+    onSaved?.();
     router.refresh();
   }
 
-  return (
-    <Panel>
-      <PanelHeader
-        title={title}
-        description="执行引擎地址、命令、默认模型与环境变量映射。"
-        action={
-          <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-            <input
-              type="checkbox"
-              checked={form.isEnabled}
-              onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
-            />
-            启用
-          </label>
-        }
+  const enabledControl = (
+    <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+      <input
+        type="checkbox"
+        checked={form.isEnabled}
+        onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      <PanelBody>
+      启用
+    </label>
+  );
+
+  const content = (
+    <>
+      {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
+      <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="归属业务团队">
             <Select
@@ -303,7 +306,22 @@ export function ProviderRuntimeBindingForm({
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
-      </PanelBody>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <Panel>
+      <PanelHeader
+        title={title}
+        description="执行引擎地址、命令、默认模型与环境变量映射。"
+        action={enabledControl}
+      />
+      <PanelBody>{content}</PanelBody>
     </Panel>
   );
 }

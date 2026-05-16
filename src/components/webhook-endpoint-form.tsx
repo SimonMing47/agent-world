@@ -24,6 +24,8 @@ type WebhookEndpointFormProps = {
   title: string;
   businessTeamOptions: Array<{ id: string; name: string }>;
   agentTeamOptions: Array<{ id: string; name: string }>;
+  embedded?: boolean;
+  onSaved?: () => void;
 };
 
 function normalizeJson(value: string, fallback: string) {
@@ -39,6 +41,8 @@ export function WebhookEndpointForm({
   title,
   businessTeamOptions,
   agentTeamOptions,
+  embedded = false,
+  onSaved,
 }: WebhookEndpointFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -90,26 +94,25 @@ export function WebhookEndpointForm({
     }
 
     setMessage("已保存");
+    onSaved?.();
     router.refresh();
   }
 
-  return (
-    <Panel>
-      <PanelHeader
-        title={title}
-        description="Webhook 路径、归属团队、签名密钥提示和请求 Schema。"
-        action={
-          <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-            <input
-              type="checkbox"
-              checked={form.isEnabled}
-              onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
-            />
-            启用
-          </label>
-        }
+  const enabledControl = (
+    <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+      <input
+        type="checkbox"
+        checked={form.isEnabled}
+        onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      <PanelBody>
+      启用
+    </label>
+  );
+
+  const content = (
+    <>
+      {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
+      <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="Webhook 名称">
             <Input
@@ -189,7 +192,22 @@ export function WebhookEndpointForm({
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
-      </PanelBody>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <Panel>
+      <PanelHeader
+        title={title}
+        description="Webhook 路径、归属团队、签名密钥提示和请求 Schema。"
+        action={enabledControl}
+      />
+      <PanelBody>{content}</PanelBody>
     </Panel>
   );
 }

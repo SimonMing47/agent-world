@@ -23,6 +23,8 @@ type ProviderProfileFormProps = {
     isEnabled: number;
   };
   title: string;
+  embedded?: boolean;
+  onSaved?: () => void;
 };
 
 function normalizeJson(value: string, fallback: string) {
@@ -42,7 +44,12 @@ function normalizeModelList(value: string) {
   }
 }
 
-export function ProviderProfileForm({ provider, title }: ProviderProfileFormProps) {
+export function ProviderProfileForm({
+  provider,
+  title,
+  embedded = false,
+  onSaved,
+}: ProviderProfileFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -106,26 +113,25 @@ export function ProviderProfileForm({ provider, title }: ProviderProfileFormProp
     }
 
     setMessage("已保存");
+    onSaved?.();
     router.refresh();
   }
 
-  return (
-    <Panel>
-      <PanelHeader
-        title={title}
-        description="模型接口、默认模型和 API Key 引用。"
-        action={
-          <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-            <input
-              type="checkbox"
-              checked={form.isEnabled}
-              onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
-            />
-            启用
-          </label>
-        }
+  const enabledControl = (
+    <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+      <input
+        type="checkbox"
+        checked={form.isEnabled}
+        onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      <PanelBody>
+      启用
+    </label>
+  );
+
+  const content = (
+    <>
+      {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
+      <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="模型接口名称">
             <Input
@@ -206,7 +212,22 @@ export function ProviderProfileForm({ provider, title }: ProviderProfileFormProp
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
-      </PanelBody>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <Panel>
+      <PanelHeader
+        title={title}
+        description="模型接口、默认模型和 API Key 引用。"
+        action={enabledControl}
+      />
+      <PanelBody>{content}</PanelBody>
     </Panel>
   );
 }

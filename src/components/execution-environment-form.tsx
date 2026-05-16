@@ -28,6 +28,8 @@ type ExecutionEnvironmentFormProps = {
   };
   title: string;
   businessTeamOptions: Array<{ id: string; name: string }>;
+  embedded?: boolean;
+  onSaved?: () => void;
 };
 
 function normalizeJson(value: string, fallback: string) {
@@ -42,6 +44,8 @@ export function ExecutionEnvironmentForm({
   environment,
   title,
   businessTeamOptions,
+  embedded = false,
+  onSaved,
 }: ExecutionEnvironmentFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -103,13 +107,12 @@ export function ExecutionEnvironmentForm({
     }
 
     setMessage("已保存");
+    onSaved?.();
     router.refresh();
   }
 
-  return (
-    <Panel>
-      <PanelHeader title={title} description="代码仓、执行路径、私钥引用和记忆依赖。" />
-      <PanelBody>
+  const content = (
+    <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="执行环境名称">
             <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="安全扫描环境" />
@@ -194,7 +197,17 @@ export function ExecutionEnvironmentForm({
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
-      </PanelBody>
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <Panel>
+      <PanelHeader title={title} description="代码仓、执行路径、私钥引用和记忆依赖。" />
+      <PanelBody>{content}</PanelBody>
     </Panel>
   );
 }
