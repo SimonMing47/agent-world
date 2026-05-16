@@ -50,9 +50,9 @@ AgentWorld 就是针对这些问题来设计的。
 ## Docs
 
 - 文档入口 / Documentation Index: [docs/README.md](./docs/README.md)
-- 核心架构（中文）: [docs/core-architecture.zh-CN.md](./docs/core-architecture.zh-CN.md)
-
-当前文档聚焦一份“九层架构 + 插件化扩展 + 典型场景”的核心设计，避免历史文档冗余。
+- 系统概要设计（中文）: [docs/system-design.zh-CN.md](./docs/system-design.zh-CN.md)
+- 系统详细设计（中文）: [docs/system-design-detailed.zh-CN.md](./docs/system-design-detailed.zh-CN.md)
+- 核心架构速览（中文）: [docs/core-architecture.zh-CN.md](./docs/core-architecture.zh-CN.md)
 
 ## Quick Start
 
