@@ -166,6 +166,18 @@ export default async function QuestDetailPage({
       <section className="space-y-4">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            任务空间
+          </div>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
+            对话、thinking、tool use 与人工操作全量记录
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
+            下方事件按执行阶段分组展开，保留每个 Agent 节点的推理摘要、工具结果、策略命中和人工干预信息。
+          </p>
+        </div>
+
+        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             调用阶段
           </div>
           <div className="mt-4 space-y-3">

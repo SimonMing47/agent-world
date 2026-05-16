@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { listBuiltinPluginManifests } from "@/server/plugin-core";
+import {
+  getPluginSecurityModel,
+  listBuiltinPluginManifests,
+  listPluginExtensionPoints,
+} from "@/server/plugin-core";
 
 export function GET() {
-  return NextResponse.json({ manifests: listBuiltinPluginManifests() });
+  return NextResponse.json({
+    manifests: listBuiltinPluginManifests(),
+    extensionPoints: listPluginExtensionPoints(),
+    securityModel: getPluginSecurityModel(),
+  });
 }

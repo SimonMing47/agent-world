@@ -1,4 +1,3 @@
-import { createOpencodeClient } from "@opencode-ai/sdk";
 import { type RuntimeEndpoint } from "@/server/db";
 
 export type DiscoveredRuntime = {
@@ -40,6 +39,7 @@ export async function inspectOpenCodeRuntime(baseUrl: string): Promise<Discovere
   const start = Date.now();
 
   try {
+    const { createOpencodeClient } = await import("@opencode-ai/sdk");
     const client = createOpencodeClient({ baseUrl });
     const [agentsResult, providersResult] = await Promise.all([
       client.app.agents(),

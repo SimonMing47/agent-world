@@ -1,79 +1,152 @@
 # AgentWorld 系统详细设计（全量）
 
-## 1. 分层详细设计
+## 1. 设计目标
 
-### 1.1 Provider 执行层
-- 统一 Provider 选择：根据 world/kingdom/agent/runtime 计算最优执行路径。
-- 默认实现：opencode SDK。
-- 扩展实现：可插入 claude code/openclaw 类 CLI Provider。
-- 失败策略：主 Provider 失败时可降级到备用 Provider。
+AgentWorld 的详细设计以“团队级 Agent 平台”为唯一主线：用稳定开源主干提供编排、治理、观测和协议，用插件承接 Provider、IM、邮件、代码仓等外部系统。设计和实现必须能支撑神盾计划 MR 检视与每日全量安全检视两类案例。
 
-### 1.2 Agent 定义层
-- Agent 基本属性：角色、能力、权限、工具集、所属团队。
-- 团队属性：Leader（Captain）+ 协作成员。
-- 版本策略：后续扩展 Agent 版本与灰度发布。
+## 2. 九层详细设计
 
-### 1.3 工具/Skill 管理层
-- 工具策略：allow/deny + 参数约束 + 审计记录。
-- Skill 来源：内置 + 记忆层动态读取。
-- 插件机制：工具以声明方式注册，不改主流程。
+### 2.1 Provider 执行层
 
-### 1.4 多 Agent 编排层
-- 任务规划：将任务拆分为可执行节点。
-- 节点依赖：支持 DAG 依赖与并行执行。
-- 交互模型：Leader 负责任务分配与结果汇总。
+- 职责：统一封装模型调用、opencode SDK、未来 CLI Agent 引擎。
+- 当前实现：`provider-core.ts` 负责 Provider 选择，`opencode-adapter.ts` 负责 runtime 发现，`runtime-core.ts` 负责运行时摘要。
+- 前端：`/runtimes` 展示 runtime 健康与能力目录；`/settings` 展示 Provider key 的 secret ref。
+- 扩展点：`provider-runtime`，用于 claude code、openclaw 等 Provider 插件。
+- 约束：主干只保存 `env:OPENAI_API_KEY`、`env:OPENCODE_API_KEY` 等引用，不保存明文 key。
 
-### 1.5 Agent 团队任务执行层
-- 任务空间：对话、tool use、tool result、thinking summary。
-- 干预机制：人工审批、暂停、恢复、节点重试。
-- 追踪机制：完整事件流归档。
+### 2.2 Agent 定义层
 
-### 1.6 业务团队管理层
-- 多租治理：World/Kingdom 边界。
-- 可见性：个人可见 / 团队可见 / 全局可见。
-- 权限角色：创建者、编辑者、使用者。
+- 职责：定义 Agent 的角色、提示词、模型、权限、工具集、记忆范围和所属 AgentTeam。
+- 当前实现：`agents`、`agent_teams` 表保存定义；`/agent-teams` 展示 Leader、成员、工具集和记忆范围。
+- 编排关系：AgentTeam 通过 `captain_agent_id` 定义 Leader，通过 `workflow_type` 定义 single/sequential/parallel/DAG。
+- 可见性：AgentTeam 现有 public/private 能力，设计预留 personal/team/global。
+- 后续扩展：Agent 版本、灰度发布、审批流、创建者/编辑者/使用者 ACL。
 
-### 1.7 任务执行展示层
-- 展示维度：按团队、按类型、按状态、按成本。
-- 类型覆盖：一次性、定时、Webhook。
-- 看板能力：实时状态、吞吐、成功率、成本曲线。
+### 2.3 工具 / Skill 管理层
 
-### 1.8 环境层
-- 环境对象：代码仓、执行路径、执行人、私钥。
-- 调度绑定：任务模板选择环境。
-- 未来扩展：沙箱模板、容器镜像、隔离级别。
+- 职责：管理工具、skill、权限、审计、OpenViking skill 访问。
+- 当前实现：`harness-core.ts` 做 allow/deny/approval，`plugin-core.ts` 描述插件清单，`openviking-core.ts` 管理 skill 和知识层。
+- 前端：`/harness` 展示权限策略；`/knowledge` 展示知识层和 Skill Registry；`/settings` 展示插件扩展点。
+- API：`/api/knowledge/skills`、`/api/knowledge/read`、`/api/plugins/manifests`。
+- 约束：新增工具只能通过插件声明挂载，执行前必须经过 Harness 决策。
 
-### 1.9 记忆层
-- 技术底座：OpenViking。
-- 分层分域：全局/团队/任务记忆。
-- 对外接口：供 Agent 与 CLI 读取和写入。
+### 2.4 多 Agent 编排层
 
-## 2. 数据与接口映射（当前仓库）
+- 职责：把任务拆成节点，定义 Leader 与协作 Agent 的依赖、交互和目标。
+- 当前实现：`planner-core.ts` 做计划摘要，`queries.ts` 的 `submitQuest` 生成节点，`executeQuestTick` 推进依赖。
+- 执行模型：节点状态从 submitted -> ready -> running -> completed/awaiting/failed。
+- 可靠性：失败节点可独立 retry，人工审批后可 resume。
+- 后续扩展：由 Captain Agent 动态生成 DAG，并在执行前做结构和权限校验。
 
-- 调度与任务：`scheduler-core.ts`、`executor-core.ts`、`planner-core.ts`
-- 调用与追踪：`invocation-core.ts`、`trace-core.ts`
-- 团队与治理：`tenant-core.ts`、`contract-core.ts`
-- Provider 与运行时：`provider-core.ts`、`runtime-core.ts`、`opencode-adapter.ts`
-- 记忆：`openviking-core.ts` + `api/knowledge/*`
-- Webhook/MR 检视：`api/webhooks/[pathKey]/route.ts`、`code-review-core.ts`
+### 2.5 Agent 团队任务执行层
 
-## 3. 增量实现策略
+- 职责：每个 AgentTeam 接受 Quest，提供任务空间与全量交互记录。
+- 当前实现：`quests`、`quest_nodes`、`event_logs`、`quest_interventions` 表保存执行过程。
+- 前端：`/quests` 展示任务列表；`/quests/[id]` 展示任务空间、调用阶段、节点、事件、成本和策略命中。
+- 事件类型：planning、thinking、tool_result、approval_required、policy_violation、contract_violation、timeout、approval_result。
+- 约束：任务空间必须展示 thinking 摘要、tool use、tool result、人工操作和 metadata，不能只展示最终结论。
 
-1. 先保证九层映射完整可见（文档 + 页面 + API）。
-2. 再按插件协议补齐外部系统接入（IM/邮件/代码仓）。
-3. 最后强化运维能力（告警、审计、回放、容量策略）。
+### 2.6 业务团队管理层
 
-## 4. 覆盖性对照清单
+- 职责：多团队共同使用多 Agent 时的权限、预算、可见性与跨团队调用治理。
+- 当前实现：World / Kingdom / Contract / Tavern 模型。
+- 可见性策略：Agent、AgentTeam 和环境支持个人、团队、全局的设计目标；任务本身保持全局可见。
+- 权限策略：跨 Kingdom 调用必须有 Contract，工具动作必须过 Harness。
+- 后续扩展：ACL 表、组织目录同步、创建者/编辑者/使用者角色。
 
-- [x] 九层系统定位
-- [x] 前后端分层排布
-- [x] Provider 默认 + 扩展方向
-- [x] Agent 定义与多 Agent 团队
-- [x] 工具/skill 与权限策略
-- [x] 执行空间与全过程记录
-- [x] 团队分权与可见性
-- [x] 任务看板与多类型任务
-- [x] 环境配置与未来沙箱
-- [x] 记忆层设计与 OpenViking 对接
-- [x] 神盾计划案例
+### 2.7 任务执行展示层
+
+- 职责：按业务团队、任务类别、触发方式和状态展示所有 Quest。
+- 当前实现：`environment-core.ts` 生成任务类别看板，`scheduler-core.ts` 判断定时模板状态，`/` 与 `/wallboard` 展示全局视图。
+- 任务类型：manual、schedule、webhook、contract；模板类型：cron、event、webhook。
+- 指标：运行中、等待人工、公开 AgentTeam、生效 Contract、类别分布、团队分布、成本、优先级。
+- 后续扩展：SSE/WebSocket 实时刷新、容量预测、成本曲线和团队 drill-down。
+
+### 2.8 环境层
+
+- 职责：管理任务执行对象和执行环境。
+- 当前实现：`execution_environments` 表和 `environment-core.ts`，字段覆盖代码仓 provider/name/url、默认分支、执行人、PRIVATE_KEY 引用、工作目录、沙箱配置、记忆依赖。
+- 前端：`/settings` 展示执行环境。
+- 案例环境：`env-shield-mr-review`、`env-daily-security-scan`。
+- 约束：主干只保存 `private_key_ref`，真实 PRIVATE_KEY 由外部 secret 管理。
+- 后续扩展：沙箱模板、容器镜像、远程执行环境、代码仓插件多平台适配。
+
+### 2.9 记忆层
+
+- 职责：基于 OpenViking 做分层、分域、分团队记忆，并提供 skill 访问能力。
+- 当前实现：`knowledge_layers`、`openviking_knowledge_entries`、`code_review_skills`，以及 OpenViking 远端写入 + 本地影子索引。
+- API：`/api/knowledge/read?uri=&level=L0|L1|L2`、`/api/knowledge/layers`、`/api/knowledge/skills`。
+- 分层：resources 保存仓库和全局经验，agent 保存 skill 知识，user 保存人工反馈。
+- 约束：OpenViking 不可用时不能丢数据，本地 shadow 必须保留。
+
+## 3. 插件化设计
+
+插件协议字段：
+- `id`、`name`、`version`、`capability`
+- `mountPoint`：provider-runtime、tool-skill-registry、notification-channel、execution-environment
+- `configSchema`：配置结构
+- `requiredSecretRefs`：secret 或 env 引用
+- `permissions`：与 Harness 对齐的权限
+- `healthCheck`：健康检查方式
+- `extensionOnly: true`：明确只能扩展，不能修改主干
+
+默认插件清单：
+- `builtin.provider.opencode`
+- `builtin.notify.email`
+- `builtin.notify.im`
+- `builtin.repo.git`
+
+主干边界：
+- 主干负责读取清单、展示配置、保存引用、做权限决策。
+- 插件负责外部 SDK、认证、网络调用、平台差异。
+- 新增插件不需要修改任务主流程。
+
+## 4. 数据模型映射
+
+- 租户和团队：`worlds`、`kingdoms`
+- Agent 定义：`agent_teams`、`agents`
+- 权限：`harness_profiles`、`contracts`
+- Provider / Runtime：`provider_profiles`、`runtime_endpoints`
+- 任务：`schedule_templates`、`quests`、`quest_plans`、`quest_nodes`
+- 执行记录：`trace_spans`、`event_logs`、`quest_interventions`
+- 环境：`execution_environments`、`repository_profiles`、`developer_profiles`
+- 记忆：`knowledge_layers`、`openviking_knowledge_entries`、`code_review_skills`
+- 检视案例：`webhook_endpoints`、`merge_request_reviews`、`review_findings`、`review_feedback`
+
+## 5. 两个案例的实现对照
+
+### 5.1 神盾计划
+
+- Webhook：`/api/webhooks/[pathKey]`
+- 检视核心：`code-review-core.ts`
+- Quest 生成：Webhook 检视过程中调用 `submitQuest`
+- 任务模板：`template-shield-mr-review`
+- 环境：`env-shield-mr-review`
+- Skill：MR 结构、安全敏感、测试影响、数据契约
+- 输出：MR 评论、review finding、Quest trace、OpenViking 记忆
+
+### 5.2 每日全量安全检视
+
+- 调度模板：`template-daily-security-review`
+- 环境：`env-daily-security-scan`
+- 仓库选择：按 Kingdom 和默认分支选择仓库集合
+- Skill：安全检视 + 反馈记忆
+- 通知：邮件插件 `builtin.notify.email`
+- 输出：风险报告、邮件摘要、长期安全记忆
+
+## 6. 覆盖性清单
+
+- [x] 团队级 Agent 平台定位
+- [x] 九层架构和前后端排布
+- [x] opencode SDK 默认 Provider 与 CLI Provider 扩展点
+- [x] Agent 角色、工具集、Leader 和团队展示
+- [x] 工具 / skill 管理与 Harness 权限对齐
+- [x] 多 Agent 编排、节点依赖、重试、人工干预
+- [x] 任务空间完整事件记录
+- [x] World / Kingdom / Contract 多团队治理
+- [x] 全局任务看板和触发类别统计
+- [x] 执行环境、代码仓、执行人、PRIVATE_KEY 引用和路径配置
+- [x] OpenViking 记忆层、skill 管理和 CLI 读取接口
+- [x] 插件化 IM、邮件、代码仓、Provider 接入边界
+- [x] 神盾计划 MR 检视案例
 - [x] 每日安全检视案例

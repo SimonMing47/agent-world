@@ -231,6 +231,12 @@ export function listLayeredKnowledge(limit = 50) {
   );
 }
 
+export function listKnowledgeSkills() {
+  return queryAll<CodeReviewSkill>(
+    "SELECT * FROM code_review_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
+  );
+}
+
 export async function getOpenVikingHealth() {
   const baseUrl = getOpenVikingBaseUrl();
   try {
@@ -311,6 +317,7 @@ export async function getKnowledgeManagementSnapshot() {
     Promise.resolve(listKnowledgeLayers()),
     Promise.resolve(listLayeredKnowledge(12)),
   ]);
+  const skills = listKnowledgeSkills();
 
   let tree: Array<Record<string, unknown>> = [];
   if (health.ok) {
@@ -321,6 +328,7 @@ export async function getKnowledgeManagementSnapshot() {
     health,
     layers,
     entries,
+    skills,
     tree,
   };
 }

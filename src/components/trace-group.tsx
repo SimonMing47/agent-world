@@ -2,6 +2,15 @@ import { formatDateTime } from "@/lib/utils";
 import { localizeDemoCopy, translateFoldGroup } from "@/lib/presentation";
 import { type EventLog } from "@/server/db";
 
+function parseMetadata(value: string) {
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    return Object.keys(parsed).length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function TraceGroup({
   title,
   events,
@@ -11,7 +20,7 @@ export function TraceGroup({
 }) {
   return (
     <details
-      open={title === "Human Actions" || title === "人工操作"}
+      open
       className="rounded-[24px] border border-[var(--line)] bg-[var(--surface-strong)]"
     >
       <summary className="cursor-pointer list-none px-5 py-4">
@@ -28,24 +37,33 @@ export function TraceGroup({
         </div>
       </summary>
       <div className="space-y-3 border-t border-[var(--line)] px-5 py-4">
-        {events.map((event) => (
-          <div
-            key={event.id}
-            className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div className="text-sm font-medium text-[var(--ink)]">
-                {localizeDemoCopy(event.title)}
+        {events.map((event) => {
+          const metadata = parseMetadata(event.metadataJson);
+
+          return (
+            <div
+              key={event.id}
+              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-sm font-medium text-[var(--ink)]">
+                  {localizeDemoCopy(event.title)}
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                  {event.phase} · {formatDateTime(event.createdAt)}
+                </div>
               </div>
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                {formatDateTime(event.createdAt)}
-              </div>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
+                {localizeDemoCopy(event.content)}
+              </p>
+              {metadata ? (
+                <pre className="mt-3 overflow-x-auto rounded-xl bg-[var(--surface-strong)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
+                  {JSON.stringify(metadata, null, 2)}
+                </pre>
+              ) : null}
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
-              {localizeDemoCopy(event.content)}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </details>
   );

@@ -1,12 +1,28 @@
-import { getDashboardSnapshot } from "@/server/queries";
+import { listAgents, listAgentTeams, listKingdoms } from "@/server/queries";
 import { translateVisibility, translateWorkflowType } from "@/lib/presentation";
 
+function parseStringArray(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AgentTeamsPage() {
-  const snapshot = getDashboardSnapshot();
+  const teams = listAgentTeams();
+  const agents = listAgents();
+  const kingdoms = listKingdoms();
 
   return (
     <div className="space-y-4">
-      {snapshot.teamSummaries.map((team) => (
+      {teams.map((team) => {
+        const members = agents.filter((agent) => agent.teamId === team.id);
+        const captain = members.find((agent) => agent.id === team.captainAgentId);
+        const kingdom = kingdoms.find((item) => item.id === team.kingdomId);
+
+        return (
         <section
           key={team.id}
           className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6"
@@ -14,11 +30,14 @@ export default function AgentTeamsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                AgentTeam 服务
+                AgentTeam 服务 · {kingdom?.name ?? "未知 Kingdom"}
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
                 {team.name}
               </h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink-muted)]">
+                {team.description}
+              </p>
             </div>
             <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
               {translateVisibility(team.visibility)}
@@ -33,21 +52,43 @@ export default function AgentTeamsPage() {
             </div>
             <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
               <div className="text-sm text-[var(--ink-muted)]">Agent 数量</div>
-              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{team.agentCount}</div>
+              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{members.length}</div>
             </div>
             <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
               <div className="text-sm text-[var(--ink-muted)]">超时时间</div>
-              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{team.timeoutMinutes} 分钟</div>
+              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{Math.round(team.timeoutMs / 60000)} 分钟</div>
             </div>
             <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
               <div className="text-sm text-[var(--ink-muted)]">成功率目标</div>
               <div className="mt-2 text-xl font-semibold text-[var(--ink)]">
-                {Math.round(team.successRateTarget * 100)}%
+                {Math.round(team.successRateThreshold * 100)}%
               </div>
             </div>
           </div>
+          <div className="mt-5 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+            <div className="text-sm font-semibold text-[var(--ink)]">
+              Leader: {captain?.name ?? "未指定，将由编排策略选择"}
+            </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              {members.map((agent) => (
+                <div key={agent.id} className="rounded-[20px] border border-[var(--line)] bg-[var(--surface-strong)] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-base font-semibold text-[var(--ink)]">{agent.name}</div>
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">{agent.role}</div>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{agent.personaPrompt}</p>
+                  <div className="mt-3 space-y-1 text-sm text-[var(--ink-muted)]">
+                    <div>模型: {agent.model}</div>
+                    <div>工具集: {parseStringArray(agent.toolBindingsJson).join(", ") || "未配置"}</div>
+                    <div>记忆范围: {agent.memoryScope}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }

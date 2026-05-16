@@ -264,6 +264,24 @@ export type DeveloperProfile = {
   lastActiveAt: string;
 };
 
+export type ExecutionEnvironment = {
+  id: string;
+  kingdomId: string;
+  name: string;
+  repositoryProvider: string;
+  repositoryName: string;
+  repositoryUrl: string;
+  defaultBranch: string;
+  executorRef: string;
+  privateKeyRef: string;
+  workingDirectory: string;
+  sandboxProfileJson: string;
+  memoryLayerRefsJson: string;
+  visibility: string;
+  status: string;
+  createdAt: string;
+};
+
 export type WebhookEndpoint = {
   id: string;
   kingdomId: string;
@@ -617,6 +635,24 @@ CREATE TABLE IF NOT EXISTS developer_profiles (
   name TEXT NOT NULL,
   focus TEXT NOT NULL,
   last_active_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS execution_environments (
+  id TEXT PRIMARY KEY,
+  kingdom_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  repository_provider TEXT NOT NULL,
+  repository_name TEXT NOT NULL,
+  repository_url TEXT NOT NULL,
+  default_branch TEXT NOT NULL,
+  executor_ref TEXT NOT NULL,
+  private_key_ref TEXT NOT NULL,
+  working_directory TEXT NOT NULL,
+  sandbox_profile_json TEXT NOT NULL,
+  memory_layer_refs_json TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS webhook_endpoints (
@@ -1803,6 +1839,102 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
   });
 }
 
+function ensureCoreCaseSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const tomorrow = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
+  const releaseKingdom = db
+    .prepare("SELECT id FROM kingdoms WHERE slug = ?")
+    .get("release-guild") as { id: string } | undefined;
+  const reviewTeam = db
+    .prepare("SELECT id FROM agent_teams WHERE slug = ?")
+    .get("pr-vanguard") as { id: string } | undefined;
+
+  if (!releaseKingdom || !reviewTeam) return;
+
+  const insertEnvironment = db.prepare(
+    "INSERT OR IGNORE INTO execution_environments (id, kingdom_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertSchedule = db.prepare(
+    "INSERT OR IGNORE INTO schedule_templates (id, kingdom_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  insertEnvironment.run(
+    "env-shield-mr-review",
+    releaseKingdom.id,
+    "神盾计划 MR 检视环境",
+    "github",
+    "agent-world",
+    "git@github.com:SimonMing47/agent-world.git",
+    "main",
+    "svc-release-reviewer",
+    "secret:release-guild/repo-private-key",
+    ".",
+    JSON.stringify({ isolation: "process", network: "egress-controlled", future: "sandbox-template" }),
+    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"]),
+    "global",
+    "active",
+    now,
+  );
+  insertEnvironment.run(
+    "env-daily-security-scan",
+    releaseKingdom.id,
+    "每日全量安全检视环境",
+    "github",
+    "release-guild/*",
+    "git@github.com:SimonMing47/*.git",
+    "main",
+    "svc-security-reviewer",
+    "secret:release-guild/security-private-key",
+    ".",
+    JSON.stringify({ isolation: "future-sandbox", network: "read-only-egress", cloneDepth: "full" }),
+    JSON.stringify(["security", "feedback/correct", "feedback/incorrect", "repository/code-review"]),
+    "global",
+    "active",
+    now,
+  );
+
+  insertSchedule.run(
+    "template-shield-mr-review",
+    releaseKingdom.id,
+    reviewTeam.id,
+    "神盾计划 MR webhook 检视",
+    "event",
+    "Webhook: MR diff",
+    null,
+    JSON.stringify({
+      caseKey: "shield",
+      taskCategory: "code_review",
+      trigger: "webhook",
+      environmentId: "env-shield-mr-review",
+      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
+      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+    }),
+    1,
+    now,
+  );
+  insertSchedule.run(
+    "template-daily-security-review",
+    releaseKingdom.id,
+    reviewTeam.id,
+    "每日全量安全检视",
+    "cron",
+    "Every day at 02:00",
+    tomorrow,
+    JSON.stringify({
+      caseKey: "security-daily",
+      taskCategory: "security_review",
+      trigger: "schedule",
+      environmentId: "env-daily-security-scan",
+      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      memoryLayers: ["security", "feedback/correct", "feedback/incorrect"],
+      notificationPlugin: "builtin.notify.email",
+      output: ["risk_report", "email_digest", "knowledge_archive"],
+    }),
+    1,
+    now,
+  );
+}
+
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -1810,6 +1942,7 @@ export function getDb() {
     database.exec(schemaSql);
     seed(database);
     ensureCodeReviewSkillSeed(database);
+    ensureCoreCaseSeed(database);
   }
 
   return database;

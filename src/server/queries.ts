@@ -9,6 +9,7 @@ import {
   type Contract,
   type DeveloperProfile,
   type EventLog,
+  type ExecutionEnvironment,
   type HarnessProfile,
   type Kingdom,
   type ProviderProfile,
@@ -39,6 +40,10 @@ import { buildAgentTeamSummary, buildTavernResume } from "@/server/registry-core
 import { buildProviderSelection } from "@/server/provider-core";
 import { summarizeQuestPlan, buildTeamPlanningMode } from "@/server/planner-core";
 import { buildRuntimeSummary } from "@/server/runtime-core";
+import {
+  buildEnvironmentSummary,
+  buildTaskExecutionDashboard,
+} from "@/server/environment-core";
 
 export function listWorlds() {
   return queryAll<World>("SELECT * FROM worlds ORDER BY name ASC");
@@ -90,6 +95,12 @@ export function listRepositories() {
 
 export function listDevelopers() {
   return queryAll<DeveloperProfile>("SELECT * FROM developer_profiles ORDER BY last_active_at DESC");
+}
+
+export function listExecutionEnvironments() {
+  return queryAll<ExecutionEnvironment>(
+    "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
+  );
 }
 
 export function listWebhooks() {
@@ -199,6 +210,7 @@ export function getDashboardSnapshot() {
   const runtimes = listRuntimeEndpoints();
   const repositories = listRepositories();
   const developers = listDevelopers();
+  const environments = listExecutionEnvironments();
   const harnesses = listHarnessProfiles();
 
   const runningQuests = quests.filter((quest) => quest.status === "running");
@@ -292,6 +304,15 @@ export function getDashboardSnapshot() {
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
     repositories,
     developers,
+    executionEnvironments: environments.map((environment) =>
+      buildEnvironmentSummary(environment, kingdoms),
+    ),
+    taskExecutionDashboard: buildTaskExecutionDashboard({
+      quests,
+      schedules,
+      teams,
+      kingdoms,
+    }),
     scheduleAssessments,
     dueScheduleCount: dueSchedules.length,
     questPriorityBoard,
@@ -326,6 +347,7 @@ export function getWallboardSnapshot() {
   const developers = listDevelopers();
   const kingdoms = listKingdoms();
   const runtimes = listRuntimeEndpoints();
+  const schedules = listScheduleTemplates();
 
   return {
     activeQuests: quests.filter((quest) => ["running", "awaiting"].includes(quest.status)),
@@ -334,6 +356,12 @@ export function getWallboardSnapshot() {
     topDevelopers: developers.slice(0, 3),
     kingdoms: kingdoms.map((kingdom) => buildKingdomSummary(kingdom)),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
+    taskExecutionDashboard: buildTaskExecutionDashboard({
+      quests,
+      schedules,
+      teams,
+      kingdoms,
+    }),
   };
 }
 
@@ -351,6 +379,7 @@ type SubmitQuestInput = {
   requestedBy: string;
   priority?: number;
   contractId?: string | null;
+  environmentId?: string | null;
   plannerMode?: string;
   summary?: string;
   inputPayload: Record<string, unknown>;
@@ -408,6 +437,9 @@ function synthesizeTeamNodes(team: AgentTeam) {
     teamAgents.find((agent) => agent.role.toLowerCase() === "specialist") ??
     teamAgents[0] ??
     null;
+  const executor =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "executor") ??
+    specialist;
   const reviewer =
     teamAgents.find((agent) => agent.role.toLowerCase() === "reviewer") ??
     teamAgents[teamAgents.length - 1] ??
@@ -429,7 +461,7 @@ function synthesizeTeamNodes(team: AgentTeam) {
   }
 
   const defaultCaptain = captain ?? specialist ?? reviewer;
-  const defaultSpecialist = specialist ?? captain ?? reviewer;
+  const defaultSpecialist = executor ?? specialist ?? captain ?? reviewer;
   const defaultReviewer = reviewer ?? captain ?? specialist;
   if (!defaultCaptain || !defaultSpecialist || !defaultReviewer) return [];
 
@@ -519,6 +551,14 @@ export function submitQuest(input: SubmitQuestInput) {
   const planId = randomUUID();
   const createdAt = nowIso();
   const nodeSpecs = input.nodes?.length ? input.nodes : synthesizeTeamNodes(team);
+  const inputPayload = {
+    ...input.inputPayload,
+    environmentId:
+      input.environmentId ??
+      (typeof input.inputPayload.environmentId === "string"
+        ? input.inputPayload.environmentId
+        : null),
+  };
   const dagNodes = nodeSpecs.map((node) => ({ id: node.nodeKey, agent: node.agentId }));
   const dagEdges = nodeSpecs.flatMap((node) =>
     (node.dependsOn ?? []).map((dependency) => [dependency, node.nodeKey]),
@@ -535,7 +575,7 @@ export function submitQuest(input: SubmitQuestInput) {
     input.sourceRef ?? null,
     "running",
     input.priority ?? 50,
-    JSON.stringify(input.inputPayload),
+    JSON.stringify(inputPayload),
     null,
     0,
     0,

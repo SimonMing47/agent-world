@@ -1,11 +1,11 @@
 # AgentWorld Docs
 
-当前文档体系：
+当前文档体系只保留两份核心设计：
 
 - [系统概要设计（中文）](./system-design.zh-CN.md)
 - [系统详细设计（中文）](./system-design-detailed.zh-CN.md)
-- [核心架构（精简导航版）](./core-architecture.zh-CN.md)
 
 说明：
-- `system-design*.md` 为完整设计主文档（概要 + 详细）。
-- `core-architecture.zh-CN.md` 为产品/研发沟通用速览版本。
+- 概要设计说明系统定位、九层架构、可靠性原则与两个标准案例。
+- 详细设计逐层对照前端、后端、数据、接口、插件边界与实现状态。
+- 不再保留重复速览文档，避免设计主线分叉。
