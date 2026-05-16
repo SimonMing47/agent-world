@@ -1,9 +1,13 @@
-import { listExecutionEnvironments, listProviders, listWebhooks } from "@/server/queries";
 import {
-  getPluginSecurityModel,
-  listBuiltinPluginManifests,
-  listPluginExtensionPoints,
-} from "@/server/plugin-core";
+  listExecutionEnvironments,
+  listProviders,
+  listTaskTemplates,
+  listWebhooks,
+} from "@/server/queries";
+import {
+  buildExtensionImportExample,
+  getExtensionRegistrySnapshot,
+} from "@/server/extension-core";
 import { listProviderExecutionModes } from "@/server/provider-core";
 import { translateBoolean } from "@/lib/presentation";
 
@@ -11,9 +15,12 @@ export default function SettingsPage() {
   const providers = listProviders();
   const webhooks = listWebhooks();
   const environments = listExecutionEnvironments();
-  const pluginManifests = listBuiltinPluginManifests();
-  const extensionPoints = listPluginExtensionPoints();
-  const pluginSecurity = getPluginSecurityModel();
+  const taskTemplates = listTaskTemplates();
+  const extensionRegistry = getExtensionRegistrySnapshot();
+  const pluginManifests = extensionRegistry.manifests;
+  const extensionPoints = extensionRegistry.extensionPoints;
+  const pluginSecurity = extensionRegistry.securityModel;
+  const importExample = buildExtensionImportExample();
   const executionModes = listProviderExecutionModes();
 
   return (
@@ -105,6 +112,12 @@ export default function SettingsPage() {
         <div className="mt-5 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--ink-muted)]">
           {pluginSecurity.permissionModel} {pluginSecurity.openSourceBoundary}
         </div>
+        <div className="mt-5 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+          <div className="text-sm font-semibold text-[var(--ink)]">导入扩展包示例</div>
+          <pre className="mt-3 max-h-72 overflow-auto rounded-2xl bg-[var(--surface-strong)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
+            {JSON.stringify(importExample, null, 2)}
+          </pre>
+        </div>
       </section>
 
       <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6 xl:col-span-2">
@@ -136,6 +149,28 @@ export default function SettingsPage() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6 xl:col-span-2">
+        <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          任务模板
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {taskTemplates.map((template) => (
+            <div key={template.id} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-semibold text-[var(--ink)]">{template.name}</div>
+                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">{template.caseKey}</div>
+              </div>
+              <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
+                <div>插件: {template.pluginId ?? "无"}</div>
+                <div>环境: {template.environmentId ?? "运行时选择"}</div>
+                <div>规划: {template.plannerMode}</div>
+                <div>记忆层: {(JSON.parse(template.memoryLayersJson) as string[]).join(", ")}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

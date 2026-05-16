@@ -1,3 +1,4 @@
+import { AgentEditForm } from "@/components/agent-edit-form";
 import { listAgents, listAgentTeams, listKingdoms } from "@/server/queries";
 import { translateVisibility, translateWorkflowType } from "@/lib/presentation";
 
@@ -82,6 +83,7 @@ export default function AgentTeamsPage() {
                     <div>工具集: {parseStringArray(agent.toolBindingsJson).join(", ") || "未配置"}</div>
                     <div>记忆范围: {agent.memoryScope}</div>
                   </div>
+                  <AgentEditForm agent={agent} />
                 </div>
               ))}
             </div>

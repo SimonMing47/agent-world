@@ -14,6 +14,7 @@ import {
 } from "@/server/db";
 import { writeLayeredKnowledge } from "@/server/openviking-core";
 import { submitQuest } from "@/server/queries";
+import { resolveWebhookTaskConfiguration } from "@/server/extension-core";
 
 const execFileAsync = promisify(execFile);
 
@@ -661,6 +662,7 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
   const diffBundle = await acquireDiff(context, payload, request, reviewId);
   const stats = summarizeDiff(diffBundle.diff);
   const skills = loadReviewSkills();
+  const taskConfig = resolveWebhookTaskConfiguration(webhook.teamId, pathKey);
   const knowledge = await writeLayeredKnowledge({
     layer: "repository/code-review",
     scopeKey: `${context.repositorySlug}/mr-${context.mrIid}`,
@@ -694,19 +696,31 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
         sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
         requestedBy: context.author ?? "webhook",
         priority: 88,
-        environmentId: "env-shield-mr-review",
-        plannerMode: "rule",
-        summary: "神盾计划已把 MR webhook 转为可观测 Quest，并绑定分层检视记忆。",
+        environmentId: taskConfig.environmentId,
+        plannerMode: taskConfig.plannerMode,
+        summary: taskConfig.summary,
         inputPayload: {
-          caseKey: "shield",
-          taskCategory: "code_review",
+          ...taskConfig.defaultInput,
+          caseKey: taskConfig.caseKey,
+          taskCategory: taskConfig.taskCategory,
           reviewId,
           repository: context.repositorySlug,
           mergeRequest: context.mrIid,
           diffStatus: diffBundle.status,
           changedFiles: stats.changedFiles,
-          memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
+          memoryLayers: taskConfig.memoryLayers,
         },
+        nodes: taskConfig.nodes
+          .map((node) => ({
+            nodeKey: String(node.nodeKey ?? node.id ?? "node"),
+            agentId: typeof node.agentId === "string" ? node.agentId : "",
+            dependsOn: Array.isArray(node.dependsOn) ? node.dependsOn.map(String) : [],
+            input:
+              node.input && typeof node.input === "object" && !Array.isArray(node.input)
+                ? (node.input as Record<string, unknown>)
+                : {},
+          }))
+          .filter((node) => node.agentId) || undefined,
       });
     } catch {
       return null;

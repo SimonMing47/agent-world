@@ -20,6 +20,7 @@ import {
   type RepositoryProfile,
   type RuntimeEndpoint,
   type ScheduleTemplate,
+  type TaskTemplate,
   type TavernListing,
   type WebhookEndpoint,
   type World,
@@ -65,6 +66,36 @@ export function listAgents() {
   return queryAll<Agent>("SELECT * FROM agents ORDER BY name ASC");
 }
 
+export function updateAgentDefinition(
+  agentId: string,
+  input: Partial<{
+    name: string;
+    role: string;
+    personaPrompt: string;
+    model: string;
+    toolBindings: string[];
+    memoryScope: string;
+    status: string;
+  }>,
+) {
+  const current = queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
+  if (!current) throw new Error("Agent 不存在。");
+
+  execute(
+    "UPDATE agents SET name = ?, role = ?, persona_prompt = ?, model = ?, tool_bindings_json = ?, memory_scope = ?, status = ? WHERE id = ?",
+    input.name ?? current.name,
+    input.role ?? current.role,
+    input.personaPrompt ?? current.personaPrompt,
+    input.model ?? current.model,
+    JSON.stringify(input.toolBindings ?? (JSON.parse(current.toolBindingsJson) as string[])),
+    input.memoryScope ?? current.memoryScope,
+    input.status ?? current.status,
+    agentId,
+  );
+
+  return queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
+}
+
 export function listProviders() {
   return queryAll<ProviderProfile>("SELECT * FROM provider_profiles ORDER BY name ASC");
 }
@@ -85,6 +116,10 @@ export function listScheduleTemplates() {
   return queryAll<ScheduleTemplate>("SELECT * FROM schedule_templates ORDER BY created_at DESC");
 }
 
+export function listTaskTemplates() {
+  return queryAll<TaskTemplate>("SELECT * FROM task_templates ORDER BY created_at DESC");
+}
+
 export function listQuests() {
   return queryAll<Quest>("SELECT * FROM quests ORDER BY created_at DESC");
 }
@@ -101,6 +136,48 @@ export function listExecutionEnvironments() {
   return queryAll<ExecutionEnvironment>(
     "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
   );
+}
+
+export function upsertExecutionEnvironment(
+  input: Pick<
+    ExecutionEnvironment,
+    | "id"
+    | "kingdomId"
+    | "name"
+    | "repositoryProvider"
+    | "repositoryName"
+    | "repositoryUrl"
+    | "defaultBranch"
+    | "executorRef"
+    | "privateKeyRef"
+    | "workingDirectory"
+    | "visibility"
+    | "status"
+  > & {
+    sandboxProfile?: Record<string, unknown>;
+    memoryLayerRefs?: string[];
+  },
+) {
+  execute(
+    "INSERT OR REPLACE INTO execution_environments (id, kingdom_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.kingdomId,
+    input.name,
+    input.repositoryProvider,
+    input.repositoryName,
+    input.repositoryUrl,
+    input.defaultBranch,
+    input.executorRef,
+    input.privateKeyRef,
+    input.workingDirectory,
+    JSON.stringify(input.sandboxProfile ?? {}),
+    JSON.stringify(input.memoryLayerRefs ?? []),
+    input.visibility,
+    input.status,
+    new Date().toISOString(),
+  );
+
+  return queryOne<ExecutionEnvironment>("SELECT * FROM execution_environments WHERE id = ?", input.id);
 }
 
 export function listWebhooks() {
