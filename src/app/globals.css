@@ -14,10 +14,14 @@
   --accent-soft: #dcfce7;
   --danger: #b42318;
   --warning: #b54708;
-  --sidebar: #101418;
-  --sidebar-surface: #171d24;
+  --sidebar: #0f1720;
+  --sidebar-surface: #17212b;
+  --sidebar-surface-strong: #1e2a36;
+  --sidebar-line: rgba(148, 163, 184, 0.16);
   --sidebar-ink: #f8fafc;
-  --sidebar-muted: #95a1b2;
+  --sidebar-muted: #cbd5e1;
+  --sidebar-subtle: #9aa8ba;
+  --sidebar-accent: #5eead4;
 }
 
 @theme inline {
@@ -39,6 +43,8 @@ body {
   color: var(--ink);
   font-family: var(--font-manrope), sans-serif;
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
