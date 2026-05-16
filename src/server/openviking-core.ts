@@ -237,6 +237,35 @@ export function listKnowledgeSkills() {
   );
 }
 
+export function updateKnowledgeSkill(
+  skillId: string,
+  input: Partial<{
+    name: string;
+    layer: string;
+    description: string;
+    isEnabled: boolean;
+    promptMd: string;
+    heuristics: Record<string, unknown>;
+  }>,
+) {
+  const current = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
+  if (!current) throw new Error("Skill 不存在。");
+
+  execute(
+    "UPDATE code_review_skills SET name = ?, layer = ?, description = ?, is_enabled = ?, prompt_md = ?, heuristics_json = ?, updated_at = ? WHERE id = ?",
+    input.name ?? current.name,
+    input.layer ?? current.layer,
+    input.description ?? current.description,
+    input.isEnabled === undefined ? current.isEnabled : input.isEnabled ? 1 : 0,
+    input.promptMd ?? current.promptMd,
+    JSON.stringify(input.heuristics ?? JSON.parse(current.heuristicsJson)),
+    new Date().toISOString(),
+    skillId,
+  );
+
+  return queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
+}
+
 export async function getOpenVikingHealth() {
   const baseUrl = getOpenVikingBaseUrl();
   try {

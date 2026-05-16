@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   return NextResponse.json({
     pathKey,
-    purpose: "MR/PR webhook intake for AgentWorld layered code review",
+    purpose: "Webhook intake resolved by AgentWorld task templates and plugin manifests",
     expectedMethod: "POST",
     recentReviews: listMergeRequestReviews(10),
   });
@@ -44,4 +44,3 @@ export async function POST(request: Request, context: RouteContext) {
   const result = await runMergeRequestReview(pathKey, request, payload);
   return NextResponse.json(result, { status: result.status });
 }
-

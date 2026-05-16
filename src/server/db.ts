@@ -162,6 +162,25 @@ export type ScheduleTemplate = {
   createdAt: string;
 };
 
+export type TaskTemplate = {
+  id: string;
+  name: string;
+  caseKey: string;
+  pluginId: string | null;
+  teamId: string;
+  environmentId: string | null;
+  plannerMode: string;
+  summary: string;
+  inputSchemaJson: string;
+  defaultInputJson: string;
+  memoryLayersJson: string;
+  outputTargetsJson: string;
+  nodesJson: string;
+  webhookParserRef: string | null;
+  visibility: string;
+  createdAt: string;
+};
+
 export type Quest = {
   id: string;
   worldId: string;
@@ -292,6 +311,22 @@ export type WebhookEndpoint = {
   requestSchemaJson: string;
   secretHint: string;
   isEnabled: number;
+};
+
+export type ImportedPluginManifest = {
+  id: string;
+  name: string;
+  version: string;
+  capability: string;
+  lifecycle: string;
+  mountPoint: string;
+  configSchema: string;
+  requiredSecretRefsJson: string;
+  permissionsJson: string;
+  healthCheck: string;
+  extensionOnly: number;
+  source: string;
+  createdAt: string;
 };
 
 export type CodeReviewSkill = {
@@ -535,6 +570,25 @@ CREATE TABLE IF NOT EXISTS schedule_templates (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS task_templates (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  case_key TEXT NOT NULL,
+  plugin_id TEXT,
+  team_id TEXT NOT NULL,
+  environment_id TEXT,
+  planner_mode TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  input_schema_json TEXT NOT NULL,
+  default_input_json TEXT NOT NULL,
+  memory_layers_json TEXT NOT NULL,
+  output_targets_json TEXT NOT NULL,
+  nodes_json TEXT NOT NULL,
+  webhook_parser_ref TEXT,
+  visibility TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS quests (
   id TEXT PRIMARY KEY,
   world_id TEXT NOT NULL,
@@ -665,6 +719,22 @@ CREATE TABLE IF NOT EXISTS webhook_endpoints (
   request_schema_json TEXT NOT NULL,
   secret_hint TEXT NOT NULL,
   is_enabled INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS plugin_manifests (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  version TEXT NOT NULL,
+  capability TEXT NOT NULL,
+  lifecycle TEXT NOT NULL,
+  mount_point TEXT NOT NULL,
+  config_schema TEXT NOT NULL,
+  required_secret_refs_json TEXT NOT NULL,
+  permissions_json TEXT NOT NULL,
+  health_check TEXT NOT NULL,
+  extension_only INTEGER NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS code_review_skills (
@@ -1857,6 +1927,12 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   const insertSchedule = db.prepare(
     "INSERT OR IGNORE INTO schedule_templates (id, kingdom_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
+  const updateScheduleInput = db.prepare(
+    "UPDATE schedule_templates SET input_payload_json = ? WHERE id = ?",
+  );
+  const insertTaskTemplate = db.prepare(
+    "INSERT OR IGNORE INTO task_templates (id, name, case_key, plugin_id, team_id, environment_id, planner_mode, summary, input_schema_json, default_input_json, memory_layers_json, output_targets_json, nodes_json, webhook_parser_ref, visibility, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
 
   insertEnvironment.run(
     "env-shield-mr-review",
@@ -1893,6 +1969,27 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     now,
   );
 
+  insertTaskTemplate.run(
+    "task-template-shield-mr-review",
+    "神盾计划 MR 分层检视",
+    "shield",
+    "builtin.repo.git",
+    reviewTeam.id,
+    "env-shield-mr-review",
+    "rule",
+    "根据导入的任务模板将 MR webhook 转为可观测 Quest，并绑定分层检视记忆。",
+    JSON.stringify({ type: "object", required: ["repository", "changeRequest", "diff"] }),
+    JSON.stringify({
+      taskCategory: "code_review",
+      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+    }),
+    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"]),
+    JSON.stringify(["mr_comment", "quest_trace", "knowledge_archive"]),
+    JSON.stringify([]),
+    "builtin.code-review.github-gitlab-parser",
+    "global",
+    now,
+  );
   insertSchedule.run(
     "template-shield-mr-review",
     releaseKingdom.id,
@@ -1903,13 +2000,50 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     null,
     JSON.stringify({
       caseKey: "shield",
+      taskTemplateId: "task-template-shield-mr-review",
       taskCategory: "code_review",
       trigger: "webhook",
+      webhookPathKey: "github-pr",
       environmentId: "env-shield-mr-review",
       memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
       output: ["mr_comment", "quest_trace", "knowledge_archive"],
     }),
     1,
+    now,
+  );
+  updateScheduleInput.run(
+    JSON.stringify({
+      caseKey: "shield",
+      taskTemplateId: "task-template-shield-mr-review",
+      taskCategory: "code_review",
+      trigger: "webhook",
+      webhookPathKey: "github-pr",
+      environmentId: "env-shield-mr-review",
+      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
+      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+    }),
+    "template-shield-mr-review",
+  );
+  insertTaskTemplate.run(
+    "task-template-daily-security-review",
+    "每日全量安全检视",
+    "security-daily",
+    "builtin.notify.email",
+    reviewTeam.id,
+    "env-daily-security-scan",
+    "captain_agent",
+    "按仓库集合执行全量安全检视，生成风险报告并通过通知插件发送。",
+    JSON.stringify({ type: "object", required: ["repositorySelector"] }),
+    JSON.stringify({
+      taskCategory: "security_review",
+      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      notificationPlugin: "builtin.notify.email",
+    }),
+    JSON.stringify(["security", "feedback/correct", "feedback/incorrect"]),
+    JSON.stringify(["risk_report", "email_digest", "knowledge_archive"]),
+    JSON.stringify([]),
+    null,
+    "global",
     now,
   );
   insertSchedule.run(
@@ -1922,6 +2056,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     tomorrow,
     JSON.stringify({
       caseKey: "security-daily",
+      taskTemplateId: "task-template-daily-security-review",
       taskCategory: "security_review",
       trigger: "schedule",
       environmentId: "env-daily-security-scan",
@@ -1932,6 +2067,20 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     }),
     1,
     now,
+  );
+  updateScheduleInput.run(
+    JSON.stringify({
+      caseKey: "security-daily",
+      taskTemplateId: "task-template-daily-security-review",
+      taskCategory: "security_review",
+      trigger: "schedule",
+      environmentId: "env-daily-security-scan",
+      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      memoryLayers: ["security", "feedback/correct", "feedback/incorrect"],
+      notificationPlugin: "builtin.notify.email",
+      output: ["risk_report", "email_digest", "knowledge_archive"],
+    }),
+    "template-daily-security-review",
   );
 }
 
