@@ -25,13 +25,13 @@ export default function OverviewPage() {
             任务执行展示层
           </div>
           <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            所有 Quest 按触发类别统一进入全局看板。
+            所有任务按触发类别统一进入全局看板。
           </h3>
           <div className="mt-5 grid gap-3 md:grid-cols-4">
             {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
               <div key={item.sourceType} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
                 <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
-                <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.questCount}</div>
+                <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.taskRunCount}</div>
                 <div className="mt-1 text-sm text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
               </div>
             ))}
@@ -42,14 +42,14 @@ export default function OverviewPage() {
             团队维度
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {snapshot.taskExecutionDashboard.byKingdom.map((item) => (
-              <div key={item.kingdomId} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
+            {snapshot.taskExecutionDashboard.byBusinessTeam.map((item) => (
+              <div key={item.businessTeamId} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-base font-semibold text-[var(--ink)]">{item.kingdomName}</div>
+                  <div className="text-base font-semibold text-[var(--ink)]">{item.businessTeamName}</div>
                   <div className="text-sm text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {item.questCount} 个 Quest · {item.teamCount} 个 AgentTeam
+                  {item.taskRunCount} 个任务 · {item.teamCount} 个 Agent 团队
                 </div>
               </div>
             ))}
@@ -59,7 +59,7 @@ export default function OverviewPage() {
               <div key={item.category} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
                 <div className="text-base font-semibold text-[var(--ink)]">{item.category}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {item.questCount} 个 Quest · 活跃 {item.activeCount}
+                  {item.taskRunCount} 个任务 · 活跃 {item.activeCount}
                 </div>
               </div>
             ))}
@@ -72,10 +72,10 @@ export default function OverviewPage() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                World 治理边界
+                租户治理边界
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                World 负责给出最外层规则，Kingdom 和 AgentTeam 在里面继续收紧。
+                租户空间负责给出最外层规则，业务团队和 Agent 团队在里面继续收紧。
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
@@ -84,21 +84,21 @@ export default function OverviewPage() {
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {snapshot.worldSummaries.map((world) => (
+            {snapshot.tenantSpaceSummaries.map((tenantSpace) => (
               <div
-                key={world.id}
+                key={tenantSpace.id}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-lg font-semibold text-[var(--ink)]">{world.name}</div>
+                  <div className="text-lg font-semibold text-[var(--ink)]">{tenantSpace.name}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {translateStatus(world.status)}
+                    {translateStatus(tenantSpace.status)}
                   </div>
                 </div>
                 <div className="mt-3 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>Kingdom 数量: {world.kingdomCount}</div>
-                  <div>月度预算上限: ${world.monthlyUsd}</div>
-                  <div>最大并发 Quest: {world.maxRunningQuests}</div>
+                  <div>业务团队数量: {tenantSpace.businessTeamCount}</div>
+                  <div>月度预算上限: ${tenantSpace.monthlyUsd}</div>
+                  <div>最大并发任务: {tenantSpace.maxRunningTaskRuns}</div>
                 </div>
               </div>
             ))}
@@ -107,24 +107,24 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Kingdom 财务视图
+            业务团队财务视图
           </div>
           <div className="mt-4 space-y-3">
-            {snapshot.kingdomSummaries.map((kingdom) => (
+            {snapshot.businessTeamSummaries.map((businessTeam) => (
               <div
-                key={kingdom.id}
+                key={businessTeam.id}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-lg font-semibold text-[var(--ink)]">{kingdom.name}</div>
+                  <div className="text-lg font-semibold text-[var(--ink)]">{businessTeam.name}</div>
                   <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                    {translateStatus(kingdom.status)}
+                    {translateStatus(businessTeam.status)}
                   </div>
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
-                  <div>余额: ${kingdom.balance}</div>
-                  <div>信用额度: ${kingdom.creditLimit}</div>
-                  <div>工具引用数: {kingdom.toolRefCount}</div>
+                  <div>余额: ${businessTeam.balance}</div>
+                  <div>信用额度: ${businessTeam.creditLimit}</div>
+                  <div>工具引用数: {businessTeam.toolRefCount}</div>
                 </div>
               </div>
             ))}
@@ -140,7 +140,7 @@ export default function OverviewPage() {
                 调度器
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                定时任务和 Quest 优先级会在进入排队拥堵之前被提前看见。
+                定时任务和任务优先级会在进入排队拥堵之前被提前看见。
               </h3>
             </div>
             <div className="text-sm text-[var(--ink-muted)]">
@@ -226,10 +226,10 @@ export default function OverviewPage() {
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Tavern
+            服务目录
           </div>
           <div className="mt-4 space-y-3">
-            {snapshot.tavernResumes.map((listing) => (
+            {snapshot.serviceCatalogResumes.map((listing) => (
               <div
                 key={listing.id}
                 className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
@@ -252,20 +252,20 @@ export default function OverviewPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Quest 优先级看板
+            任务优先级看板
           </div>
           <div className="mt-4 space-y-3">
-            {snapshot.questPriorityBoard.map((item) => {
-              const quest = snapshot.quests.find((candidate) => candidate.id === item.questId);
+            {snapshot.taskRunPriorityBoard.map((item) => {
+              const taskRun = snapshot.task_runs.find((candidate) => candidate.id === item.taskRunId);
 
               return (
                 <div
-                  key={item.questId}
+                  key={item.taskRunId}
                   className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-base font-semibold text-[var(--ink)]">
-                      {quest?.sourceRef ?? quest?.sourceType ?? "Quest"}
+                      {taskRun?.sourceRef ?? taskRun?.sourceType ?? "任务"}
                     </div>
                     <div className="text-sm font-medium text-[var(--ink)]">
                       优先级 {item.effectivePriority}

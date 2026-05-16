@@ -20,7 +20,7 @@ function camelizeRow<T extends Row>(row: Row | null | undefined) {
   return normalized as T;
 }
 
-export type World = {
+export type TenantSpace = {
   id: string;
   slug: string;
   name: string;
@@ -29,16 +29,16 @@ export type World = {
   quotaLimitJson: string;
   modelWhitelistJson: string;
   globalGuardrailsJson: string;
-  defaultHarnessId: string | null;
+  defaultExecutionPolicyId: string | null;
   createdAt: string;
 };
 
-export type Kingdom = {
+export type BusinessTeam = {
   id: string;
-  worldId: string;
+  tenantSpaceId: string;
   slug: string;
   name: string;
-  lordUserId: string;
+  ownerUserId: string;
   status: string;
   balance: number;
   creditLimit: number;
@@ -48,10 +48,10 @@ export type Kingdom = {
   createdAt: string;
 };
 
-export type HarnessProfile = {
+export type ExecutionPolicy = {
   id: string;
-  worldId: string | null;
-  kingdomId: string | null;
+  tenantSpaceId: string | null;
+  businessTeamId: string | null;
   teamId: string | null;
   name: string;
   systemInstruction: string;
@@ -65,11 +65,11 @@ export type HarnessProfile = {
 
 export type AgentTeam = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   slug: string;
   name: string;
   description: string;
-  captainAgentId: string | null;
+  leaderAgentId: string | null;
   workflowType: string;
   inputSchemaJson: string;
   outputSchemaJson: string;
@@ -78,7 +78,7 @@ export type AgentTeam = {
   successRateThreshold: number;
   pricingModelJson: string;
   visibility: string;
-  defaultHarnessId: string | null;
+  defaultExecutionPolicyId: string | null;
   createdAt: string;
 };
 
@@ -101,7 +101,7 @@ export type Agent = {
 
 export type ProviderProfile = {
   id: string;
-  worldId: string;
+  tenantSpaceId: string;
   name: string;
   baseUrl: string;
   apiStyle: string;
@@ -113,8 +113,8 @@ export type ProviderProfile = {
 
 export type RuntimeEndpoint = {
   id: string;
-  worldId: string;
-  kingdomId: string | null;
+  tenantSpaceId: string;
+  businessTeamId: string | null;
   name: string;
   baseUrl: string;
   runtimeKind: string;
@@ -127,10 +127,10 @@ export type RuntimeEndpoint = {
   createdAt: string;
 };
 
-export type Contract = {
+export type AccessGrant = {
   id: string;
   providerTeamId: string;
-  consumerKingdomId: string;
+  consumerBusinessTeamId: string;
   pricingModelJson: string;
   slaJson: string;
   accessScopeJson: string;
@@ -139,7 +139,7 @@ export type Contract = {
   createdAt: string;
 };
 
-export type TavernListing = {
+export type ServiceCatalogListing = {
   id: string;
   teamId: string;
   resumeJson: string;
@@ -151,7 +151,7 @@ export type TavernListing = {
 
 export type ScheduleTemplate = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   teamId: string;
   name: string;
   scheduleKind: string;
@@ -181,12 +181,12 @@ export type TaskTemplate = {
   createdAt: string;
 };
 
-export type Quest = {
+export type TaskRun = {
   id: string;
-  worldId: string;
-  kingdomId: string;
+  tenantSpaceId: string;
+  businessTeamId: string;
   teamId: string;
-  contractId: string | null;
+  accessGrantId: string | null;
   sourceType: string;
   sourceRef: string | null;
   status: string;
@@ -201,18 +201,18 @@ export type Quest = {
   completedAt: string | null;
 };
 
-export type QuestPlan = {
+export type TaskRunPlan = {
   id: string;
-  questId: string;
+  taskRunId: string;
   plannerMode: string;
   dagJson: string;
   summary: string;
   createdAt: string;
 };
 
-export type QuestNode = {
+export type TaskRunNode = {
   id: string;
-  questId: string;
+  taskRunId: string;
   planId: string;
   nodeKey: string;
   agentId: string;
@@ -230,7 +230,7 @@ export type TraceSpan = {
   id: string;
   traceId: string;
   parentSpanId: string | null;
-  questId: string;
+  taskRunId: string;
   nodeId: string | null;
   kind: string;
   status: string;
@@ -242,7 +242,7 @@ export type TraceSpan = {
 export type EventLog = {
   id: string;
   traceId: string;
-  questId: string;
+  taskRunId: string;
   nodeId: string | null;
   seq: number;
   phase: string;
@@ -253,9 +253,9 @@ export type EventLog = {
   createdAt: string;
 };
 
-export type QuestIntervention = {
+export type TaskRunIntervention = {
   id: string;
-  questId: string;
+  taskRunId: string;
   nodeId: string | null;
   kind: string;
   status: string;
@@ -267,17 +267,17 @@ export type QuestIntervention = {
 
 export type RepositoryProfile = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   name: string;
   provider: string;
   branch: string;
   activityScore: number;
-  lastQuestCount: number;
+  lastTaskRunCount: number;
 };
 
 export type DeveloperProfile = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   name: string;
   focus: string;
   lastActiveAt: string;
@@ -285,7 +285,7 @@ export type DeveloperProfile = {
 
 export type ExecutionEnvironment = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   name: string;
   repositoryProvider: string;
   repositoryName: string;
@@ -303,7 +303,7 @@ export type ExecutionEnvironment = {
 
 export type WebhookEndpoint = {
   id: string;
-  kingdomId: string;
+  businessTeamId: string;
   teamId: string;
   name: string;
   pathKey: string;
@@ -425,10 +425,58 @@ export type ReviewFeedback = {
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "agentworld.db");
 
+const legacySchemaTables = [
+  "worlds",
+  "kingdoms",
+  "quests",
+  "quest_nodes",
+  "contracts",
+  "contract_events",
+  "tavern_listings",
+  "harness_profiles",
+];
+
+const currentSchemaChecks = [
+  { table: "agent_teams", column: "business_team_id" },
+  { table: "task_runs", column: "tenant_space_id" },
+  { table: "task_run_nodes", column: "task_run_id" },
+  { table: "tenant_spaces", column: "default_execution_policy_id" },
+  { table: "execution_environments", column: "memory_layer_refs_json" },
+];
+
+function tableExists(db: DatabaseSync, table: string) {
+  const row = db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get(table) as { name: string } | undefined;
+  return Boolean(row);
+}
+
+function tableHasColumn(db: DatabaseSync, table: string, column: string) {
+  if (!tableExists(db, table)) return true;
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return rows.some((row) => row.name === column);
+}
+
+function databaseNeedsSchemaReset(db: DatabaseSync) {
+  if (legacySchemaTables.some((table) => tableExists(db, table))) return true;
+  return currentSchemaChecks.some((check) => !tableHasColumn(db, check.table, check.column));
+}
+
+function archiveIncompatibleDatabaseIfNeeded() {
+  if (!fs.existsSync(DB_PATH)) return;
+  const probe = new DatabaseSync(DB_PATH);
+  const needsReset = databaseNeedsSchemaReset(probe);
+  probe.close();
+
+  if (!needsReset) return;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  fs.renameSync(DB_PATH, `${DB_PATH}.legacy-${timestamp}.bak`);
+}
+
 const schemaSql = `
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE IF NOT EXISTS worlds (
+CREATE TABLE IF NOT EXISTS tenant_spaces (
   id TEXT PRIMARY KEY,
   slug TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -437,16 +485,16 @@ CREATE TABLE IF NOT EXISTS worlds (
   quota_limit_json TEXT NOT NULL,
   model_whitelist_json TEXT NOT NULL,
   global_guardrails_json TEXT NOT NULL,
-  default_harness_id TEXT,
+  default_execution_policy_id TEXT,
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS kingdoms (
+CREATE TABLE IF NOT EXISTS business_teams (
   id TEXT PRIMARY KEY,
-  world_id TEXT NOT NULL,
+  tenant_space_id TEXT NOT NULL,
   slug TEXT NOT NULL,
   name TEXT NOT NULL,
-  lord_user_id TEXT NOT NULL,
+  owner_user_id TEXT NOT NULL,
   status TEXT NOT NULL,
   balance REAL NOT NULL,
   credit_limit REAL NOT NULL,
@@ -456,10 +504,10 @@ CREATE TABLE IF NOT EXISTS kingdoms (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS harness_profiles (
+CREATE TABLE IF NOT EXISTS execution_policies (
   id TEXT PRIMARY KEY,
-  world_id TEXT,
-  kingdom_id TEXT,
+  tenant_space_id TEXT,
+  business_team_id TEXT,
   team_id TEXT,
   name TEXT NOT NULL,
   system_instruction TEXT NOT NULL,
@@ -473,11 +521,11 @@ CREATE TABLE IF NOT EXISTS harness_profiles (
 
 CREATE TABLE IF NOT EXISTS agent_teams (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   slug TEXT NOT NULL,
   name TEXT NOT NULL,
   description TEXT NOT NULL,
-  captain_agent_id TEXT,
+  leader_agent_id TEXT,
   workflow_type TEXT NOT NULL,
   input_schema_json TEXT NOT NULL,
   output_schema_json TEXT NOT NULL,
@@ -486,7 +534,7 @@ CREATE TABLE IF NOT EXISTS agent_teams (
   success_rate_threshold REAL NOT NULL,
   pricing_model_json TEXT NOT NULL,
   visibility TEXT NOT NULL,
-  default_harness_id TEXT,
+  default_execution_policy_id TEXT,
   created_at TEXT NOT NULL
 );
 
@@ -509,7 +557,7 @@ CREATE TABLE IF NOT EXISTS agents (
 
 CREATE TABLE IF NOT EXISTS provider_profiles (
   id TEXT PRIMARY KEY,
-  world_id TEXT NOT NULL,
+  tenant_space_id TEXT NOT NULL,
   name TEXT NOT NULL,
   base_url TEXT NOT NULL,
   api_style TEXT NOT NULL,
@@ -521,8 +569,8 @@ CREATE TABLE IF NOT EXISTS provider_profiles (
 
 CREATE TABLE IF NOT EXISTS runtime_endpoints (
   id TEXT PRIMARY KEY,
-  world_id TEXT NOT NULL,
-  kingdom_id TEXT,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT,
   name TEXT NOT NULL,
   base_url TEXT NOT NULL,
   runtime_kind TEXT NOT NULL,
@@ -535,10 +583,10 @@ CREATE TABLE IF NOT EXISTS runtime_endpoints (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS contracts (
+CREATE TABLE IF NOT EXISTS access_grants (
   id TEXT PRIMARY KEY,
   provider_team_id TEXT NOT NULL,
-  consumer_kingdom_id TEXT NOT NULL,
+  consumer_business_team_id TEXT NOT NULL,
   pricing_model_json TEXT NOT NULL,
   sla_json TEXT NOT NULL,
   access_scope_json TEXT NOT NULL,
@@ -547,7 +595,7 @@ CREATE TABLE IF NOT EXISTS contracts (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS tavern_listings (
+CREATE TABLE IF NOT EXISTS service_catalog_listings (
   id TEXT PRIMARY KEY,
   team_id TEXT NOT NULL,
   resume_json TEXT NOT NULL,
@@ -559,7 +607,7 @@ CREATE TABLE IF NOT EXISTS tavern_listings (
 
 CREATE TABLE IF NOT EXISTS schedule_templates (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   schedule_kind TEXT NOT NULL,
@@ -589,12 +637,12 @@ CREATE TABLE IF NOT EXISTS task_templates (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS quests (
+CREATE TABLE IF NOT EXISTS task_runs (
   id TEXT PRIMARY KEY,
-  world_id TEXT NOT NULL,
-  kingdom_id TEXT NOT NULL,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   team_id TEXT NOT NULL,
-  contract_id TEXT,
+  access_grant_id TEXT,
   source_type TEXT NOT NULL,
   source_ref TEXT,
   status TEXT NOT NULL,
@@ -609,18 +657,18 @@ CREATE TABLE IF NOT EXISTS quests (
   completed_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS quest_plans (
+CREATE TABLE IF NOT EXISTS task_run_plans (
   id TEXT PRIMARY KEY,
-  quest_id TEXT NOT NULL,
+  task_run_id TEXT NOT NULL,
   planner_mode TEXT NOT NULL,
   dag_json TEXT NOT NULL,
   summary TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS quest_nodes (
+CREATE TABLE IF NOT EXISTS task_run_nodes (
   id TEXT PRIMARY KEY,
-  quest_id TEXT NOT NULL,
+  task_run_id TEXT NOT NULL,
   plan_id TEXT NOT NULL,
   node_key TEXT NOT NULL,
   agent_id TEXT NOT NULL,
@@ -638,7 +686,7 @@ CREATE TABLE IF NOT EXISTS trace_spans (
   id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
   parent_span_id TEXT,
-  quest_id TEXT NOT NULL,
+  task_run_id TEXT NOT NULL,
   node_id TEXT,
   kind TEXT NOT NULL,
   status TEXT NOT NULL,
@@ -650,7 +698,7 @@ CREATE TABLE IF NOT EXISTS trace_spans (
 CREATE TABLE IF NOT EXISTS event_logs (
   id TEXT PRIMARY KEY,
   trace_id TEXT NOT NULL,
-  quest_id TEXT NOT NULL,
+  task_run_id TEXT NOT NULL,
   node_id TEXT,
   seq INTEGER NOT NULL,
   phase TEXT NOT NULL,
@@ -661,9 +709,9 @@ CREATE TABLE IF NOT EXISTS event_logs (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS quest_interventions (
+CREATE TABLE IF NOT EXISTS task_run_interventions (
   id TEXT PRIMARY KEY,
-  quest_id TEXT NOT NULL,
+  task_run_id TEXT NOT NULL,
   node_id TEXT,
   kind TEXT NOT NULL,
   status TEXT NOT NULL,
@@ -675,17 +723,17 @@ CREATE TABLE IF NOT EXISTS quest_interventions (
 
 CREATE TABLE IF NOT EXISTS repository_profiles (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   provider TEXT NOT NULL,
   branch TEXT NOT NULL,
   activity_score INTEGER NOT NULL,
-  last_quest_count INTEGER NOT NULL
+  last_task_run_count INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS developer_profiles (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   focus TEXT NOT NULL,
   last_active_at TEXT NOT NULL
@@ -693,7 +741,7 @@ CREATE TABLE IF NOT EXISTS developer_profiles (
 
 CREATE TABLE IF NOT EXISTS execution_environments (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   repository_provider TEXT NOT NULL,
   repository_name TEXT NOT NULL,
@@ -711,7 +759,7 @@ CREATE TABLE IF NOT EXISTS execution_environments (
 
 CREATE TABLE IF NOT EXISTS webhook_endpoints (
   id TEXT PRIMARY KEY,
-  kingdom_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
   team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   path_key TEXT NOT NULL,
@@ -834,7 +882,7 @@ CREATE TABLE IF NOT EXISTS review_feedback (
 let database: DatabaseSync | null = null;
 
 function seed(db: DatabaseSync) {
-  const existing = db.prepare("SELECT COUNT(*) as count FROM worlds").get() as {
+  const existing = db.prepare("SELECT COUNT(*) as count FROM tenant_spaces").get() as {
     count: number;
   };
 
@@ -843,129 +891,129 @@ function seed(db: DatabaseSync) {
   const now = Date.now();
   const iso = (offsetMs = 0) => new Date(now + offsetMs).toISOString();
 
-  const insertWorld = db.prepare(
-    "INSERT INTO worlds (id, slug, name, owner_user_id, status, quota_limit_json, model_whitelist_json, global_guardrails_json, default_harness_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  const insertTenantSpace = db.prepare(
+    "INSERT INTO tenant_spaces (id, slug, name, owner_user_id, status, quota_limit_json, model_whitelist_json, global_guardrails_json, default_execution_policy_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const insertKingdom = db.prepare(
-    "INSERT INTO kingdoms (id, world_id, slug, name, lord_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  const insertBusinessTeam = db.prepare(
+    "INSERT INTO business_teams (id, tenant_space_id, slug, name, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const insertHarness = db.prepare(
-    "INSERT INTO harness_profiles (id, world_id, kingdom_id, team_id, name, system_instruction, tool_policy_json, approval_policy_json, budget_policy_json, output_policy_json, security_policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  const insertExecutionPolicy = db.prepare(
+    "INSERT INTO execution_policies (id, tenant_space_id, business_team_id, team_id, name, system_instruction, tool_policy_json, approval_policy_json, budget_policy_json, output_policy_json, security_policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertTeam = db.prepare(
-    "INSERT INTO agent_teams (id, kingdom_id, slug, name, description, captain_agent_id, workflow_type, input_schema_json, output_schema_json, max_concurrency, timeout_ms, success_rate_threshold, pricing_model_json, visibility, default_harness_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO agent_teams (id, business_team_id, slug, name, description, leader_agent_id, workflow_type, input_schema_json, output_schema_json, max_concurrency, timeout_ms, success_rate_threshold, pricing_model_json, visibility, default_execution_policy_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertAgent = db.prepare(
     "INSERT INTO agents (id, team_id, slug, name, role, persona_prompt, model, short_term_window, rag_config_json, tool_bindings_json, memory_scope, safety_policy_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertProvider = db.prepare(
-    "INSERT INTO provider_profiles (id, world_id, name, base_url, api_style, default_model, models_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO provider_profiles (id, tenant_space_id, name, base_url, api_style, default_model, models_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertRuntime = db.prepare(
-    "INSERT INTO runtime_endpoints (id, world_id, kingdom_id, name, base_url, runtime_kind, health_status, agent_catalog_json, provider_catalog_json, concurrency_limit, active_run_count, last_discovered_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO runtime_endpoints (id, tenant_space_id, business_team_id, name, base_url, runtime_kind, health_status, agent_catalog_json, provider_catalog_json, concurrency_limit, active_run_count, last_discovered_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const insertContract = db.prepare(
-    "INSERT INTO contracts (id, provider_team_id, consumer_kingdom_id, pricing_model_json, sla_json, access_scope_json, service_account_ref, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  const insertAccessGrant = db.prepare(
+    "INSERT INTO access_grants (id, provider_team_id, consumer_business_team_id, pricing_model_json, sla_json, access_scope_json, service_account_ref, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertListing = db.prepare(
-    "INSERT INTO tavern_listings (id, team_id, resume_json, recruitment_mode, tags_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO service_catalog_listings (id, team_id, resume_json, recruitment_mode, tags_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
   const insertSchedule = db.prepare(
-    "INSERT INTO schedule_templates (id, kingdom_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO schedule_templates (id, business_team_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const insertQuest = db.prepare(
-    "INSERT INTO quests (id, world_id, kingdom_id, team_id, contract_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  const insertTaskRun = db.prepare(
+    "INSERT INTO task_runs (id, tenant_space_id, business_team_id, team_id, access_grant_id, source_type, source_ref, status, priority, input_payload_json, output_payload_json, cost_estimate, cost_actual, trace_id, requested_by, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertPlan = db.prepare(
-    "INSERT INTO quest_plans (id, quest_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    "INSERT INTO task_run_plans (id, task_run_id, planner_mode, dag_json, summary, created_at) VALUES (?, ?, ?, ?, ?, ?)",
   );
   const insertNode = db.prepare(
-    "INSERT INTO quest_nodes (id, quest_id, plan_id, node_key, agent_id, depends_on_json, input_json, output_json, status, attempt_count, max_attempts, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO task_run_nodes (id, task_run_id, plan_id, node_key, agent_id, depends_on_json, input_json, output_json, status, attempt_count, max_attempts, started_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertSpan = db.prepare(
-    "INSERT INTO trace_spans (id, trace_id, parent_span_id, quest_id, node_id, kind, status, started_at, ended_at, attributes_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO trace_spans (id, trace_id, parent_span_id, task_run_id, node_id, kind, status, started_at, ended_at, attributes_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertEvent = db.prepare(
-    "INSERT INTO event_logs (id, trace_id, quest_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO event_logs (id, trace_id, task_run_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertIntervention = db.prepare(
-    "INSERT INTO quest_interventions (id, quest_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO task_run_interventions (id, task_run_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertRepo = db.prepare(
-    "INSERT INTO repository_profiles (id, kingdom_id, name, provider, branch, activity_score, last_quest_count) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO repository_profiles (id, business_team_id, name, provider, branch, activity_score, last_task_run_count) VALUES (?, ?, ?, ?, ?, ?, ?)",
   );
   const insertDeveloper = db.prepare(
-    "INSERT INTO developer_profiles (id, kingdom_id, name, focus, last_active_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO developer_profiles (id, business_team_id, name, focus, last_active_at) VALUES (?, ?, ?, ?, ?)",
   );
   const insertWebhook = db.prepare(
-    "INSERT INTO webhook_endpoints (id, kingdom_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
-  const updateCaptain = db.prepare(
-    "UPDATE agent_teams SET captain_agent_id = ? WHERE id = ?",
+  const updateLeader = db.prepare(
+    "UPDATE agent_teams SET leader_agent_id = ? WHERE id = ?",
   );
 
-  const worldId = randomUUID();
-  const platformKingdomId = randomUUID();
-  const releaseKingdomId = randomUUID();
+  const tenantSpaceId = randomUUID();
+  const platformBusinessTeamId = randomUUID();
+  const releaseBusinessTeamId = randomUUID();
 
-  const worldHarnessId = randomUUID();
-  const platformHarnessId = randomUUID();
-  const releaseHarnessId = randomUUID();
-  const tavernHarnessId = randomUUID();
+  const tenantSpaceExecutionPolicyId = randomUUID();
+  const platformExecutionPolicyId = randomUUID();
+  const releaseExecutionPolicyId = randomUUID();
+  const serviceCatalogExecutionPolicyId = randomUUID();
 
-  insertWorld.run(
-    worldId,
+  insertTenantSpace.run(
+    tenantSpaceId,
     "open-frontier",
     "Open Frontier",
     "ava",
     "active",
-    JSON.stringify({ monthlyUsd: 5000, maxRunningQuests: 40 }),
+    JSON.stringify({ monthlyUsd: 5000, maxRunningTasks: 40 }),
     JSON.stringify(["gpt-5.4", "gpt-5.4-mini", "o4-mini"]),
     JSON.stringify({
       promptScan: true,
       outputScan: true,
-      maxQuestUsd: 120,
+      maxTaskUsd: 120,
       allowPublicListings: true,
     }),
-    worldHarnessId,
+    tenantSpaceExecutionPolicyId,
     iso(-1000 * 60 * 60 * 24 * 20),
   );
 
-  insertKingdom.run(
-    platformKingdomId,
-    worldId,
-    "platform-guild",
-    "Platform Guild",
+  insertBusinessTeam.run(
+    platformBusinessTeamId,
+    tenantSpaceId,
+    "platform-team",
+    "Platform Team",
     "ming",
     "active",
     1820,
     500,
     JSON.stringify(["repo.readonly", "incident.index", "search.web"]),
-    "world/open-frontier/platform",
+    "tenant/open-frontier/platform",
     JSON.stringify({ preferredProvider: "openai-primary", spendCeilingUsd: 1800 }),
     iso(-1000 * 60 * 60 * 24 * 15),
   );
-  insertKingdom.run(
-    releaseKingdomId,
-    worldId,
-    "release-guild",
-    "Release Guild",
+  insertBusinessTeam.run(
+    releaseBusinessTeamId,
+    tenantSpaceId,
+    "release-team",
+    "Release Team",
     "sophia",
     "active",
     910,
     300,
     JSON.stringify(["github.pr", "repo.diff", "ci.read"]),
-    "world/open-frontier/release",
+    "tenant/open-frontier/release",
     JSON.stringify({ preferredProvider: "azure-fallback", spendCeilingUsd: 950 }),
     iso(-1000 * 60 * 60 * 24 * 12),
   );
 
-  insertHarness.run(
-    worldHarnessId,
-    worldId,
+  insertExecutionPolicy.run(
+    tenantSpaceExecutionPolicyId,
+    tenantSpaceId,
     null,
     null,
-    "World Baseline Harness",
+    "租户基线运行约束",
     "Always produce structured operational output. Explain plan changes. Escalate risky actions.",
     JSON.stringify({
       allowed: ["search_web", "read_repo", "openai_chat", "opencode_runtime"],
@@ -978,12 +1026,12 @@ function seed(db: DatabaseSync) {
     JSON.stringify({ promptScan: true, outputScan: true, redactSecrets: true }),
     iso(-1000 * 60 * 60 * 24 * 20),
   );
-  insertHarness.run(
-    platformHarnessId,
-    worldId,
-    platformKingdomId,
+  insertExecutionPolicy.run(
+    platformExecutionPolicyId,
+    tenantSpaceId,
+    platformBusinessTeamId,
     null,
-    "Platform Guard Harness",
+    "平台只读运行约束",
     "Prefer read-only investigation. Any production-changing action must wait for a human gate.",
     JSON.stringify({
       allowed: ["search_web", "read_repo", "incident_index", "openai_chat"],
@@ -996,12 +1044,12 @@ function seed(db: DatabaseSync) {
     JSON.stringify({ promptScan: true, outputScan: true }),
     iso(-1000 * 60 * 60 * 24 * 14),
   );
-  insertHarness.run(
-    releaseHarnessId,
-    worldId,
-    releaseKingdomId,
+  insertExecutionPolicy.run(
+    releaseExecutionPolicyId,
+    tenantSpaceId,
+    releaseBusinessTeamId,
     null,
-    "Release Write Gate Harness",
+    "发布回写运行约束",
     "Review repository intent carefully. Never merge or write without explicit approval.",
     JSON.stringify({
       allowed: ["read_repo", "github_pr", "ci_read", "openai_chat"],
@@ -1014,13 +1062,13 @@ function seed(db: DatabaseSync) {
     JSON.stringify({ promptScan: true, outputScan: true }),
     iso(-1000 * 60 * 60 * 24 * 14),
   );
-  insertHarness.run(
-    tavernHarnessId,
-    worldId,
+  insertExecutionPolicy.run(
+    serviceCatalogExecutionPolicyId,
+    tenantSpaceId,
     null,
     null,
-    "Tavern Readonly Harness",
-    "Marketplace calls are read-only unless a contract explicitly enables more.",
+    "服务目录只读运行约束",
+    "服务目录调用默认只读；只有跨团队授权明确放开时才允许更高风险动作。",
     JSON.stringify({
       allowed: ["openai_chat", "search_web", "read_repo"],
       blocked: ["write_repo", "shell_exec"],
@@ -1039,7 +1087,7 @@ function seed(db: DatabaseSync) {
 
   insertTeam.run(
     incidentTeamId,
-    platformKingdomId,
+    platformBusinessTeamId,
     "incident-observatory",
     "Incident Observatory",
     "Reads signals, groups incident evidence, and produces calm operational digests.",
@@ -1052,15 +1100,15 @@ function seed(db: DatabaseSync) {
     0.92,
     JSON.stringify({ baseUsd: 0.2, tokenMultiplier: 1.05 }),
     "private",
-    platformHarnessId,
+    platformExecutionPolicyId,
     iso(-1000 * 60 * 60 * 24 * 10),
   );
   insertTeam.run(
     researchTeamId,
-    platformKingdomId,
+    platformBusinessTeamId,
     "research-relay",
     "Research Relay",
-    "Plans multi-step research quests and returns structured findings for other kingdoms.",
+    "Plans multi-step research tasks and returns structured findings for other business teams.",
     null,
     "dag",
     JSON.stringify({ type: "object", required: ["brief", "audience"] }),
@@ -1070,12 +1118,12 @@ function seed(db: DatabaseSync) {
     0.9,
     JSON.stringify({ baseUsd: 0.35, tokenMultiplier: 1.15 }),
     "public",
-    tavernHarnessId,
+    serviceCatalogExecutionPolicyId,
     iso(-1000 * 60 * 60 * 24 * 9),
   );
   insertTeam.run(
     reviewTeamId,
-    releaseKingdomId,
+    releaseBusinessTeamId,
     "pr-vanguard",
     "PR Vanguard",
     "Reviews pull requests, assesses release risk, and stops before write-back without approval.",
@@ -1088,13 +1136,13 @@ function seed(db: DatabaseSync) {
     0.95,
     JSON.stringify({ baseUsd: 0.25, tokenMultiplier: 1.1 }),
     "public",
-    releaseHarnessId,
+    releaseExecutionPolicyId,
     iso(-1000 * 60 * 60 * 24 * 8),
   );
 
   const scoutAgentId = randomUUID();
   const analystAgentId = randomUUID();
-  const captainAgentId = randomUUID();
+  const leaderAgentId = randomUUID();
   const researcherAgentId = randomUUID();
   const reviewerAgentId = randomUUID();
   const stewardAgentId = randomUUID();
@@ -1132,11 +1180,11 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 60 * 24 * 7),
   );
   insertAgent.run(
-    captainAgentId,
+    leaderAgentId,
     researchTeamId,
-    "captain-meridian",
-    "Captain Meridian",
-    "captain",
+    "leader-meridian",
+    "Leader Meridian",
+    "leader",
     "Break research briefs into a safe and efficient DAG. Keep the plan short and explicit.",
     "gpt-5.4",
     12,
@@ -1196,11 +1244,11 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 60 * 24 * 7),
   );
 
-  updateCaptain.run(captainAgentId, researchTeamId);
+  updateLeader.run(leaderAgentId, researchTeamId);
 
   insertProvider.run(
     randomUUID(),
-    worldId,
+    tenantSpaceId,
     "OpenAI Primary",
     "https://api.openai.com/v1",
     "openai",
@@ -1211,7 +1259,7 @@ function seed(db: DatabaseSync) {
   );
   insertProvider.run(
     randomUUID(),
-    worldId,
+    tenantSpaceId,
     "Azure Fallback",
     "https://example-azure-openai.local/v1",
     "openai",
@@ -1223,13 +1271,13 @@ function seed(db: DatabaseSync) {
 
   insertRuntime.run(
     randomUUID(),
-    worldId,
-    platformKingdomId,
+    tenantSpaceId,
+    platformBusinessTeamId,
     "OpenCode Lab",
     "http://127.0.0.1:4096",
     "opencode",
     "offline",
-    JSON.stringify(["captain-meridian", "market-scout"]),
+    JSON.stringify(["leader-meridian", "market-scout"]),
     JSON.stringify(["OpenAI Primary"]),
     3,
     1,
@@ -1238,8 +1286,8 @@ function seed(db: DatabaseSync) {
   );
   insertRuntime.run(
     randomUUID(),
-    worldId,
-    releaseKingdomId,
+    tenantSpaceId,
+    releaseBusinessTeamId,
     "Release Lane Runtime",
     "http://127.0.0.1:4097",
     "opencode",
@@ -1252,11 +1300,11 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 60 * 24 * 5),
   );
 
-  const researchContractId = randomUUID();
-  insertContract.run(
-    researchContractId,
+  const researchAccessGrantId = randomUUID();
+  insertAccessGrant.run(
+    researchAccessGrantId,
     researchTeamId,
-    releaseKingdomId,
+    releaseBusinessTeamId,
     JSON.stringify({ baseUsd: 0.4, tokenMultiplier: 1.2, platformFeePct: 10 }),
     JSON.stringify({ responseSeconds: 120, successRateFloor: 0.88 }),
     JSON.stringify({ actions: ["research", "summary"], tools: ["search_web", "read_repo"] }),
@@ -1296,7 +1344,7 @@ function seed(db: DatabaseSync) {
 
   insertSchedule.run(
     randomUUID(),
-    platformKingdomId,
+    platformBusinessTeamId,
     incidentTeamId,
     "Daily reliability digest",
     "cron",
@@ -1308,7 +1356,7 @@ function seed(db: DatabaseSync) {
   );
   insertSchedule.run(
     randomUUID(),
-    platformKingdomId,
+    platformBusinessTeamId,
     researchTeamId,
     "Weekly market scout",
     "cron",
@@ -1320,29 +1368,29 @@ function seed(db: DatabaseSync) {
   );
   insertSchedule.run(
     randomUUID(),
-    releaseKingdomId,
+    releaseBusinessTeamId,
     reviewTeamId,
     "PR intake webhook mirror",
     "event",
     "Webhook only",
     null,
-    JSON.stringify({ repository: "agent-world" }),
+    JSON.stringify({ repository: "agentworld" }),
     1,
     iso(-1000 * 60 * 60 * 24 * 2),
   );
 
-  const runningQuestId = randomUUID();
-  const awaitingQuestId = randomUUID();
-  const completedQuestId = randomUUID();
+  const runningTaskRunId = randomUUID();
+  const awaitingTaskRunId = randomUUID();
+  const completedTaskRunId = randomUUID();
 
   const runningTraceId = randomUUID();
   const awaitingTraceId = randomUUID();
   const completedTraceId = randomUUID();
 
-  insertQuest.run(
-    runningQuestId,
-    worldId,
-    platformKingdomId,
+  insertTaskRun.run(
+    runningTaskRunId,
+    tenantSpaceId,
+    platformBusinessTeamId,
     incidentTeamId,
     null,
     "schedule",
@@ -1358,17 +1406,17 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 34),
     null,
   );
-  insertQuest.run(
-    awaitingQuestId,
-    worldId,
-    releaseKingdomId,
+  insertTaskRun.run(
+    awaitingTaskRunId,
+    tenantSpaceId,
+    releaseBusinessTeamId,
     reviewTeamId,
-    researchContractId,
+    researchAccessGrantId,
     "webhook",
     "github/pr/481",
     "awaiting",
     82,
-    JSON.stringify({ repository: "agent-world", pullRequest: 481 }),
+    JSON.stringify({ repository: "agentworld", pullRequest: 481 }),
     null,
     1.6,
     0.8,
@@ -1377,20 +1425,20 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 58),
     null,
   );
-  insertQuest.run(
-    completedQuestId,
-    worldId,
-    releaseKingdomId,
+  insertTaskRun.run(
+    completedTaskRunId,
+    tenantSpaceId,
+    releaseBusinessTeamId,
     researchTeamId,
-    researchContractId,
-    "contract",
-    "contract/research-relay",
+    researchAccessGrantId,
+    "access_grant",
+    "cross-team/research-relay",
     "completed",
     75,
     JSON.stringify({ brief: "Compare agent platforms for Q2", audience: "release leadership" }),
     JSON.stringify({
       findings: ["Strong managed-agent posture", "Good local-first ergonomics"],
-      recommendations: ["Pilot with small guild", "Keep write tools behind approval"],
+      recommendations: ["Pilot with small team", "Keep write tools behind approval"],
     }),
     3.2,
     2.6,
@@ -1406,7 +1454,7 @@ function seed(db: DatabaseSync) {
 
   insertPlan.run(
     runningPlanId,
-    runningQuestId,
+    runningTaskRunId,
     "rule",
     JSON.stringify({
       nodes: [
@@ -1420,7 +1468,7 @@ function seed(db: DatabaseSync) {
   );
   insertPlan.run(
     awaitingPlanId,
-    awaitingQuestId,
+    awaitingTaskRunId,
     "rule",
     JSON.stringify({
       nodes: [
@@ -1434,12 +1482,12 @@ function seed(db: DatabaseSync) {
   );
   insertPlan.run(
     completedPlanId,
-    completedQuestId,
-    "captain_agent",
+    completedTaskRunId,
+    "leader_agent",
     JSON.stringify({
       nodes: [
         { id: "scan", agent: "market-scout" },
-        { id: "synthesize", agent: "captain-meridian" },
+        { id: "synthesize", agent: "leader-meridian" },
       ],
       edges: [["scan", "synthesize"]],
     }),
@@ -1456,7 +1504,7 @@ function seed(db: DatabaseSync) {
 
   insertNode.run(
     runningNodeCollect,
-    runningQuestId,
+    runningTaskRunId,
     runningPlanId,
     "collect",
     scoutAgentId,
@@ -1471,7 +1519,7 @@ function seed(db: DatabaseSync) {
   );
   insertNode.run(
     runningNodeAnalyze,
-    runningQuestId,
+    runningTaskRunId,
     runningPlanId,
     "analyze",
     analystAgentId,
@@ -1486,12 +1534,12 @@ function seed(db: DatabaseSync) {
   );
   insertNode.run(
     awaitingNodeReview,
-    awaitingQuestId,
+    awaitingTaskRunId,
     awaitingPlanId,
     "review",
     reviewerAgentId,
     JSON.stringify([]),
-    JSON.stringify({ repository: "agent-world", pr: 481 }),
+    JSON.stringify({ repository: "agentworld", pr: 481 }),
     JSON.stringify({ decision: "needs_approval", commentary: "Low risk, but write-back pending" }),
     "completed",
     1,
@@ -1501,7 +1549,7 @@ function seed(db: DatabaseSync) {
   );
   insertNode.run(
     awaitingNodeWriteback,
-    awaitingQuestId,
+    awaitingTaskRunId,
     awaitingPlanId,
     "writeback",
     stewardAgentId,
@@ -1516,7 +1564,7 @@ function seed(db: DatabaseSync) {
   );
   insertNode.run(
     completedNodeScan,
-    completedQuestId,
+    completedTaskRunId,
     completedPlanId,
     "scan",
     researcherAgentId,
@@ -1531,10 +1579,10 @@ function seed(db: DatabaseSync) {
   );
   insertNode.run(
     completedNodeSynthesize,
-    completedQuestId,
+    completedTaskRunId,
     completedPlanId,
     "synthesize",
-    captainAgentId,
+    leaderAgentId,
     JSON.stringify(["scan"]),
     JSON.stringify({ sources: 12, findings: 8 }),
     JSON.stringify({ briefDelivered: true }),
@@ -1549,9 +1597,9 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     runningTraceId,
     null,
-    runningQuestId,
+    runningTaskRunId,
     null,
-    "quest",
+    "task_run",
     "open",
     iso(-1000 * 60 * 34),
     null,
@@ -1561,9 +1609,9 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     awaitingTraceId,
     null,
-    awaitingQuestId,
+    awaitingTaskRunId,
     null,
-    "quest",
+    "task_run",
     "open",
     iso(-1000 * 60 * 58),
     null,
@@ -1573,9 +1621,9 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     completedTraceId,
     null,
-    completedQuestId,
+    completedTaskRunId,
     null,
-    "quest",
+    "task_run",
     "ok",
     iso(-1000 * 60 * 60 * 4),
     iso(-1000 * 60 * 60 * 3 - 1000 * 60 * 12),
@@ -1585,18 +1633,18 @@ function seed(db: DatabaseSync) {
   [
     [
       runningTraceId,
-      runningQuestId,
+      runningTaskRunId,
       null,
       1,
       "planning",
       "Planning",
-      "Quest accepted",
-      "Schedule tick created the quest and selected the Incident Observatory team.",
+      "任务已接收",
+      "调度器时间片已生成任务，并选择 Incident Observatory 团队接手。",
       iso(-1000 * 60 * 34),
     ],
     [
       runningTraceId,
-      runningQuestId,
+      runningTaskRunId,
       runningNodeCollect,
       2,
       "tool_result",
@@ -1607,7 +1655,7 @@ function seed(db: DatabaseSync) {
     ],
     [
       runningTraceId,
-      runningQuestId,
+      runningTaskRunId,
       runningNodeAnalyze,
       3,
       "thinking",
@@ -1618,18 +1666,18 @@ function seed(db: DatabaseSync) {
     ],
     [
       awaitingTraceId,
-      awaitingQuestId,
+      awaitingTaskRunId,
       null,
       1,
       "planning",
       "Planning",
-      "Webhook quest created",
-      "GitHub PR webhook became a governed Quest before any repository action was attempted.",
+      "Webhook 任务已创建",
+      "GitHub PR webhook 已先转成受治理任务，之后才允许进入代码仓动作。",
       iso(-1000 * 60 * 58),
     ],
     [
       awaitingTraceId,
-      awaitingQuestId,
+      awaitingTaskRunId,
       awaitingNodeReview,
       2,
       "text_delta",
@@ -1640,18 +1688,18 @@ function seed(db: DatabaseSync) {
     ],
     [
       awaitingTraceId,
-      awaitingQuestId,
+      awaitingTaskRunId,
       awaitingNodeWriteback,
       3,
       "approval_required",
       "Human Actions",
       "Write-back blocked",
-      "Merge Steward prepared repository write-back steps, but the Release Write Gate Harness paused execution for approval.",
+      "Merge Steward 已准备好代码仓回写步骤，但发布回写运行约束要求先获得人工批准。",
       iso(-1000 * 60 * 48),
     ],
     [
       completedTraceId,
-      completedQuestId,
+      completedTaskRunId,
       completedNodeScan,
       1,
       "thinking",
@@ -1662,20 +1710,20 @@ function seed(db: DatabaseSync) {
     ],
     [
       completedTraceId,
-      completedQuestId,
+      completedTaskRunId,
       completedNodeSynthesize,
       2,
       "text_delta",
       "Synthesis",
       "Brief delivered",
-      "Captain Meridian converted raw evidence into a brief with findings, risks, and rollout recommendations.",
+      "Leader Meridian converted raw evidence into a brief with findings, risks, and rollout recommendations.",
       iso(-1000 * 60 * 60 * 3 - 1000 * 60 * 14),
     ],
-  ].forEach(([traceId, questId, nodeId, seq, phase, foldGroup, title, content, createdAt]) => {
+  ].forEach(([traceId, taskRunId, nodeId, seq, phase, foldGroup, title, content, createdAt]) => {
     insertEvent.run(
       randomUUID(),
       traceId,
-      questId,
+      taskRunId,
       nodeId,
       seq,
       phase,
@@ -1689,7 +1737,7 @@ function seed(db: DatabaseSync) {
 
   insertIntervention.run(
     randomUUID(),
-    awaitingQuestId,
+    awaitingTaskRunId,
     awaitingNodeWriteback,
     "approval",
     "pending",
@@ -1699,17 +1747,17 @@ function seed(db: DatabaseSync) {
     null,
   );
 
-  insertRepo.run(randomUUID(), platformKingdomId, "platform-core", "github", "main", 92, 14);
-  insertRepo.run(randomUUID(), releaseKingdomId, "agent-world", "github", "main", 97, 21);
-  insertRepo.run(randomUUID(), releaseKingdomId, "release-bot", "github", "main", 78, 8);
+  insertRepo.run(randomUUID(), platformBusinessTeamId, "platform-core", "github", "main", 92, 14);
+  insertRepo.run(randomUUID(), releaseBusinessTeamId, "agentworld", "github", "main", 97, 21);
+  insertRepo.run(randomUUID(), releaseBusinessTeamId, "release-bot", "github", "main", 78, 8);
 
-  insertDeveloper.run(randomUUID(), platformKingdomId, "Ming", "platform reliability", iso(-1000 * 60 * 12));
-  insertDeveloper.run(randomUUID(), releaseKingdomId, "Sophia", "release automation", iso(-1000 * 60 * 20));
-  insertDeveloper.run(randomUUID(), platformKingdomId, "Ava", "agent governance", iso(-1000 * 60 * 28));
+  insertDeveloper.run(randomUUID(), platformBusinessTeamId, "Ming", "platform reliability", iso(-1000 * 60 * 12));
+  insertDeveloper.run(randomUUID(), releaseBusinessTeamId, "Sophia", "release automation", iso(-1000 * 60 * 20));
+  insertDeveloper.run(randomUUID(), platformBusinessTeamId, "Ava", "agent governance", iso(-1000 * 60 * 28));
 
   insertWebhook.run(
     randomUUID(),
-    releaseKingdomId,
+    releaseBusinessTeamId,
     reviewTeamId,
     "GitHub PR Intake",
     "github-pr",
@@ -1771,8 +1819,8 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
       retention: { keepDays: 365, requireEvidence: true },
     },
     {
-      key: "contract/data-api",
-      name: "数据与接口契约知识",
+      key: "data-interface",
+      name: "数据与接口知识",
       scope: "agent",
       uri: "viking://agent/skills/agentworld/code-review/data-api",
       parent: "viking://agent/skills/agentworld/code-review",
@@ -1876,14 +1924,14 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
       },
     },
     {
-      id: "data-contract",
-      name: "数据与接口契约检视",
-      layer: "contract/data-api",
-      description: "检查数据库、API 入参出参、Webhook 契约、回调地址等是否有兼容性说明。",
+      id: "data-interface",
+      name: "数据与接口检视",
+      layer: "data-interface",
+      description: "检查数据库、API 入参出参、Webhook 协议、回调地址等是否有兼容性说明。",
       promptMd:
-        "你是接口契约检视员。只在看到数据库结构、API route、schema、webhook 或序列化格式变化时给意见。",
+        "你是数据与接口检视员。只在看到数据库结构、API route、schema、webhook 或序列化格式变化时给意见。",
       heuristics: {
-        contractPatterns: [
+        interfacePatterns: [
           "CREATE TABLE",
           "ALTER TABLE",
           "route.ts",
@@ -1912,20 +1960,20 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
 function ensureCoreCaseSeed(db: DatabaseSync) {
   const now = new Date().toISOString();
   const tomorrow = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
-  const releaseKingdom = db
-    .prepare("SELECT id FROM kingdoms WHERE slug = ?")
-    .get("release-guild") as { id: string } | undefined;
+  const releaseBusinessTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("release-team") as { id: string } | undefined;
   const reviewTeam = db
     .prepare("SELECT id FROM agent_teams WHERE slug = ?")
     .get("pr-vanguard") as { id: string } | undefined;
 
-  if (!releaseKingdom || !reviewTeam) return;
+  if (!releaseBusinessTeam || !reviewTeam) return;
 
   const insertEnvironment = db.prepare(
-    "INSERT OR IGNORE INTO execution_environments (id, kingdom_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR IGNORE INTO execution_environments (id, business_team_id, name, repository_provider, repository_name, repository_url, default_branch, executor_ref, private_key_ref, working_directory, sandbox_profile_json, memory_layer_refs_json, visibility, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertSchedule = db.prepare(
-    "INSERT OR IGNORE INTO schedule_templates (id, kingdom_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR IGNORE INTO schedule_templates (id, business_team_id, team_id, name, schedule_kind, cadence, next_run_at, input_payload_json, is_enabled, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const updateScheduleInput = db.prepare(
     "UPDATE schedule_templates SET input_payload_json = ? WHERE id = ?",
@@ -1936,31 +1984,31 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
 
   insertEnvironment.run(
     "env-shield-mr-review",
-    releaseKingdom.id,
+    releaseBusinessTeam.id,
     "神盾计划 MR 检视环境",
     "github",
-    "agent-world",
-    "git@github.com:SimonMing47/agent-world.git",
+    "agentworld",
+    "git@github.com:SimonMing47/agentworld.git",
     "main",
     "svc-release-reviewer",
-    "secret:release-guild/repo-private-key",
+    "secret:release-team/repo-private-key",
     ".",
     JSON.stringify({ isolation: "process", network: "egress-controlled", future: "sandbox-template" }),
-    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"]),
+    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "data-interface"]),
     "global",
     "active",
     now,
   );
   insertEnvironment.run(
     "env-daily-security-scan",
-    releaseKingdom.id,
+    releaseBusinessTeam.id,
     "每日全量安全检视环境",
     "github",
-    "release-guild/*",
+    "release-team/*",
     "git@github.com:SimonMing47/*.git",
     "main",
     "svc-security-reviewer",
-    "secret:release-guild/security-private-key",
+    "secret:release-team/security-private-key",
     ".",
     JSON.stringify({ isolation: "future-sandbox", network: "read-only-egress", cloneDepth: "full" }),
     JSON.stringify(["security", "feedback/correct", "feedback/incorrect", "repository/code-review"]),
@@ -1977,14 +2025,14 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     reviewTeam.id,
     "env-shield-mr-review",
     "rule",
-    "根据导入的任务模板将 MR webhook 转为可观测 Quest，并绑定分层检视记忆。",
+    "根据导入的任务模板将 MR webhook 转为可观测任务，并绑定分层检视记忆。",
     JSON.stringify({ type: "object", required: ["repository", "changeRequest", "diff"] }),
     JSON.stringify({
       taskCategory: "code_review",
-      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+      output: ["mr_comment", "task_trace", "knowledge_archive"],
     }),
-    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"]),
-    JSON.stringify(["mr_comment", "quest_trace", "knowledge_archive"]),
+    JSON.stringify(["repository/code-review", "global/code-review", "security", "quality/test", "data-interface"]),
+    JSON.stringify(["mr_comment", "task_trace", "knowledge_archive"]),
     JSON.stringify([]),
     "builtin.code-review.github-gitlab-parser",
     "global",
@@ -1992,7 +2040,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   );
   insertSchedule.run(
     "template-shield-mr-review",
-    releaseKingdom.id,
+    releaseBusinessTeam.id,
     reviewTeam.id,
     "神盾计划 MR webhook 检视",
     "event",
@@ -2005,8 +2053,8 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       trigger: "webhook",
       webhookPathKey: "github-pr",
       environmentId: "env-shield-mr-review",
-      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
-      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "data-interface"],
+      output: ["mr_comment", "task_trace", "knowledge_archive"],
     }),
     1,
     now,
@@ -2019,8 +2067,8 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       trigger: "webhook",
       webhookPathKey: "github-pr",
       environmentId: "env-shield-mr-review",
-      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "contract/data-api"],
-      output: ["mr_comment", "quest_trace", "knowledge_archive"],
+      memoryLayers: ["repository/code-review", "global/code-review", "security", "quality/test", "data-interface"],
+      output: ["mr_comment", "task_trace", "knowledge_archive"],
     }),
     "template-shield-mr-review",
   );
@@ -2031,12 +2079,12 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     "builtin.notify.email",
     reviewTeam.id,
     "env-daily-security-scan",
-    "captain_agent",
+    "leader_agent",
     "按仓库集合执行全量安全检视，生成风险报告并通过通知插件发送。",
     JSON.stringify({ type: "object", required: ["repositorySelector"] }),
     JSON.stringify({
       taskCategory: "security_review",
-      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      repositorySelector: { businessTeam: "release-team", branch: "main" },
       notificationPlugin: "builtin.notify.email",
     }),
     JSON.stringify(["security", "feedback/correct", "feedback/incorrect"]),
@@ -2048,7 +2096,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   );
   insertSchedule.run(
     "template-daily-security-review",
-    releaseKingdom.id,
+    releaseBusinessTeam.id,
     reviewTeam.id,
     "每日全量安全检视",
     "cron",
@@ -2060,7 +2108,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       taskCategory: "security_review",
       trigger: "schedule",
       environmentId: "env-daily-security-scan",
-      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      repositorySelector: { businessTeam: "release-team", branch: "main" },
       memoryLayers: ["security", "feedback/correct", "feedback/incorrect"],
       notificationPlugin: "builtin.notify.email",
       output: ["risk_report", "email_digest", "knowledge_archive"],
@@ -2075,7 +2123,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       taskCategory: "security_review",
       trigger: "schedule",
       environmentId: "env-daily-security-scan",
-      repositorySelector: { kingdom: "release-guild", branch: "main" },
+      repositorySelector: { businessTeam: "release-team", branch: "main" },
       memoryLayers: ["security", "feedback/correct", "feedback/incorrect"],
       notificationPlugin: "builtin.notify.email",
       output: ["risk_report", "email_digest", "knowledge_archive"],
@@ -2087,6 +2135,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
+    archiveIncompatibleDatabaseIfNeeded();
     database = new DatabaseSync(DB_PATH);
     database.exec(schemaSql);
     seed(database);

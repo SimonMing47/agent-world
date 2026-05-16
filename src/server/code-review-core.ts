@@ -13,7 +13,7 @@ import {
   type WebhookEndpoint,
 } from "@/server/db";
 import { writeLayeredKnowledge } from "@/server/openviking-core";
-import { submitQuest } from "@/server/queries";
+import { submitTaskRun } from "@/server/queries";
 import { resolveWebhookTaskConfiguration } from "@/server/extension-core";
 
 const execFileAsync = promisify(execFile);
@@ -485,11 +485,11 @@ function reviewWithSkill(skill: CodeReviewSkill, diff: string, stats: DiffStats,
     }
   }
 
-  if (skill.id === "data-contract") {
-    const contractPatterns = Array.isArray(heuristics.contractPatterns)
-      ? heuristics.contractPatterns.filter((item) => typeof item === "string")
+  if (skill.id === "data-interface") {
+    const interfacePatterns = Array.isArray(heuristics.interfacePatterns)
+      ? heuristics.interfacePatterns.filter((item) => typeof item === "string")
       : [];
-    const located = locatePattern(diff, contractPatterns);
+    const located = locatePattern(diff, interfacePatterns);
     const hasCompatibilityNote = /backward|compatible|migration|schema version|兼容|迁移|回滚/i.test(diff);
 
     if (located && !hasCompatibilityNote) {
@@ -499,8 +499,8 @@ function reviewWithSkill(skill: CodeReviewSkill, diff: string, stats: DiffStats,
         severity: "low",
         filePath: located.filePath,
         lineNumber: located.lineNumber,
-        title: "接口或数据契约变化需要兼容性说明",
-        body: `diff 中出现 ${located.pattern}，说明可能涉及 API、Webhook、数据库或序列化契约变化，但没有看到明确的兼容、迁移或回滚说明。`,
+        title: "接口或数据结构变化需要兼容性说明",
+        body: `diff 中出现 ${located.pattern}，说明可能涉及 API、Webhook、数据库或序列化格式变化，但没有看到明确的兼容、迁移或回滚说明。`,
         suggestion: "请补充调用方影响、默认值、迁移方式或回滚方式，避免上线后消费者无法适配。",
       });
     }
@@ -536,7 +536,7 @@ function buildReviewComment(context: MergeRequestContext, findings: FindingResul
     `MR：${context.mrTitle} (#${context.mrIid})`,
     `知识上下文：${knowledgeUri}`,
     "",
-    "本次检视按 MR 结构、安全敏感、测试影响、数据与接口契约四层技能执行。每条意见都带有反馈链接，反馈会写回 AgentWorld 的 OpenViking 分层知识库。",
+    "本次检视按 MR 结构、安全敏感、测试影响、数据与接口四层技能执行。每条意见都带有反馈链接，反馈会写回 AgentWorld 的 OpenViking 分层知识库。",
     "",
     "### 检视意见",
     "",
@@ -688,9 +688,9 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
       ...stats.changedFiles.map((file) => `- ${file}`),
     ].join("\n"),
   });
-  const questDetail = (() => {
+  const taskRunDetail = (() => {
     try {
-      return submitQuest({
+      return submitTaskRun({
         teamId: webhook.teamId,
         sourceType: "webhook",
         sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
@@ -815,7 +815,7 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
     commentStatus: postResult.status,
     commentUrl: postResult.url,
     knowledgeUri: knowledge.vikingUri,
-    questId: questDetail?.quest.id ?? null,
+    taskRunId: taskRunDetail?.taskRun.id ?? null,
     findings,
     commentMarkdown,
   };

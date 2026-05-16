@@ -102,7 +102,7 @@ export default function SettingsPage() {
           {extensionPoints.map((point) => (
             <div key={point.id} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4">
               <div className="text-base font-semibold text-[var(--ink)]">{point.name}</div>
-              <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{point.contract}</div>
+              <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{point.implementationContract}</div>
               <div className="mt-2 text-xs uppercase tracking-[0.16em] text-[var(--ink-muted)]">
                 {point.accepts.join(", ")}
               </div>

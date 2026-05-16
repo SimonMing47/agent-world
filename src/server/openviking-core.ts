@@ -64,7 +64,7 @@ function layerFallback(layer: string) {
   if (layer.startsWith("feedback/")) {
     return `viking://user/memories/agentworld/code-review/${safeLayer}`;
   }
-  if (["security", "quality/test", "contract/data-api"].includes(layer)) {
+  if (["security", "quality/test", "data-interface"].includes(layer)) {
     return `viking://agent/skills/agentworld/code-review/${safeLayer}`;
   }
 

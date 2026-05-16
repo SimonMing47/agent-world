@@ -26,7 +26,7 @@ export type PluginExtensionPoint = {
   id: string;
   name: string;
   accepts: PluginCapability[];
-  contract: string;
+  implementationContract: string;
   noCoreChangeRule: string;
 };
 
@@ -93,28 +93,28 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
       id: "provider-runtime",
       name: "Provider 执行扩展点",
       accepts: ["provider"],
-      contract: "实现 invoke/discover/health 三个能力，主干只读取清单与健康结果。",
+      implementationContract: "实现 invoke/discover/health 三个能力，主干只读取清单与健康结果。",
       noCoreChangeRule: "新增 claude code、openclaw 或其他 CLI Provider 时只新增插件目录和配置。",
     },
     {
       id: "tool-skill-registry",
       name: "工具与 Skill 扩展点",
       accepts: ["tool", "skill"],
-      contract: "声明工具权限、输入 schema、输出 schema、审计级别，并交由 Harness 决策。",
+      implementationContract: "声明工具权限、输入 schema、输出 schema、审计级别，并交由运行约束决策。",
       noCoreChangeRule: "工具实现独立挂载，主干只消费 tool id、权限和审计事件。",
     },
     {
       id: "notification-channel",
       name: "通知通道扩展点",
       accepts: ["notify_email", "notify_im"],
-      contract: "实现 send/test/health；任务结果只依赖通用通知接口。",
+      implementationContract: "实现 send/test/health；任务结果只依赖通用通知接口。",
       noCoreChangeRule: "邮件、IM、企业内部系统都作为外部插件声明，不把 SDK 写进主干。",
     },
     {
       id: "execution-environment",
       name: "代码仓与环境扩展点",
       accepts: ["code_repo"],
-      contract: "实现 clone/readDiff/comment/cleanup；凭据统一走 secret ref。",
+      implementationContract: "实现 clone/readDiff/comment/cleanup；凭据统一走 secret ref。",
       noCoreChangeRule: "代码平台差异留在插件内，主干只保存仓库、执行人、路径和私钥引用。",
     },
   ];
@@ -124,7 +124,7 @@ export function getPluginSecurityModel() {
   return {
     extensionOnly: true,
     secretPolicy: "主干只保存 secret ref，不保存明文 key。",
-    permissionModel: "插件权限与 Harness 工具权限对齐，执行前统一做 allow/deny/approval 判断。",
+    permissionModel: "插件权限与运行约束工具权限对齐，执行前统一做 allow/deny/approval 判断。",
     openSourceBoundary: "开源主干提供协议和默认清单，企业内 IM/邮件/代码仓实现可闭源外挂。",
   };
 }

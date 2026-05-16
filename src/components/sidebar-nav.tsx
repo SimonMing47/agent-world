@@ -23,18 +23,19 @@ import {
   Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { term } from "@/lib/terminology";
 
 const items = [
   { href: "/", label: "总览", icon: LayoutDashboard },
-  { href: "/worlds", label: "World 空间", icon: Globe },
-  { href: "/kingdoms", label: "Kingdom 团队", icon: Users },
-  { href: "/agent-teams", label: "AgentTeam 服务", icon: Workflow },
-  { href: "/quests", label: "Quest 任务", icon: Activity },
+  { href: "/tenant-spaces", label: term("tenantSpace"), icon: Globe },
+  { href: "/business-teams", label: term("businessTeam"), icon: Users },
+  { href: "/agent-teams", label: `${term("agentTeam")}服务`, icon: Workflow },
+  { href: "/task-runs", label: term("task"), icon: Activity },
   { href: "/architecture", label: "九层架构", icon: Network },
-  { href: "/tavern", label: "Tavern 市场", icon: Store },
-  { href: "/contracts", label: "Contract 合约", icon: ScrollText },
-  { href: "/runtimes", label: "Runtime 运行时", icon: Cable },
-  { href: "/harness", label: "Harness 约束", icon: ShieldCheck },
+  { href: "/service-catalog", label: term("serviceDirectory"), icon: Store },
+  { href: "/access-grants", label: term("accessPolicy"), icon: ScrollText },
+  { href: "/runtimes", label: term("runtime"), icon: Cable },
+  { href: "/execution-policies", label: term("executionPolicy"), icon: ShieldCheck },
   { href: "/knowledge", label: "知识库", icon: BookOpen },
   { href: "/wallboard", label: "大屏", icon: ChartNoAxesCombined },
   { href: "/settings", label: "设置", icon: Settings },
@@ -80,7 +81,7 @@ export function SidebarNav() {
           </div>
           <div className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            合约调用边
+            授权调用边
           </div>
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4" />
@@ -88,7 +89,7 @@ export function SidebarNav() {
           </div>
           <div className="flex items-center gap-2">
             <AlarmClock className="h-4 w-4" />
-            定时 Quest
+            定时任务
           </div>
           <div className="flex items-center gap-2">
             <ShieldPlus className="h-4 w-4" />

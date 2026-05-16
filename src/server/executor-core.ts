@@ -1,6 +1,6 @@
-import { type QuestNode } from "@/server/db";
+import { type TaskRunNode } from "@/server/db";
 
-export function buildExecutionBoard(nodes: QuestNode[]) {
+export function buildExecutionBoard(nodes: TaskRunNode[]) {
   return {
     ready: nodes.filter((node) => node.status === "ready"),
     running: nodes.filter((node) => node.status === "running"),
@@ -10,7 +10,7 @@ export function buildExecutionBoard(nodes: QuestNode[]) {
   };
 }
 
-export function summarizeNodeState(node: QuestNode) {
+export function summarizeNodeState(node: TaskRunNode) {
   return {
     id: node.id,
     nodeKey: node.nodeKey,

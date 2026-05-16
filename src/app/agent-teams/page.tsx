@@ -1,5 +1,5 @@
 import { AgentEditForm } from "@/components/agent-edit-form";
-import { listAgents, listAgentTeams, listKingdoms } from "@/server/queries";
+import { listAgents, listAgentTeams, listBusinessTeams } from "@/server/queries";
 import { translateVisibility, translateWorkflowType } from "@/lib/presentation";
 
 function parseStringArray(value: string) {
@@ -14,14 +14,14 @@ function parseStringArray(value: string) {
 export default function AgentTeamsPage() {
   const teams = listAgentTeams();
   const agents = listAgents();
-  const kingdoms = listKingdoms();
+  const business_teams = listBusinessTeams();
 
   return (
     <div className="space-y-4">
       {teams.map((team) => {
         const members = agents.filter((agent) => agent.teamId === team.id);
-        const captain = members.find((agent) => agent.id === team.captainAgentId);
-        const kingdom = kingdoms.find((item) => item.id === team.kingdomId);
+        const leader = members.find((agent) => agent.id === team.leaderAgentId);
+        const businessTeam = business_teams.find((item) => item.id === team.businessTeamId);
 
         return (
         <section
@@ -31,7 +31,7 @@ export default function AgentTeamsPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                AgentTeam 服务 · {kingdom?.name ?? "未知 Kingdom"}
+                Agent 团队服务 · {businessTeam?.name ?? "未知业务团队"}
               </div>
               <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
                 {team.name}
@@ -68,7 +68,7 @@ export default function AgentTeamsPage() {
           </div>
           <div className="mt-5 rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
             <div className="text-sm font-semibold text-[var(--ink)]">
-              Leader: {captain?.name ?? "未指定，将由编排策略选择"}
+              Leader: {leader?.name ?? "未指定，将由编排策略选择"}
             </div>
             <div className="mt-3 grid gap-3 lg:grid-cols-2">
               {members.map((agent) => (

@@ -1,4 +1,4 @@
-import { type Quest, type ScheduleTemplate } from "@/server/db";
+import { type TaskRun, type ScheduleTemplate } from "@/server/db";
 
 export type ScheduleAssessment = {
   templateId: string;
@@ -9,8 +9,8 @@ export type ScheduleAssessment = {
   rationale: string;
 };
 
-export type QuestPriorityAssessment = {
-  questId: string;
+export type TaskRunPriorityAssessment = {
+  taskRunId: string;
   effectivePriority: number;
   rationale: string[];
 };
@@ -23,7 +23,7 @@ export function assessScheduleTemplate(template: ScheduleTemplate, now = new Dat
       state: "paused",
       cadence: template.cadence,
       nextRunAt: template.nextRunAt,
-      rationale: "这个定时模板已经停用，不会再生成新的 Quest。",
+      rationale: "这个定时模板已经停用，不会再生成新的任务。",
     } satisfies ScheduleAssessment;
   }
 
@@ -67,25 +67,25 @@ export function listDueSchedules(templates: ScheduleTemplate[], now = new Date()
   return listScheduleAssessments(templates, now).filter((assessment) => assessment.state === "due");
 }
 
-export function buildQuestPriorityAssessment(quest: Quest) {
+export function buildTaskRunPriorityAssessment(taskRun: TaskRun) {
   const rationale = [
-    `基础优先级从 ${quest.priority} 开始。`,
-    quest.sourceType === "contract"
-      ? "跨 Kingdom 的 Contract 任务会获得 SLA 倾斜。"
+    `基础优先级从 ${taskRun.priority} 开始。`,
+    taskRun.sourceType === "access_grant"
+      ? "跨业务团队授权任务会获得 SLA 倾斜。"
       : "本地任务保持基础调度权重。",
-    quest.status === "awaiting"
+    taskRun.status === "awaiting"
       ? "等待人工中的任务在恢复后会保留一小段紧急度加成。"
       : "当前没有叠加人工干预带来的额外加成。",
   ];
 
   const effectivePriority =
-    quest.priority +
-    (quest.sourceType === "contract" ? 8 : 3) +
-    (quest.status === "awaiting" ? 5 : 0);
+    taskRun.priority +
+    (taskRun.sourceType === "access_grant" ? 8 : 3) +
+    (taskRun.status === "awaiting" ? 5 : 0);
 
   return {
-    questId: quest.id,
+    taskRunId: taskRun.id,
     effectivePriority,
     rationale,
-  } satisfies QuestPriorityAssessment;
+  } satisfies TaskRunPriorityAssessment;
 }
