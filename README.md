@@ -49,16 +49,10 @@ AgentWorld 就是针对这些问题来设计的。
 
 ## Docs
 
-- 文档入口 / Documentation Index: [docs/README.md](/Users/mac/projects/未命名文件夹/docs/README.md)
-- 中文详细设计 / Chinese Detailed Design: [docs/detailed-design.zh-CN.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.zh-CN.md)
-- English Detailed Design: [docs/detailed-design.en.md](/Users/mac/projects/未命名文件夹/docs/detailed-design.en.md)
+- 文档入口 / Documentation Index: [docs/README.md](./docs/README.md)
+- 核心架构（中文）: [docs/core-architecture.zh-CN.md](./docs/core-architecture.zh-CN.md)
 
-这次文档已经专门补齐了：
-
-- 默认中文能力设计
-- 详细提示词工程设计
-- 多轮 Agent 调用设计
-- 基于 PlantUML Markdown 的 4+1 视图
+当前文档聚焦一份“九层架构 + 插件化扩展 + 典型场景”的核心设计，避免历史文档冗余。
 
 ## Quick Start
 
