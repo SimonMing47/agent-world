@@ -1,43 +1,105 @@
+"use client";
+
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { findNavItem } from "@/components/navigation-config";
 import { SidebarNav } from "@/components/sidebar-nav";
-import { term } from "@/lib/terminology";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+const SIDEBAR_STORAGE_KEY = "agentworld.sidebar.collapsed";
+const SIDEBAR_EVENT = "agentworld:sidebar-collapsed-change";
+
+function subscribeToSidebarPreference(callback: () => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  const handler = () => callback();
+  window.addEventListener("storage", handler);
+  window.addEventListener(SIDEBAR_EVENT, handler);
+
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener(SIDEBAR_EVENT, handler);
+  };
+}
+
+function getSidebarSnapshot() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1";
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-6 px-4 py-4 sm:px-6 lg:px-8">
-        <aside className="hidden w-[280px] shrink-0 rounded-[32px] border border-[var(--line)] bg-[var(--surface)] px-5 py-6 lg:flex lg:flex-col">
-          <div className="mb-8 border-b border-[var(--line)] pb-5">
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-              AgentWorld
-            </div>
-            <h1 className="mt-3 max-w-[14rem] text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-              面向{term("tenantSpace")}、{term("businessTeam")}和{term("task")}的配置化 Agent 平台。
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
-              一个界面统一管理任务蓝图、执行引擎、模型接口、环境、记忆和任务运行。
-            </p>
-          </div>
-          <SidebarNav />
-        </aside>
+  const pathname = usePathname();
+  const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
+  const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-        <main className="flex min-h-[calc(100vh-2rem)] flex-1 flex-col rounded-[32px] border border-[var(--line)] bg-[var(--surface)] px-5 py-5 sm:px-7 sm:py-6">
-          <header className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                Agent 运营工作台
+  const updateCollapsed = (nextValue: boolean) => {
+    window.localStorage.setItem(SIDEBAR_STORAGE_KEY, nextValue ? "1" : "0");
+    window.dispatchEvent(new Event(SIDEBAR_EVENT));
+  };
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
+        <div className="flex min-h-screen">
+          <aside
+            className={`hidden border-r border-[var(--line)] bg-[var(--sidebar)] transition-[width] duration-200 lg:block ${
+              collapsed ? "w-[88px]" : "w-[312px]"
+            }`}
+          >
+            <SidebarNav
+              collapsed={collapsed}
+              onToggleCollapse={() => updateCollapsed(!collapsed)}
+            />
+          </aside>
+
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+            <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--canvas)]/94 backdrop-blur">
+              <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+                <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="lg:hidden">
+                      <Menu className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0">
+                    <SidebarNav onItemClick={() => setMobileOpen(false)} />
+                  </SheetContent>
+                </Sheet>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="hidden lg:inline-flex"
+                  onClick={() => updateCollapsed(!collapsed)}
+                >
+                  {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                </Button>
+
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-[var(--ink)]">{currentNav.label}</div>
+                  <div className="truncate text-xs text-[var(--ink-muted)]">{currentNav.description}</div>
+                </div>
               </div>
-              <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                AgentWorld 控制台
-              </h2>
-            </div>
-            <div className="grid gap-2 text-sm text-[var(--ink-muted)] sm:text-right">
-              <div>配置项落库，界面负责编辑和运行，不再承载解释型架构文案。</div>
-              <div>{term("executionPolicy")}和权限会跟随任务运行、环境和输出一起生效。</div>
-            </div>
-          </header>
-          <div className="flex-1">{children}</div>
-        </main>
+            </header>
+
+            <main className="min-w-0 flex-1">
+              <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+                {children}
+              </div>
+            </main>
+          </div>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

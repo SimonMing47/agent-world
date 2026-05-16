@@ -1,18 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f5f2ea;
-  --surface: rgba(255, 251, 245, 0.82);
-  --surface-strong: rgba(248, 242, 232, 0.96);
-  --surface-muted: rgba(237, 231, 219, 0.62);
-  --line: rgba(63, 58, 49, 0.12);
-  --line-strong: rgba(63, 58, 49, 0.22);
-  --ink: #201c16;
-  --ink-muted: #6a6458;
-  --accent: #25645a;
-  --accent-soft: rgba(37, 100, 90, 0.1);
-  --danger: #9d453d;
-  --warning: #8b6a1f;
+  --canvas: #f4f6f8;
+  --surface: #ffffff;
+  --surface-strong: #ffffff;
+  --surface-muted: #f7fafc;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --ink: #111827;
+  --ink-muted: #667085;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: #dcfce7;
+  --danger: #b42318;
+  --warning: #b54708;
+  --sidebar: #101418;
+  --sidebar-surface: #171d24;
+  --sidebar-ink: #f8fafc;
+  --sidebar-muted: #95a1b2;
 }
 
 @theme inline {
@@ -27,15 +32,13 @@
 }
 
 html {
-  background:
-    radial-gradient(circle at top left, rgba(37, 100, 90, 0.08), transparent 22%),
-    radial-gradient(circle at top right, rgba(120, 92, 54, 0.08), transparent 26%),
-    var(--canvas);
+  background: var(--canvas);
 }
 
 body {
   color: var(--ink);
   font-family: var(--font-manrope), sans-serif;
+  letter-spacing: 0;
 }
 
 a {
@@ -45,6 +48,11 @@ a {
 
 button {
   cursor: pointer;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #98a2b3;
 }
 
 ::selection {

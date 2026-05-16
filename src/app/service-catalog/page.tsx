@@ -1,3 +1,6 @@
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { translateRecruitmentMode } from "@/lib/presentation";
 import { formatPercent } from "@/lib/utils";
 import { getDashboardSnapshot } from "@/server/queries";
@@ -6,52 +9,30 @@ export default function ServiceCatalogPage() {
   const snapshot = getDashboardSnapshot();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Service Catalog"
+        title="服务目录"
+        description="观察跨团队可招募能力的成功率、延迟、成本与标签。"
+        badges={[
+          { label: `${snapshot.serviceCatalogResumes.length} 条目录记录`, variant: "accent" },
+        ]}
+      />
+
       {snapshot.serviceCatalogResumes.map((listing) => (
-        <section
-          key={listing.id}
-          className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-                服务目录条目
-              </div>
-              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-                {listing.teamName}
-              </h3>
-            </div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-              {translateRecruitmentMode(listing.recruitmentMode)}
-            </div>
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-4">
-            <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">成功率</div>
-              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">
-                {formatPercent(listing.resume.successRate ?? 0)}
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">平均耗时</div>
-              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">
-                {Math.round((listing.resume.avgLatencyMs ?? 0) / 1000)}s
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">平均成本</div>
-              <div className="mt-2 text-xl font-semibold text-[var(--ink)]">
-                ${listing.resume.avgCostUsd ?? 0}
-              </div>
-            </div>
-            <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">标签</div>
-              <div className="mt-2 text-sm font-medium text-[var(--ink)]">
-                {listing.tags.join(", ")}
-              </div>
-            </div>
-          </div>
-        </section>
+        <Panel key={listing.id}>
+          <PanelHeader
+            eyebrow="服务目录条目"
+            title={listing.teamName}
+            action={<Badge variant="neutral">{translateRecruitmentMode(listing.recruitmentMode)}</Badge>}
+          />
+          <PanelBody className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm text-[var(--ink-muted)]">
+            <div>成功率: <span className="font-medium text-[var(--ink)]">{formatPercent(listing.resume.successRate ?? 0)}</span></div>
+            <div>平均耗时: <span className="font-medium text-[var(--ink)]">{Math.round((listing.resume.avgLatencyMs ?? 0) / 1000)}s</span></div>
+            <div>平均成本: <span className="font-medium text-[var(--ink)]">${listing.resume.avgCostUsd ?? 0}</span></div>
+            <div>标签: <span className="font-medium text-[var(--ink)]">{listing.tags.join(", ")}</span></div>
+          </PanelBody>
+        </Panel>
       ))}
     </div>
   );

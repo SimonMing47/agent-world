@@ -30,6 +30,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 ## 当前实现
 
 - Next.js + TypeScript 单服务应用。
+- React 19 + Radix UI 组件层，提供自适应后台布局、可收缩左侧导航、移动端抽屉侧栏和统一表单控件。
 - SQLite 本地持久化，启动时自动初始化领域模型、任务蓝图、Provider Adapter、环境模板和两个核心案例配置。
 - OpenCode Provider Adapter 基线；Claude Code、OpenClaw、自定义 CLI Provider 通过插件扩展点声明。
 - 任务蓝图页面：`/task-blueprints`、`/task-blueprints/:id`。

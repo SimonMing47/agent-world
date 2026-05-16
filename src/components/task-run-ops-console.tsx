@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 
 type TaskRunOpsConsoleProps = {
   taskRunId: string;
@@ -43,85 +45,85 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
   };
 
   return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-      <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-        操作控制台
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() =>
-            runAction(() => postJson(`/api/task-runs/${props.taskRunId}/tick`, { requestedBy: OPS_ACTOR }))
-          }
-          className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
-        >
-          执行一轮调度 Tick
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() =>
-            runAction(() => postJson(`/api/task-runs/${props.taskRunId}/resume`, { requestedBy: OPS_ACTOR }))
-          }
-          className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
-        >
-          恢复任务
-        </button>
-        {props.retryNodeId ? (
-          <button
+    <Panel>
+      <PanelHeader eyebrow="Actions" title="操作控制台" description="推进运行、恢复任务和处理门禁。" />
+      <PanelBody>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button
             type="button"
+            variant="secondary"
             disabled={isPending}
             onClick={() =>
-              runAction(() =>
-                postJson(`/api/task-runs/${props.taskRunId}/nodes/${props.retryNodeId}/retry`, {
-                  requestedBy: OPS_ACTOR,
-                }),
-              )
+              runAction(() => postJson(`/api/task-runs/${props.taskRunId}/tick`, { requestedBy: OPS_ACTOR }))
             }
-            className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
           >
-            重试失败节点
-          </button>
-        ) : null}
-        {props.pendingInterventionId ? (
-          <div className="grid grid-cols-2 gap-2">
-            <button
+            执行一轮调度 Tick
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isPending}
+            onClick={() =>
+              runAction(() => postJson(`/api/task-runs/${props.taskRunId}/resume`, { requestedBy: OPS_ACTOR }))
+            }
+          >
+            恢复任务
+          </Button>
+          {props.retryNodeId ? (
+            <Button
               type="button"
+              variant="secondary"
               disabled={isPending}
               onClick={() =>
                 runAction(() =>
-                postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
-                    decision: "approved",
-                    resolvedBy: OPS_ACTOR,
-                    resolutionNote: "Approved from task run console",
+                  postJson(`/api/task-runs/${props.taskRunId}/nodes/${props.retryNodeId}/retry`, {
+                    requestedBy: OPS_ACTOR,
                   }),
                 )
               }
-              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
             >
-              批准门禁
-            </button>
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() =>
-                runAction(() =>
-                  postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
-                    decision: "rejected",
-                    resolvedBy: OPS_ACTOR,
-                    resolutionNote: "Rejected from task run console",
-                  }),
-                )
-              }
-              className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-left text-sm text-[var(--ink)] disabled:opacity-60"
-            >
-              拒绝门禁
-            </button>
-          </div>
-        ) : null}
-      </div>
-      {message ? <div className="mt-3 text-sm text-[var(--ink-muted)]">{message}</div> : null}
-    </div>
+              重试失败节点
+            </Button>
+          ) : null}
+          {props.pendingInterventionId ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isPending}
+                onClick={() =>
+                  runAction(() =>
+                    postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
+                      decision: "approved",
+                      resolvedBy: OPS_ACTOR,
+                      resolutionNote: "Approved from task run console",
+                    }),
+                  )
+                }
+              >
+                批准门禁
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={isPending}
+                onClick={() =>
+                  runAction(() =>
+                    postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
+                      decision: "rejected",
+                      resolvedBy: OPS_ACTOR,
+                      resolutionNote: "Rejected from task run console",
+                    }),
+                  )
+                }
+              >
+                拒绝门禁
+              </Button>
+            </div>
+          ) : null}
+        </div>
+        {message ? <div className="mt-3 text-sm text-[var(--ink-muted)]">{message}</div> : null}
+      </PanelBody>
+    </Panel>
   );
 }

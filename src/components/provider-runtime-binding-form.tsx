@@ -2,6 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FieldGroup } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type ProviderRuntimeBindingFormProps = {
   binding: {
@@ -22,6 +28,7 @@ type ProviderRuntimeBindingFormProps = {
   title: string;
   providerOptions: Array<{ id: string; name: string }>;
   adapterOptions: Array<{ id: string; name: string }>;
+  businessTeamOptions: Array<{ id: string; name: string }>;
 };
 
 function normalizeJson(value: string, fallback: string) {
@@ -46,6 +53,7 @@ export function ProviderRuntimeBindingForm({
   title,
   providerOptions,
   adapterOptions,
+  businessTeamOptions,
 }: ProviderRuntimeBindingFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -134,136 +142,168 @@ export function ProviderRuntimeBindingForm({
   }
 
   return (
-    <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-base font-semibold text-[var(--ink)]">{title}</div>
-        <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-          <input
-            type="checkbox"
-            checked={form.isEnabled}
-            onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
-          />
-          启用
-        </label>
-      </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.businessTeamId}
-          onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
-          placeholder="业务团队 ID（可选）"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.name}
-          onChange={(event) => setForm({ ...form, name: event.target.value })}
-          placeholder="执行引擎名称"
-        />
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.adapterDefinitionId}
-          onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
-        >
-          {adapterOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.runtimeKind}
-          onChange={(event) => setForm({ ...form, runtimeKind: event.target.value })}
-        >
-          {["opencode", "http", "cli"].map((kind) => (
-            <option key={kind} value={kind}>
-              {kind}
-            </option>
-          ))}
-        </select>
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.baseUrl}
-          onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-          placeholder="Runtime Base URL"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.command}
-          onChange={(event) => setForm({ ...form, command: event.target.value })}
-          placeholder="启动命令，例如 opencode"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.workspaceRoot}
-          onChange={(event) => setForm({ ...form, workspaceRoot: event.target.value })}
-          placeholder="工作目录"
-        />
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.approvalMode}
-          onChange={(event) => setForm({ ...form, approvalMode: event.target.value })}
-        >
-          {["ask", "allow", "deny", "manual"].map((mode) => (
-            <option key={mode} value={mode}>
-              审批模式 {mode}
-            </option>
-          ))}
-        </select>
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.eventContract}
-          onChange={(event) => setForm({ ...form, eventContract: event.target.value })}
-          placeholder="事件协议，例如 provider_event_v1"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.defaultModel}
-          onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
-          placeholder="默认模型覆盖"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)] md:col-span-2"
-          value={form.apiKeyRef}
-          onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-          placeholder="OpenCode API Key 引用，例如 env:OPENCODE_API_KEY"
-        />
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)] md:col-span-2"
-          value={form.defaultProviderProfileId}
-          onChange={(event) => setForm({ ...form, defaultProviderProfileId: event.target.value })}
-        >
-          <option value="">默认模型接口</option>
-          {providerOptions.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
-        value={form.envJson}
-        onChange={(event) => setForm({ ...form, envJson: event.target.value })}
-        placeholder='{"OPENAI_API_KEY":"ref:env:OPENAI_API_KEY"}'
+    <Panel>
+      <PanelHeader
+        title={title}
+        description="执行引擎地址、命令、默认模型与环境变量映射。"
+        action={
+          <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+            <input
+              type="checkbox"
+              checked={form.isEnabled}
+              onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
+            />
+            启用
+          </label>
+        }
       />
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
-        value={form.configJson}
-        onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-        placeholder='{"providerProfileAlias":"openai-default"}'
-      />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={isSaving}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
-        >
-          {isSaving ? "保存中" : "保存执行引擎"}
-        </button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
-      </div>
-    </div>
+      <PanelBody>
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label="归属业务团队">
+            <Select
+              value={form.businessTeamId}
+              onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
+            >
+              <option value="">全局默认</option>
+              {businessTeamOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="执行引擎名称">
+            <Input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder="OpenCode Production"
+            />
+          </FieldGroup>
+          <FieldGroup label="Provider Adapter">
+            <Select
+              value={form.adapterDefinitionId}
+              onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
+            >
+              {adapterOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="运行协议">
+            <Select
+              value={form.runtimeKind}
+              onChange={(event) => setForm({ ...form, runtimeKind: event.target.value })}
+            >
+              {["opencode", "http", "cli"].map((kind) => (
+                <option key={kind} value={kind}>
+                  {kind}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="Runtime Base URL">
+            <Input
+              value={form.baseUrl}
+              onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
+              placeholder="http://127.0.0.1:4096"
+            />
+          </FieldGroup>
+          <FieldGroup label="启动命令">
+            <Input
+              value={form.command}
+              onChange={(event) => setForm({ ...form, command: event.target.value })}
+              placeholder="opencode"
+            />
+          </FieldGroup>
+          <FieldGroup label="工作目录">
+            <Input
+              value={form.workspaceRoot}
+              onChange={(event) => setForm({ ...form, workspaceRoot: event.target.value })}
+              placeholder="/workspace"
+            />
+          </FieldGroup>
+          <FieldGroup label="审批模式">
+            <Select
+              value={form.approvalMode}
+              onChange={(event) => setForm({ ...form, approvalMode: event.target.value })}
+            >
+              {["ask", "allow", "deny", "manual"].map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="事件协议">
+            <Input
+              value={form.eventContract}
+              onChange={(event) => setForm({ ...form, eventContract: event.target.value })}
+              placeholder="provider_event_v1"
+            />
+          </FieldGroup>
+          <FieldGroup label="默认模型覆盖">
+            <Input
+              value={form.defaultModel}
+              onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
+              placeholder="gpt-5.4"
+            />
+          </FieldGroup>
+          <FieldGroup label="OpenCode API Key 引用" className="md:col-span-2">
+            <Input
+              value={form.apiKeyRef}
+              onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
+              placeholder="env:OPENCODE_API_KEY"
+            />
+          </FieldGroup>
+          <FieldGroup label="默认模型接口" className="md:col-span-2">
+            <Select
+              value={form.defaultProviderProfileId}
+              onChange={(event) => setForm({ ...form, defaultProviderProfileId: event.target.value })}
+            >
+              <option value="">未绑定</option>
+              {providerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup
+            label="环境变量映射"
+            hint="在这里维护 OpenCode 运行进程需要的环境变量引用。"
+            className="md:col-span-2"
+          >
+            <Textarea
+              value={form.envJson}
+              onChange={(event) => setForm({ ...form, envJson: event.target.value })}
+              placeholder='{"OPENAI_API_KEY":"ref:env:OPENAI_API_KEY"}'
+            />
+          </FieldGroup>
+          <FieldGroup
+            label="附加配置"
+            hint="保留给 Provider Adapter 的额外参数。"
+            className="md:col-span-2"
+          >
+            <Textarea
+              value={form.configJson}
+              onChange={(event) => setForm({ ...form, configJson: event.target.value })}
+              placeholder='{"providerProfileAlias":"openai-default"}'
+            />
+          </FieldGroup>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button
+            type="button"
+            onClick={save}
+            disabled={isSaving}
+          >
+            {isSaving ? "保存中" : "保存执行引擎"}
+          </Button>
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        </div>
+      </PanelBody>
+    </Panel>
   );
 }

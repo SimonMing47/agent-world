@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Textarea } from "@/components/ui/textarea";
 
 export function BlueprintSubmitConsole({
   blueprintId,
@@ -51,29 +54,25 @@ export function BlueprintSubmitConsole({
   }
 
   return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            运行入口
-          </div>
-          <div className="mt-1 text-base font-semibold text-[var(--ink)]">从任务蓝图创建运行实例</div>
-        </div>
-        <button
-          type="button"
-          onClick={submit}
-          disabled={isSubmitting}
-          className="rounded-2xl border border-[var(--line)] bg-[var(--ink)] px-4 py-2 text-sm font-medium text-[var(--canvas)] disabled:opacity-50"
-        >
-          {isSubmitting ? "提交中" : "创建运行"}
-        </button>
-      </div>
-      <textarea
-        className="mt-3 min-h-36 w-full rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--ink)]"
-        value={payloadText}
-        onChange={(event) => setPayloadText(event.target.value)}
+    <Panel>
+      <PanelHeader
+        eyebrow="Run Console"
+        title="从任务蓝图创建运行实例"
+        description="输入本次运行的 payload，直接提交到任务平台内核。"
+        action={
+          <Button type="button" onClick={submit} disabled={isSubmitting} variant="primary">
+            {isSubmitting ? "提交中" : "创建运行"}
+          </Button>
+        }
       />
-      {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
-    </div>
+      <PanelBody>
+        <Textarea
+          className="min-h-40"
+          value={payloadText}
+          onChange={(event) => setPayloadText(event.target.value)}
+        />
+        {error ? <div className="mt-3 text-sm text-red-600">{error}</div> : null}
+      </PanelBody>
+    </Panel>
   );
 }
