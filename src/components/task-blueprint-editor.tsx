@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type Option = { id: string; name: string };
 
@@ -194,26 +199,26 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
   ];
 
   return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-      <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-        蓝图编辑
-      </div>
+    <Panel>
+      <PanelHeader
+        eyebrow="Editor"
+        title="蓝图编辑"
+        description="结构化编辑蓝图归属、触发器与策略 JSON。"
+      />
+      <PanelBody>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-2">
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+      <div className="grid gap-3 md:grid-cols-2">
+        <Input
           value={form.name}
           onChange={(event) => setForm({ ...form, name: event.target.value })}
           placeholder="任务蓝图名称"
         />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Input
           value={form.category}
           onChange={(event) => setForm({ ...form, category: event.target.value })}
           placeholder="任务类别"
         />
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Select
           value={form.ownerBusinessTeamId}
           onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
         >
@@ -222,9 +227,8 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               {option.name}
             </option>
           ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Select
           value={form.teamId}
           onChange={(event) => setForm({ ...form, teamId: event.target.value })}
         >
@@ -233,9 +237,8 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               {option.name}
             </option>
           ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Select
           value={form.visibility}
           onChange={(event) => setForm({ ...form, visibility: event.target.value })}
         >
@@ -244,9 +247,8 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               可见性 {value}
             </option>
           ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Select
           value={form.status}
           onChange={(event) => setForm({ ...form, status: event.target.value })}
         >
@@ -255,9 +257,8 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               状态 {value}
             </option>
           ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Select
           value={form.providerAdapterId}
           onChange={(event) => setForm({ ...form, providerAdapterId: event.target.value })}
         >
@@ -266,9 +267,8 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               {option.name}
             </option>
           ))}
-        </select>
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Select
           value={form.environmentId}
           onChange={(event) => setForm({ ...form, environmentId: event.target.value })}
         >
@@ -278,18 +278,16 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               {option.name}
             </option>
           ))}
-        </select>
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Input
           value={String(form.version)}
           onChange={(event) => setForm({ ...form, version: Number(event.target.value) || 1 })}
           placeholder="版本"
         />
       </div>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-2">
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <Select
           value={form.triggerType}
           onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
         >
@@ -298,50 +296,45 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
               触发器 {value}
             </option>
           ))}
-        </select>
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        </Select>
+        <Input
           value={form.triggerConnector}
           onChange={(event) => setForm({ ...form, triggerConnector: event.target.value })}
           placeholder="连接器，例如 gitlab / github"
         />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Input
           value={form.triggerEvent}
           onChange={(event) => setForm({ ...form, triggerEvent: event.target.value })}
           placeholder="事件名，例如 merge_request.updated"
         />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Input
           value={form.triggerWebhookPathKey}
           onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
           placeholder="Webhook 路径标识"
         />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Input
           value={form.triggerExpression}
           onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
           placeholder="Cron 表达式"
         />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
+        <Input
           value={form.triggerIdempotencyKey}
           onChange={(event) => setForm({ ...form, triggerIdempotencyKey: event.target.value })}
           placeholder="幂等键模板"
         />
       </div>
 
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
+      <Textarea
+        className="mt-3"
         value={form.triggerExtraJson}
         onChange={(event) => setForm({ ...form, triggerExtraJson: event.target.value })}
         placeholder="触发器额外字段 JSON"
       />
 
       {policySections.map(([field, label]) => (
-        <textarea
+        <Textarea
           key={field}
-          className="mt-2 min-h-28 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
+          className="mt-3 min-h-28"
           value={form[field] as string}
           onChange={(event) => setForm({ ...form, [field]: event.target.value })}
           placeholder={label}
@@ -349,16 +342,16 @@ export function TaskBlueprintEditor({ blueprint, options }: TaskBlueprintEditorP
       ))}
 
       <div className="mt-3 flex items-center justify-between gap-3">
-        <button
+        <Button
           type="button"
           onClick={save}
           disabled={isSaving}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
         >
           {isSaving ? "保存中" : "保存任务蓝图"}
-        </button>
+        </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
-    </div>
+      </PanelBody>
+    </Panel>
   );
 }

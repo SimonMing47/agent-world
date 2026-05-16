@@ -2,103 +2,98 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Activity,
-  AlarmClock,
-  Boxes,
-  Bot,
-  BookOpen,
-  Cable,
-  ChartNoAxesCombined,
-  Command,
-  Globe,
-  GitBranch,
-  LayoutDashboard,
-  Network,
-  ScrollText,
-  Settings,
-  ShieldCheck,
-  ShieldPlus,
-  Store,
-  Users,
-  Workflow,
-} from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { navigationGroups } from "@/components/navigation-config";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AppScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { term } from "@/lib/terminology";
 
-const items = [
-  { href: "/", label: "总览", icon: LayoutDashboard },
-  { href: "/tenant-spaces", label: term("tenantSpace"), icon: Globe },
-  { href: "/business-teams", label: term("businessTeam"), icon: Users },
-  { href: "/agent-teams", label: `${term("agentTeam")}服务`, icon: Workflow },
-  { href: "/task-blueprints", label: "任务蓝图", icon: Boxes },
-  { href: "/task-runs", label: term("task"), icon: Activity },
-  { href: "/architecture", label: "规格文档", icon: Network },
-  { href: "/service-catalog", label: term("serviceDirectory"), icon: Store },
-  { href: "/access-grants", label: term("accessPolicy"), icon: ScrollText },
-  { href: "/runtimes", label: term("runtime"), icon: Cable },
-  { href: "/execution-policies", label: term("executionPolicy"), icon: ShieldCheck },
-  { href: "/knowledge", label: "知识库", icon: BookOpen },
-  { href: "/wallboard", label: "大屏", icon: ChartNoAxesCombined },
-  { href: "/settings", label: "设置", icon: Settings },
-];
+type SidebarNavProps = {
+  collapsed?: boolean;
+  onItemClick?: () => void;
+  onToggleCollapse?: () => void;
+};
 
-export function SidebarNav() {
+export function SidebarNav({
+  collapsed = false,
+  onItemClick,
+  onToggleCollapse,
+}: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-1.5">
-      {items.map((item) => {
-        const isActive =
-          pathname === item.href ||
-          (item.href !== "/" && pathname.startsWith(`${item.href}/`));
-        const Icon = item.icon;
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-colors",
-              isActive
-                ? "bg-[var(--surface-strong)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
-                : "text-[var(--ink-muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)]",
-            )}
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between px-3 pb-3 pt-4">
+        <div className={cn("min-w-0", collapsed && "sr-only")}>
+          <div className="text-sm font-semibold text-[var(--sidebar-ink)]">AgentWorld</div>
+          <div className="text-xs text-[var(--sidebar-muted)]">任务平台控制台</div>
+        </div>
+        {onToggleCollapse ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onToggleCollapse}
+            className="hidden text-[var(--sidebar-muted)] hover:bg-white/6 hover:text-[var(--sidebar-ink)] lg:inline-flex"
           >
-            <Icon className="h-4 w-4" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-
-      <div className="mt-6 space-y-3 rounded-[26px] border border-[var(--line)] bg-[var(--surface)] p-4">
-        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-          <Command className="h-3.5 w-3.5" />
-          关键视角
-        </div>
-        <div className="space-y-2 text-sm text-[var(--ink-muted)]">
-          <div className="flex items-center gap-2">
-            <Bot className="h-4 w-4" />
-            活跃 Agent
-          </div>
-          <div className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            授权调用边
-          </div>
-          <div className="flex items-center gap-2">
-            <GitBranch className="h-4 w-4" />
-            活跃代码仓
-          </div>
-          <div className="flex items-center gap-2">
-            <AlarmClock className="h-4 w-4" />
-            定时任务
-          </div>
-          <div className="flex items-center gap-2">
-            <ShieldPlus className="h-4 w-4" />
-            人工门禁
-          </div>
-        </div>
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
+        ) : null}
       </div>
-    </nav>
+
+      <AppScrollArea className="flex-1 px-2">
+        <nav className="space-y-5 pb-6">
+          {navigationGroups.map((group) => (
+            <div key={group.title} className="space-y-1.5">
+              {!collapsed ? (
+                <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--sidebar-muted)]">
+                  {group.title}
+                </div>
+              ) : null}
+              {group.items.map((item) => {
+                const isActive =
+                  pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
+                const Icon = item.icon;
+
+                const content = (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onItemClick}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                      collapsed && "justify-center px-0",
+                      isActive
+                        ? "bg-white/10 text-[var(--sidebar-ink)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                        : "text-[var(--sidebar-muted)] hover:bg-white/6 hover:text-[var(--sidebar-ink)]",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!collapsed ? (
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{item.label}</div>
+                        <div className="truncate text-xs text-[var(--sidebar-muted)] group-hover:text-[var(--sidebar-muted)]">
+                          {item.description}
+                        </div>
+                      </div>
+                    ) : null}
+                  </Link>
+                );
+
+                return collapsed ? (
+                  <Tooltip key={item.href}>
+                    <TooltipTrigger asChild>{content}</TooltipTrigger>
+                    <TooltipContent>{item.label}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  content
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+      </AppScrollArea>
+    </div>
   );
 }

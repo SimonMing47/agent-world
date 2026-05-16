@@ -1,33 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BlueprintSubmitConsole } from "@/components/blueprint-submit-console";
+import { PageHeader } from "@/components/page-header";
 import { TaskBlueprintEditor } from "@/components/task-blueprint-editor";
+import { Badge } from "@/components/ui/badge";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getTaskBlueprintDetail } from "@/server/queries";
 
 function JsonBlock({ value }: { value: unknown }) {
   return (
-    <pre className="mt-3 max-h-[360px] overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4 text-xs leading-5 text-[var(--ink-muted)]">
+    <pre className="overflow-auto rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 text-xs leading-5 text-[var(--ink-muted)]">
       {JSON.stringify(value, null, 2)}
     </pre>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-      <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-        {title}
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -69,119 +55,155 @@ export default async function TaskBlueprintDetailPage({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-      <div className="space-y-4">
-        <BlueprintSubmitConsole
-          blueprintId={detail.blueprint.id}
-          initialPayload={buildInputDraft(detail.inputSchema)}
-        />
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Blueprint Detail"
+        title={detail.blueprint.name}
+        description="从同一页面完成蓝图编辑、输入调试、权限预览和最近运行追踪。"
+        badges={[
+          { label: translateStatus(detail.blueprint.status), variant: detail.blueprint.status === "active" ? "success" : "neutral" },
+          { label: translateVisibility(detail.blueprint.visibility), variant: "neutral" },
+          { label: detail.blueprint.category, variant: "accent" },
+        ]}
+      />
 
-        <Section title="任务蓝图">
-          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            {detail.blueprint.name}
-          </h3>
-          <div className="mt-4 grid gap-2 text-sm text-[var(--ink-muted)] md:grid-cols-2">
-            <div>ID: {detail.blueprint.id}</div>
-            <div>类别: {detail.blueprint.category}</div>
-            <div>状态: {translateStatus(detail.blueprint.status)}</div>
-            <div>可见性: {translateVisibility(detail.blueprint.visibility)}</div>
-            <div>业务团队: {detail.businessTeamName}</div>
-            <div>Agent 团队: {detail.agentTeamName}</div>
-            <div>环境: {detail.environmentName}</div>
-            <div>Provider: {detail.providerName}</div>
-          </div>
-        </Section>
+      <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+        <div className="space-y-4">
+          <BlueprintSubmitConsole
+            blueprintId={detail.blueprint.id}
+            initialPayload={buildInputDraft(detail.inputSchema)}
+          />
 
-        <Section title="权限预览">
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">Allow</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.allow}</div>
-            </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">Ask</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.ask}</div>
-            </div>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-              <div className="text-sm text-[var(--ink-muted)]">Deny</div>
-              <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.deny}</div>
-            </div>
-          </div>
-          <div className="mt-4 space-y-2">
-            {detail.permissionPreview.rules.map((rule) => (
-              <div key={`${rule.effect}-${rule.resource}-${rule.scope}`} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--ink-muted)]">
-                <span className="font-semibold text-[var(--ink)]">{rule.effect}</span> · {rule.resource} · {rule.scope}
+          <Panel>
+            <PanelHeader eyebrow="Summary" title="蓝图概览" description="查看任务蓝图当前绑定的核心对象和启用状态。" />
+            <PanelBody className="grid gap-3 text-sm text-[var(--ink-muted)] sm:grid-cols-2">
+              <div>ID: {detail.blueprint.id}</div>
+              <div>类别: {detail.blueprint.category}</div>
+              <div>状态: {translateStatus(detail.blueprint.status)}</div>
+              <div>可见性: {translateVisibility(detail.blueprint.visibility)}</div>
+              <div>业务团队: {detail.businessTeamName}</div>
+              <div>Agent 团队: {detail.agentTeamName}</div>
+              <div>环境: {detail.environmentName}</div>
+              <div>Provider: {detail.providerName}</div>
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader eyebrow="Permissions" title="权限预览" description="按 allow / ask / deny 查看蓝图最终生效的工具与输出权限。" />
+            <PanelBody className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                  <div className="text-sm text-[var(--ink-muted)]">Allow</div>
+                  <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.allow}</div>
+                </div>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                  <div className="text-sm text-[var(--ink-muted)]">Ask</div>
+                  <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.ask}</div>
+                </div>
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+                  <div className="text-sm text-[var(--ink-muted)]">Deny</div>
+                  <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{detail.permissionPreview.counts.deny}</div>
+                </div>
               </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="最近运行">
-          <div className="mt-4 space-y-3">
-            {detail.recentRuns.length === 0 ? (
-              <div className="text-sm text-[var(--ink-muted)]">暂无运行实例</div>
-            ) : (
-              detail.recentRuns.map((run) => (
-                <Link
-                  key={run.id}
-                  href={`/task-runs/${run.id}`}
-                  className="block rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--ink-muted)] transition hover:text-[var(--ink)]"
-                >
-                  <div className="font-semibold text-[var(--ink)]">{run.sourceRef ?? run.sourceType}</div>
-                  <div className="mt-1">
-                    {translateStatus(run.status)} · {formatDateTime(run.createdAt)}
+              <div className="space-y-2">
+                {detail.permissionPreview.rules.map((rule) => (
+                  <div
+                    key={`${rule.effect}-${rule.resource}-${rule.scope}`}
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-muted)]"
+                  >
+                    <span className="font-medium text-[var(--ink)]">{rule.effect}</span> · {rule.resource} · {rule.scope}
                   </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </Section>
-      </div>
-
-      <div className="space-y-4">
-        <TaskBlueprintEditor blueprint={detail.blueprint} options={detail.options} />
-
-        <Section title="触发器与输入">
-          <JsonBlock value={{ trigger: detail.trigger, inputSchema: detail.inputSchema }} />
-        </Section>
-
-        <Section title="执行环境与记忆">
-          <JsonBlock
-            value={{
-              environmentSelector: detail.environmentSelector,
-              memoryPolicy: detail.memoryPolicy,
-              archivePolicy: detail.archivePolicy,
-            }}
-          />
-        </Section>
-
-        <Section title="Agent 团队编排">
-          <div className="mt-3 text-lg font-semibold text-[var(--ink)]">
-            {detail.runPlan.strategy} · Leader {detail.runPlan.leader.agentName}
-          </div>
-          <div className="mt-4 space-y-3">
-            {detail.runPlan.workers.map((worker) => (
-              <div key={`${worker.agent}-${worker.task}`} className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
-                <div className="text-sm font-semibold text-[var(--ink)]">{worker.agentName}</div>
-                <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{worker.task}</div>
+                ))}
               </div>
-            ))}
-          </div>
-        </Section>
+            </PanelBody>
+          </Panel>
 
-        <Section title="输出与看板">
-          <JsonBlock
-            value={{
-              outputPolicy: detail.outputPolicy,
-              dashboardPolicy: detail.dashboardPolicy,
-              resultSchema: detail.resultSchema,
-            }}
-          />
-        </Section>
+          <Panel>
+            <PanelHeader eyebrow="Recent Runs" title="最近运行" description="从蓝图直接跳转到最近一次或历史运行实例。" />
+            <PanelBody className="space-y-3">
+              {detail.recentRuns.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-[var(--line)] px-4 py-6 text-sm text-[var(--ink-muted)]">
+                  暂无运行实例
+                </div>
+              ) : (
+                detail.recentRuns.map((run) => (
+                  <Link
+                    key={run.id}
+                    href={`/task-runs/${run.id}`}
+                    className="block rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4 transition hover:border-[var(--line-strong)] hover:bg-white"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-medium text-[var(--ink)]">{run.sourceRef ?? run.sourceType}</div>
+                      <Badge variant={run.status === "running" ? "accent" : run.status === "failed" ? "danger" : "neutral"}>
+                        {translateStatus(run.status)}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 text-sm text-[var(--ink-muted)]">{formatDateTime(run.createdAt)}</div>
+                  </Link>
+                ))
+              )}
+            </PanelBody>
+          </Panel>
+        </div>
 
-        <Section title="可靠性策略">
-          <JsonBlock value={detail.executionPolicy} />
-        </Section>
+        <div className="space-y-4">
+          <TaskBlueprintEditor blueprint={detail.blueprint} options={detail.options} />
+
+          <Panel>
+            <PanelHeader eyebrow="Trigger" title="触发器与输入" description="显示当前蓝图用于接收输入和匹配触发的结构。" />
+            <PanelBody>
+              <JsonBlock value={{ trigger: detail.trigger, inputSchema: detail.inputSchema }} />
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader eyebrow="Environment" title="执行环境与记忆" description="蓝图绑定的环境选择器、记忆空间和归档策略。" />
+            <PanelBody>
+              <JsonBlock
+                value={{
+                  environmentSelector: detail.environmentSelector,
+                  memoryPolicy: detail.memoryPolicy,
+                  archivePolicy: detail.archivePolicy,
+                }}
+              />
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader eyebrow="Orchestration" title="Agent 团队编排" description="展示 Leader、Worker 与任务分工。" />
+            <PanelBody className="space-y-3">
+              <div className="text-sm font-medium text-[var(--ink)]">
+                {detail.runPlan.strategy} · Leader {detail.runPlan.leader.agentName}
+              </div>
+              {detail.runPlan.workers.map((worker) => (
+                <div key={`${worker.agent}-${worker.task}`} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3">
+                  <div className="text-sm font-medium text-[var(--ink)]">{worker.agentName}</div>
+                  <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{worker.task}</div>
+                </div>
+              ))}
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader eyebrow="Output" title="输出与看板" description="查看发布器、结果 Schema 与看板配置。" />
+            <PanelBody>
+              <JsonBlock
+                value={{
+                  outputPolicy: detail.outputPolicy,
+                  dashboardPolicy: detail.dashboardPolicy,
+                  resultSchema: detail.resultSchema,
+                }}
+              />
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader eyebrow="Reliability" title="可靠性策略" description="包括超时、重试、并发键和幂等策略。" />
+            <PanelBody>
+              <JsonBlock value={detail.executionPolicy} />
+            </PanelBody>
+          </Panel>
+        </div>
       </div>
     </div>
   );

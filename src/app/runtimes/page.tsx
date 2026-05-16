@@ -1,4 +1,7 @@
 import { RuntimeDiscoveryButton } from "@/components/runtime-discovery-button";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { translateRuntimeKind, translateStatus } from "@/lib/presentation";
 import { getDashboardSnapshot } from "@/server/queries";
 
@@ -7,45 +10,35 @@ export default function RuntimesPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col justify-between gap-4 rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6 lg:flex-row lg:items-end">
-        <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Runtime 发现
-          </div>
-          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-            探测 OpenCode runtime，并刷新能力目录。
-          </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)]">
-            AgentWorld 本身保持单体部署，但在任务分发前，仍然可以发现并探活外部 runtime。
-          </p>
-        </div>
-        <RuntimeDiscoveryButton />
-      </section>
+      <PageHeader
+        eyebrow="Runtimes"
+        title="执行运行时"
+        description="探测 OpenCode runtime，刷新能力目录，并观察每个运行时的健康状态与并发占用。"
+        badges={[
+          { label: `${snapshot.runtimes.length} 个运行时`, variant: "accent" },
+        ]}
+      />
 
-      <section className="space-y-3">
+      <div className="flex justify-end">
+        <RuntimeDiscoveryButton />
+      </div>
+
+      <section className="space-y-4">
         {snapshot.runtimes.map((runtime) => (
-          <div
-            key={runtime.id}
-            className="rounded-[24px] border border-[var(--line)] bg-[var(--surface-strong)] px-5 py-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="text-lg font-semibold text-[var(--ink)]">{runtime.name}</div>
-                <div className="mt-1 text-sm text-[var(--ink-muted)]">{runtime.baseUrl}</div>
-              </div>
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                {translateStatus(runtime.healthStatus)}
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 text-sm text-[var(--ink-muted)] md:grid-cols-4">
-              <div>类型: {translateRuntimeKind(runtime.runtimeKind)}</div>
-              <div>
-                并发占用: {runtime.activeRunCount} / {runtime.concurrencyLimit}
-              </div>
-              <div>Agent 目录: {runtime.agents.join(", ") || "未发现 Agent"}</div>
-              <div>Provider 目录: {runtime.providers.join(", ") || "未发现 Provider"}</div>
-            </div>
-          </div>
+          <Panel key={runtime.id}>
+            <PanelHeader
+              eyebrow="Runtime"
+              title={runtime.name}
+              description={runtime.baseUrl}
+              action={<Badge variant="neutral">{translateStatus(runtime.healthStatus)}</Badge>}
+            />
+            <PanelBody className="grid gap-3 text-sm text-[var(--ink-muted)] md:grid-cols-2 xl:grid-cols-4">
+              <div>类型: <span className="font-medium text-[var(--ink)]">{translateRuntimeKind(runtime.runtimeKind)}</span></div>
+              <div>并发占用: <span className="font-medium text-[var(--ink)]">{runtime.activeRunCount} / {runtime.concurrencyLimit}</span></div>
+              <div>Agent 目录: <span className="font-medium text-[var(--ink)]">{runtime.agents.join(", ") || "未发现 Agent"}</span></div>
+              <div>Provider 目录: <span className="font-medium text-[var(--ink)]">{runtime.providers.join(", ") || "未发现 Provider"}</span></div>
+            </PanelBody>
+          </Panel>
         ))}
       </section>
     </div>

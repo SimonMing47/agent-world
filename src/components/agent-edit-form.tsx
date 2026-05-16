@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FieldGroup } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Textarea } from "@/components/ui/textarea";
 
 type AgentEditFormProps = {
   agent: {
@@ -65,50 +70,54 @@ export function AgentEditForm({ agent }: AgentEditFormProps) {
   }
 
   return (
-    <div className="mt-3 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-3">
-      <div className="grid gap-2 md:grid-cols-2">
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.role}
-          onChange={(event) => setForm({ ...form, role: event.target.value })}
-          aria-label="Agent role"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.model}
-          onChange={(event) => setForm({ ...form, model: event.target.value })}
-          aria-label="Agent model"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.toolBindings}
-          onChange={(event) => setForm({ ...form, toolBindings: event.target.value })}
-          aria-label="Agent tools"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.memoryScope}
-          onChange={(event) => setForm({ ...form, memoryScope: event.target.value })}
-          aria-label="Agent memory scope"
-        />
-      </div>
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
-        value={form.personaPrompt}
-        onChange={(event) => setForm({ ...form, personaPrompt: event.target.value })}
-        aria-label="Agent persona prompt"
-      />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={isSaving}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
-        >
-          {isSaving ? "保存中" : "保存 Agent 定义"}
-        </button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
-      </div>
-    </div>
+    <Panel className="mt-4">
+      <PanelHeader title="编辑 Agent 定义" description="角色、模型、工具集和记忆范围直接落库更新。" />
+      <PanelBody>
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label="角色">
+            <Input
+              value={form.role}
+              onChange={(event) => setForm({ ...form, role: event.target.value })}
+              aria-label="Agent role"
+            />
+          </FieldGroup>
+          <FieldGroup label="模型">
+            <Input
+              value={form.model}
+              onChange={(event) => setForm({ ...form, model: event.target.value })}
+              aria-label="Agent model"
+            />
+          </FieldGroup>
+          <FieldGroup label="工具集">
+            <Input
+              value={form.toolBindings}
+              onChange={(event) => setForm({ ...form, toolBindings: event.target.value })}
+              aria-label="Agent tools"
+            />
+          </FieldGroup>
+          <FieldGroup label="记忆范围">
+            <Input
+              value={form.memoryScope}
+              onChange={(event) => setForm({ ...form, memoryScope: event.target.value })}
+              aria-label="Agent memory scope"
+            />
+          </FieldGroup>
+          <FieldGroup label="功能说明" className="md:col-span-2">
+            <Textarea
+              className="min-h-24"
+              value={form.personaPrompt}
+              onChange={(event) => setForm({ ...form, personaPrompt: event.target.value })}
+              aria-label="Agent persona prompt"
+            />
+          </FieldGroup>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button type="button" onClick={save} disabled={isSaving}>
+            {isSaving ? "保存中" : "保存 Agent 定义"}
+          </Button>
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        </div>
+      </PanelBody>
+    </Panel>
   );
 }

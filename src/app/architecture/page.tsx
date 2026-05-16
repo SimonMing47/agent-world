@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/page-header";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { getSettingsSnapshot } from "@/server/queries";
 
 const docs = [
@@ -18,48 +20,50 @@ export default function ArchitecturePage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-        <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-          规格文档
-        </div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">
-          文档用于约束实现，不在界面里复述架构过程。
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--ink-muted)]">
-          这里保留正式规格和设计文档入口，运营界面只展示配置和运行数据。
-        </p>
-      </section>
+      <PageHeader
+        eyebrow="Architecture"
+        title="设计规格入口"
+        description="设计文档保留在这里作为实现约束，控制台页面本身只承载配置对象和运行对象。"
+        badges={[
+          { label: `${docs.length} 份核心规格`, variant: "accent" },
+          { label: `${snapshot.metrics.blueprintCount} 个任务蓝图`, variant: "neutral" },
+        ]}
+      />
 
       <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-5">
-          <div className="text-sm text-[var(--ink-muted)]">模型接口</div>
-          <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.metrics.providerProfileCount}</div>
-        </div>
-        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-5">
-          <div className="text-sm text-[var(--ink-muted)]">执行引擎</div>
-          <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.metrics.runtimeBindingCount}</div>
-        </div>
-        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-5">
-          <div className="text-sm text-[var(--ink-muted)]">任务蓝图</div>
-          <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.metrics.blueprintCount}</div>
-        </div>
-        <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-5">
-          <div className="text-sm text-[var(--ink-muted)]">环境</div>
-          <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.environments.length}</div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-2">
-        {docs.map((doc) => (
-          <div
-            key={doc.path}
-            className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-5 py-4"
-          >
-            <div className="text-base font-semibold text-[var(--ink)]">{doc.label}</div>
-            <div className="mt-1 text-sm text-[var(--ink-muted)]">{doc.path}</div>
-          </div>
+        {[
+          ["模型接口", snapshot.metrics.providerProfileCount],
+          ["执行引擎", snapshot.metrics.runtimeBindingCount],
+          ["任务蓝图", snapshot.metrics.blueprintCount],
+          ["环境", snapshot.environments.length],
+        ].map(([label, value]) => (
+          <Panel key={String(label)}>
+            <PanelBody className="p-5">
+              <div className="text-sm text-[var(--ink-muted)]">{label}</div>
+              <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{value}</div>
+            </PanelBody>
+          </Panel>
         ))}
       </section>
+
+      <Panel>
+        <PanelHeader
+          eyebrow="Specs"
+          title="核心规格文档"
+          description="只保留约束实现所需的正式设计文档，不在界面里重复铺陈过程态描述。"
+        />
+        <PanelBody className="grid gap-3 xl:grid-cols-2">
+          {docs.map((doc) => (
+            <div
+              key={doc.path}
+              className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4"
+            >
+              <div className="text-base font-semibold text-[var(--ink)]">{doc.label}</div>
+              <div className="mt-1 text-sm text-[var(--ink-muted)]">{doc.path}</div>
+            </div>
+          ))}
+        </PanelBody>
+      </Panel>
     </div>
   );
 }

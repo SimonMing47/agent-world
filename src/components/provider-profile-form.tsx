@@ -2,6 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FieldGroup } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type ProviderProfileFormProps = {
   provider: {
@@ -104,84 +110,103 @@ export function ProviderProfileForm({ provider, title }: ProviderProfileFormProp
   }
 
   return (
-    <div className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-base font-semibold text-[var(--ink)]">{title}</div>
-        <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
-          <input
-            type="checkbox"
-            checked={form.isEnabled}
-            onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
-          />
-          启用
-        </label>
-      </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-2">
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.name}
-          onChange={(event) => setForm({ ...form, name: event.target.value })}
-          placeholder="Provider 名称"
-        />
-        <select
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.apiStyle}
-          onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
-        >
-          {[
-            ["openai", "OpenAI / Responses"],
-            ["anthropic", "Anthropic"],
-            ["azure-openai", "Azure OpenAI"],
-            ["openrouter", "OpenRouter"],
-            ["custom", "Custom HTTP"],
-          ].map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.baseUrl}
-          onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-          placeholder="Base URL"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)]"
-          value={form.defaultModel}
-          onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
-          placeholder="默认模型"
-        />
-        <input
-          className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm text-[var(--ink)] md:col-span-2"
-          value={form.apiKeyRef}
-          onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-          placeholder="API Key 引用，例如 env:OPENAI_API_KEY"
-        />
-      </div>
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
-        value={form.modelList}
-        onChange={(event) => setForm({ ...form, modelList: event.target.value })}
-        placeholder={"gpt-5.4\ngpt-5.4-mini"}
+    <Panel>
+      <PanelHeader
+        title={title}
+        description="模型接口、默认模型和 API Key 引用。"
+        action={
+          <label className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
+            <input
+              type="checkbox"
+              checked={form.isEnabled}
+              onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
+            />
+            启用
+          </label>
+        }
       />
-      <textarea
-        className="mt-2 min-h-24 w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3 py-2 text-sm leading-6 text-[var(--ink)]"
-        value={form.configJson}
-        onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-        placeholder='{"supportsResponsesApi": true}'
-      />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={isSaving}
-          className="rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-medium text-[var(--ink)] disabled:opacity-50"
-        >
-          {isSaving ? "保存中" : "保存模型接口"}
-        </button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
-      </div>
-    </div>
+      <PanelBody>
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label="模型接口名称">
+            <Input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder="Provider 名称"
+            />
+          </FieldGroup>
+          <FieldGroup label="API 风格">
+            <Select
+              value={form.apiStyle}
+              onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
+            >
+              {[
+                ["openai", "OpenAI / Responses"],
+                ["anthropic", "Anthropic"],
+                ["azure-openai", "Azure OpenAI"],
+                ["openrouter", "OpenRouter"],
+                ["custom", "Custom HTTP"],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="Base URL">
+            <Input
+              value={form.baseUrl}
+              onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
+              placeholder="https://api.openai.com/v1"
+            />
+          </FieldGroup>
+          <FieldGroup label="默认模型">
+            <Input
+              value={form.defaultModel}
+              onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
+              placeholder="gpt-5.4"
+            />
+          </FieldGroup>
+          <FieldGroup label="API Key 引用" className="md:col-span-2">
+            <Input
+              value={form.apiKeyRef}
+              onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
+              placeholder="env:OPENAI_API_KEY"
+            />
+          </FieldGroup>
+          <FieldGroup
+            label="模型列表"
+            hint="每行一个模型名。"
+            className="md:col-span-2"
+          >
+            <Textarea
+              value={form.modelList}
+              onChange={(event) => setForm({ ...form, modelList: event.target.value })}
+              placeholder={"gpt-5.4\ngpt-5.4-mini"}
+            />
+          </FieldGroup>
+          <FieldGroup
+            label="附加配置"
+            hint="保留给协议能力开关与供应商特殊参数。"
+            className="md:col-span-2"
+          >
+            <Textarea
+              value={form.configJson}
+              onChange={(event) => setForm({ ...form, configJson: event.target.value })}
+              placeholder='{"supportsResponsesApi": true}'
+            />
+          </FieldGroup>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <Button
+            type="button"
+            onClick={save}
+            disabled={isSaving}
+          >
+            {isSaving ? "保存中" : "保存模型接口"}
+          </Button>
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        </div>
+      </PanelBody>
+    </Panel>
   );
 }
