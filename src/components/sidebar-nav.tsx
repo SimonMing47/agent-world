@@ -30,6 +30,7 @@ const items = [
   { href: "/kingdoms", label: "Kingdom 团队", icon: Users },
   { href: "/agent-teams", label: "AgentTeam 服务", icon: Workflow },
   { href: "/quests", label: "Quest 任务", icon: Activity },
+  { href: "/architecture", label: "九层架构", icon: Network },
   { href: "/tavern", label: "Tavern 市场", icon: Store },
   { href: "/contracts", label: "Contract 合约", icon: ScrollText },
   { href: "/runtimes", label: "Runtime 运行时", icon: Cable },
