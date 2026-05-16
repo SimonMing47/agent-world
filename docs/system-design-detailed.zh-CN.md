@@ -26,7 +26,7 @@
 - 团队预算和信用额度。
 - 私有工具引用。
 - 私有记忆命名空间。
-- Agent、Agent 团队、环境和任务模板归属。
+- Agent、Agent 团队、环境、任务蓝图和任务模板归属。
 
 实现表：`business_teams`。
 
@@ -92,17 +92,26 @@ Agent 团队是可运营服务单元，负责：
 
 实现表：`execution_policies`。
 
-### 2.8 任务执行
+### 2.8 任务蓝图与任务执行
 
-任务执行是平台调度和执行的核心实体，负责：
+任务蓝图是平台调度和执行的统一配置实体，负责：
+
+- 基础信息、业务团队归属、任务类别和可见性。
+- 触发器：manual、cron、webhook、access grant。
+- 输入 Schema、环境选择器、Agent 团队编排、记忆和 Skill 依赖。
+- Provider 执行策略、权限策略、结果 Schema、输出通道和看板规则。
+- 失败重试、并发控制、幂等键和归档策略。
+
+任务执行是任务蓝图的一次运行实例，负责：
 
 - 来源类型：manual、schedule、webhook、access_grant。
 - 来源引用。
 - 业务团队、Agent 团队、运行环境、跨团队授权。
-- 输入、输出、成本、trace id、状态和完成时间。
+- 输入、输出、成本、trace id、状态、蓝图版本、幂等键、权限快照、环境快照和完成时间。
 
 实现表：
 
+- `task_blueprints`
 - `task_templates`
 - `schedule_templates`
 - `task_runs`
@@ -110,6 +119,8 @@ Agent 团队是可运营服务单元，负责：
 - `task_run_nodes`
 - `task_run_interventions`
 - `event_logs`
+- `task_events`
+- `findings`
 - `trace_spans`
 
 ### 2.9 执行环境
@@ -124,7 +135,11 @@ Agent 团队是可运营服务单元，负责：
 - 记忆层依赖。
 - 可见性和状态。
 
-实现表：`execution_environments`。
+实现表：
+
+- `execution_environments`
+- `environment_templates`
+- `environment_snapshots`
 
 ### 2.10 记忆层
 
@@ -150,12 +165,14 @@ Agent 团队是可运营服务单元，负责：
 任务入口包括：
 
 - 手动提交：`POST /api/task-runs/submit`。
+- 任务蓝图提交：`POST /api/task-blueprints/:id/submit`。
 - 定时模板：`schedule_templates`。
 - Webhook：`POST /api/webhooks/:pathKey`。
-- 插件导入任务模板：`POST /api/plugins/manifests`。
+- 插件导入任务蓝图和任务模板：`POST /api/plugins/manifests`。
 
 统一调度函数：
 
+- `submitTaskRunFromBlueprint()`：解析 Task Blueprint，生成幂等键、环境快照、权限快照和运行实例。
 - `submitTaskRun()`：生成 `task_runs`、`task_run_plans`、`task_run_nodes` 和初始事件。
 - `executeTaskRunTick()`：推进 ready 节点、执行权限校验、模拟节点执行并写事件。
 - `retryTaskRunNode()`：失败节点单独重试。
@@ -169,7 +186,7 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 1. 组装调用上下文。
 2. 合成运行约束。
 3. 校验跨团队授权。
-4. 选择 Provider。
+4. 选择 ProviderAdapter。
 5. 挂载 Runtime。
 6. 流式记录 trace 和工具事件。
 7. 需要时进入人工门禁。
@@ -177,10 +194,12 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 
 ### 3.3 权限控制
 
-权限由两层组成：
+权限由四层组成：
 
+- Task Blueprint 权限策略：allow / ask / deny，且 deny 优先于 ask，ask 优先于 allow。
 - 运行约束：控制工具、预算、输出、安全扫描和审批。
 - 跨团队授权：控制跨业务团队动作范围、工具范围、SLA 和价格。
+- Secret 与环境权限：PRIVATE_KEY 永远只保存 secret ref，不进入日志和任务输出。
 
 所有工具执行前必须先经过 `evaluateExecutionPolicyToolPolicy()`；跨团队调用必须经过 `evaluateAccessGrantAccess()`。
 
@@ -190,10 +209,11 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 
 - `plugins`：插件清单。
 - `environments`：执行环境。
+- `taskBlueprints`：任务蓝图。
 - `taskTemplates`：任务模板。
 - `scheduleTemplates`：触发模板。
 
-企业 Git、内部 MR 系统、Gitea、GitLab、邮件、IM 通过同一导入协议接入。主干只读取 manifest、环境、任务模板和权限声明。
+企业 Git、内部 MR 系统、Gitea、GitLab、邮件、IM 通过同一导入协议接入。主干只读取 manifest、环境、任务蓝图、任务模板和权限声明。
 
 ## 4. 前端设计
 
@@ -206,6 +226,7 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 - 公开 Agent 团队。
 - 生效跨团队授权。
 - 按来源、业务团队、任务类别组织任务看板。
+- 任务蓝图运行次数、Finding 聚合和 Provider Adapter 概览。
 - 租户治理边界。
 - 业务团队财务视图。
 - 调度器状态。
@@ -218,6 +239,8 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 
 - 操作控制台：推进 tick、恢复、重试、批准、拒绝。
 - 任务执行概览：状态、来源、租户空间、业务团队、Agent 团队、提交人、成本。
+- 蓝图快照：任务蓝图、版本、幂等键和触发器。
+- 编排协议：Leader、Worker、聚合和冲突处理。
 - 跨团队授权详情。
 - 运行约束详情。
 - 计划与节点。
@@ -226,6 +249,8 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 - 调用阶段。
 - Provider 选择依据。
 - 按 fold group 分组的事件流。
+- 标准 `task_events` 事件流。
+- Environment Snapshot、权限快照和 Finding 输出。
 
 事件流保留 thinking、tool use、tool result、approval、timeout、retry、policy hit 等信息，避免只展示最终结论。
 

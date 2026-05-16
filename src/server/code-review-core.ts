@@ -13,8 +13,9 @@ import {
   type WebhookEndpoint,
 } from "@/server/db";
 import { writeLayeredKnowledge } from "@/server/openviking-core";
-import { submitTaskRun } from "@/server/queries";
+import { submitTaskRun, submitTaskRunFromBlueprint } from "@/server/queries";
 import { resolveWebhookTaskConfiguration } from "@/server/extension-core";
+import { buildFindingFingerprint } from "@/server/finding-core";
 
 const execFileAsync = promisify(execFile);
 
@@ -690,19 +691,18 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
   });
   const taskRunDetail = (() => {
     try {
-      return submitTaskRun({
-        teamId: webhook.teamId,
-        sourceType: "webhook",
-        sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
+      return submitTaskRunFromBlueprint({
+        blueprintId: "shield_mr_review",
         requestedBy: context.author ?? "webhook",
+        sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
         priority: 88,
-        environmentId: taskConfig.environmentId,
-        plannerMode: taskConfig.plannerMode,
-        summary: taskConfig.summary,
         inputPayload: {
-          ...taskConfig.defaultInput,
-          caseKey: taskConfig.caseKey,
-          taskCategory: taskConfig.taskCategory,
+          repo_id: context.repositorySlug,
+          mr_id: context.mrIid,
+          diff_ref: context.commitSha ?? `mr-${context.mrIid}`,
+          author: context.author ?? "unknown",
+          target_branch: context.targetBranch ?? "unknown",
+          source_commit_sha: context.commitSha ?? `mr-${context.mrIid}`,
           reviewId,
           repository: context.repositorySlug,
           mergeRequest: context.mrIid,
@@ -710,20 +710,45 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
           changedFiles: stats.changedFiles,
           memoryLayers: taskConfig.memoryLayers,
         },
-        nodes: taskConfig.nodes
-          .map((node) => ({
-            nodeKey: String(node.nodeKey ?? node.id ?? "node"),
-            agentId: typeof node.agentId === "string" ? node.agentId : "",
-            dependsOn: Array.isArray(node.dependsOn) ? node.dependsOn.map(String) : [],
-            input:
-              node.input && typeof node.input === "object" && !Array.isArray(node.input)
-                ? (node.input as Record<string, unknown>)
-                : {},
-          }))
-          .filter((node) => node.agentId) || undefined,
       });
     } catch {
-      return null;
+      try {
+        return submitTaskRun({
+          teamId: webhook.teamId,
+          sourceType: "webhook",
+          sourceRef: `${context.platform}/${context.repositorySlug}/mr-${context.mrIid}`,
+          requestedBy: context.author ?? "webhook",
+          priority: 88,
+          environmentId: taskConfig.environmentId,
+          plannerMode: taskConfig.plannerMode,
+          summary: taskConfig.summary,
+          inputPayload: {
+            ...taskConfig.defaultInput,
+            caseKey: taskConfig.caseKey,
+            taskCategory: taskConfig.taskCategory,
+            reviewId,
+            repository: context.repositorySlug,
+            mergeRequest: context.mrIid,
+            diffStatus: diffBundle.status,
+            changedFiles: stats.changedFiles,
+            memoryLayers: taskConfig.memoryLayers,
+          },
+          nodes:
+            taskConfig.nodes
+              .map((node) => ({
+                nodeKey: String(node.nodeKey ?? node.id ?? "node"),
+                agentId: typeof node.agentId === "string" ? node.agentId : "",
+                dependsOn: Array.isArray(node.dependsOn) ? node.dependsOn.map(String) : [],
+                input:
+                  node.input && typeof node.input === "object" && !Array.isArray(node.input)
+                    ? (node.input as Record<string, unknown>)
+                    : {},
+              }))
+              .filter((node) => node.agentId) || undefined,
+        });
+      } catch {
+        return null;
+      }
     }
   })();
 
@@ -767,6 +792,43 @@ export async function runMergeRequestReview(pathKey: string, request: Request, p
       "pending",
       createdAt,
     );
+    if (taskRunDetail?.taskRun?.id) {
+      execute(
+        "INSERT OR IGNORE INTO findings (id, task_run_id, source_agent, category, severity, confidence, title, description, evidence_json, recommendation, skill_refs_json, fingerprint, status, publication_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        findingId,
+        taskRunDetail.taskRun.id,
+        draft.skillId,
+        draft.knowledgeLayer.includes("security") ? "security" : "code_quality",
+        draft.severity,
+        draft.severity === "high" ? 0.86 : 0.74,
+        draft.title,
+        draft.body,
+        JSON.stringify({
+          repoId: context.repositorySlug,
+          filePath: draft.filePath,
+          lineStart: draft.lineNumber,
+          diffHunk: diffBundle.diff.slice(0, 1600),
+        }),
+        draft.suggestion ?? "结合代码上下文和 CI 结果复核后处理。",
+        JSON.stringify([`viking://global/skills/code-review/${draft.skillId}`]),
+        buildFindingFingerprint({
+          repoId: context.repositorySlug,
+          filePath: draft.filePath ?? "mr",
+          rule: draft.skillId,
+          category: draft.knowledgeLayer,
+          lineStart: draft.lineNumber ?? 0,
+          normalizedCode: draft.body,
+        }),
+        "open",
+        JSON.stringify({
+          channels: ["merge_request_comment", "dashboard"],
+          reviewId,
+          feedbackToken,
+        }),
+        createdAt,
+        createdAt,
+      );
+    }
 
     await writeLayeredKnowledge({
       layer: draft.knowledgeLayer,
