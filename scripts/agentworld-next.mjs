@@ -12,6 +12,7 @@ import {
 } from "./openviking-common.mjs";
 
 const mode = process.argv[2] ?? "dev";
+const defaultAgentWorldPort = "7369";
 const startupTimeoutMs = Number(process.env.OPENVIKING_STARTUP_TIMEOUT_MS ?? "3500");
 const experimentalWarningOption = "--no-warnings=ExperimentalWarning";
 
@@ -167,6 +168,7 @@ const nextChild = spawn(launch.command, launch.args, {
   cwd: root,
   env: {
     ...process.env,
+    PORT: process.env.PORT ?? defaultAgentWorldPort,
     AGENTWORLD_DATA_DIR: process.env.AGENTWORLD_DATA_DIR ?? path.join(root, "data"),
     NODE_OPTIONS: nodeOptions(),
   },

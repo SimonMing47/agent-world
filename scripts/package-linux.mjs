@@ -85,7 +85,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 export NODE_ENV="\${NODE_ENV:-production}"
-export PORT="\${PORT:-3002}"
+export PORT="\${PORT:-7369}"
 export HOSTNAME="\${HOSTNAME:-0.0.0.0}"
 export NODE_OPTIONS="\${NODE_OPTIONS:-} --no-warnings=ExperimentalWarning"
 export AGENTWORLD_OPENVIKING_AUTO_START="\${AGENTWORLD_OPENVIKING_AUTO_START:-1}"
