@@ -388,11 +388,7 @@ export function TaskBlueprintEditor({
       return;
     }
 
-    if (!form.providerAdapterId.trim()) {
-      setIsSaving(false);
-      setMessage("请先选择 Provider Adapter。");
-      return;
-    }
+    const providerAdapterId = form.providerAdapterId.trim() || options.providerAdapters[0]?.id || "pi-runtime-adapter";
 
     if (form.triggerType === "cron" && !form.triggerExpression.trim()) {
       setIsSaving(false);
@@ -474,7 +470,7 @@ export function TaskBlueprintEditor({
       ownerBusinessTeamId: form.ownerBusinessTeamId,
       teamId: form.teamId,
       environmentId: form.environmentId || null,
-      providerAdapterId: form.providerAdapterId,
+      providerAdapterId,
       version: Number(form.version) || 1,
       status: form.status,
       triggerJson,
@@ -562,19 +558,6 @@ export function TaskBlueprintEditor({
           >
             <option value="">选择 Agent Team</option>
             {options.agentTeams.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="Provider Adapter">
-          <Select
-            value={form.providerAdapterId}
-            onChange={(event) => setForm({ ...form, providerAdapterId: event.target.value })}
-          >
-            <option value="">选择 Provider Adapter</option>
-            {options.providerAdapters.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
               </option>

@@ -256,7 +256,7 @@ function buildActorActivities(
   }
 
   for (const event of orderedEvents) {
-    const actorName = event.actorName ?? "Runtime";
+    const actorName = event.actorName ?? "System";
     const current = ensureActor(
       actorName,
       actorName === "Operator" ? "human" : "agent",

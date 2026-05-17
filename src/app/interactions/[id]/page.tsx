@@ -76,7 +76,7 @@ export default async function RuntimeInteractionDetailPage({
         ]}
         compactFacts={[
           {
-            label: "运行时",
+            label: "执行配置",
             value: detail.runtimeBinding?.name ?? "未绑定",
             detail: detail.runtimeDescriptor?.executionMode ?? "unknown",
           },

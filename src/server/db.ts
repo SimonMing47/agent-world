@@ -48,6 +48,49 @@ export type BusinessTeam = {
   createdAt: string;
 };
 
+export type TeamMember = {
+  id: string;
+  tenantSpaceId: string;
+  businessTeamId: string;
+  employeeNo: string;
+  name: string;
+  email: string;
+  role: string;
+  title: string;
+  status: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeamPermissionGrant = {
+  id: string;
+  businessTeamId: string;
+  memberId: string | null;
+  principalType: string;
+  roleKey: string;
+  resourceType: string;
+  resourceScope: string;
+  actionsJson: string;
+  effect: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeamAssetGrant = {
+  id: string;
+  businessTeamId: string;
+  memberId: string | null;
+  assetType: string;
+  assetId: string;
+  assetName: string;
+  permissionJson: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ExecutionPolicy = {
   id: string;
   tenantSpaceId: string | null;
@@ -455,6 +498,61 @@ export type DeveloperProfile = {
   lastActiveAt: string;
 };
 
+export type McpServerProfile = {
+  id: string;
+  businessTeamId: string | null;
+  name: string;
+  transport: string;
+  command: string;
+  url: string;
+  authRef: string;
+  toolAllowlistJson: string;
+  status: string;
+  lastHealthStatus: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ConnectorProfile = {
+  id: string;
+  businessTeamId: string | null;
+  name: string;
+  connectorType: string;
+  provider: string;
+  endpoint: string;
+  secretRef: string;
+  capabilitiesJson: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CodebaseProfile = {
+  id: string;
+  businessTeamId: string;
+  name: string;
+  provider: string;
+  repositoryUrl: string;
+  defaultBranch: string;
+  visibility: string;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CodebaseOperatorToken = {
+  id: string;
+  codebaseId: string;
+  operatorName: string;
+  tokenRef: string;
+  role: string;
+  permissionJson: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ExecutionEnvironment = {
   id: string;
   businessTeamId: string;
@@ -544,9 +642,13 @@ export type ProviderAdapterDefinition = {
 
 export type CodeReviewSkill = {
   id: string;
+  ownerBusinessTeamId: string | null;
   name: string;
   layer: string;
   description: string;
+  tagsJson: string;
+  visibility: string;
+  vikingUri: string | null;
   isEnabled: number;
   promptMd: string;
   heuristicsJson: string;
@@ -785,6 +887,49 @@ CREATE TABLE IF NOT EXISTS business_teams (
   private_memory_namespace TEXT NOT NULL,
   policy_json TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_members (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
+  employee_no TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  role TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_permission_grants (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT NOT NULL,
+  member_id TEXT,
+  principal_type TEXT NOT NULL,
+  role_key TEXT NOT NULL,
+  resource_type TEXT NOT NULL,
+  resource_scope TEXT NOT NULL,
+  actions_json TEXT NOT NULL,
+  effect TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS team_asset_grants (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT NOT NULL,
+  member_id TEXT,
+  asset_type TEXT NOT NULL,
+  asset_id TEXT NOT NULL,
+  asset_name TEXT NOT NULL,
+  permission_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS execution_policies (
@@ -1198,6 +1343,61 @@ CREATE TABLE IF NOT EXISTS developer_profiles (
   last_active_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS mcp_servers (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT,
+  name TEXT NOT NULL,
+  transport TEXT NOT NULL,
+  command TEXT NOT NULL,
+  url TEXT NOT NULL,
+  auth_ref TEXT NOT NULL,
+  tool_allowlist_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  last_health_status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS connector_profiles (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT,
+  name TEXT NOT NULL,
+  connector_type TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  secret_ref TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS codebase_profiles (
+  id TEXT PRIMARY KEY,
+  business_team_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  repository_url TEXT NOT NULL,
+  default_branch TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  description TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS codebase_operator_tokens (
+  id TEXT PRIMARY KEY,
+  codebase_id TEXT NOT NULL,
+  operator_name TEXT NOT NULL,
+  token_ref TEXT NOT NULL,
+  role TEXT NOT NULL,
+  permission_json TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS execution_environments (
   id TEXT PRIMARY KEY,
   business_team_id TEXT NOT NULL,
@@ -1287,9 +1487,13 @@ CREATE TABLE IF NOT EXISTS provider_adapter_definitions (
 
 CREATE TABLE IF NOT EXISTS code_review_skills (
   id TEXT PRIMARY KEY,
+  owner_business_team_id TEXT,
   name TEXT NOT NULL,
   layer TEXT NOT NULL,
   description TEXT NOT NULL,
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  visibility TEXT NOT NULL DEFAULT 'team',
+  viking_uri TEXT,
   is_enabled INTEGER NOT NULL DEFAULT 1,
   prompt_md TEXT NOT NULL,
   heuristics_json TEXT NOT NULL,
@@ -2572,6 +2776,29 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
       now,
     );
   });
+
+  db.exec(`
+    UPDATE code_review_skills
+    SET tags_json = '["代码检视","MR","结构"]',
+        visibility = 'global',
+        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/global/mr-structure')
+    WHERE id = 'mr-structure';
+    UPDATE code_review_skills
+    SET tags_json = '["安全","高危","证据"]',
+        visibility = 'team',
+        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/security/security-sensitive')
+    WHERE id = 'security-sensitive';
+    UPDATE code_review_skills
+    SET tags_json = '["测试","质量","回归"]',
+        visibility = 'team',
+        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/quality-test/test-impact')
+    WHERE id = 'test-impact';
+    UPDATE code_review_skills
+    SET tags_json = '["接口","数据","兼容性"]',
+        visibility = 'team',
+        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/data-api/data-interface')
+    WHERE id = 'data-interface';
+  `);
 }
 
 function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
@@ -2719,6 +2946,337 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
       );
     }
   }
+}
+
+function ensureTeamGovernanceSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const tenant = db
+    .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
+    .get() as { id: string } | undefined;
+  const platformTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("platform-team") as { id: string } | undefined;
+  const releaseTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("release-team") as { id: string } | undefined;
+
+  if (!tenant || !platformTeam || !releaseTeam) return;
+
+  const insertMember = db.prepare(
+    "INSERT OR IGNORE INTO team_members (id, tenant_space_id, business_team_id, employee_no, name, email, role, title, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertPermission = db.prepare(
+    "INSERT OR IGNORE INTO team_permission_grants (id, business_team_id, member_id, principal_type, role_key, resource_type, resource_scope, actions_json, effect, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertAsset = db.prepare(
+    "INSERT OR IGNORE INTO team_asset_grants (id, business_team_id, member_id, asset_type, asset_id, asset_name, permission_json, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertMcp = db.prepare(
+    "INSERT OR IGNORE INTO mcp_servers (id, business_team_id, name, transport, command, url, auth_ref, tool_allowlist_json, status, last_health_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertConnector = db.prepare(
+    "INSERT OR IGNORE INTO connector_profiles (id, business_team_id, name, connector_type, provider, endpoint, secret_ref, capabilities_json, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertCodebase = db.prepare(
+    "INSERT OR IGNORE INTO codebase_profiles (id, business_team_id, name, provider, repository_url, default_branch, visibility, description, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertCodebaseToken = db.prepare(
+    "INSERT OR IGNORE INTO codebase_operator_tokens (id, codebase_id, operator_name, token_ref, role, permission_json, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  const members = [
+    {
+      id: "member-platform-ming",
+      teamId: platformTeam.id,
+      employeeNo: "AW1001",
+      name: "Ming",
+      email: "ming@example.com",
+      role: "owner",
+      title: "平台负责人",
+    },
+    {
+      id: "member-platform-ava",
+      teamId: platformTeam.id,
+      employeeNo: "AW1002",
+      name: "Ava",
+      email: "ava@example.com",
+      role: "admin",
+      title: "Agent 治理",
+    },
+    {
+      id: "member-release-sophia",
+      teamId: releaseTeam.id,
+      employeeNo: "AW2001",
+      name: "Sophia",
+      email: "sophia@example.com",
+      role: "owner",
+      title: "发布负责人",
+    },
+    {
+      id: "member-release-chen",
+      teamId: releaseTeam.id,
+      employeeNo: "AW2002",
+      name: "Chen",
+      email: "chen@example.com",
+      role: "operator",
+      title: "代码检视运营",
+    },
+  ];
+
+  members.forEach((member) => {
+    insertMember.run(
+      member.id,
+      tenant.id,
+      member.teamId,
+      member.employeeNo,
+      member.name,
+      member.email,
+      member.role,
+      member.title,
+      "active",
+      "manual",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "perm-platform-owner",
+      teamId: platformTeam.id,
+      memberId: "member-platform-ming",
+      roleKey: "team_owner",
+      resourceType: "agentworld",
+      resourceScope: "team:*",
+      actions: ["team.manage", "agent.manage", "task.manage", "asset.manage", "audit.read"],
+    },
+    {
+      id: "perm-release-operator",
+      teamId: releaseTeam.id,
+      memberId: "member-release-chen",
+      roleKey: "task_operator",
+      resourceType: "task_blueprint",
+      resourceScope: "team:release-team",
+      actions: ["task.read", "task.run", "task.pause", "finding.triage"],
+    },
+  ].forEach((grant) => {
+    insertPermission.run(
+      grant.id,
+      grant.teamId,
+      grant.memberId,
+      "member",
+      grant.roleKey,
+      grant.resourceType,
+      grant.resourceScope,
+      JSON.stringify(grant.actions),
+      "allow",
+      "active",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "mcp-filesystem-readonly",
+      teamId: platformTeam.id,
+      name: "Filesystem Readonly MCP",
+      transport: "stdio",
+      command: "npx -y @modelcontextprotocol/server-filesystem /workspace",
+      url: "",
+      authRef: "",
+      tools: ["read_file", "list_directory", "search_files"],
+    },
+    {
+      id: "mcp-code-search",
+      teamId: releaseTeam.id,
+      name: "Code Search MCP",
+      transport: "http",
+      command: "",
+      url: "https://mcp.example.com/code-search",
+      authRef: "secret:mcp-code-search-token",
+      tools: ["search_code", "read_symbol", "dependency_graph"],
+    },
+  ].forEach((server) => {
+    insertMcp.run(
+      server.id,
+      server.teamId,
+      server.name,
+      server.transport,
+      server.command,
+      server.url,
+      server.authRef,
+      JSON.stringify(server.tools),
+      "active",
+      "unknown",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "connector-release-email",
+      teamId: releaseTeam.id,
+      name: "Release Email",
+      type: "email",
+      provider: "smtp",
+      endpoint: "smtp://mail.example.com:587",
+      secretRef: "secret:release-smtp",
+      capabilities: ["email.send", "report.publish"],
+    },
+    {
+      id: "connector-platform-im",
+      teamId: platformTeam.id,
+      name: "Platform IM",
+      type: "im",
+      provider: "webhook",
+      endpoint: "https://im.example.com/agentworld",
+      secretRef: "secret:platform-im-webhook",
+      capabilities: ["message.send", "approval.notify"],
+    },
+    {
+      id: "connector-web-push",
+      teamId: null,
+      name: "Web Push",
+      type: "web_push",
+      provider: "browser",
+      endpoint: "/api/notifications/push",
+      secretRef: "secret:web-push-vapid",
+      capabilities: ["push.notify", "incident.alert"],
+    },
+  ].forEach((connector) => {
+    insertConnector.run(
+      connector.id,
+      connector.teamId,
+      connector.name,
+      connector.type,
+      connector.provider,
+      connector.endpoint,
+      connector.secretRef,
+      JSON.stringify(connector.capabilities),
+      "active",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "codebase-agentworld",
+      teamId: releaseTeam.id,
+      name: "agentworld",
+      provider: "codehub",
+      url: "ssh://codehub.example.com/agentworld/agentworld.git",
+      branch: "main",
+      description: "AgentWorld 主仓，供代码检视与安全检视任务使用。",
+    },
+    {
+      id: "codebase-platform-core",
+      teamId: platformTeam.id,
+      name: "platform-core",
+      provider: "git",
+      url: "ssh://git.example.com/platform/core.git",
+      branch: "main",
+      description: "平台团队核心服务仓库。",
+    },
+  ].forEach((codebase) => {
+    insertCodebase.run(
+      codebase.id,
+      codebase.teamId,
+      codebase.name,
+      codebase.provider,
+      codebase.url,
+      codebase.branch,
+      "team",
+      codebase.description,
+      "active",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "token-agentworld-reviewer",
+      codebaseId: "codebase-agentworld",
+      operatorName: "MR Reviewer",
+      tokenRef: "secret:codehub-agentworld-reviewer-token",
+      role: "reviewer",
+      permissions: ["repo.read", "mr.diff.read", "mr.comment.write"],
+    },
+    {
+      id: "token-agentworld-security",
+      codebaseId: "codebase-agentworld",
+      operatorName: "Security Scanner",
+      tokenRef: "secret:codehub-agentworld-security-token",
+      role: "scanner",
+      permissions: ["repo.read", "branch.clone", "artifact.write"],
+    },
+    {
+      id: "token-platform-readonly",
+      codebaseId: "codebase-platform-core",
+      operatorName: "Readonly Inspector",
+      tokenRef: "secret:platform-core-readonly-key",
+      role: "readonly",
+      permissions: ["repo.read", "branch.clone"],
+    },
+  ].forEach((token) => {
+    insertCodebaseToken.run(
+      token.id,
+      token.codebaseId,
+      token.operatorName,
+      token.tokenRef,
+      token.role,
+      JSON.stringify(token.permissions),
+      "active",
+      now,
+      now,
+    );
+  });
+
+  [
+    {
+      id: "asset-release-skill-security",
+      teamId: releaseTeam.id,
+      memberId: "member-release-chen",
+      type: "skill",
+      assetId: "security-sensitive",
+      assetName: "安全敏感检视",
+      permissions: { use: true, edit: false, publish: false },
+    },
+    {
+      id: "asset-release-codebase-agentworld",
+      teamId: releaseTeam.id,
+      memberId: "member-release-sophia",
+      type: "codebase",
+      assetId: "codebase-agentworld",
+      assetName: "agentworld",
+      permissions: { read: true, review: true, comment: true, tokenAdmin: true },
+    },
+    {
+      id: "asset-platform-knowledge-research",
+      teamId: platformTeam.id,
+      memberId: "member-platform-ava",
+      type: "knowledge_space",
+      assetId: "ks-platform-research",
+      assetName: "Platform Team 研究知识",
+      permissions: { read: true, write: true, curate: true },
+    },
+  ].forEach((asset) => {
+    insertAsset.run(
+      asset.id,
+      asset.teamId,
+      asset.memberId,
+      asset.type,
+      asset.assetId,
+      asset.assetName,
+      JSON.stringify(asset.permissions),
+      "active",
+      now,
+      now,
+    );
+  });
 }
 
 function ensureProviderAdapterSeed(db: DatabaseSync) {
@@ -3625,6 +4183,21 @@ function ensureOpenVikingKnowledgeColumns(db: DatabaseSync) {
   }
 }
 
+function ensureSkillGovernanceColumns(db: DatabaseSync) {
+  if (!tableHasColumn(db, "code_review_skills", "owner_business_team_id")) {
+    db.exec("ALTER TABLE code_review_skills ADD COLUMN owner_business_team_id TEXT");
+  }
+  if (!tableHasColumn(db, "code_review_skills", "tags_json")) {
+    db.exec("ALTER TABLE code_review_skills ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'");
+  }
+  if (!tableHasColumn(db, "code_review_skills", "visibility")) {
+    db.exec("ALTER TABLE code_review_skills ADD COLUMN visibility TEXT NOT NULL DEFAULT 'team'");
+  }
+  if (!tableHasColumn(db, "code_review_skills", "viking_uri")) {
+    db.exec("ALTER TABLE code_review_skills ADD COLUMN viking_uri TEXT");
+  }
+}
+
 function ensureAgentTeamCatalogColumns(db: DatabaseSync) {
   if (!tableHasColumn(db, "agent_teams", "orchestration_prompt")) {
     db.exec("ALTER TABLE agent_teams ADD COLUMN orchestration_prompt TEXT NOT NULL DEFAULT ''");
@@ -3789,6 +4362,7 @@ export function getDb() {
     ensureAgentDefinitionHarnessColumns(database);
     ensureRuntimeSessionAgentDefinitionColumn(database);
     ensureOpenVikingKnowledgeColumns(database);
+    ensureSkillGovernanceColumns(database);
     seed(database);
     ensureCodeReviewSkillSeed(database);
     ensureProviderAdapterSeed(database);
@@ -3796,6 +4370,7 @@ export function getDb() {
     ensureAgentDefinitionSeed(database);
     ensureLegacyAgentsPromotedToTeamMembers(database);
     ensureKnowledgeSpaceSeed(database);
+    ensureTeamGovernanceSeed(database);
   }
 
   return database;

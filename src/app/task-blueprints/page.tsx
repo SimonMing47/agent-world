@@ -120,7 +120,7 @@ export default function TaskBlueprintsPage() {
         description="定义任务与 Agent Team、执行环境和触发方式的绑定关系。底层仍使用 Task Blueprint 内核，但界面上直接围绕任务配置展开。"
         badges={[
           { label: `${snapshot.blueprints.length} 个任务定义`, variant: "accent" },
-          { label: `${snapshot.providerAdapters.length} 个执行适配器`, variant: "neutral" },
+          { label: "团队视角治理", variant: "neutral" },
         ]}
       />
 
@@ -267,7 +267,7 @@ export default function TaskBlueprintsPage() {
                                   { label: "业务团队", value: blueprint.businessTeamName },
                                   { label: "Agent Team", value: blueprint.agentTeamName },
                                   { label: "执行环境", value: blueprint.environmentName },
-                                  { label: "Provider Adapter", value: blueprint.providerName },
+                                  { label: "执行底座", value: "系统内置" },
                                   { label: "状态", value: translateStatus(blueprint.status) },
                                   { label: "可见性", value: translateVisibility(blueprint.visibility) },
                                 ]}

@@ -6,17 +6,21 @@ import {
   Boxes,
   Cable,
   ChartNoAxesCombined,
+  Code2,
+  Database,
+  KeyRound,
   Globe,
   LayoutDashboard,
-  MessagesSquare,
+  Network,
+  PlugZap,
   ScrollText,
   Settings,
   ShieldCheck,
-  Store,
+  Sparkles,
   Users,
+  UserRoundCog,
   Workflow,
 } from "lucide-react";
-import { term } from "@/lib/terminology";
 
 export type NavItem = {
   href: string;
@@ -35,31 +39,41 @@ export const navigationGroups: NavGroup[] = [
   {
     title: "总览",
     items: [
-      { href: "/", label: "总览", description: "平台运行概览与关键指标", icon: LayoutDashboard },
-      { href: "/wallboard", label: "大屏", description: "全局任务与风险看板", icon: ChartNoAxesCombined },
-      { href: "/task-runs", label: term("task"), sidebarLabel: "任务", description: "运行实例与执行轨迹", icon: Activity },
-      { href: "/task-blueprints", label: "任务定义", sidebarLabel: "蓝图", description: "任务、触发器与执行环境", icon: Boxes },
-      { href: "/interactions", label: "交互工作台", sidebarLabel: "会话", description: "模型对话、Team 会话与人工介入", icon: MessagesSquare },
+      { href: "/", label: "整体任务大屏", sidebarLabel: "整体", description: "平台级任务、风险和治理指标", icon: LayoutDashboard },
+      { href: "/team-wallboard", label: "团队任务大屏", sidebarLabel: "团队", description: "按业务团队组织的任务运行情况", icon: ChartNoAxesCombined },
+      { href: "/agent-team-wallboard", label: "智能体团队大屏", sidebarLabel: "AgentTeam", description: "按智能体团队观察调度效果", icon: Activity },
     ],
   },
   {
-    title: "配置",
+    title: "智能体治理",
     items: [
-      { href: "/settings", label: "设置", description: "Provider、环境与 Webhook 配置", icon: Settings },
-      { href: "/runtimes", label: term("runtime"), sidebarLabel: "运行时", description: "执行引擎发现与健康状态", icon: Cable },
-      { href: "/knowledge", label: "知识库", sidebarLabel: "知识", description: "记忆层、Skill 与知识空间", icon: BookOpen },
-      { href: "/execution-policies", label: term("executionPolicy"), sidebarLabel: "策略", description: "权限、预算与审批策略", icon: ShieldCheck },
+      { href: "/agents", label: "智能体定义", sidebarLabel: "智能体", description: "Agent 是调度的最小单位和系统第一公民", icon: Bot },
+      { href: "/agent-teams", label: "智能体团队", sidebarLabel: "Agent团队", description: "用于完成复杂任务的 Agent 调度单元", icon: Workflow },
     ],
   },
   {
-    title: "治理",
+    title: "团队治理",
     items: [
-      { href: "/tenant-spaces", label: term("tenantSpace"), sidebarLabel: "租户", description: "租户级别治理与白名单", icon: Globe },
-      { href: "/business-teams", label: term("businessTeam"), sidebarLabel: "业务", description: "业务团队可见性与归属", icon: Users },
-      { href: "/agents", label: "Agent 定义", sidebarLabel: "Agent", description: "个人 Agent、共享范围与提示词定义", icon: Bot },
-      { href: "/agent-teams", label: term("agentTeam"), sidebarLabel: "编排", description: "团队编排与 Agent 分工", icon: Workflow },
-      { href: "/service-catalog", label: term("serviceDirectory"), sidebarLabel: "目录", description: "跨团队能力目录", icon: Store },
-      { href: "/access-grants", label: term("accessPolicy"), sidebarLabel: "授权", description: "跨团队授权与访问控制", icon: ScrollText },
+      { href: "/business-teams", label: "组织结构", sidebarLabel: "组织", description: "业务团队结构、归属和同步入口", icon: Users },
+      { href: "/team-members", label: "团队成员", sidebarLabel: "成员", description: "成员、工号、邮箱、团队和角色", icon: UserRoundCog },
+      { href: "/team-permissions", label: "成员权限", sidebarLabel: "权限", description: "团队成员对 AgentWorld 的操作权限", icon: KeyRound },
+      { href: "/team-assets", label: "团队资产", sidebarLabel: "资产", description: "Skill、知识库、Codebase 和 Connector 授权", icon: Boxes },
+      { href: "/task-blueprints", label: "任务管理", sidebarLabel: "任务", description: "所有任务从业务团队视角治理", icon: ScrollText },
+    ],
+  },
+  {
+    title: "基础配置",
+    items: [
+      { href: "/runtimes", label: "AI Provider", sidebarLabel: "Provider", description: "模型接口、密钥引用和模型能力", icon: Cable },
+      { href: "/skills", label: "Skill 管理", sidebarLabel: "Skill", description: "存储在 OpenViking 的可复用运行能力", icon: Sparkles },
+      { href: "/mcp", label: "MCP 管理", sidebarLabel: "MCP", description: "MCP 服务、传输方式和工具白名单", icon: Network },
+      { href: "/connectors", label: "Connector 管理", sidebarLabel: "连接器", description: "IM、邮件、Web Push 和外部通知通道", icon: PlugZap },
+      { href: "/codebases", label: "Codebase 管理", sidebarLabel: "Codebase", description: "代码仓、地址和多个操作者 token", icon: Code2 },
+      { href: "/knowledge", label: "知识库管理", sidebarLabel: "知识库", description: "基于 OpenViking 的团队/项目知识空间", icon: BookOpen },
+      { href: "/settings", label: "系统配置", sidebarLabel: "系统", description: "租户、执行策略、服务目录和系统级入口", icon: Settings },
+      { href: "/tenant-spaces", label: "租户空间", sidebarLabel: "租户", description: "租户级治理边界和模型白名单", icon: Globe },
+      { href: "/execution-policies", label: "执行策略", sidebarLabel: "策略", description: "权限、预算和审批策略", icon: ShieldCheck },
+      { href: "/service-catalog", label: "服务目录", sidebarLabel: "目录", description: "跨团队可复用能力目录", icon: Database },
     ],
   },
 ];
