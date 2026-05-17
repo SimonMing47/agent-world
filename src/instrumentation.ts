@@ -1,6 +1,4 @@
 export async function register() {
-  if (process.env.NEXT_RUNTIME === "edge") return;
-
-  const { ensureOpenVikingServerStarted } = await import("./server/openviking-process");
-  await ensureOpenVikingServerStarted("next-instrumentation");
+  // OpenViking is started by AgentWorld launch scripts instead of Next
+  // instrumentation, so production build tracing stays limited to app code.
 }

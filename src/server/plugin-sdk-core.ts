@@ -142,7 +142,7 @@ export type ExecutablePluginModule = {
 const executablePluginModules: ExecutablePluginModule[] = [codehubExecutablePlugin];
 
 function pluginRoot() {
-  return path.join(process.cwd(), "plugins", "official");
+  return path.join("plugins", "official");
 }
 
 export function resolveSecretRef(ref: string) {

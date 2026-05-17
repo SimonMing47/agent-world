@@ -217,4 +217,4 @@ thirdparty/openviking/bin/openviking-server
 OPENVIKING_SERVER_BIN=/opt/openviking/openviking-server
 ```
 
-发布包包含 Node.js runtime、AgentWorld standalone app、OpenViking 二进制和配置文件。部署时启动 OpenViking 服务，再启动 AgentWorld。
+发布包包含 Node.js runtime、AgentWorld standalone app、OpenViking 二进制和配置文件。默认执行 `./agentworld` 时，启动器会先检查 OpenViking `/health`，必要时拉起 `thirdparty/openviking/bin/openviking-server`，再启动 AgentWorld standalone 服务；`./openviking-server` 仅作为手动诊断入口。

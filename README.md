@@ -86,6 +86,8 @@ pnpm bootstrap
 pnpm dev
 ```
 
+`pnpm dev` 会先检查本地 OpenViking `/health`。如果 `AGENTWORLD_OPENVIKING_AUTO_START` 未关闭且本地服务不可用，会先拉起 OpenViking，再启动 Next dev server。
+
 默认访问地址：
 
 ```text
@@ -100,9 +102,18 @@ pnpm lint
 pnpm build
 ```
 
+生产启动：
+
+```bash
+pnpm build
+pnpm start
+```
+
+`pnpm start` 会运行 `.next/standalone/server.js`，不会走 `next start`，以匹配 `output: standalone` 发布方式。
+
 ## OpenViking 二进制集成
 
-OpenViking 不通过容器运行时集成。AgentWorld 启动时会自动检查 `/health`。如果本地 OpenViking 不可用且 `AGENTWORLD_OPENVIKING_AUTO_START=1`，会拉起服务端二进制：
+OpenViking 不通过容器运行时集成。AgentWorld 的启动脚本会自动检查 `/health`。如果本地 OpenViking 不可用且 `AGENTWORLD_OPENVIKING_AUTO_START=1`，会先拉起服务端二进制，再启动 AgentWorld：
 
 ```text
 thirdparty/openviking/bin/openviking-server
