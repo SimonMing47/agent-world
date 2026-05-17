@@ -12,7 +12,7 @@ import {
   type OpenVikingKnowledgeEntry,
 } from "@/server/db";
 
-const SHADOW_ROOT = path.join(process.cwd(), "data", "openviking-shadow");
+const SHADOW_ROOT = path.join("data", "openviking-shadow");
 const DEFAULT_OPENVIKING_BASE_URL = "http://127.0.0.1:1933";
 
 type KnowledgeInput = {

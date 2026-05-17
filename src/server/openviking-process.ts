@@ -21,11 +21,11 @@ const globalState = globalThis as typeof globalThis & {
 };
 
 function dataDir() {
-  return path.join(/* turbopackIgnore: true */ process.cwd(), "data", "openviking");
+  return path.join("data", "openviking");
 }
 
 function thirdpartyBinDir() {
-  return path.join(/* turbopackIgnore: true */ process.cwd(), "thirdparty", "openviking", "bin");
+  return path.join("thirdparty", "openviking", "bin");
 }
 
 export function resolveOpenVikingBaseUrl() {
@@ -41,11 +41,13 @@ export function resolveOpenVikingPort() {
 }
 
 export function resolveOpenVikingConfigPath() {
-  return path.resolve(process.env.OPENVIKING_CONFIG_FILE ?? path.join(dataDir(), "ov.conf"));
+  return path.resolve(/* turbopackIgnore: true */ process.env.OPENVIKING_CONFIG_FILE ?? path.join(dataDir(), "ov.conf"));
 }
 
 export function resolveOpenVikingCliConfigPath() {
-  return path.resolve(process.env.OPENVIKING_CLI_CONFIG_FILE ?? path.join(dataDir(), "ovcli.conf"));
+  return path.resolve(
+    /* turbopackIgnore: true */ process.env.OPENVIKING_CLI_CONFIG_FILE ?? path.join(dataDir(), "ovcli.conf"),
+  );
 }
 
 function appendLog(state: OpenVikingProcessState, message: string) {
@@ -84,12 +86,12 @@ function resolveOpenVikingServerBin() {
     process.env.OPENVIKING_SERVER_BIN,
     path.join(thirdpartyBinDir(), "openviking-server"),
     path.join(thirdpartyBinDir(), `openviking-server-${process.platform}-${process.arch}`),
-    path.join(/* turbopackIgnore: true */ process.cwd(), ".venv-openviking", "bin", "openviking-server"),
+    path.join(".venv-openviking", "bin", "openviking-server"),
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   for (const candidate of candidates) {
-    const resolved = path.resolve(candidate);
-    if (fs.existsSync(resolved)) return resolved;
+    const resolved = path.resolve(/* turbopackIgnore: true */ candidate);
+    if (fs.existsSync(/* turbopackIgnore: true */ resolved)) return resolved;
   }
 
   return null;
@@ -251,7 +253,7 @@ export async function ensureOpenVikingServerStarted(reason = "agentworld-startup
   appendLog(current, `spawning ${binaryPath} for ${reason}`);
 
   const child = spawn(binaryPath, ["--config", current.configPath, "--host", resolveOpenVikingHost(), "--port", resolveOpenVikingPort()], {
-    cwd: /* turbopackIgnore: true */ process.cwd(),
+    cwd: ".",
     env: {
       ...process.env,
       OPENVIKING_CONFIG_FILE: current.configPath,

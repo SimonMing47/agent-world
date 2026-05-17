@@ -49,7 +49,7 @@ function download(url, target) {
 function copyDir(from, to) {
   if (!fs.existsSync(from)) return;
   fs.mkdirSync(path.dirname(to), { recursive: true });
-  fs.cpSync(from, to, { recursive: true });
+  fs.cpSync(from, to, { recursive: true, force: true });
 }
 
 if (!fs.existsSync(defaultServerBin)) {
@@ -73,6 +73,7 @@ fs.renameSync(
 );
 
 copyDir(path.join(root, ".next", "standalone"), path.join(outDir, "app"));
+copyDir(path.join(root, ".next", "server", "chunks"), path.join(outDir, "app", ".next", "server", "chunks"));
 copyDir(path.join(root, ".next", "static"), path.join(outDir, "app", ".next", "static"));
 copyDir(path.join(root, "public"), path.join(outDir, "app", "public"));
 copyDir(path.join(root, "thirdparty"), path.join(outDir, "thirdparty"));
@@ -82,13 +83,31 @@ copyDir(path.join(root, "docs"), path.join(outDir, "docs"));
 const launcher = `#!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
 export NODE_ENV="\${NODE_ENV:-production}"
 export PORT="\${PORT:-3002}"
 export HOSTNAME="\${HOSTNAME:-0.0.0.0}"
+export NODE_OPTIONS="\${NODE_OPTIONS:-} --no-warnings=ExperimentalWarning"
 export AGENTWORLD_OPENVIKING_AUTO_START="\${AGENTWORLD_OPENVIKING_AUTO_START:-1}"
 export OPENVIKING_SERVER_BIN="\${OPENVIKING_SERVER_BIN:-$ROOT/thirdparty/openviking/bin/openviking-server}"
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
 export OPENVIKING_CLI_CONFIG_FILE="\${OPENVIKING_CLI_CONFIG_FILE:-$ROOT/data/openviking/ovcli.conf}"
+OPENVIKING_PID=""
+if [ "\${AGENTWORLD_OPENVIKING_AUTO_START}" != "0" ]; then
+  OPENVIKING_BASE_URL="\${OPENVIKING_BASE_URL:-http://127.0.0.1:1933}"
+  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    mkdir -p "$ROOT/data/openviking"
+    "$OPENVIKING_SERVER_BIN" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
+    OPENVIKING_PID="$!"
+    export OPENVIKING_PID
+  fi
+fi
+cleanup() {
+  if [ -n "\${OPENVIKING_PID}" ]; then
+    kill "\${OPENVIKING_PID}" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup EXIT INT TERM
 exec "$ROOT/runtime-node/bin/node" "$ROOT/app/server.js"
 `;
 
@@ -98,6 +117,7 @@ fs.chmodSync(path.join(outDir, "agentworld"), 0o755);
 const openvikingLauncher = `#!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT"
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
 exec "$ROOT/thirdparty/openviking/bin/openviking-server" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
 `;
