@@ -48,7 +48,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Finding API：`GET /api/findings`。
 - Agent 定义 API：`GET /api/agent-definitions`、`POST /api/agent-definitions`、`PATCH /api/agent-definitions`、`POST /api/agent-definitions/optimize`、`POST /api/agent-definitions/test`。
 - Webhook 入口：`POST /api/webhooks/:pathKey`。
-- OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/read`、`/api/knowledge/skills`。
+- OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
 
 ## 快速开始
 
@@ -74,7 +74,7 @@ pnpm build
 
 ## OpenViking 二进制集成
 
-OpenViking 不通过容器运行时集成。AgentWorld 优先使用服务端二进制：
+OpenViking 不通过容器运行时集成。AgentWorld 启动时会自动检查 `/health`。如果本地 OpenViking 不可用且 `AGENTWORLD_OPENVIKING_AUTO_START=1`，会拉起服务端二进制：
 
 ```text
 thirdparty/openviking/bin/openviking-server
@@ -85,6 +85,14 @@ thirdparty/openviking/bin/openviking-server
 ```bash
 OPENVIKING_SERVER_BIN=/opt/openviking/openviking-server
 ```
+
+自动启动顺序：
+
+1. 如果 `OPENVIKING_BASE_URL` 已经健康，直接复用现有服务。
+2. 如果是本地地址，优先使用 `OPENVIKING_SERVER_BIN`。
+3. 然后查找 `thirdparty/openviking/bin/openviking-server`。
+4. 再查找 `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
+5. 开发模式最后 fallback 到 `.venv-openviking/bin/openviking-server`。
 
 准备配置：
 
@@ -159,7 +167,32 @@ pnpm package:linux
 - Node.js Linux runtime。
 - `thirdparty/openviking/bin/openviking-server`。
 - OpenViking 配置文件和 CLI 配置文件。
-- `agentworld` 与 `openviking-server` 两个启动脚本。
+- `agentworld` 与 `openviking-server` 两个启动脚本。默认执行 `./agentworld` 时会自动拉起 OpenViking；`./openviking-server` 仅作为手动诊断入口。
+
+## 知识管理
+
+AgentWorld 在 OpenViking 之上建立团队级知识管理模型：
+
+- Knowledge Space：全局、团队、项目、AgentTeam 四类知识空间，每个空间都有稳定 `viking://` URI。
+- Knowledge Binding：把知识空间绑定到业务团队、项目、AgentTeam、任务蓝图或 Agent 定义，并声明 read / write / archive 权限。
+- Knowledge Context：任务蓝图实例化时，系统会按业务团队、项目、AgentTeam、环境和 `memoryPolicy` 解析可读知识与归档目标，并写入 Environment Snapshot。
+- Task Event：任务节点执行 `memory.retrieve` 时会记录 `memory.read_requested`、`memory.read_completed` 或 `memory.degraded`，用于任务空间展示和审计。
+
+页面入口：
+
+```text
+/knowledge
+```
+
+API：
+
+```text
+GET  /api/knowledge/spaces
+POST /api/knowledge/spaces
+GET  /api/knowledge/context?teamId=...&blueprintId=...
+GET  /api/knowledge/layers
+GET  /api/knowledge/read?uri=...&level=L0|L1|L2
+```
 
 ## 插件扩展
 
@@ -251,6 +284,7 @@ OPENAI_API_KEY=
 CODE_PLATFORM_TOKEN=
 CODE_PLATFORM_WEBHOOK_SECRET=
 OPENVIKING_BASE_URL=http://127.0.0.1:1933
+AGENTWORLD_OPENVIKING_AUTO_START=1
 OPENVIKING_SERVER_BIN=thirdparty/openviking/bin/openviking-server
 OPENVIKING_CONFIG_FILE=data/openviking/ov.conf
 OPENVIKING_CLI_CONFIG_FILE=data/openviking/ovcli.conf

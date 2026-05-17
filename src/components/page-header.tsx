@@ -1,3 +1,4 @@
+import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -6,12 +7,14 @@ export function PageHeader({
   title,
   description,
   badges,
+  action,
   className,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   badges?: Array<{ label: string; variant?: "neutral" | "accent" | "success" | "warning" | "danger" }>;
+  action?: React.ReactNode;
   className?: string;
 }) {
   return (
@@ -28,13 +31,14 @@ export function PageHeader({
           </h1>
           {description ? <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{description}</p> : null}
         </div>
-        {badges?.length ? (
-          <div className="flex flex-wrap gap-2">
-            {badges.map((badge, index) => (
+        {badges?.length || action ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {badges?.map((badge, index) => (
               <Badge key={`${badge.label}-${index}`} variant={badge.variant}>
                 {badge.label}
               </Badge>
             ))}
+            {action}
           </div>
         ) : null}
       </div>

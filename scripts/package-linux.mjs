@@ -85,6 +85,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 export NODE_ENV="\${NODE_ENV:-production}"
 export PORT="\${PORT:-3002}"
 export HOSTNAME="\${HOSTNAME:-0.0.0.0}"
+export AGENTWORLD_OPENVIKING_AUTO_START="\${AGENTWORLD_OPENVIKING_AUTO_START:-1}"
 export OPENVIKING_SERVER_BIN="\${OPENVIKING_SERVER_BIN:-$ROOT/thirdparty/openviking/bin/openviking-server}"
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
 export OPENVIKING_CLI_CONFIG_FILE="\${OPENVIKING_CLI_CONFIG_FILE:-$ROOT/data/openviking/ovcli.conf}"
@@ -110,8 +111,9 @@ fs.writeFileSync(
     "AgentWorld Linux bundle",
     "",
     "1. Edit .env or export required environment variables.",
-    "2. Start OpenViking: ./openviking-server",
-    "3. Start AgentWorld: ./agentworld",
+    "2. Start AgentWorld: ./agentworld",
+    "3. AgentWorld starts OpenViking automatically when AGENTWORLD_OPENVIKING_AUTO_START=1.",
+    "4. Optional manual OpenViking start: ./openviking-server",
     "",
     "This bundle includes a Node.js runtime and expects the OpenViking server binary under thirdparty/openviking/bin/openviking-server.",
   ].join("\n"),
