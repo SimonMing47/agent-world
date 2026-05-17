@@ -70,15 +70,25 @@ export const navigationGroups: NavGroup[] = [
       { href: "/connectors", label: "Connector 管理", sidebarLabel: "连接器", description: "IM、邮件、Web Push 和外部通知通道", icon: PlugZap },
       { href: "/codebases", label: "Codebase 管理", sidebarLabel: "Codebase", description: "代码仓、地址和多个操作者 token", icon: Code2 },
       { href: "/knowledge", label: "知识库管理", sidebarLabel: "知识库", description: "基于 OpenViking 的团队/项目知识空间", icon: BookOpen },
-      { href: "/settings", label: "系统配置", sidebarLabel: "系统", description: "租户、执行策略、服务目录和系统级入口", icon: Settings },
-      { href: "/tenant-spaces", label: "租户空间", sidebarLabel: "租户", description: "租户级治理边界和模型白名单", icon: Globe },
-      { href: "/execution-policies", label: "执行策略", sidebarLabel: "策略", description: "权限、预算和审批策略", icon: ShieldCheck },
-      { href: "/service-catalog", label: "服务目录", sidebarLabel: "目录", description: "跨团队可复用能力目录", icon: Database },
+      { href: "/settings", label: "系统配置", sidebarLabel: "系统", description: "执行环境、Webhook、运行配置、租户和系统级入口", icon: Settings },
     ],
   },
 ];
 
-export const flatNavigation = navigationGroups.flatMap((group) => group.items);
+export const secondaryNavigation: NavItem[] = [
+  { href: "/runtime-bindings", label: "Provider 执行配置", sidebarLabel: "执行配置", description: "默认模型接口、密钥引用、审批模式和附加参数", icon: Cable },
+  { href: "/environments", label: "执行环境管理", sidebarLabel: "环境", description: "任务运行对象、代码仓、执行人、路径和记忆依赖", icon: Database },
+  { href: "/webhooks", label: "Webhook 管理", sidebarLabel: "Webhook", description: "外部触发入口、签名密钥引用和请求 Schema", icon: PlugZap },
+  { href: "/tenant-spaces", label: "租户空间", sidebarLabel: "租户", description: "租户级治理边界和模型白名单", icon: Globe },
+  { href: "/execution-policies", label: "执行策略", sidebarLabel: "策略", description: "工具权限、预算、审批和输出约束", icon: ShieldCheck },
+  { href: "/service-catalog", label: "服务目录", sidebarLabel: "目录", description: "跨团队可复用能力目录", icon: Database },
+  { href: "/access-grants", label: "跨团队授权", sidebarLabel: "授权", description: "团队之间调用 Agent 能力的授权关系", icon: KeyRound },
+];
+
+export const flatNavigation = [
+  ...navigationGroups.flatMap((group) => group.items),
+  ...secondaryNavigation,
+];
 
 export function findNavItem(pathname: string) {
   return (

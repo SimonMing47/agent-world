@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-full">
           <aside
             className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] shadow-[8px_0_24px_rgba(15,23,42,0.08)] transition-[width] duration-200 lg:block ${
-              collapsed ? "w-[88px]" : "w-[312px]"
+              collapsed ? "w-[80px]" : "w-[284px]"
             }`}
           >
             <SidebarNav

@@ -34,15 +34,15 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Next.js + TypeScript 单服务应用。
 - React 19 + Radix UI 组件层，提供自适应后台布局、可收缩左侧导航、移动端抽屉侧栏，以及以摘要条、数据表、定义列表和表单工作台为核心的控制台界面。
 - SQLite 本地持久化，启动时自动初始化领域模型、任务蓝图、AI Provider、基础配置、团队治理资产和两个核心案例配置。
-- 左侧导航已收敛为四个域：总览、智能体治理、团队治理、基础配置。
-- AI Provider 配置：`/runtimes`，支持 OpenAI Compatible、OpenAI Responses、OpenAI Chat / Completions、Anthropic、Azure OpenAI 等接口风格，控制台不暴露底层运行框架配置。
+- 左侧导航已收敛为四个域：总览、智能体治理、团队治理、基础配置。侧边栏只放高频治理入口；执行环境、Webhook、执行配置、租户、执行策略、服务目录和跨团队授权等长尾配置统一从系统配置进入。
+- AI Provider 配置：`/runtimes`，支持 OpenAI Compatible、OpenAI Responses、OpenAI Chat / Completions、Anthropic、Azure OpenAI 等接口风格，控制台只暴露可治理的模型接口。
 - Agent 定义中心：`/agents`，支持按默认系统提示词定义 Agent，配置默认 Provider、模型、工具、记忆范围，并附带 Agent Harness 配置，包括审批模式、Thinking 强度、人工介入、允许 / 禁止工具、仓库权限、记忆权限和 Secret 权限。
 - Agent Team 编排中心：`/agent-teams`，支持从 Agent 定义目录选择成员、指定 Leader、定义 Team 结构与工作流、设置团队目标 / 编排提示词，并把 Team 共享给不同业务团队，分别授予查看、执行或编辑权限。
 - Agent 定义测试与优化：可直接调用当前 Provider 优化 Agent 提示词和职责描述，并在保存前做真实模型测试，查看输出、thinking 和工具调用结果；测试会按 Agent 自身的 Harness 权限边界执行。
 - 交互实验台：`/interactions`、`/interactions/:id`，用于真实模型对话、Team 会话、thinking / tool call 轨迹和人工介入；它保留为 human-in-the-loop 实验面，不再承担任务内核建模职责。单 Agent 会话可直接选择 Agent 定义并继承默认系统提示词与 Harness 画像。
 - 任务定义中心：`/task-blueprints`、`/task-blueprints/:id`，支持把任务与 Agent Team、执行环境和触发方式绑定起来，并保留 Task Blueprint 内核的高级策略能力。
 - 团队治理：`/business-teams`、`/team-members`、`/team-permissions`、`/team-assets`，支持组织结构、成员、权限和团队资产治理；团队成员支持从 Excel 复制粘贴批量导入。
-- 基础配置：`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/environments`、`/webhooks`、`/runtime-bindings`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token；执行环境、Webhook 和 Provider 执行配置均可表格化维护。
+- 基础配置：`/runtimes`、`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token；系统配置页继续提供执行环境、Webhook 和 Provider 执行配置等长尾入口。
 - 任务蓝图 API：`GET /api/task-blueprints`、`GET /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`GET /api/task-blueprints/:id/permission-preview`。
 - 任务模板和定时模板只作为兼容视图存在，主读取路径由 `task_blueprints` 派生，避免 `task_templates` / `schedule_templates` 形成第二套任务模型。
 - 插件清单和扩展包导入 API：`GET/POST /api/plugins/manifests`，支持导入插件、执行环境、Webhook endpoint、任务蓝图和兼容模板；`plugins/official/*` 目录用于承载主干自带的官方插件包。

@@ -24,8 +24,8 @@ export default function OverviewPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Operations"
-        title="任务平台总览"
-        description="围绕任务运行、Finding、配置完整度和蓝图活跃度组织日常操作视图。"
+        title="团队级 Agent 治理总览"
+        description="Agent 是调度的最小单位；业务团队负责人员、资产、权限和任务归属；Agent 团队负责复杂任务的协作执行。"
         badges={[
           { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
           { label: `${settings.metrics.providerProfileCount} 个 AI Provider`, variant: "neutral" },
