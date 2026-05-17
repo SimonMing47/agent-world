@@ -3,11 +3,17 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  LanguagePackProvider,
+  localizeNode,
+  useLanguageText,
+} from "@/components/language-pack-provider";
 import { findNavItem } from "@/components/navigation-config";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import type { LanguagePack } from "@/lib/language-pack";
 
 const SIDEBAR_STORAGE_KEY = "agentworld.sidebar.collapsed";
 const SIDEBAR_EVENT = "agentworld:sidebar-collapsed-change";
@@ -35,9 +41,11 @@ function getSidebarSnapshot() {
   return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1";
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
+  const text = useLanguageText();
+  const localizedChildren = useMemo(() => localizeNode(children, text), [children, text]);
   const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -86,19 +94,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-[var(--ink)]">{currentNav.label}</div>
+                  <div className="truncate text-sm font-semibold text-[var(--ink)]">{text(currentNav.label)}</div>
                 </div>
               </div>
             </header>
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
               <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                {children}
+                {localizedChildren}
               </div>
             </main>
           </div>
         </div>
       </div>
     </TooltipProvider>
+  );
+}
+
+export function AppShell({
+  children,
+  languagePack,
+}: {
+  children: React.ReactNode;
+  languagePack: LanguagePack;
+}) {
+  return (
+    <LanguagePackProvider languagePack={languagePack}>
+      <AppShellContent>{children}</AppShellContent>
+    </LanguagePackProvider>
   );
 }

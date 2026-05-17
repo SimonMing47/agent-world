@@ -18,6 +18,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 type DialogContextValue = {
@@ -130,6 +131,7 @@ export function DialogContent({
   children: ReactNode;
 }) {
   const context = useDialogContext();
+  const text = useLanguageText();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -198,7 +200,7 @@ export function DialogContent({
   return createPortal(
     <>
       <button
-        aria-label="关闭弹窗"
+        aria-label={text("关闭弹窗")}
         className="fixed inset-0 z-40 cursor-default bg-slate-950/24 backdrop-blur-[2px]"
         onClick={() => context.setOpen(false)}
         tabIndex={-1}
@@ -218,7 +220,7 @@ export function DialogContent({
       >
         {children}
         <button
-          aria-label="关闭"
+          aria-label={text("关闭")}
           className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
           onClick={() => context.setOpen(false)}
           type="button"
@@ -249,9 +251,10 @@ export function DialogTitle({
   children: ReactNode;
 }) {
   const context = useDialogContext();
+  const text = useLanguageText();
   return (
     <div className={cn("text-lg font-semibold text-[var(--ink)]", className)} id={context.titleId}>
-      {children}
+      {localizeNode(children, text)}
     </div>
   );
 }
@@ -264,9 +267,10 @@ export function DialogDescription({
   children: ReactNode;
 }) {
   const context = useDialogContext();
+  const text = useLanguageText();
   return (
     <div className={cn("mt-1 text-sm leading-6 text-[var(--ink-muted)]", className)} id={context.descriptionId}>
-      {children}
+      {localizeNode(children, text)}
     </div>
   );
 }

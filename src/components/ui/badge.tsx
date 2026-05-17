@@ -1,4 +1,7 @@
+"use client";
+
 import { cva, type VariantProps } from "class-variance-authority";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
@@ -24,5 +27,6 @@ export function Badge({
   variant,
   children,
 }: React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>) {
-  return <span className={cn(badgeVariants({ variant }), className)}>{children}</span>;
+  const text = useLanguageText();
+  return <span className={cn(badgeVariants({ variant }), className)}>{localizeNode(children, text)}</span>;
 }

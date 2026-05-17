@@ -785,6 +785,13 @@ export type ReviewFeedback = {
   createdAt: string;
 };
 
+export type SystemSetting = {
+  key: string;
+  valueJson: string;
+  updatedBy: string;
+  updatedAt: string;
+};
+
 const DATA_DIR = process.env.AGENTWORLD_DATA_DIR
   ? path.resolve(process.env.AGENTWORLD_DATA_DIR)
   : path.join(process.cwd(), "data");
@@ -862,6 +869,13 @@ CREATE TABLE IF NOT EXISTS tenant_spaces (
   global_guardrails_json TEXT NOT NULL,
   default_execution_policy_id TEXT,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
+  updated_by TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS business_teams (

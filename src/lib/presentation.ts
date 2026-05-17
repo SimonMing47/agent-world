@@ -1,3 +1,5 @@
+import { uiText } from "@/lib/language-pack";
+
 const labels = {
   status: {
     active: "启用中",
@@ -143,56 +145,56 @@ const demoCopyMap: Record<string, string> = {
   "Webhook task created": "Webhook 任务已创建",
 };
 
-function translate(map: Record<string, string>, value: string) {
-  return map[value] ?? value;
+function translate(group: string, map: Record<string, string>, value: string) {
+  return uiText(`labels.${group}.${value}`, map[value] ?? value);
 }
 
 export function translateStatus(value: string) {
-  return translate(labels.status, value);
+  return translate("status", labels.status, value);
 }
 
 export function translateVisibility(value: string) {
-  return translate(labels.visibility, value);
+  return translate("visibility", labels.visibility, value);
 }
 
 export function translateWorkflowType(value: string) {
-  return translate(labels.workflow, value);
+  return translate("workflow", labels.workflow, value);
 }
 
 export function translateRecruitmentMode(value: string) {
-  return translate(labels.recruitmentMode, value);
+  return translate("recruitmentMode", labels.recruitmentMode, value);
 }
 
 export function translateScheduleState(value: string) {
-  return translate(labels.scheduleState, value);
+  return translate("scheduleState", labels.scheduleState, value);
 }
 
 export function translateExecutionPolicyScope(value: string) {
-  return translate(labels.executionPolicyScope, value);
+  return translate("executionPolicyScope", labels.executionPolicyScope, value);
 }
 
 export function translateSourceType(value: string) {
-  return translate(labels.sourceType, value);
+  return translate("sourceType", labels.sourceType, value);
 }
 
 export function translateRuntimeKind(value: string) {
-  return translate(labels.runtimeKind, value);
+  return translate("runtimeKind", labels.runtimeKind, value);
 }
 
 export function translateSessionMode(value: string) {
-  return translate(labels.sessionMode, value);
+  return translate("sessionMode", labels.sessionMode, value);
 }
 
 export function translateHumanIntervention(value: string) {
-  return translate(labels.humanIntervention, value);
+  return translate("humanIntervention", labels.humanIntervention, value);
 }
 
 export function translateSeverity(value: string) {
-  return translate(labels.severity, value);
+  return translate("severity", labels.severity, value);
 }
 
 export function translateFoldGroup(value: string) {
-  return translate(labels.foldGroup, value);
+  return translate("foldGroup", labels.foldGroup, value);
 }
 
 export function translateBoolean(value: boolean | number) {
@@ -200,5 +202,5 @@ export function translateBoolean(value: boolean | number) {
 }
 
 export function localizeDemoCopy(value: string) {
-  return demoCopyMap[value] ?? value;
+  return uiText(value, demoCopyMap[value] ?? value);
 }

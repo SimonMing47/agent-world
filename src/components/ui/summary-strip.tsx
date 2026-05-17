@@ -1,3 +1,6 @@
+"use client";
+
+import { useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 export function SummaryStrip({
@@ -9,6 +12,8 @@ export function SummaryStrip({
   className?: string;
   gridClassName?: string;
 }) {
+  const text = useLanguageText();
+
   return (
     <section className={cn("overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]", className)}>
       <div className={cn("grid", gridClassName)}>
@@ -21,10 +26,14 @@ export function SummaryStrip({
             )}
           >
             <div className="text-xs font-medium text-[var(--ink-muted)]">
-              {item.label}
+              {text(item.label)}
             </div>
             <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.value}</div>
-            {item.detail ? <div className="mt-1.5 text-sm text-[var(--ink-muted)]">{item.detail}</div> : null}
+            {item.detail ? (
+              <div className="mt-1.5 text-sm text-[var(--ink-muted)]">
+                {typeof item.detail === "string" ? text(item.detail) : item.detail}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>

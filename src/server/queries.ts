@@ -75,6 +75,7 @@ import {
   renderTemplateValue,
 } from "@/server/task-blueprint-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
+import { getLanguagePackSetting } from "@/server/language-pack-store";
 
 export function listTenantSpaces() {
   return queryAll<TenantSpace>("SELECT * FROM tenant_spaces WHERE status <> 'deleted' ORDER BY name ASC");
@@ -769,6 +770,7 @@ export function getSettingsSnapshot() {
     environments,
     webhooks,
     taskBlueprints,
+    languagePackSetting: getLanguagePackSetting(),
     metrics: {
       providerProfileCount: providers.length,
       enabledProviderProfileCount: providers.filter((provider) => provider.isEnabled).length,

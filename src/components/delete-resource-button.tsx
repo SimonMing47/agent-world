@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 
 export function DeleteResourceButton({
@@ -19,10 +20,11 @@ export function DeleteResourceButton({
   body?: Record<string, unknown>;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function remove() {
-    if (!window.confirm(confirmText)) return;
+    if (!window.confirm(text(confirmText))) return;
     setIsDeleting(true);
     try {
       const response = await fetch(endpoint, {
@@ -31,10 +33,10 @@ export function DeleteResourceButton({
         body: JSON.stringify({ id, ...(body ?? {}) }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "删除失败");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("删除失败"));
       router.refresh();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : "删除失败");
+      window.alert(error instanceof Error ? error.message : text("删除失败"));
     } finally {
       setIsDeleting(false);
     }
@@ -43,7 +45,7 @@ export function DeleteResourceButton({
   return (
     <Button type="button" size="sm" variant="danger" onClick={remove} disabled={isDeleting}>
       <Trash2 className="h-4 w-4" />
-      {isDeleting ? "删除中" : label}
+      {isDeleting ? text("删除中") : text(label)}
     </Button>
   );
 }

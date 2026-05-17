@@ -1,3 +1,6 @@
+"use client";
+
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 export function DataTable({
@@ -7,9 +10,11 @@ export function DataTable({
   className?: string;
   children: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
     <div
-      aria-label="数据表格"
+      aria-label={text("数据表格")}
       className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
       role="region"
       tabIndex={0}
@@ -60,6 +65,8 @@ export function DataTableHead({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
     <th
       className={cn(
@@ -68,7 +75,7 @@ export function DataTableHead({
         className,
       )}
     >
-      {children}
+      {localizeNode(children, text)}
     </th>
   );
 }
@@ -82,6 +89,8 @@ export function DataTableCell({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
     <td
       className={cn(
@@ -90,7 +99,7 @@ export function DataTableCell({
         className,
       )}
     >
-      {children}
+      {localizeNode(children, text)}
     </td>
   );
 }
