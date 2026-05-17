@@ -1,16 +1,19 @@
 "use client";
 
 import {
+  ArrowDown,
   BrainCircuit,
   Bot,
   ChevronDown,
   ChevronUp,
   MessageSquareMore,
+  SendHorizontal,
   UserRound,
   WandSparkles,
   Wrench,
 } from "lucide-react";
 import {
+  useCallback,
   useDeferredValue,
   useEffect,
   useEffectEvent,
@@ -20,8 +23,8 @@ import {
 } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { Textarea } from "@/components/ui/textarea";
 import { cn, formatDateTime, initials } from "@/lib/utils";
 
 type RuntimeInteractionConsoleProps = {
@@ -109,6 +112,8 @@ const participantTones: Tone[] = [
     ring: "shadow-[0_0_0_3px_rgba(221,214,254,0.5)]",
   },
 ];
+
+const AUTO_FOLLOW_THRESHOLD = 120;
 
 function maskToken(value: string) {
   if (value.length <= 8) return "[REDACTED]";
@@ -434,9 +439,36 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
   const [events, setEvents] = useState(props.initialEvents);
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [inspectorTab, setInspectorTab] = useState<"activity" | "events" | "summary">("activity");
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [isPinnedToBottom, setIsPinnedToBottom] = useState(true);
+  const [unseenUpdates, setUnseenUpdates] = useState(0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const bottomSentinelRef = useRef<HTMLDivElement | null>(null);
+  const draftRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const node = scrollerRef.current;
+    if (node) {
+      node.scrollTo({ top: node.scrollHeight, behavior });
+    } else {
+      bottomSentinelRef.current?.scrollIntoView({ block: "end", behavior });
+    }
+    setIsPinnedToBottom(true);
+    setUnseenUpdates(0);
+  }, []);
+
+  const handleMessageScroll = useCallback(() => {
+    const node = scrollerRef.current;
+    if (!node) return;
+    const nearBottom =
+      node.scrollHeight - node.scrollTop - node.clientHeight <= AUTO_FOLLOW_THRESHOLD;
+    setIsPinnedToBottom(nearBottom);
+    if (nearBottom) {
+      setUnseenUpdates(0);
+    }
+  }, []);
 
   const handleStreamPayload = useEffectEvent((rawData: string) => {
     const payload = JSON.parse(rawData) as {
@@ -472,12 +504,6 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
     return () => eventSource.close();
   }, [props.sessionId]);
 
-  useEffect(() => {
-    const node = scrollerRef.current;
-    if (!node) return;
-    node.scrollTop = node.scrollHeight;
-  }, [messages.length, events.length]);
-
   const orderedMessages = useMemo(
     () => [...messages].sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
     [messages],
@@ -501,20 +527,49 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
   );
   const visibleEvents = useMemo(() => [...deferredEvents].slice(-36).reverse(), [deferredEvents]);
   const activeActors = actorActivities.filter((activity) => activity.active && activity.kind !== "human");
+  const canSendMessage = draft.trim().length > 0 && !isSending;
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => scrollToLatest("auto"));
+    return () => cancelAnimationFrame(frame);
+  }, [scrollToLatest]);
+
+  useEffect(() => {
+    if (isPinnedToBottom) {
+      const frame = requestAnimationFrame(() => scrollToLatest("smooth"));
+      return () => cancelAnimationFrame(frame);
+    }
+    setUnseenUpdates((current) => current + 1);
+    return undefined;
+  }, [activeActors.length, events.length, isPinnedToBottom, messages.length, scrollToLatest]);
 
   async function submitMessage() {
-    if (!draft.trim()) return;
+    const message = draft.trim();
+    if (!message || isSending) return;
     setIsSending(true);
-    await fetch(`/api/runtime-sessions/${props.sessionId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: draft.trim(),
-        actorName: "Operator",
-      }),
-    });
-    setDraft("");
-    setIsSending(false);
+    setSendError(null);
+    try {
+      const response = await fetch(`/api/runtime-sessions/${props.sessionId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: message,
+          actorName: "Operator",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`发送失败: ${response.status}`);
+      }
+      setDraft("");
+      requestAnimationFrame(() => {
+        draftRef.current?.focus();
+        scrollToLatest("smooth");
+      });
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : "发送失败，请稍后重试");
+    } finally {
+      setIsSending(false);
+    }
   }
 
   return (
@@ -595,9 +650,20 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         <section className="min-w-0 space-y-4">
           <div
             ref={scrollerRef}
-            className="min-h-[520px] max-h-[calc(100vh-25rem)] overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
+            aria-label="会话消息"
+            className="relative min-h-[520px] max-h-[calc(100vh-25rem)] scroll-smooth overflow-auto overscroll-contain rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
+            onScroll={handleMessageScroll}
+            tabIndex={0}
           >
             <div className="space-y-5">
+              {!isPinnedToBottom ? (
+                <div className="sticky top-0 z-10 flex justify-center">
+                  <div className="rounded-full border border-[var(--line)] bg-white/95 px-3 py-1.5 text-xs font-medium text-[var(--ink-muted)] shadow-sm backdrop-blur">
+                    正在浏览历史，已暂停自动跟随
+                  </div>
+                </div>
+              ) : null}
+
               {orderedMessages.map((message) => {
                 const participant =
                   participantByName.get(message.actorName) ??
@@ -705,25 +771,63 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   })}
                 </div>
               ) : null}
+              <div ref={bottomSentinelRef} aria-hidden="true" className="h-1" />
             </div>
+
+            {!isPinnedToBottom ? (
+              <button
+                type="button"
+                className="sticky bottom-3 left-full z-10 ml-auto flex w-fit items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--ink)] px-3 py-2 text-xs font-medium text-white shadow-lg transition hover:bg-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35"
+                onClick={() => scrollToLatest("smooth")}
+              >
+                <ArrowDown className="h-4 w-4" />
+                {unseenUpdates > 0 ? `${unseenUpdates} 条新动态` : "回到底部"}
+              </button>
+            ) : null}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px]">
-            <Input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="发送一条消息，或在运行中追加人工介入。"
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void submitMessage();
-                }
-              }}
-            />
-            <Button type="button" onClick={submitMessage} disabled={isSending}>
-              {isSending ? "发送中" : "发送"}
-            </Button>
-          </div>
+          <form
+            className="rounded-2xl border border-[var(--line)] bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submitMessage();
+            }}
+          >
+            <div className="flex items-end gap-3">
+              <Textarea
+                ref={draftRef}
+                value={draft}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  if (sendError) setSendError(null);
+                }}
+                placeholder="输入人工介入消息。Enter 发送，Shift+Enter 换行。"
+                className="max-h-36 min-h-[52px] resize-none border-transparent bg-[var(--surface-muted)] shadow-none focus:border-[var(--accent)]/35"
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
+                  const shouldSubmit =
+                    event.key === "Enter" && (!event.shiftKey || event.metaKey || event.ctrlKey);
+                  if (shouldSubmit) {
+                    event.preventDefault();
+                    void submitMessage();
+                  }
+                }}
+              />
+              <Button type="submit" disabled={!canSendMessage} className="h-[52px] shrink-0 px-4">
+                <SendHorizontal className="h-4 w-4" />
+                {isSending ? "发送中" : "发送"}
+              </Button>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-muted)]">
+              <span>人工消息会进入同一条会话轨迹，供 Agent 团队继续处理。</span>
+              <span>{draft.trim().length} 字</span>
+            </div>
+            {sendError ? (
+              <div className="mt-2 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)]">
+                {sendError}
+              </div>
+            ) : null}
+          </form>
         </section>
 
         <aside className="space-y-3 xl:sticky xl:top-4 xl:h-fit">

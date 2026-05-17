@@ -8,7 +8,12 @@ export function DataTable({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div
+      aria-label="数据表格"
+      className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+      role="region"
+      tabIndex={0}
+    >
       <table className={cn("min-w-full border-separate border-spacing-0", className)}>
         {children}
       </table>
@@ -21,7 +26,7 @@ export function DataTableHeader({
 }: {
   children: React.ReactNode;
 }) {
-  return <thead className="bg-[var(--surface-muted)]">{children}</thead>;
+  return <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]">{children}</thead>;
 }
 
 export function DataTableBody({
@@ -39,7 +44,11 @@ export function DataTableRow({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <tr className={cn("transition hover:bg-[var(--surface-muted)]/70", className)}>{children}</tr>;
+  return (
+    <tr className={cn("transition hover:bg-[var(--surface-muted)]/70 focus-within:bg-[var(--surface-muted)]/70", className)}>
+      {children}
+    </tr>
+  );
 }
 
 export function DataTableHead({

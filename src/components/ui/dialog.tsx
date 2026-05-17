@@ -10,8 +10,10 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -128,6 +130,69 @@ export function DialogContent({
   children: ReactNode;
 }) {
   const context = useDialogContext();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!context.open || typeof document === "undefined") return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const frame = requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+
+    const focusableSelector = [
+      "a[href]",
+      "button:not([disabled])",
+      "textarea:not([disabled])",
+      "input:not([disabled])",
+      "select:not([disabled])",
+      "[tabindex]:not([tabindex='-1'])",
+    ].join(",");
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        context.setOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (element) => !element.hasAttribute("disabled") && element.getClientRects().length > 0,
+      );
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus?.();
+    };
+  }, [context]);
+
   if (!context.open || typeof document === "undefined") return null;
 
   return createPortal(
@@ -136,9 +201,11 @@ export function DialogContent({
         aria-label="关闭弹窗"
         className="fixed inset-0 z-40 cursor-default bg-slate-950/24 backdrop-blur-[2px]"
         onClick={() => context.setOpen(false)}
+        tabIndex={-1}
         type="button"
       />
       <div
+        ref={dialogRef}
         aria-describedby={context.descriptionId}
         aria-labelledby={context.titleId}
         aria-modal="true"
@@ -147,9 +214,11 @@ export function DialogContent({
           className,
         )}
         role="dialog"
+        tabIndex={-1}
       >
         {children}
         <button
+          aria-label="关闭"
           className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
           onClick={() => context.setOpen(false)}
           type="button"
