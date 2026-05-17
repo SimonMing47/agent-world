@@ -179,7 +179,7 @@ export function ProviderRuntimeBindingForm({
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="OpenCode Production"
+              placeholder="Pi Production"
             />
           </FieldGroup>
           <FieldGroup label="Provider Adapter">
@@ -199,7 +199,7 @@ export function ProviderRuntimeBindingForm({
               value={form.runtimeKind}
               onChange={(event) => setForm({ ...form, runtimeKind: event.target.value })}
             >
-              {["opencode", "http", "cli"].map((kind) => (
+              {["pi", "hermes", "langgraph", "mastra", "custom"].map((kind) => (
                 <option key={kind} value={kind}>
                   {kind}
                 </option>
@@ -210,14 +210,14 @@ export function ProviderRuntimeBindingForm({
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-              placeholder="http://127.0.0.1:4096"
+              placeholder="embedded://pi/default"
             />
           </FieldGroup>
           <FieldGroup label="启动命令">
             <Input
               value={form.command}
               onChange={(event) => setForm({ ...form, command: event.target.value })}
-              placeholder="opencode"
+              placeholder="embedded"
             />
           </FieldGroup>
           <FieldGroup label="工作目录">
@@ -253,11 +253,11 @@ export function ProviderRuntimeBindingForm({
               placeholder="gpt-5.4"
             />
           </FieldGroup>
-          <FieldGroup label="OpenCode API Key 引用" className="md:col-span-2">
+          <FieldGroup label="Provider API Key 引用" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-              placeholder="env:OPENCODE_API_KEY"
+              placeholder="env:AGENTWORLD_GLM_API_KEY"
             />
           </FieldGroup>
           <FieldGroup label="默认模型接口" className="md:col-span-2">
@@ -275,13 +275,13 @@ export function ProviderRuntimeBindingForm({
           </FieldGroup>
           <FieldGroup
             label="环境变量映射"
-            hint="在这里维护 OpenCode 运行进程需要的环境变量引用。"
+            hint="在这里维护运行时需要的环境变量引用。"
             className="md:col-span-2"
           >
             <Textarea
               value={form.envJson}
               onChange={(event) => setForm({ ...form, envJson: event.target.value })}
-              placeholder='{"OPENAI_API_KEY":"ref:env:OPENAI_API_KEY"}'
+              placeholder='{"AGENTWORLD_GLM_API_KEY":"ref:env:AGENTWORLD_GLM_API_KEY"}'
             />
           </FieldGroup>
           <FieldGroup
@@ -315,10 +315,10 @@ export function ProviderRuntimeBindingForm({
   }
 
   return (
-    <Panel>
+      <Panel>
       <PanelHeader
         title={title}
-        description="执行引擎地址、命令、默认模型与环境变量映射。"
+        description="运行时协议、默认接口与环境变量映射。"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

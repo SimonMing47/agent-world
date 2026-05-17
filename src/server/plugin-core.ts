@@ -36,14 +36,14 @@ export type PluginExtensionPoint = {
 export function listBuiltinPluginManifests(): PluginManifest[] {
   return [
     {
-      id: "builtin.provider.opencode",
-      name: "OpenCode Provider",
+      id: "builtin.provider.pi-runtime",
+      name: "Pi Runtime Provider",
       version: "1.0.0",
       capability: "provider",
       lifecycle: "configured",
       mountPoint: "provider-runtime",
-      configSchema: "{ baseUrl, apiKey, defaultModel }",
-      requiredSecretRefs: ["env:OPENCODE_API_KEY", "env:OPENAI_API_KEY"],
+      configSchema: "{ providerProfileId, defaultModel, executionMode }",
+      requiredSecretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       permissions: ["provider:invoke", "runtime:discover"],
       healthCheck: "GET /api/runtimes/discover",
       extensionOnly: true,
@@ -123,7 +123,7 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
       name: "Provider 执行扩展点",
       accepts: ["provider"],
       implementationContract: "实现 invoke/discover/health 三个能力，主干只读取清单与健康结果。",
-      noCoreChangeRule: "新增 claude code、openclaw 或其他 CLI Provider 时只新增插件目录和配置。",
+      noCoreChangeRule: "新增 Hermes、LangGraph、Mastra 或其他 Runtime Adapter 时只新增插件目录和配置。",
     },
     {
       id: "tool-skill-registry",

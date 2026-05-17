@@ -9,6 +9,6 @@ export async function POST(
 ) {
   const resolved = await params;
   const body = (await request.json().catch(() => ({}))) as { requestedBy?: string };
-  const detail = executeTaskRunTick(resolved.id, body.requestedBy ?? "console");
+  const detail = await executeTaskRunTick(resolved.id, body.requestedBy ?? "console");
   return NextResponse.json({ detail });
 }

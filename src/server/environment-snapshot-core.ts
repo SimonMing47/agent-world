@@ -35,7 +35,12 @@ export function buildEnvironmentSnapshotPayload(args: {
   inputPayload: Record<string, unknown>;
 }) {
   const environmentSelector = parseRecord(args.blueprint.environmentSelectorJson);
-  const sandbox = args.environment ? parseRecord(args.environment.sandboxProfileJson) : {};
+  const environmentSandbox = args.environment ? parseRecord(args.environment.sandboxProfileJson) : {};
+  const sandbox = {
+    ...environmentSandbox,
+    mode: environmentSelector.sandboxMode ?? environmentSandbox.mode ?? "inherit",
+    ref: environmentSelector.sandboxRef ?? null,
+  };
   const memoryLayerRefs = args.environment ? parseArray(args.environment.memoryLayerRefsJson) : [];
   const repoId = String(args.inputPayload.repo_id ?? args.inputPayload.repository ?? args.environment?.repositoryName ?? "");
   const branch = String(args.inputPayload.target_branch ?? args.inputPayload.branch ?? args.environment?.defaultBranch ?? "");
@@ -53,6 +58,7 @@ export function buildEnvironmentSnapshotPayload(args: {
     environmentSelector,
     repository: {
       provider: args.environment?.repositoryProvider ?? environmentSelector.repositoryProvider ?? "plugin",
+      binding: environmentSelector.repoBinding ?? null,
       repoId,
       name: args.environment?.repositoryName ?? repoId,
       url: args.environment?.repositoryUrl ?? null,
@@ -68,7 +74,10 @@ export function buildEnvironmentSnapshotPayload(args: {
     },
     workspace: {
       id: `workspace:${args.taskRunId}`,
-      path: args.environment?.workingDirectory ?? ".",
+      path:
+        typeof environmentSelector.executionPath === "string" && environmentSelector.executionPath.trim()
+          ? environmentSelector.executionPath
+          : args.environment?.workingDirectory ?? ".",
       snapshotKind: "environment_snapshot",
     },
     sandbox,

@@ -98,28 +98,28 @@ export type ProviderExecutionMode = {
 export function listProviderExecutionModes(): ProviderExecutionMode[] {
   return [
     {
-      id: "opencode-sdk",
-      name: "OpenCode SDK",
-      command: "opencode / @opencode-ai/sdk",
-      secretRefs: ["env:OPENCODE_API_KEY", "env:OPENAI_API_KEY"],
+      id: "pi-runtime-adapter",
+      name: "Pi Runtime Adapter",
+      command: "@earendil-works/pi-agent-core",
+      secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       status: "default",
-      note: "默认执行层，当前主干可直接通过 SDK 做 runtime 发现。",
+      note: "默认执行层，主干通过 Pi Agent Core 和 Pi AI 嵌入式发起真实会话。",
     },
     {
-      id: "claude-code-cli",
-      name: "Claude Code CLI",
-      command: "claude",
-      secretRefs: ["secret:claude-code-auth"],
+      id: "hermes-runtime-adapter",
+      name: "Hermes Runtime Adapter",
+      command: "plugin://runtime-adapter/hermes",
+      secretRefs: [],
       status: "plugin",
-      note: "通过 provider-runtime 插件扩展，不修改主干执行流程。",
+      note: "通过运行时插件扩展，不修改主干执行流程。",
     },
     {
-      id: "openclaw-cli",
-      name: "OpenClaw CLI",
-      command: "openclaw",
-      secretRefs: ["secret:openclaw-auth"],
+      id: "langgraph-runtime-adapter",
+      name: "LangGraph Runtime Adapter",
+      command: "plugin://runtime-adapter/langgraph",
+      secretRefs: [],
       status: "plugin",
-      note: "通过 provider-runtime 插件扩展，作为 CLI Agent 引擎候选。",
+      note: "通过运行时插件扩展，作为编排引擎候选。",
     },
   ];
 }

@@ -5,7 +5,11 @@ import {
   queryAll,
   queryOne,
   type Agent,
+  type AgentDefinition,
+  type AgentDefinitionShare,
   type AgentTeam,
+  type AgentTeamMember,
+  type AgentTeamShare,
   type AccessGrant,
   type DeveloperProfile,
   type EventLog,
@@ -39,7 +43,7 @@ import {
   evaluateExecutionPolicyToolPolicy,
 } from "@/server/execution-policy-core";
 import { buildInvocationPlan } from "@/server/invocation-core";
-import { discoverConfiguredRuntimes } from "@/server/opencode-adapter";
+import { discoverConfiguredRuntimes } from "@/server/runtime-adapter-core";
 import { buildTaskRunPriorityAssessment, listDueSchedules, listScheduleAssessments } from "@/server/scheduler-core";
 import { groupEventsByFoldGroup } from "@/server/trace-core";
 import { buildTenantSpaceSummary, buildBusinessTeamSummary } from "@/server/tenant-space-core";
@@ -53,7 +57,12 @@ import {
 } from "@/server/environment-core";
 import { buildNodeSpecsFromRunPlan } from "@/server/agent-orchestration-core";
 import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
-import { buildFindingDashboard, summarizeFinding } from "@/server/finding-core";
+import {
+  buildFindingDashboard,
+  buildFindingFingerprint,
+  summarizeFinding,
+} from "@/server/finding-core";
+import { publishTaskRunOutputs } from "@/server/output-publisher-core";
 import {
   buildTaskBlueprintDetail,
   buildTaskBlueprintSummary,
@@ -76,41 +85,332 @@ export function listExecutionPolicies() {
 }
 
 export function listAgentTeams() {
-  return queryAll<AgentTeam>("SELECT * FROM agent_teams ORDER BY name ASC");
+  return queryAll<AgentTeam>("SELECT * FROM agent_teams ORDER BY updated_at DESC, name ASC");
 }
 
 export function listAgents() {
+  const mapped = queryAll<Agent>(
+    `
+      SELECT
+        agent_team_members.id,
+        agent_team_members.team_id,
+        agent_definitions.slug,
+        agent_definitions.name,
+        agent_team_members.member_role AS role,
+        CASE
+          WHEN TRIM(agent_team_members.work_instruction) <> '' THEN agent_team_members.work_instruction
+          ELSE agent_definitions.system_prompt
+        END AS persona_prompt,
+        agent_definitions.model,
+        8 AS short_term_window,
+        json_object(
+          'memberRole', agent_team_members.member_role,
+          'agentDefinitionId', agent_team_members.agent_definition_id,
+          'memoryScope', agent_definitions.memory_scope
+        ) AS rag_config_json,
+        agent_definitions.tool_bindings_json,
+        agent_definitions.memory_scope,
+        agent_definitions.permission_policy_json AS safety_policy_json,
+        agent_team_members.status,
+        agent_team_members.created_at
+      FROM agent_team_members
+      JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
+      ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
+    `,
+  );
+
+  if (mapped.length > 0) return mapped;
   return queryAll<Agent>("SELECT * FROM agents ORDER BY name ASC");
 }
 
-export function updateAgentDefinition(
-  agentId: string,
-  input: Partial<{
-    name: string;
-    role: string;
-    personaPrompt: string;
-    model: string;
-    toolBindings: string[];
-    memoryScope: string;
-    status: string;
-  }>,
+export function listAgentTeamMembers(teamId?: string) {
+  return teamId
+    ? queryAll<AgentTeamMember>(
+        "SELECT * FROM agent_team_members WHERE team_id = ? ORDER BY position ASC, created_at ASC",
+        teamId,
+      )
+    : queryAll<AgentTeamMember>(
+        "SELECT * FROM agent_team_members ORDER BY team_id ASC, position ASC, created_at ASC",
+      );
+}
+
+export function listAgentTeamShares(teamId?: string) {
+  return teamId
+    ? queryAll<AgentTeamShare>(
+        "SELECT * FROM agent_team_shares WHERE agent_team_id = ? ORDER BY created_at ASC",
+        teamId,
+      )
+    : queryAll<AgentTeamShare>("SELECT * FROM agent_team_shares ORDER BY created_at ASC");
+}
+
+export function listAgentTeamMemberProfiles(teamId?: string) {
+  return queryAll<
+    AgentTeamMember &
+      Pick<
+        AgentDefinition,
+        | "name"
+        | "slug"
+        | "role"
+        | "description"
+        | "systemPrompt"
+        | "model"
+        | "toolBindingsJson"
+        | "memoryScope"
+        | "visibility"
+        | "defaultProviderProfileId"
+        | "defaultRuntimeBindingId"
+        | "harnessConfigJson"
+        | "permissionPolicyJson"
+      >
+  >(
+    `
+      SELECT
+        agent_team_members.*,
+        agent_definitions.slug,
+        agent_definitions.name,
+        agent_definitions.role,
+        agent_definitions.description,
+        agent_definitions.system_prompt,
+        agent_definitions.model,
+        agent_definitions.tool_bindings_json,
+        agent_definitions.memory_scope,
+        agent_definitions.visibility,
+        agent_definitions.default_provider_profile_id,
+        agent_definitions.default_runtime_binding_id,
+        agent_definitions.harness_config_json,
+        agent_definitions.permission_policy_json
+      FROM agent_team_members
+      JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
+      ${teamId ? "WHERE agent_team_members.team_id = ?" : ""}
+      ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
+    `,
+    ...(teamId ? [teamId] : []),
+  );
+}
+
+export function listAgentDefinitions() {
+  return queryAll<AgentDefinition>(
+    "SELECT * FROM agent_definitions ORDER BY updated_at DESC, name ASC",
+  );
+}
+
+export function listAgentDefinitionShares(agentDefinitionId?: string) {
+  return agentDefinitionId
+    ? queryAll<AgentDefinitionShare>(
+        "SELECT * FROM agent_definition_shares WHERE agent_definition_id = ? ORDER BY created_at ASC",
+        agentDefinitionId,
+      )
+    : queryAll<AgentDefinitionShare>(
+        "SELECT * FROM agent_definition_shares ORDER BY created_at ASC",
+      );
+}
+
+export function getAgentDefinition(id: string) {
+  const definition = queryOne<AgentDefinition>(
+    "SELECT * FROM agent_definitions WHERE id = ?",
+    id,
+  );
+  if (!definition) return null;
+
+  return {
+    definition,
+    shares: listAgentDefinitionShares(id),
+  };
+}
+
+export function getAgentTeam(id: string) {
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", id);
+  if (!team) return null;
+
+  return {
+    team,
+    members: listAgentTeamMemberProfiles(id),
+    shares: listAgentTeamShares(id),
+  };
+}
+
+export function upsertAgentDefinition(
+  input: Pick<
+    AgentDefinition,
+    | "id"
+    | "tenantSpaceId"
+    | "ownerBusinessTeamId"
+    | "ownerUserId"
+    | "sourceAgentId"
+    | "slug"
+    | "name"
+    | "role"
+    | "description"
+    | "systemPrompt"
+    | "model"
+    | "defaultProviderProfileId"
+    | "defaultRuntimeBindingId"
+    | "toolBindingsJson"
+    | "harnessConfigJson"
+    | "permissionPolicyJson"
+    | "memoryScope"
+    | "tagsJson"
+    | "visibility"
+    | "status"
+    | "validationStatus"
+    | "lastValidatedAt"
+    | "lastValidationSummary"
+  >,
+  shareBusinessTeamIds: string[],
 ) {
-  const current = queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
-  if (!current) throw new Error("Agent 不存在。");
+  const current = queryOne<AgentDefinition>(
+    "SELECT * FROM agent_definitions WHERE id = ?",
+    input.id,
+  );
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  const updatedAt = new Date().toISOString();
 
   execute(
-    "UPDATE agents SET name = ?, role = ?, persona_prompt = ?, model = ?, tool_bindings_json = ?, memory_scope = ?, status = ? WHERE id = ?",
-    input.name ?? current.name,
-    input.role ?? current.role,
-    input.personaPrompt ?? current.personaPrompt,
-    input.model ?? current.model,
-    JSON.stringify(input.toolBindings ?? (JSON.parse(current.toolBindingsJson) as string[])),
-    input.memoryScope ?? current.memoryScope,
-    input.status ?? current.status,
-    agentId,
+    "INSERT OR REPLACE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.tenantSpaceId,
+    input.ownerBusinessTeamId ?? null,
+    input.ownerUserId,
+    input.sourceAgentId ?? null,
+    input.slug,
+    input.name,
+    input.role,
+    input.description,
+    input.systemPrompt,
+    input.model,
+    input.defaultProviderProfileId ?? null,
+    input.defaultRuntimeBindingId ?? null,
+    input.toolBindingsJson,
+    input.harnessConfigJson,
+    input.permissionPolicyJson,
+    input.memoryScope,
+    input.tagsJson,
+    input.visibility,
+    input.status,
+    input.validationStatus,
+    input.lastValidatedAt ?? null,
+    input.lastValidationSummary ?? null,
+    createdAt,
+    updatedAt,
   );
 
-  return queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
+  execute("DELETE FROM agent_definition_shares WHERE agent_definition_id = ?", input.id);
+  const seenTeamIds = new Set<string>();
+  shareBusinessTeamIds
+    .map((teamId) => teamId.trim())
+    .filter(Boolean)
+    .forEach((teamId) => {
+      if (seenTeamIds.has(teamId)) return;
+      seenTeamIds.add(teamId);
+      execute(
+        "INSERT INTO agent_definition_shares (id, agent_definition_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+        randomUUID(),
+        input.id,
+        teamId,
+        "viewer",
+        updatedAt,
+      );
+    });
+
+  return getAgentDefinition(input.id);
+}
+
+export function upsertAgentTeam(
+  input: Pick<
+    AgentTeam,
+    | "id"
+    | "businessTeamId"
+    | "slug"
+    | "name"
+    | "description"
+    | "leaderAgentId"
+    | "workflowType"
+    | "orchestrationPrompt"
+    | "workflowDefinitionJson"
+    | "inputSchemaJson"
+    | "outputSchemaJson"
+    | "maxConcurrency"
+    | "timeoutMs"
+    | "successRateThreshold"
+    | "pricingModelJson"
+    | "visibility"
+    | "defaultExecutionPolicyId"
+  >,
+  members: Array<
+    Pick<AgentTeamMember, "id" | "agentDefinitionId" | "memberRole" | "workInstruction" | "position" | "status">
+  >,
+  shares: Array<Pick<AgentTeamShare, "businessTeamId" | "accessLevel">>,
+) {
+  const current = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.id);
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  const updatedAt = new Date().toISOString();
+
+  execute(
+    "INSERT OR REPLACE INTO agent_teams (id, business_team_id, slug, name, description, leader_agent_id, workflow_type, orchestration_prompt, workflow_definition_json, input_schema_json, output_schema_json, max_concurrency, timeout_ms, success_rate_threshold, pricing_model_json, visibility, default_execution_policy_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.businessTeamId,
+    input.slug,
+    input.name,
+    input.description,
+    input.leaderAgentId ?? null,
+    input.workflowType,
+    input.orchestrationPrompt,
+    input.workflowDefinitionJson,
+    input.inputSchemaJson,
+    input.outputSchemaJson,
+    input.maxConcurrency,
+    input.timeoutMs,
+    input.successRateThreshold,
+    input.pricingModelJson,
+    input.visibility,
+    input.defaultExecutionPolicyId ?? null,
+    createdAt,
+    updatedAt,
+  );
+
+  execute("DELETE FROM agent_team_members WHERE team_id = ?", input.id);
+  const seenMemberIds = new Set<string>();
+  members
+    .slice()
+    .sort((left, right) => left.position - right.position)
+    .forEach((member, index) => {
+      const memberId = member.id?.trim() || randomUUID();
+      if (seenMemberIds.has(memberId)) return;
+      seenMemberIds.add(memberId);
+      execute(
+        "INSERT INTO agent_team_members (id, team_id, agent_definition_id, member_role, work_instruction, position, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        memberId,
+        input.id,
+        member.agentDefinitionId,
+        member.memberRole,
+        member.workInstruction,
+        index,
+        member.status,
+        createdAt,
+        updatedAt,
+      );
+    });
+
+  execute("DELETE FROM agent_team_shares WHERE agent_team_id = ?", input.id);
+  const seenShareKeys = new Set<string>();
+  shares.forEach((share) => {
+    const teamId = share.businessTeamId.trim();
+    if (!teamId) return;
+    const accessLevel = share.accessLevel?.trim() || "viewer";
+    const key = `${teamId}:${accessLevel}`;
+    if (seenShareKeys.has(key)) return;
+    seenShareKeys.add(key);
+    execute(
+      "INSERT INTO agent_team_shares (id, agent_team_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+      randomUUID(),
+      input.id,
+      teamId,
+      accessLevel,
+      updatedAt,
+    );
+  });
+
+  return getAgentTeam(input.id);
 }
 
 export function listProviders() {
@@ -136,11 +436,79 @@ export function listServiceCatalogListings() {
 }
 
 export function listScheduleTemplates() {
-  return queryAll<ScheduleTemplate>("SELECT * FROM schedule_templates ORDER BY created_at DESC");
+  return listTaskBlueprints().map((blueprint) => {
+    const trigger = parseJsonRecord(blueprint.triggerJson);
+    const triggerType = normalizeTriggerType(trigger.type);
+    return {
+      id: `blueprint:${blueprint.id}:trigger`,
+      businessTeamId: blueprint.ownerBusinessTeamId,
+      teamId: blueprint.teamId,
+      name: `${blueprint.name} 触发器`,
+      scheduleKind: triggerType === "schedule" ? "cron" : triggerType,
+      cadence:
+        typeof trigger.expression === "string"
+          ? trigger.expression
+          : typeof trigger.event === "string"
+            ? `Webhook: ${trigger.event}`
+            : triggerType,
+      nextRunAt: null,
+      inputPayloadJson: JSON.stringify({
+        taskBlueprintId: blueprint.id,
+        trigger,
+        source: "task_blueprint",
+      }),
+      isEnabled: blueprint.status === "active" ? 1 : 0,
+      createdAt: blueprint.createdAt,
+    } satisfies ScheduleTemplate;
+  });
 }
 
 export function listTaskTemplates() {
-  return queryAll<TaskTemplate>("SELECT * FROM task_templates ORDER BY created_at DESC");
+  return listTaskBlueprints().map((blueprint) => {
+    const trigger = parseJsonRecord(blueprint.triggerJson);
+    const runPlan = parseJsonRecord(blueprint.agentTeamRunPlanJson);
+    const memoryPolicy = parseJsonRecord(blueprint.memoryPolicyJson);
+    const outputPolicy = parseJsonRecord(blueprint.outputPolicyJson);
+    const publishers = Array.isArray(outputPolicy.publishers)
+      ? outputPolicy.publishers
+      : [];
+    const firstPublisher =
+      publishers.find((publisher) => publisher && typeof publisher === "object") as
+        | { pluginId?: string; type?: string }
+        | undefined;
+    return {
+      id: `blueprint:${blueprint.id}`,
+      name: blueprint.name,
+      caseKey: blueprint.category,
+      pluginId:
+        firstPublisher?.pluginId ??
+        (typeof trigger.connector === "string" ? trigger.connector : null),
+      teamId: blueprint.teamId,
+      environmentId: blueprint.environmentId,
+      plannerMode: typeof runPlan.strategy === "string" ? runPlan.strategy : "task_blueprint",
+      summary: `${blueprint.name} 已由 Task Blueprint 派生为兼容模板视图。`,
+      inputSchemaJson: blueprint.inputSchemaJson,
+      defaultInputJson: JSON.stringify({
+        taskBlueprintId: blueprint.id,
+        category: blueprint.category,
+      }),
+      memoryLayersJson: JSON.stringify(
+        Array.isArray(memoryPolicy.requiredSpaces) ? memoryPolicy.requiredSpaces : [],
+      ),
+      outputTargetsJson: JSON.stringify(
+        publishers.map((publisher) =>
+          publisher && typeof publisher === "object" && "type" in publisher
+            ? String((publisher as { type?: unknown }).type)
+            : "unknown",
+        ),
+      ),
+      nodesJson: blueprint.agentTeamRunPlanJson,
+      webhookParserRef:
+        typeof trigger.webhookParserRef === "string" ? trigger.webhookParserRef : null,
+      visibility: blueprint.visibility,
+      createdAt: blueprint.createdAt,
+    } satisfies TaskTemplate;
+  });
 }
 
 export function listTaskBlueprints() {
@@ -179,6 +547,47 @@ export function listExecutionEnvironments() {
   return queryAll<ExecutionEnvironment>(
     "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
   );
+}
+
+export function getTaskBlueprintEditorOptions() {
+  const businessTeams = listBusinessTeams();
+  const agentTeams = listAgentTeams();
+  const agentTeamMembers = listAgentTeamMemberProfiles();
+  const environments = listExecutionEnvironments();
+  const providerAdapters = listProviderAdapterDefinitions();
+
+  return {
+    businessTeams: businessTeams.map((team) => ({ id: team.id, name: team.name })),
+    agentTeams: agentTeams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      workflowType: team.workflowType,
+      leaderAgentId: team.leaderAgentId,
+      orchestrationPrompt: team.orchestrationPrompt,
+      workflowDefinitionJson: team.workflowDefinitionJson,
+      members: agentTeamMembers
+        .filter((member) => member.teamId === team.id)
+        .map((member) => ({
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          memberRole: member.memberRole,
+          workInstruction: member.workInstruction,
+        })),
+    })),
+    environments: environments.map((environment) => ({
+      id: environment.id,
+      name: environment.name,
+      repositoryProvider: environment.repositoryProvider,
+      repositoryName: environment.repositoryName,
+      workingDirectory: environment.workingDirectory,
+      sandboxProfileJson: environment.sandboxProfileJson,
+    })),
+    providerAdapters: providerAdapters.map((adapter) => ({
+      id: adapter.id,
+      name: adapter.name,
+    })),
+  };
 }
 
 export function upsertProviderProfile(
@@ -331,7 +740,8 @@ export function getTaskBlueprintDetail(blueprintId: string) {
   const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", blueprintId);
   if (!blueprint) return null;
 
-  return buildTaskBlueprintDetail({
+  return {
+    ...buildTaskBlueprintDetail({
     blueprint,
     businessTeams: listBusinessTeams(),
     teams: listAgentTeams(),
@@ -340,7 +750,9 @@ export function getTaskBlueprintDetail(blueprintId: string) {
     providerAdapters: listProviderAdapterDefinitions(),
     taskRuns: listTaskRuns(),
     findings: listFindings(),
-  });
+    }),
+    options: getTaskBlueprintEditorOptions(),
+  };
 }
 
 export function upsertTaskBlueprint(
@@ -890,6 +1302,49 @@ function appendTaskRunEvent(args: {
   );
 }
 
+function ensureTaskRunSummaryFinding(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint | null;
+}) {
+  const existing = queryOne<Finding>(
+    "SELECT * FROM findings WHERE task_run_id = ? LIMIT 1",
+    args.taskRun.id,
+  );
+  if (existing) return;
+
+  const category = args.blueprint?.category ?? "execution";
+  const fingerprint = buildFindingFingerprint({
+    repoId: args.taskRun.sourceRef ?? args.taskRun.id,
+    category,
+    rule: "task-run-summary",
+    normalizedCode: args.taskRun.id,
+  });
+  const now = nowIso();
+  execute(
+    "INSERT INTO findings (id, task_run_id, source_agent, category, severity, confidence, title, description, evidence_json, recommendation, skill_refs_json, fingerprint, status, publication_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(),
+    args.taskRun.id,
+    "system",
+    category,
+    "info",
+    1,
+    "任务完成摘要",
+    `${args.blueprint?.name ?? "任务"} 已完成，当前没有 Agent 提交更高严重级别的结构化 Finding。`,
+    JSON.stringify({
+      taskRunId: args.taskRun.id,
+      sourceType: args.taskRun.sourceType,
+      sourceRef: args.taskRun.sourceRef,
+    }),
+    "如需更细粒度结论，请在 Agent Team 或 Skill 中产出 findings 数组。",
+    JSON.stringify([]),
+    fingerprint,
+    "open",
+    JSON.stringify({ channels: [] }),
+    now,
+    now,
+  );
+}
+
 function synthesizeTeamNodes(team: AgentTeam) {
   const teamAgents = listAgents().filter((agent) => agent.teamId === team.id);
   const leader = team.leaderAgentId
@@ -954,12 +1409,42 @@ function loadComposedExecutionPolicyForTaskRun(taskRun: TaskRun) {
   const profiles = listExecutionPolicies();
   if (!team) return null;
 
-  return composeExecutionPolicy({
+  const composed = composeExecutionPolicy({
     profiles,
     tenantSpaceId: taskRun.tenantSpaceId,
     businessTeamId: taskRun.businessTeamId,
     teamId: team.id,
   });
+  const taskRunToolPolicy = deriveToolPolicyFromTaskRunSnapshot(taskRun);
+
+  if (
+    taskRunToolPolicy.allowedTools.length === 0 &&
+    taskRunToolPolicy.blockedTools.length === 0 &&
+    taskRunToolPolicy.approvalRequiredTools.length === 0
+  ) {
+    return composed;
+  }
+
+  const blockedTools = dedupeStrings([
+    ...composed.resolved.blockedTools,
+    ...taskRunToolPolicy.blockedTools,
+  ]);
+
+  return {
+    ...composed,
+    resolved: {
+      ...composed.resolved,
+      allowedTools:
+        taskRunToolPolicy.allowedTools.length > 0
+          ? taskRunToolPolicy.allowedTools
+          : composed.resolved.allowedTools,
+      blockedTools,
+      approvalRequiredTools: dedupeStrings([
+        ...composed.resolved.approvalRequiredTools,
+        ...taskRunToolPolicy.approvalRequiredTools,
+      ]).filter((tool) => !blockedTools.includes(tool)),
+    },
+  };
 }
 
 function resolveTaskRunStatusFromNodes(nodes: TaskRunNode[]) {
@@ -1001,6 +1486,63 @@ function parseJsonRecord(value: string) {
   } catch {
     return {};
   }
+}
+
+function parseStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function dedupeStrings(values: string[]) {
+  return values.filter((value, index, array) => array.indexOf(value) === index);
+}
+
+function normalizeToolResource(resource: unknown) {
+  if (typeof resource !== "string") return null;
+  if (!resource.startsWith("tool.")) return null;
+  return resource.slice("tool.".length);
+}
+
+function deriveToolPolicyFromTaskRunSnapshot(taskRun: TaskRun) {
+  const permissionSnapshot = parseJsonRecord(taskRun.permissionSnapshotJson);
+  const executionPolicySnapshot = parseJsonRecord(taskRun.executionPolicyJson);
+  const executionToolPolicy =
+    executionPolicySnapshot.toolPolicy &&
+    typeof executionPolicySnapshot.toolPolicy === "object" &&
+    !Array.isArray(executionPolicySnapshot.toolPolicy)
+      ? (executionPolicySnapshot.toolPolicy as Record<string, unknown>)
+      : {};
+  const rules = Array.isArray(permissionSnapshot.rules) ? permissionSnapshot.rules : [];
+  const allowedTools = [
+    ...parseStringArray(executionPolicySnapshot.allowedTools),
+    ...parseStringArray(executionToolPolicy.allowed),
+    ...parseStringArray(executionPolicySnapshot.tools),
+  ];
+  const blockedTools = [
+    ...parseStringArray(executionPolicySnapshot.blockedTools),
+    ...parseStringArray(executionToolPolicy.blocked),
+  ];
+  const approvalRequiredTools = [
+    ...parseStringArray(executionPolicySnapshot.approvalRequiredTools),
+    ...parseStringArray(executionToolPolicy.approvalRequired),
+  ];
+
+  for (const rule of rules) {
+    if (!rule || typeof rule !== "object") continue;
+    const typedRule = rule as { effect?: unknown; resource?: unknown };
+    const toolName = normalizeToolResource(typedRule.resource);
+    if (!toolName) continue;
+    if (typedRule.effect === "allow") allowedTools.push(toolName);
+    if (typedRule.effect === "deny") blockedTools.push(toolName);
+    if (typedRule.effect === "ask") approvalRequiredTools.push(toolName);
+  }
+
+  return {
+    allowedTools: dedupeStrings(allowedTools),
+    blockedTools: dedupeStrings(blockedTools),
+    approvalRequiredTools: dedupeStrings(approvalRequiredTools),
+  };
 }
 
 export function submitTaskRun(input: SubmitTaskRunInput) {
@@ -1235,7 +1777,7 @@ export function submitTaskRunFromBlueprint(args: {
   });
 }
 
-export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
+export async function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
   if (!taskRun) throw new Error("任务不存在。");
 
@@ -1456,6 +1998,81 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     ),
     taskRun.id,
   );
+
+  if (taskRunStatus === "completed") {
+    const completedTaskRun =
+      queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRun.id) ?? taskRun;
+    const blueprint = completedTaskRun.blueprintId
+      ? queryOne<TaskBlueprint>(
+          "SELECT * FROM task_blueprints WHERE id = ?",
+          completedTaskRun.blueprintId,
+        )
+      : null;
+    ensureTaskRunSummaryFinding({ taskRun: completedTaskRun, blueprint });
+    const findings = queryAll<Finding>(
+      "SELECT * FROM findings WHERE task_run_id = ? ORDER BY created_at DESC",
+      completedTaskRun.id,
+    );
+    const environmentSnapshot = completedTaskRun.environmentSnapshotId
+      ? queryOne<EnvironmentSnapshot>(
+          "SELECT * FROM environment_snapshots WHERE id = ?",
+          completedTaskRun.environmentSnapshotId,
+        )
+      : null;
+    appendTaskRunEvent({
+      traceId: completedTaskRun.traceId,
+      taskRunId: completedTaskRun.id,
+      phase: "publishing_output",
+      foldGroup: "Synthesis",
+      title: "开始发布任务输出",
+      content: "任务节点已完成，正在按任务蓝图 outputPolicy 发布结果。",
+      metadata: { blueprintId: blueprint?.id ?? null, findingCount: findings.length },
+    });
+
+    const publicationResults = await publishTaskRunOutputs({
+      taskRun: completedTaskRun,
+      blueprint,
+      findings,
+      environmentSnapshot,
+    });
+    const publishedChannels = publicationResults
+      .filter((result) => result.status === "published" || result.status === "drafted")
+      .map((result) => result.publisherType);
+    for (const finding of findings) {
+      execute(
+        "UPDATE findings SET status = ?, publication_json = ?, updated_at = ? WHERE id = ?",
+        publishedChannels.length > 0 ? "published" : finding.status,
+        JSON.stringify({
+          channels: publishedChannels,
+          results: publicationResults,
+        }),
+        nowIso(),
+        finding.id,
+      );
+    }
+    execute(
+      "UPDATE task_runs SET output_payload_json = ? WHERE id = ?",
+      JSON.stringify({
+        publicationResults,
+        findingCount: findings.length,
+      }),
+      completedTaskRun.id,
+    );
+    for (const result of publicationResults) {
+      appendTaskRunEvent({
+        traceId: completedTaskRun.traceId,
+        taskRunId: completedTaskRun.id,
+        phase: result.status === "failed" ? "output_publish_failed" : "output_published",
+        foldGroup: "Synthesis",
+        title: `${result.publisherType} ${result.status}`,
+        content: result.message,
+        metadata: {
+          pluginId: result.pluginId,
+          payload: result.payload,
+        },
+      });
+    }
+  }
 
   return getTaskRunDetail(taskRunId);
 }
@@ -1697,27 +2314,13 @@ export function getTaskRunPolicyHits(taskRunId: string) {
 export async function refreshRuntimeCatalogs() {
   const runtimes = listRuntimeEndpoints();
   const bindings = listProviderRuntimeBindings().filter((binding) => binding.baseUrl);
-  const syntheticRuntimes = bindings
-    .filter((binding) => !runtimes.some((runtime) => runtime.baseUrl === binding.baseUrl))
-    .map(
-      (binding) =>
-        ({
-          id: binding.id,
-          tenantSpaceId: binding.tenantSpaceId,
-          businessTeamId: binding.businessTeamId,
-          name: binding.name,
-          baseUrl: binding.baseUrl,
-          runtimeKind: binding.runtimeKind,
-          healthStatus: "unknown",
-          agentCatalogJson: "[]",
-          providerCatalogJson: "[]",
-          concurrencyLimit: 1,
-          activeRunCount: 0,
-          lastDiscoveredAt: "",
-          createdAt: new Date().toISOString(),
-        }) satisfies RuntimeEndpoint,
-    );
-  const discoveries = await discoverConfiguredRuntimes([...runtimes, ...syntheticRuntimes]);
+  const providers = listProviders();
+  const agents = listAgents();
+  const discoveries = await discoverConfiguredRuntimes({
+    bindings,
+    providers,
+    agents,
+  });
 
   for (const discovery of discoveries) {
     const current = runtimes.find((runtime) => runtime.baseUrl === discovery.baseUrl);

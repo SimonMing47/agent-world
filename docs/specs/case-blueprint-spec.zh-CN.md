@@ -30,7 +30,7 @@ spec:
       - enterprise.repo.git@1.x
       - builtin.notify.email@1.x
     providerAdapters:
-      - opencode.default
+      - pi-runtime-adapter
     skills:
       - skill-code-review-security@1.0.0
   imports:
@@ -91,7 +91,7 @@ spec:
     plugins:
       - enterprise.repo.git@1.x
     providerAdapters:
-      - opencode.default
+      - pi-runtime-adapter
     skills:
       - skill-code-review-security@1.0.0
       - skill-code-review-quality-test@1.0.0
@@ -139,7 +139,7 @@ spec:
       - enterprise.repo.git@1.x
       - builtin.notify.email@1.x
     providerAdapters:
-      - opencode.default
+      - pi-runtime-adapter
     skills:
       - skill-code-review-security@1.0.0
   imports:

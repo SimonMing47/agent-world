@@ -115,11 +115,21 @@ export default function SettingsPage() {
                         tenantSpaceId,
                         name: "新增模型接口",
                         baseUrl: "https://api.openai.com/v1",
-                        apiStyle: "openai",
+                        apiStyle: "openai-compatible",
                         defaultModel: "gpt-5.4",
                         modelsJson: JSON.stringify(["gpt-5.4"], null, 2),
                         apiKeyRef: "env:OPENAI_API_KEY",
-                        configJson: JSON.stringify({ supportsResponsesApi: true }, null, 2),
+                        configJson: JSON.stringify(
+                          {
+                            piApi: "openai-completions",
+                            supportsResponsesApi: false,
+                            supportsChatCompletions: true,
+                            reasoning: true,
+                            headers: {},
+                          },
+                          null,
+                          2,
+                        ),
                         isEnabled: 1,
                       }}
                       title="新增模型接口"
@@ -230,7 +240,7 @@ export default function SettingsPage() {
                 <DialogContent className="w-[min(92vw,820px)]">
                   <DialogHeader>
                     <DialogTitle>新增执行引擎实例</DialogTitle>
-                    <DialogDescription>配置 OpenCode 地址、命令、默认接口与环境变量映射。</DialogDescription>
+                    <DialogDescription>配置 Pi Runtime Adapter、默认接口与环境变量映射。</DialogDescription>
                   </DialogHeader>
                   <DialogBody>
                     <ProviderRuntimeBindingForm
@@ -239,19 +249,21 @@ export default function SettingsPage() {
                         id: "",
                         tenantSpaceId,
                         businessTeamId: defaultBusinessTeamId,
-                        adapterDefinitionId: "opencode-provider",
+                        adapterDefinitionId: "pi-runtime-adapter",
                         name: "新增执行引擎实例",
-                        runtimeKind: "opencode",
-                        baseUrl: "http://127.0.0.1:4096",
-                        command: "opencode",
+                        runtimeKind: "pi",
+                        baseUrl: "embedded://pi/default",
+                        command: "embedded",
                         workspaceRoot: process.cwd(),
                         defaultProviderProfileId: snapshot.providers[0]?.id ?? null,
-                        apiKeyRef: "env:OPENCODE_API_KEY",
+                        apiKeyRef: "env:AGENTWORLD_GLM_API_KEY",
                         configJson: JSON.stringify(
                           {
                             defaultModel: snapshot.providers[0]?.defaultModel ?? "gpt-5.4",
+                            executionMode: "embedded",
+                            eventContract: "pi_agent_event_v1",
                             env: {
-                              OPENAI_API_KEY: "ref:env:OPENAI_API_KEY",
+                              AGENTWORLD_GLM_API_KEY: "ref:env:AGENTWORLD_GLM_API_KEY",
                             },
                           },
                           null,
@@ -321,7 +333,7 @@ export default function SettingsPage() {
                             <DialogContent>
                               <DialogHeader>
                                 <DialogTitle>{binding.name}</DialogTitle>
-                                <DialogDescription>执行引擎实例的运行地址、权限模式与附加配置。</DialogDescription>
+                                <DialogDescription>运行时实例的执行模式、权限模式与附加配置。</DialogDescription>
                               </DialogHeader>
                               <DialogBody className="space-y-5">
                                 <DefinitionList

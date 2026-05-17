@@ -48,10 +48,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-[var(--canvas)] text-[var(--ink)]">
-        <div className="flex min-h-screen">
+      <div className="h-screen overflow-hidden bg-[var(--canvas)] text-[var(--ink)]">
+        <div className="flex h-full">
           <aside
-            className={`hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] shadow-[8px_0_24px_rgba(15,23,42,0.08)] transition-[width] duration-200 lg:block ${
+            className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] shadow-[8px_0_24px_rgba(15,23,42,0.08)] transition-[width] duration-200 lg:block ${
               collapsed ? "w-[88px]" : "w-[312px]"
             }`}
           >
@@ -61,8 +61,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           </aside>
 
-          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-            <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--canvas)]/94 backdrop-blur">
+          <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+            <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[var(--canvas)]/94 backdrop-blur">
               <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                   <SheetTrigger asChild>
@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="p-0">
-                    <SidebarNav onItemClick={() => setMobileOpen(false)} />
+                    <SidebarNav onItemClick={() => setMobileOpen(false)} showBrand={false} />
                   </SheetContent>
                 </Sheet>
 
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </header>
 
-            <main className="min-w-0 flex-1">
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
               <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 {children}
               </div>

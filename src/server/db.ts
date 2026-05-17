@@ -71,6 +71,8 @@ export type AgentTeam = {
   description: string;
   leaderAgentId: string | null;
   workflowType: string;
+  orchestrationPrompt: string;
+  workflowDefinitionJson: string;
   inputSchemaJson: string;
   outputSchemaJson: string;
   maxConcurrency: number;
@@ -80,6 +82,7 @@ export type AgentTeam = {
   visibility: string;
   defaultExecutionPolicyId: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type Agent = {
@@ -96,6 +99,62 @@ export type Agent = {
   memoryScope: string;
   safetyPolicyJson: string;
   status: string;
+  createdAt: string;
+};
+
+export type AgentTeamMember = {
+  id: string;
+  teamId: string;
+  agentDefinitionId: string;
+  memberRole: string;
+  workInstruction: string;
+  position: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AgentTeamShare = {
+  id: string;
+  agentTeamId: string;
+  businessTeamId: string;
+  accessLevel: string;
+  createdAt: string;
+};
+
+export type AgentDefinition = {
+  id: string;
+  tenantSpaceId: string;
+  ownerBusinessTeamId: string | null;
+  ownerUserId: string;
+  sourceAgentId: string | null;
+  slug: string;
+  name: string;
+  role: string;
+  description: string;
+  systemPrompt: string;
+  model: string;
+  defaultProviderProfileId: string | null;
+  defaultRuntimeBindingId: string | null;
+  toolBindingsJson: string;
+  harnessConfigJson: string;
+  permissionPolicyJson: string;
+  memoryScope: string;
+  tagsJson: string;
+  visibility: string;
+  status: string;
+  validationStatus: string;
+  lastValidatedAt: string | null;
+  lastValidationSummary: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AgentDefinitionShare = {
+  id: string;
+  agentDefinitionId: string;
+  businessTeamId: string;
+  accessLevel: string;
   createdAt: string;
 };
 
@@ -332,6 +391,50 @@ export type TaskRunIntervention = {
   resolutionNote: string | null;
   requestedAt: string;
   resolvedAt: string | null;
+};
+
+export type RuntimeSession = {
+  id: string;
+  tenantSpaceId: string;
+  businessTeamId: string;
+  agentTeamId: string | null;
+  agentDefinitionId: string | null;
+  runtimeBindingId: string;
+  providerProfileId: string;
+  mode: string;
+  title: string;
+  systemPrompt: string;
+  model: string;
+  status: string;
+  lastError: string | null;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RuntimeSessionMessage = {
+  id: string;
+  sessionId: string;
+  actorType: string;
+  actorId: string | null;
+  actorName: string;
+  role: string;
+  contentJson: string;
+  visibility: string;
+  turnIndex: number;
+  createdAt: string;
+};
+
+export type RuntimeSessionEvent = {
+  id: string;
+  sessionId: string;
+  messageId: string | null;
+  actorId: string | null;
+  actorName: string | null;
+  eventType: string;
+  payloadJson: string;
+  visibility: string;
+  createdAt: string;
 };
 
 export type RepositoryProfile = {
@@ -678,6 +781,8 @@ CREATE TABLE IF NOT EXISTS agent_teams (
   description TEXT NOT NULL,
   leader_agent_id TEXT,
   workflow_type TEXT NOT NULL,
+  orchestration_prompt TEXT NOT NULL DEFAULT '',
+  workflow_definition_json TEXT NOT NULL DEFAULT '{}',
   input_schema_json TEXT NOT NULL,
   output_schema_json TEXT NOT NULL,
   max_concurrency INTEGER NOT NULL,
@@ -686,7 +791,8 @@ CREATE TABLE IF NOT EXISTS agent_teams (
   pricing_model_json TEXT NOT NULL,
   visibility TEXT NOT NULL,
   default_execution_policy_id TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS agents (
@@ -703,6 +809,62 @@ CREATE TABLE IF NOT EXISTS agents (
   memory_scope TEXT NOT NULL,
   safety_policy_json TEXT NOT NULL,
   status TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_team_members (
+  id TEXT PRIMARY KEY,
+  team_id TEXT NOT NULL,
+  agent_definition_id TEXT NOT NULL,
+  member_role TEXT NOT NULL,
+  work_instruction TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_team_shares (
+  id TEXT PRIMARY KEY,
+  agent_team_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
+  access_level TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_definitions (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT NOT NULL,
+  owner_business_team_id TEXT,
+  owner_user_id TEXT NOT NULL,
+  source_agent_id TEXT,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  description TEXT NOT NULL,
+  system_prompt TEXT NOT NULL,
+  model TEXT NOT NULL,
+  default_provider_profile_id TEXT,
+  default_runtime_binding_id TEXT,
+  tool_bindings_json TEXT NOT NULL,
+  harness_config_json TEXT NOT NULL,
+  permission_policy_json TEXT NOT NULL,
+  memory_scope TEXT NOT NULL,
+  tags_json TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  status TEXT NOT NULL,
+  validation_status TEXT NOT NULL,
+  last_validated_at TEXT,
+  last_validation_summary TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS agent_definition_shares (
+  id TEXT PRIMARY KEY,
+  agent_definition_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
+  access_level TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
 
@@ -943,6 +1105,50 @@ CREATE TABLE IF NOT EXISTS task_run_interventions (
   resolution_note TEXT,
   requested_at TEXT NOT NULL,
   resolved_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS runtime_sessions (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
+  agent_team_id TEXT,
+  agent_definition_id TEXT,
+  runtime_binding_id TEXT NOT NULL,
+  provider_profile_id TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  title TEXT NOT NULL,
+  system_prompt TEXT NOT NULL,
+  model TEXT NOT NULL,
+  status TEXT NOT NULL,
+  last_error TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runtime_session_messages (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  actor_type TEXT NOT NULL,
+  actor_id TEXT,
+  actor_name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content_json TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  turn_index INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runtime_session_events (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  message_id TEXT,
+  actor_id TEXT,
+  actor_name TEXT,
+  event_type TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS repository_profiles (
@@ -1303,7 +1509,7 @@ function seed(db: DatabaseSync) {
     "租户基线运行约束",
     "Always produce structured operational output. Explain plan changes. Escalate risky actions.",
     JSON.stringify({
-      allowed: ["search_web", "read_repo", "openai_chat", "opencode_runtime"],
+      allowed: ["search_web", "read_repo", "openai_chat", "pi_runtime"],
       blocked: ["raw_network"],
       approvalRequired: ["write_repo", "shell_exec"],
     }),
@@ -1534,6 +1740,7 @@ function seed(db: DatabaseSync) {
   updateLeader.run(leaderAgentId, researchTeamId);
   const openAiProviderId = randomUUID();
   const azureProviderId = randomUUID();
+  const glmProviderId = randomUUID();
 
   insertProvider.run(
     openAiProviderId,
@@ -1571,41 +1778,65 @@ function seed(db: DatabaseSync) {
     iso(-1000 * 60 * 60 * 24 * 6),
     iso(-1000 * 60 * 60 * 24 * 6),
   );
+  insertProvider.run(
+    glmProviderId,
+    tenantSpaceId,
+    "GLM-5.1 Coding",
+    "https://open.bigmodel.cn/api/coding/paas/v4",
+    "openai-compatible",
+    "GLM-5.1",
+    JSON.stringify(["GLM-5.1"]),
+    "env:AGENTWORLD_GLM_API_KEY",
+    JSON.stringify({
+      piApi: "openai-completions",
+      supportsChatCompletions: true,
+      supportsResponsesApi: false,
+      contextWindow: 128000,
+      maxTokens: 16384,
+      reasoning: true,
+      headers: {},
+    }),
+    1,
+    iso(-1000 * 60 * 60 * 24 * 6),
+    iso(-1000 * 60 * 60 * 24 * 6),
+  );
 
   insertRuntime.run(
     randomUUID(),
     tenantSpaceId,
     platformBusinessTeamId,
-    "OpenCode Lab",
-    "http://127.0.0.1:4096",
-    "opencode",
+    "Pi Research Runtime",
+    "embedded://pi/research",
+    "pi",
     "offline",
     JSON.stringify(["leader-meridian", "market-scout"]),
-    JSON.stringify(["OpenAI Primary"]),
+    JSON.stringify(["GLM-5.1 Coding"]),
     3,
-    1,
+    0,
     iso(-1000 * 60 * 15),
     iso(-1000 * 60 * 60 * 24 * 5),
   );
 
   insertProviderRuntimeBinding.run(
-    "runtime-binding-opencode-default",
+    "runtime-binding-pi-default",
     tenantSpaceId,
     releaseBusinessTeamId,
-    "opencode-provider",
-    "OpenCode 默认执行引擎",
-    "opencode",
-    "http://127.0.0.1:4096",
-    "opencode",
+    "pi-runtime-adapter",
+    "Pi 默认运行时",
+    "pi",
+    "embedded://pi/default",
+    "embedded",
     process.cwd(),
-    openAiProviderId,
-    "env:OPENCODE_API_KEY",
+    glmProviderId,
+    "env:AGENTWORLD_GLM_API_KEY",
     JSON.stringify({
-      defaultModel: "gpt-5.4",
-      providerMode: "sdk",
-      approvalMode: "standard",
+      defaultModel: "GLM-5.1",
+      executionMode: "embedded",
+      approvalMode: "allow",
+      eventContract: "pi_agent_event_v1",
+      humanIntervention: "steer",
       env: {
-        OPENAI_API_KEY: "ref:env:OPENAI_API_KEY",
+        AGENTWORLD_GLM_API_KEY: "ref:env:AGENTWORLD_GLM_API_KEY",
       },
     }),
     1,
@@ -1616,14 +1847,14 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     tenantSpaceId,
     releaseBusinessTeamId,
-    "Release Lane Runtime",
-    "http://127.0.0.1:4097",
-    "opencode",
+    "Pi Release Runtime",
+    "embedded://pi/release",
+    "pi",
     "offline",
     JSON.stringify(["release-reviewer", "merge-steward"]),
-    JSON.stringify(["Azure Fallback"]),
+    JSON.stringify(["GLM-5.1 Coding", "Azure Fallback"]),
     2,
-    1,
+    0,
     iso(-1000 * 60 * 10),
     iso(-1000 * 60 * 60 * 24 * 5),
   );
@@ -2293,10 +2524,10 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
 
   [
     {
-      id: "opencode-provider",
-      name: "OpenCode Provider Adapter",
+      id: "pi-runtime-adapter",
+      name: "Pi Runtime Adapter",
       adapterType: "sdk",
-      entryRef: "@opencode-ai/sdk",
+      entryRef: "@earendil-works/pi-agent-core",
       lifecycle: "configured",
       capabilities: [
         "session.create",
@@ -2307,52 +2538,88 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
       ],
       configSchema: {
         type: "object",
-        required: ["baseUrl", "defaultModel"],
+        required: ["defaultModel"],
         properties: {
+          executionMode: { type: "string", enum: ["embedded", "proxy"], default: "embedded" },
           baseUrl: { type: "string" },
           apiKeySecretRef: { type: "string" },
           defaultModel: { type: "string" },
+          eventContract: { type: "string", default: "pi_agent_event_v1" },
         },
       },
-      secretRefs: ["env:OPENCODE_API_KEY", "env:OPENAI_API_KEY"],
+      secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       permissions: ["provider.session.create", "provider.message.send", "provider.event.read"],
       healthStatus: "offline",
     },
     {
-      id: "claude-code-provider",
-      name: "Claude Code Provider Adapter",
-      adapterType: "cli",
-      entryRef: "plugin://provider-runtime/claude-code",
+      id: "hermes-runtime-adapter",
+      name: "Hermes Runtime Adapter",
+      adapterType: "plugin",
+      entryRef: "plugin://runtime-adapter/hermes",
       lifecycle: "declared",
       capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
       configSchema: {
         type: "object",
-        required: ["command"],
+        required: ["entrypoint"],
         properties: {
-          command: { type: "string", default: "claude" },
-          authSecretRef: { type: "string" },
+          entrypoint: { type: "string" },
         },
       },
-      secretRefs: ["secret:claude-code-auth"],
+      secretRefs: [],
       permissions: ["provider.session.create", "provider.message.send"],
       healthStatus: "declared",
     },
     {
-      id: "openclaw-provider",
-      name: "OpenClaw Provider Adapter",
-      adapterType: "cli",
-      entryRef: "plugin://provider-runtime/openclaw",
+      id: "langgraph-runtime-adapter",
+      name: "LangGraph Runtime Adapter",
+      adapterType: "plugin",
+      entryRef: "plugin://runtime-adapter/langgraph",
       lifecycle: "declared",
       capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
       configSchema: {
         type: "object",
-        required: ["command"],
+        required: ["entrypoint"],
         properties: {
-          command: { type: "string", default: "openclaw" },
-          authSecretRef: { type: "string" },
+          entrypoint: { type: "string" },
         },
       },
-      secretRefs: ["secret:openclaw-auth"],
+      secretRefs: [],
+      permissions: ["provider.session.create", "provider.message.send"],
+      healthStatus: "declared",
+    },
+    {
+      id: "mastra-runtime-adapter",
+      name: "Mastra Runtime Adapter",
+      adapterType: "plugin",
+      entryRef: "plugin://runtime-adapter/mastra",
+      lifecycle: "declared",
+      capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
+      configSchema: {
+        type: "object",
+        required: ["entrypoint"],
+        properties: {
+          entrypoint: { type: "string" },
+        },
+      },
+      secretRefs: [],
+      permissions: ["provider.session.create", "provider.message.send"],
+      healthStatus: "declared",
+    },
+    {
+      id: "custom-runtime-adapter",
+      name: "Custom Runtime Adapter",
+      adapterType: "plugin",
+      entryRef: "plugin://runtime-adapter/custom",
+      lifecycle: "declared",
+      capabilities: ["session.create", "event.stream", "message.send", "artifact.collect"],
+      configSchema: {
+        type: "object",
+        required: ["entrypoint"],
+        properties: {
+          entrypoint: { type: "string" },
+        },
+      },
+      secretRefs: [],
       permissions: ["provider.session.create", "provider.message.send"],
       healthStatus: "declared",
     },
@@ -2688,7 +2955,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     releaseBusinessTeam.id,
     reviewTeam.id,
     "env-shield-mr-review",
-    "opencode-provider",
+    "pi-runtime-adapter",
     1,
     "active",
     JSON.stringify({
@@ -2748,9 +3015,9 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       retrievalTrace: true,
     }),
     JSON.stringify({
-      adapterId: "opencode-provider",
+      adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "provider_event_v1",
+      eventContract: "pi_agent_event_v1",
       timeoutMinutes: 30,
     }),
     JSON.stringify({
@@ -2821,7 +3088,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     releaseBusinessTeam.id,
     reviewTeam.id,
     "env-daily-security-scan",
-    "opencode-provider",
+    "pi-runtime-adapter",
     1,
     "active",
     JSON.stringify({
@@ -2850,6 +3117,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       strategy: "leader_worker_parallel",
       leader: "agent-shield-review-leader",
       splitStrategy: "by_repository",
+      defaultWorkerTool: "repo.clone.read",
       workers: [
         {
           agent: "agent-security-reviewer",
@@ -2878,9 +3146,9 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       baseline: "viking://teams/security/memories/false-positive-rules/",
     }),
     JSON.stringify({
-      adapterId: "opencode-provider",
+      adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "provider_event_v1",
+      eventContract: "pi_agent_event_v1",
       timeoutMinutes: 240,
     }),
     JSON.stringify({
@@ -2888,6 +3156,8 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       rules: [
         { effect: "allow", resource: "tool.repo.clone.read", scope: "authorized_repositories" },
         { effect: "allow", resource: "tool.memory.retrieve", scope: "declared_spaces" },
+        { effect: "allow", resource: "tool.finding.create", scope: "task_run" },
+        { effect: "allow", resource: "tool.finding.aggregate", scope: "task_run" },
         { effect: "allow", resource: "tool.artifact.write", scope: "task_archive" },
         { effect: "ask", resource: "tool.email.send", scope: "approved_distribution_list" },
         { effect: "deny", resource: "tool.repo.write", scope: "*" },
@@ -2946,16 +3216,373 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   );
 }
 
+function ensureAgentDefinitionSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const tenantSpace = db
+    .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
+    .get() as { id: string } | undefined;
+  const platformTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("platform-team") as { id: string } | undefined;
+  const releaseTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("release-team") as { id: string } | undefined;
+  const piRuntime = db
+    .prepare("SELECT id FROM provider_runtime_bindings WHERE id = ?")
+    .get("runtime-binding-pi-default") as { id: string } | undefined;
+  const glmProvider = db
+    .prepare("SELECT id FROM provider_profiles WHERE name = ?")
+    .get("GLM-5.1 Coding") as { id: string } | undefined;
+
+  if (!tenantSpace || !platformTeam || !releaseTeam) return;
+
+  const insertDefinition = db.prepare(
+    "INSERT OR IGNORE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertShare = db.prepare(
+    "INSERT OR IGNORE INTO agent_definition_shares (id, agent_definition_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+  );
+
+  [
+    {
+      id: "agent-definition-shield-review-leader",
+      ownerBusinessTeamId: releaseTeam.id,
+      ownerUserId: "ming",
+      sourceAgentId: "agent-shield-review-leader",
+      slug: "shield-review-leader",
+      name: "Shield Review Leader",
+      role: "leader",
+      description: "负责拆解 MR 检视任务、协调协作 Agent、汇总 Finding 并控制输出质量。",
+      systemPrompt:
+        "你是团队代码检视 Leader。你需要先拆解任务，再组织协作 Agent 并行检视，最后基于证据去重、归类、分级并给出适合提交到代码平台的结论。",
+      model: "GLM-5.1",
+      toolBindings: ["repo.diff.read", "memory.retrieve", "finding.aggregate", "mr.comment.write"],
+      memoryScope: "team_shared",
+      tags: ["code-review", "leader", "mr"],
+      visibility: "team",
+      status: "ready",
+      validationStatus: "passed",
+      lastValidationSummary: "已通过默认 Pi 运行时完成定义校验。",
+      harnessConfig: { approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "high", maxToolCalls: 10 },
+      permissionPolicy: {
+        repositoryAccess: "read_only",
+        memoryAccess: "team_shared",
+        secretAccess: "runtime_bound_only",
+        allowedToolNames: ["search_repo", "read_file", "list_dir"],
+        deniedToolNames: [],
+      },
+      shares: [{ businessTeamId: platformTeam.id, accessLevel: "viewer" }],
+    },
+    {
+      id: "agent-definition-security-reviewer",
+      ownerBusinessTeamId: releaseTeam.id,
+      ownerUserId: "ming",
+      sourceAgentId: "agent-security-reviewer",
+      slug: "security-reviewer",
+      name: "Security Reviewer",
+      role: "reviewer",
+      description: "聚焦注入、越权、敏感信息和危险调用的安全检视 Agent。",
+      systemPrompt:
+        "你是安全检视 Agent。请优先识别注入、越权、敏感信息暴露、依赖风险和危险调用，并基于代码证据给出可执行的修复建议。",
+      model: "GLM-5.1",
+      toolBindings: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
+      memoryScope: "team_shared",
+      tags: ["security", "review", "mr"],
+      visibility: "team",
+      status: "ready",
+      validationStatus: "untested",
+      lastValidationSummary: null,
+      harnessConfig: { approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "high", maxToolCalls: 8 },
+      permissionPolicy: {
+        repositoryAccess: "read_only",
+        memoryAccess: "team_shared",
+        secretAccess: "runtime_bound_only",
+        allowedToolNames: ["search_repo", "read_file", "list_dir"],
+        deniedToolNames: [],
+      },
+      shares: [{ businessTeamId: platformTeam.id, accessLevel: "viewer" }],
+    },
+    {
+      id: "agent-definition-report-writer",
+      ownerBusinessTeamId: releaseTeam.id,
+      ownerUserId: "ming",
+      sourceAgentId: "agent-report-writer",
+      slug: "report-writer",
+      name: "Report Writer",
+      role: "publisher",
+      description: "把检视结果整理为 MR 评论、邮件报告和看板摘要。",
+      systemPrompt:
+        "你是结果发布 Agent。请把多来源 Finding 汇总为结构清晰、适合代码平台评论或邮件发送的可执行输出，避免重复和空泛表述。",
+      model: "GLM-5.1",
+      toolBindings: ["finding.read", "mr.comment.write", "email.send", "artifact.write"],
+      memoryScope: "team_shared",
+      tags: ["report", "publishing", "summary"],
+      visibility: "global",
+      status: "ready",
+      validationStatus: "untested",
+      lastValidationSummary: null,
+      harnessConfig: { approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "medium", maxToolCalls: 5 },
+      permissionPolicy: {
+        repositoryAccess: "read_only",
+        memoryAccess: "team_shared",
+        secretAccess: "runtime_bound_only",
+        allowedToolNames: ["search_repo", "read_file", "list_dir"],
+        deniedToolNames: [],
+      },
+      shares: [],
+    },
+    {
+      id: "agent-definition-personal-analysis-assistant",
+      ownerBusinessTeamId: platformTeam.id,
+      ownerUserId: "ming",
+      sourceAgentId: null,
+      slug: "personal-analysis-assistant",
+      name: "Personal Analysis Assistant",
+      role: "analyst",
+      description: "用于个人分析和方案整理的私有 Agent。",
+      systemPrompt:
+        "你是个人分析 Agent。请先归纳目标，再识别关键约束，最后给出分步骤建议，并明确风险与待确认项。",
+      model: "GLM-5.1",
+      toolBindings: ["search_repo", "read_file", "list_dir"],
+      memoryScope: "private",
+      tags: ["personal", "analysis"],
+      visibility: "personal",
+      status: "draft",
+      validationStatus: "untested",
+      lastValidationSummary: null,
+      harnessConfig: { approvalMode: "allow", humanIntervention: "follow_up", thinkingLevel: "medium", maxToolCalls: 4 },
+      permissionPolicy: {
+        repositoryAccess: "read_only",
+        memoryAccess: "private_only",
+        secretAccess: "none",
+        allowedToolNames: ["search_repo", "read_file", "list_dir"],
+        deniedToolNames: [],
+      },
+      shares: [],
+    },
+  ].forEach((definition) => {
+    insertDefinition.run(
+      definition.id,
+      tenantSpace.id,
+      definition.ownerBusinessTeamId,
+      definition.ownerUserId,
+      definition.sourceAgentId,
+      definition.slug,
+      definition.name,
+      definition.role,
+      definition.description,
+      definition.systemPrompt,
+      definition.model,
+      glmProvider?.id ?? null,
+      piRuntime?.id ?? null,
+      JSON.stringify(definition.toolBindings),
+      JSON.stringify(definition.harnessConfig),
+      JSON.stringify(definition.permissionPolicy),
+      definition.memoryScope,
+      JSON.stringify(definition.tags),
+      definition.visibility,
+      definition.status,
+      definition.validationStatus,
+      definition.validationStatus === "passed" ? now : null,
+      definition.lastValidationSummary,
+      now,
+      now,
+    );
+
+    definition.shares.forEach((share) => {
+      insertShare.run(randomUUID(), definition.id, share.businessTeamId, share.accessLevel, now);
+    });
+  });
+}
+
+function ensureAgentDefinitionHarnessColumns(db: DatabaseSync) {
+  if (!tableHasColumn(db, "agent_definitions", "harness_config_json")) {
+    db.exec(
+      "ALTER TABLE agent_definitions ADD COLUMN harness_config_json TEXT NOT NULL DEFAULT '{\"approvalMode\":\"allow\",\"humanIntervention\":\"steer\",\"thinkingLevel\":\"medium\",\"maxToolCalls\":6}'",
+    );
+  }
+  if (!tableHasColumn(db, "agent_definitions", "permission_policy_json")) {
+    db.exec(
+      "ALTER TABLE agent_definitions ADD COLUMN permission_policy_json TEXT NOT NULL DEFAULT '{\"repositoryAccess\":\"read_only\",\"memoryAccess\":\"inherit\",\"secretAccess\":\"runtime_bound_only\",\"allowedToolNames\":[\"search_repo\",\"read_file\",\"list_dir\"],\"deniedToolNames\":[]}'",
+    );
+  }
+}
+
+function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSync) {
+  if (!tableHasColumn(db, "runtime_sessions", "agent_definition_id")) {
+    db.exec("ALTER TABLE runtime_sessions ADD COLUMN agent_definition_id TEXT");
+  }
+}
+
+function ensureAgentTeamCatalogColumns(db: DatabaseSync) {
+  if (!tableHasColumn(db, "agent_teams", "orchestration_prompt")) {
+    db.exec("ALTER TABLE agent_teams ADD COLUMN orchestration_prompt TEXT NOT NULL DEFAULT ''");
+  }
+  if (!tableHasColumn(db, "agent_teams", "workflow_definition_json")) {
+    db.exec("ALTER TABLE agent_teams ADD COLUMN workflow_definition_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!tableHasColumn(db, "agent_teams", "updated_at")) {
+    db.exec("ALTER TABLE agent_teams ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''");
+    db.exec("UPDATE agent_teams SET updated_at = created_at WHERE updated_at = ''");
+  }
+}
+
+function ensureLegacyAgentsPromotedToTeamMembers(db: DatabaseSync) {
+  const teams = db.prepare("SELECT * FROM agent_teams").all() as Array<{
+    id: string;
+    business_team_id: string;
+    slug: string;
+    name: string;
+    description: string;
+    workflow_type: string;
+    visibility: string;
+    created_at: string;
+  }>;
+  const agents = db.prepare("SELECT * FROM agents ORDER BY team_id ASC, created_at ASC").all() as Array<{
+    id: string;
+    team_id: string;
+    slug: string;
+    name: string;
+    role: string;
+    persona_prompt: string;
+    model: string;
+    tool_bindings_json: string;
+    memory_scope: string;
+    status: string;
+    created_at: string;
+  }>;
+  if (agents.length === 0) return;
+
+  const teamById = new Map(teams.map((team) => [team.id, team]));
+  const piRuntime = db
+    .prepare("SELECT id FROM provider_runtime_bindings WHERE id = ?")
+    .get("runtime-binding-pi-default") as { id: string } | undefined;
+  const glmProvider = db
+    .prepare("SELECT id FROM provider_profiles WHERE name = ?")
+    .get("GLM-5.1 Coding") as { id: string } | undefined;
+  const firstTenant = db
+    .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
+    .get() as { id: string } | undefined;
+  if (!firstTenant) return;
+
+  const selectDefinitionBySource = db.prepare(
+    "SELECT id FROM agent_definitions WHERE source_agent_id = ? ORDER BY updated_at DESC LIMIT 1",
+  );
+  const insertDefinition = db.prepare(
+    "INSERT INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const selectMember = db.prepare("SELECT id FROM agent_team_members WHERE id = ?");
+  const insertMember = db.prepare(
+    "INSERT INTO agent_team_members (id, team_id, agent_definition_id, member_role, work_instruction, position, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const countMembers = db.prepare("SELECT COUNT(*) as count FROM agent_team_members WHERE team_id = ?");
+  const selectShare = db.prepare(
+    "SELECT id FROM agent_team_shares WHERE agent_team_id = ? AND business_team_id = ? LIMIT 1",
+  );
+  const insertShare = db.prepare(
+    "INSERT INTO agent_team_shares (id, agent_team_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+  );
+  const businessTeams = db.prepare("SELECT id FROM business_teams").all() as Array<{ id: string }>;
+
+  for (const agent of agents) {
+    if (selectMember.get(agent.id)) continue;
+    const team = teamById.get(agent.team_id);
+    if (!team) continue;
+
+    const existingDefinition = selectDefinitionBySource.get(agent.id) as { id: string } | undefined;
+    const definitionId = existingDefinition?.id ?? randomUUID();
+
+    if (!existingDefinition) {
+      const slug = `legacy-${agent.slug}-${agent.id.slice(0, 8)}`;
+      insertDefinition.run(
+        definitionId,
+        firstTenant.id,
+        team.business_team_id,
+        "system",
+        agent.id,
+        slug,
+        agent.name,
+        agent.role,
+        `由历史 Team 成员提升为可编排 Agent 定义。来源团队：${team.name}。`,
+        agent.persona_prompt,
+        agent.model,
+        glmProvider?.id ?? null,
+        piRuntime?.id ?? null,
+        agent.tool_bindings_json,
+        JSON.stringify({ approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "medium", maxToolCalls: 6 }),
+        JSON.stringify({
+          repositoryAccess: "read_only",
+          memoryAccess: "inherit",
+          secretAccess: "runtime_bound_only",
+          allowedToolNames: ["search_repo", "read_file", "list_dir"],
+          deniedToolNames: [],
+        }),
+        agent.memory_scope,
+        JSON.stringify(["legacy", team.slug]),
+        team.visibility === "public" ? "global" : "team",
+        agent.status === "active" ? "ready" : agent.status,
+        "untested",
+        null,
+        null,
+        agent.created_at,
+        agent.created_at,
+      );
+    }
+
+    const memberCount = countMembers.get(agent.team_id) as { count: number };
+    insertMember.run(
+      agent.id,
+      agent.team_id,
+      definitionId,
+      agent.role,
+      agent.persona_prompt,
+      Number(memberCount.count ?? 0),
+      agent.status,
+      agent.created_at,
+      agent.created_at,
+    );
+  }
+
+  for (const team of teams) {
+    db.prepare(
+      "UPDATE agent_teams SET orchestration_prompt = ?, workflow_definition_json = ?, updated_at = COALESCE(NULLIF(updated_at, ''), created_at) WHERE id = ?",
+    ).run(
+      team.description,
+      JSON.stringify({
+        strategy: team.workflow_type,
+        teamStructure: team.workflow_type === "dag" ? "leader_worker" : "collaborative",
+        teamObjective: team.description,
+        aggregationMethod: "leader_summary",
+        conflictResolution: "leader_decision",
+      }),
+      team.id,
+    );
+
+    if (team.visibility === "public") {
+      for (const businessTeam of businessTeams) {
+        if (businessTeam.id === team.business_team_id) continue;
+        if (selectShare.get(team.id, businessTeam.id)) continue;
+        insertShare.run(randomUUID(), team.id, businessTeam.id, "viewer", team.created_at);
+      }
+    }
+  }
+}
+
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     archiveIncompatibleDatabaseIfNeeded();
     database = new DatabaseSync(DB_PATH);
     database.exec(schemaSql);
+    ensureAgentTeamCatalogColumns(database);
+    ensureAgentDefinitionHarnessColumns(database);
+    ensureRuntimeSessionAgentDefinitionColumn(database);
     seed(database);
     ensureCodeReviewSkillSeed(database);
     ensureProviderAdapterSeed(database);
     ensureCoreCaseSeed(database);
+    ensureAgentDefinitionSeed(database);
+    ensureLegacyAgentsPromotedToTeamMembers(database);
   }
 
   return database;
