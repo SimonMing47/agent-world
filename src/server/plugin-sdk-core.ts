@@ -1,5 +1,14 @@
+import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import {
+  execute,
+  queryOne,
+  type EnvironmentSnapshot,
+  type TaskBlueprint,
+  type TaskRun,
+} from "@/server/db";
+import { upsertFinding } from "@/server/finding-core";
 import type { PluginManifest } from "@/server/plugin-core";
 import { codehubExecutablePlugin } from "@/server/plugins/official/codehub";
 
@@ -11,6 +20,22 @@ export type PluginPermissionRequest = {
 export type PluginPermissionDecision = {
   effect: "allow" | "ask" | "deny";
   reason?: string;
+};
+
+export type PluginPermissionRule = {
+  effect?: "allow" | "ask" | "deny" | string;
+  resource?: string;
+  scope?: string;
+  reason?: string;
+};
+
+export type PluginRuntimeContextInput = {
+  configuration?: Record<string, unknown>;
+  taskRun?: TaskRun | null;
+  blueprint?: TaskBlueprint | null;
+  environmentSnapshot?: EnvironmentSnapshot | null;
+  permissionRules?: PluginPermissionRule[];
+  traceId?: string | null;
 };
 
 export type PluginRuntimeContext = {
@@ -244,31 +269,354 @@ export function resolveToolBundle(ref: string | null | undefined) {
   return null;
 }
 
-export function createPluginRuntimeContext(pluginId: string): PluginRuntimeContext {
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseRecord(value: string | null | undefined) {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return isRecord(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function safeJson(value: unknown, fallback: unknown = {}) {
+  try {
+    return JSON.stringify(value ?? fallback);
+  } catch {
+    return JSON.stringify(fallback);
+  }
+}
+
+function redactSensitive(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSensitive);
+  if (!isRecord(value)) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, rawValue]) => {
+      const lower = key.toLowerCase();
+      const isSecretRef = lower.endsWith("ref") && typeof rawValue === "string";
+      const isSensitive =
+        /(secret|token|password|privatekey|private_key|credential|apikey|api_key)/i.test(key);
+      if (isSensitive && !isSecretRef) return [key, "[masked]"];
+      return [key, redactSensitive(rawValue)];
+    }),
+  );
+}
+
+function getNextEventSeq(taskRunId: string) {
+  const row = queryOne<{ maxSeq: number | null }>(
+    "SELECT MAX(seq) as maxSeq FROM event_logs WHERE task_run_id = ?",
+    taskRunId,
+  );
+  return (row?.maxSeq ?? 0) + 1;
+}
+
+function stringifyEventContent(event: { type: string; payload: Record<string, unknown> }) {
+  const payload = event.payload;
+  const content = payload.content ?? payload.message ?? payload.summary ?? payload.title;
+  return typeof content === "string" && content.trim()
+    ? content
+    : `Plugin emitted ${event.type}.`;
+}
+
+function normalizeVisibility(value: unknown) {
+  return ["public", "team_only", "owner_only", "system_internal", "secret_masked"].includes(
+    String(value),
+  )
+    ? String(value)
+    : "team_only";
+}
+
+function normalizeEffect(value: unknown): PluginPermissionDecision["effect"] | null {
+  if (value === "deny" || value === "ask" || value === "allow") return value;
+  return null;
+}
+
+function resourceMatches(ruleResource: string | undefined, requestedResource: string) {
+  if (!ruleResource || ruleResource === "*") return true;
+  if (ruleResource === requestedResource) return true;
+  if (ruleResource.endsWith(".*")) {
+    return requestedResource.startsWith(ruleResource.slice(0, -1));
+  }
+  if (ruleResource.endsWith("*")) {
+    return requestedResource.startsWith(ruleResource.slice(0, -1));
+  }
+  return false;
+}
+
+function scopeMatches(ruleScope: string | undefined, requestedScope: string | undefined) {
+  if (!ruleScope || ruleScope === "*") return true;
+  if (!requestedScope) return true;
+  if (ruleScope === requestedScope) return true;
+  if (ruleScope.endsWith("*")) return requestedScope.startsWith(ruleScope.slice(0, -1));
+  return false;
+}
+
+function permissionResourceAliases(resource: string) {
+  const aliases: Record<string, string[]> = {
+    "repo.read": ["tool.repo.context.read", "tool.git.diff.read", "tool.repo.clone.read"],
+    "repo.mr.comment": ["tool.mr.comment.write"],
+    "repo.mr.merge": ["tool.repo.write"],
+    "secret.use": ["tool.secret.use"],
+  };
+  return [resource, ...(aliases[resource] ?? [])];
+}
+
+function collectPermissionRules(input: PluginRuntimeContextInput) {
+  const snapshot = parseRecord(input.taskRun?.permissionSnapshotJson);
+  const snapshotRules = Array.isArray(snapshot.rules)
+    ? snapshot.rules.filter(isRecord).map((rule) => rule as PluginPermissionRule)
+    : [];
+  return [...(input.permissionRules ?? []), ...snapshotRules];
+}
+
+function decidePermission(
+  request: PluginPermissionRequest,
+  rules: PluginPermissionRule[],
+): PluginPermissionDecision | null {
+  const resourceCandidates = permissionResourceAliases(request.resource);
+  const matched = rules.filter(
+    (rule) =>
+      resourceCandidates.some((resource) => resourceMatches(rule.resource, resource)) &&
+      scopeMatches(rule.scope, request.scope),
+  );
+  for (const effect of ["deny", "ask", "allow"] as const) {
+    const rule = matched.find((candidate) => normalizeEffect(candidate.effect) === effect);
+    if (rule) return { effect, reason: rule.reason };
+  }
+  return null;
+}
+
+function buildTaskContext(input: PluginRuntimeContextInput) {
+  const taskRun = input.taskRun;
+  const blueprint = input.blueprint;
+  return {
+    taskRun: taskRun
+      ? {
+          id: taskRun.id,
+          tenantSpaceId: taskRun.tenantSpaceId,
+          businessTeamId: taskRun.businessTeamId,
+          agentTeamId: taskRun.teamId,
+          blueprintId: taskRun.blueprintId,
+          sourceType: taskRun.sourceType,
+          sourceRef: taskRun.sourceRef,
+          status: taskRun.status,
+          runState: taskRun.runState,
+          traceId: taskRun.traceId,
+          inputPayload: parseRecord(taskRun.inputPayloadJson),
+          outputPayload: parseRecord(taskRun.outputPayloadJson),
+          permissionSnapshot: parseRecord(taskRun.permissionSnapshotJson),
+        }
+      : null,
+    blueprint: blueprint
+      ? {
+          id: blueprint.id,
+          name: blueprint.name,
+          category: blueprint.category,
+          visibility: blueprint.visibility,
+          ownerBusinessTeamId: blueprint.ownerBusinessTeamId,
+          agentTeamId: blueprint.teamId,
+          trigger: parseRecord(blueprint.triggerJson),
+          memoryPolicy: parseRecord(blueprint.memoryPolicyJson),
+          providerPolicy: parseRecord(blueprint.providerPolicyJson),
+          permissionPolicy: parseRecord(blueprint.permissionPolicyJson),
+          outputPolicy: parseRecord(blueprint.outputPolicyJson),
+          executionPolicy: parseRecord(blueprint.executionPolicyJson),
+        }
+      : null,
+  };
+}
+
+function buildEnvironmentContext(input: PluginRuntimeContextInput) {
+  const snapshot = input.environmentSnapshot;
+  return snapshot
+    ? {
+        id: snapshot.id,
+        taskRunId: snapshot.taskRunId,
+        templateId: snapshot.templateId,
+        environmentId: snapshot.environmentId,
+        snapshot: redactSensitive(parseRecord(snapshot.snapshotJson)),
+        createdAt: snapshot.createdAt,
+      }
+    : {};
+}
+
+export function createPluginRuntimeContext(
+  pluginId: string,
+  input: PluginRuntimeContextInput = {},
+): PluginRuntimeContext {
+  async function requestPluginPermission(
+    request: PluginPermissionRequest,
+  ): Promise<PluginPermissionDecision> {
+    const decision = decidePermission(request, collectPermissionRules(input));
+    if (decision) return decision;
+
+    if (
+      request.resource === "repo.read" ||
+      request.resource === "repo.mr.comment" ||
+      request.resource === "secret.use" ||
+      request.resource.startsWith("webhook.")
+    ) {
+      return { effect: "allow" };
+    }
+
+    return {
+      effect: "ask",
+    };
+  }
+
+  async function emitPluginEvent(event: {
+    type: string;
+    payload: Record<string, unknown>;
+  }) {
+    if (!input.taskRun) return;
+
+    const eventId = randomUUID();
+    const createdAt = nowIso();
+    const payload = redactSensitive({
+      ...event.payload,
+      pluginId,
+    }) as Record<string, unknown>;
+    const phase = event.type || "plugin_event";
+    const title =
+      typeof payload.title === "string" && payload.title.trim()
+        ? payload.title
+        : `Plugin event: ${phase}`;
+
+    execute(
+      "INSERT INTO event_logs (id, trace_id, task_run_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      eventId,
+      input.traceId ?? input.taskRun.traceId,
+      input.taskRun.id,
+      null,
+      getNextEventSeq(input.taskRun.id),
+      phase,
+      "Plugin",
+      title,
+      stringifyEventContent({ type: phase, payload }),
+      safeJson(payload),
+      createdAt,
+    );
+    execute(
+      "INSERT INTO task_events (id, task_run_id, agent_run_id, event_type, event_time, visibility, payload_json, raw_payload_ref, parent_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      eventId,
+      input.taskRun.id,
+      null,
+      phase,
+      createdAt,
+      normalizeVisibility(payload.visibility),
+      safeJson(payload),
+      typeof payload.rawPayloadRef === "string" ? payload.rawPayloadRef : null,
+      typeof payload.parentEventId === "string" ? payload.parentEventId : null,
+    );
+  }
+
   return {
     pluginId,
+    configuration: input.configuration,
     async readTaskContext() {
-      return {};
+      return buildTaskContext(input);
     },
     async readEnvironment() {
-      return {};
+      return buildEnvironmentContext(input);
     },
     async resolveSecretRef(ref: string) {
+      const decision = await requestPluginPermission({ resource: "secret.use", scope: ref });
+      if (decision.effect === "deny") {
+        throw new Error(decision.reason ?? `Permission denied: secret.use ${ref}`);
+      }
       return resolveSecretRef(ref);
     },
-    async requestPermission(input: PluginPermissionRequest) {
-      return {
-        effect: input.resource.startsWith("repo.") ? "allow" : "ask",
-      } satisfies PluginPermissionDecision;
+    async requestPermission(request: PluginPermissionRequest) {
+      return requestPluginPermission(request);
     },
-    async emitEvent() {
-      return;
+    async emitEvent(event) {
+      await emitPluginEvent(event);
     },
-    async createFinding() {
-      return `finding:${pluginId}:${Date.now()}`;
+    async createFinding(findingInput) {
+      if (!input.taskRun) return `finding:${pluginId}:${Date.now()}`;
+      const decision = await requestPluginPermission({
+        resource: "tool.finding.create",
+        scope: "task_run",
+      });
+      if (decision.effect === "deny") {
+        throw new Error(decision.reason ?? "Permission denied: tool.finding.create");
+      }
+
+      const finding = upsertFinding({
+        taskRunId: input.taskRun.id,
+        sourceAgent:
+          typeof findingInput.sourceAgent === "string" ? findingInput.sourceAgent : pluginId,
+        category: typeof findingInput.category === "string" ? findingInput.category : "plugin",
+        severity: typeof findingInput.severity === "string" ? findingInput.severity : "info",
+        confidence:
+          typeof findingInput.confidence === "number" || typeof findingInput.confidence === "string"
+            ? findingInput.confidence
+            : 1,
+        title:
+          typeof findingInput.title === "string" && findingInput.title.trim()
+            ? findingInput.title
+            : `Plugin finding from ${pluginId}`,
+        description:
+          typeof findingInput.description === "string" ? findingInput.description : "",
+        evidenceJson: isRecord(findingInput.evidence)
+          ? findingInput.evidence
+          : isRecord(findingInput.evidenceJson)
+            ? findingInput.evidenceJson
+            : {},
+        recommendation:
+          typeof findingInput.recommendation === "string"
+            ? findingInput.recommendation
+            : "",
+        skillRefsJson: Array.isArray(findingInput.skillRefs)
+          ? findingInput.skillRefs.map(String)
+          : Array.isArray(findingInput.skillRefsJson)
+            ? findingInput.skillRefsJson.map(String)
+            : [],
+        fingerprint: typeof findingInput.fingerprint === "string" ? findingInput.fingerprint : undefined,
+        status: typeof findingInput.status === "string" ? findingInput.status : "open",
+        publicationJson: isRecord(findingInput.publication)
+          ? findingInput.publication
+          : isRecord(findingInput.publicationJson)
+            ? findingInput.publicationJson
+            : { channels: [] },
+      });
+
+      await emitPluginEvent({
+        type: "finding_created",
+        payload: {
+          title: finding?.title ?? findingInput.title,
+          findingId: finding?.id,
+          severity: finding?.severity,
+        },
+      });
+      return finding?.id ?? `finding:${pluginId}:${Date.now()}`;
     },
-    async createArtifact() {
-      return `artifact:${pluginId}:${Date.now()}`;
+    async createArtifact(artifactInput) {
+      const decision = await requestPluginPermission({
+        resource: "tool.artifact.write",
+        scope: "task_archive",
+      });
+      if (decision.effect === "deny") {
+        throw new Error(decision.reason ?? "Permission denied: tool.artifact.write");
+      }
+      const artifactId = `artifact:${input.taskRun?.id ?? pluginId}:${randomUUID()}`;
+      await emitPluginEvent({
+        type: "artifact_generated",
+        payload: {
+          artifactId,
+          ...artifactInput,
+        },
+      });
+      return artifactId;
     },
   };
 }

@@ -539,7 +539,7 @@ export function listTaskEvents(taskRunId?: string) {
 }
 
 export function listFindings() {
-  return queryAll<Finding>("SELECT * FROM findings ORDER BY created_at DESC");
+  return queryAll<Finding>("SELECT * FROM findings WHERE status <> 'deleted' ORDER BY created_at DESC");
 }
 
 export function listProviderAdapterDefinitions() {
@@ -945,7 +945,10 @@ export function getTaskRunDetail(taskRunId: string) {
   const environmentSnapshot = taskRun.environmentSnapshotId
     ? queryOne<EnvironmentSnapshot>("SELECT * FROM environment_snapshots WHERE id = ?", taskRun.environmentSnapshotId)
     : null;
-  const findings = queryAll<Finding>("SELECT * FROM findings WHERE task_run_id = ? ORDER BY created_at DESC", taskRun.id);
+  const findings = queryAll<Finding>(
+    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' ORDER BY created_at DESC",
+    taskRun.id,
+  );
   const plan = queryOne<TaskRunPlan>("SELECT * FROM task_run_plans WHERE task_run_id = ?", taskRun.id);
   const nodes = queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRun.id);
   const interventions = queryAll<TaskRunIntervention>(
@@ -1330,7 +1333,7 @@ function ensureTaskRunSummaryFinding(args: {
   blueprint: TaskBlueprint | null;
 }) {
   const existing = queryOne<Finding>(
-    "SELECT * FROM findings WHERE task_run_id = ? LIMIT 1",
+    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' LIMIT 1",
     args.taskRun.id,
   );
   if (existing) return;
@@ -2092,7 +2095,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       : null;
     ensureTaskRunSummaryFinding({ taskRun: completedTaskRun, blueprint });
     const findings = queryAll<Finding>(
-      "SELECT * FROM findings WHERE task_run_id = ? ORDER BY created_at DESC",
+      "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' ORDER BY created_at DESC",
       completedTaskRun.id,
     );
     const environmentSnapshot = completedTaskRun.environmentSnapshotId

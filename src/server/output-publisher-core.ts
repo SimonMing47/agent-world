@@ -182,8 +182,13 @@ export async function publishTaskRunOutputs(args: {
           findings: args.findings,
           environmentSnapshot: args.environmentSnapshot,
           publisher,
-          }),
-        createPluginRuntimeContext(publisher.pluginId ?? executablePublisher.id),
+        }),
+        createPluginRuntimeContext(publisher.pluginId ?? executablePublisher.id, {
+          taskRun: args.taskRun,
+          blueprint: args.blueprint,
+          environmentSnapshot: args.environmentSnapshot,
+          configuration: publisher.config,
+        }),
       );
       const publicationStatus =
         payload.publicationStatus === "drafted" ? "drafted" : "published";
