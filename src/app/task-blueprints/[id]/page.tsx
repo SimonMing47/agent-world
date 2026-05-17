@@ -309,6 +309,8 @@ export default async function TaskBlueprintDetailPage({
                     <DataTableRow>
                       <DataTableHead>Agent</DataTableHead>
                       <DataTableHead>Agent ID</DataTableHead>
+                      <DataTableHead>块类型</DataTableHead>
+                      <DataTableHead>工具 / Hook</DataTableHead>
                       <DataTableHead>任务分工</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
@@ -317,6 +319,8 @@ export default async function TaskBlueprintDetailPage({
                       <DataTableRow key={`${worker.agent}-${worker.task}`}>
                         <DataTableCell className="font-medium text-[var(--ink)]">{worker.agentName}</DataTableCell>
                         <DataTableCell>{worker.agent}</DataTableCell>
+                        <DataTableCell>{worker.blockType ?? "agent"}</DataTableCell>
+                        <DataTableCell>{worker.tool ?? "agent.execute"}</DataTableCell>
                         <DataTableCell>{worker.task}</DataTableCell>
                       </DataTableRow>
                     ))}
