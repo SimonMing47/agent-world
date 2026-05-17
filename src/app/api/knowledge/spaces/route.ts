@@ -95,6 +95,10 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, space });
 }
 
+export async function PATCH(request: Request) {
+  return POST(request);
+}
+
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
   deleteKnowledgeSpace(body.id);

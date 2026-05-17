@@ -1,5 +1,6 @@
 import { BookOpen, Database, Eye, Layers3, RefreshCcw } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
+import { KnowledgeEntryForm } from "@/components/knowledge-entry-form";
 import { KnowledgeSpaceForm } from "@/components/knowledge-space-form";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -241,6 +242,12 @@ export default async function KnowledgePage() {
             eyebrow="Recent Knowledge"
             title="最近知识条目"
             description="任务上下文、Skill、人工反馈和归档结果都会进入这里。"
+            action={
+              <KnowledgeEntryForm
+                spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}
+                triggerLabel="新增知识条目"
+              />
+            }
           />
           <DataTable>
             <DataTableHeader>
@@ -248,6 +255,7 @@ export default async function KnowledgePage() {
                 <DataTableHead>条目</DataTableHead>
                 <DataTableHead>同步</DataTableHead>
                 <DataTableHead>URI</DataTableHead>
+                <DataTableHead>操作</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -259,6 +267,55 @@ export default async function KnowledgePage() {
                   </DataTableCell>
                   <DataTableCell>{syncStatusLabel(entry.syncStatus)}</DataTableCell>
                   <DataTableCell className="max-w-[360px] break-all font-mono text-xs">{entry.vikingUri}</DataTableCell>
+                  <DataTableCell>
+                    <div className="flex flex-wrap gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="ghost">
+                            <Eye className="h-4 w-4" />
+                            查看
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="w-[min(96vw,980px)]">
+                          <DialogHeader>
+                            <DialogTitle>{entry.title}</DialogTitle>
+                            <DialogDescription>知识条目的元数据、OpenViking 地址和 Markdown 内容。</DialogDescription>
+                          </DialogHeader>
+                          <DialogBody className="space-y-5">
+                            <DefinitionList
+                              columnsClassName="sm:grid-cols-2"
+                              items={[
+                                { label: "ID", value: entry.id },
+                                { label: "知识空间", value: entry.knowledgeSpaceId ?? "按知识层归档" },
+                                { label: "层", value: entry.layer },
+                                { label: "Scope", value: entry.scopeKey },
+                                { label: "来源", value: entry.sourceType },
+                                { label: "同步", value: syncStatusLabel(entry.syncStatus) },
+                                { label: "OpenViking URI", value: <span className="break-all font-mono text-xs">{entry.vikingUri}</span> },
+                                {
+                                  label: "元数据",
+                                  value: <pre className="whitespace-pre-wrap break-all font-mono text-xs">{entry.metadataJson}</pre>,
+                                },
+                              ]}
+                            />
+                            <pre className="max-h-[420px] overflow-auto rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 text-xs leading-5 text-[var(--ink-muted)]">
+                              {entry.contentMd}
+                            </pre>
+                          </DialogBody>
+                        </DialogContent>
+                      </Dialog>
+                      <KnowledgeEntryForm
+                        spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}
+                        entry={entry}
+                        triggerLabel="编辑"
+                      />
+                      <DeleteResourceButton
+                        endpoint="/api/knowledge/entries"
+                        id={entry.id}
+                        confirmText={`确认删除知识条目「${entry.title}」？`}
+                      />
+                    </div>
+                  </DataTableCell>
                 </DataTableRow>
               ))}
             </DataTableBody>
