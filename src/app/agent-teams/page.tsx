@@ -58,19 +58,19 @@ function parseWorkflowDefinition(value: string) {
 function translateTeamStructure(value: string) {
   const labels: Record<string, string> = {
     leader_worker: "Leader / Worker",
-    collaborative: "协作讨论",
-    reviewer_publisher: "评审 / 发布",
-    custom: "自定义",
+    collaborative: "ui.common.workflow.teamStructure.collaborative",
+    reviewer_publisher: "ui.common.workflow.teamStructure.reviewerPublisher",
+    custom: "ui.common.workflow.teamStructure.custom",
   };
   return labels[value] ?? value;
 }
 
 function translateAccessLevel(value: string) {
   const labels: Record<string, string> = {
-    owner: "归属团队",
-    viewer: "可查看",
-    operator: "可执行",
-    editor: "可编辑",
+    owner: "ui.common.workflow.accessLevel.owner",
+    viewer: "ui.common.workflow.accessLevel.viewer",
+    operator: "ui.common.workflow.accessLevel.operator",
+    editor: "ui.common.workflow.accessLevel.editor",
   };
   return labels[value] ?? value;
 }
@@ -91,7 +91,7 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
     id: "",
     businessTeamId: defaultBusinessTeamId,
     slug: "",
-    name: "新增执行团队",
+    name: "",
     description: "",
     leaderAgentId: null,
     workflowType: "parallel",
@@ -132,62 +132,62 @@ export default function AgentTeamsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="执行团队"
-        title="Agent 团队目录"
-        description="维护 Leader、成员、工作流和业务团队共享权限。"
+        eyebrow="ui.generated.cd4f6dd33b7"
+        title="ui.generated.c756547fe41"
+        description="ui.generated.cca6845699e"
         badges={[
-          { label: `${teams.length} 个 Agent 团队`, variant: "accent" },
-          { label: `${members.length} 个成员编排`, variant: "neutral" },
+          { label: <>{teams.length} ui.common.count.agentTeams</>, variant: "accent" },
+          { label: <>{members.length} ui.generated.c6fa3ec603b</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "团队总数",
+            label: "ui.generated.c044f1aaa0e",
             value: teams.length,
-            detail: `${teams.filter((team) => team.visibility === "global").length} 个全局可见`,
+            detail: <>{teams.filter((team) => team.visibility === "global").length} ui.common.detail.globalVisible</>,
           },
           {
-            label: "成员编排",
+            label: "ui.generated.c7fb887709e",
             value: members.length,
-            detail: `${members.filter((member) => member.status === "active").length} 个启用中`,
+            detail: <>{members.filter((member) => member.status === "active").length} ui.common.detail.activeOrchestrationMembers</>,
           },
           {
-            label: "共享关系",
+            label: "ui.generated.ce89edd2532",
             value: shares.length,
-            detail: `${new Set(shares.map((share) => share.businessTeamId)).size} 个业务团队收到授权`,
+            detail: <>{new Set(shares.map((share) => share.businessTeamId)).size} ui.common.detail.authorizedBusinessTeams</>,
           },
           {
-            label: "可选成员",
+            label: "ui.generated.c421ea172a3",
             value: agentDefinitions.length,
-            detail: `${executionPolicies.length} 条运行约束可绑定`,
+            detail: <>{executionPolicies.length} ui.common.detail.availableExecutionPolicies</>,
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="Agent 团队目录"
-          description="查看团队结构、共享范围和运行状态。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.c756547fe41"
+          description="ui.generated.c491928c3ae"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Agent 团队
+                  ui.generated.c77ea648602
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,1180px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Agent 团队</DialogTitle>
-                  <DialogDescription>选择 Agent 成员、定义工作流，并把它共享给需要使用它的业务团队。</DialogDescription>
+                  <DialogTitle>ui.generated.c77ea648602</DialogTitle>
+                  <DialogDescription>ui.generated.c9a87071575</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentTeamForm
                     embedded
-                    title="新增 Agent 团队"
+                    title="ui.generated.c77ea648602"
                     team={buildNewTeamTemplate(defaultBusinessTeamId, defaultExecutionPolicyId)}
                     members={[]}
                     shares={[]}
@@ -211,13 +211,13 @@ export default function AgentTeamsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHead>Agent 团队</DataTableHead>
-                <DataTableHead>归属业务团队</DataTableHead>
-                <DataTableHead>结构 / 工作流</DataTableHead>
-                <DataTableHead>成员编排</DataTableHead>
-                <DataTableHead>可见性 / 共享</DataTableHead>
-                <DataTableHead>更新时间</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c70f970c1fc</DataTableHead>
+                <DataTableHead>ui.generated.c26f30fd79b</DataTableHead>
+                <DataTableHead>ui.generated.c81a1f1c296</DataTableHead>
+                <DataTableHead>ui.generated.c7fb887709e</DataTableHead>
+                <DataTableHead>ui.generated.cd594b41326</DataTableHead>
+                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -240,13 +240,13 @@ export default function AgentTeamsPage() {
                       <div className="font-medium text-[var(--ink)]">{team.name}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{team.slug}</div>
                       <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                        Leader: {leader?.name ?? "未指定"}
+                        Leader: {leader?.name ?? "ui.generated.c8c577dc72c"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{ownerBusinessTeam?.name ?? "未指定"}</div>
+                      <div>{ownerBusinessTeam?.name ?? "ui.generated.c8c577dc72c"}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {executionPolicy?.name ?? "未绑定默认运行约束"}
+                        {executionPolicy?.name ?? "ui.generated.c26801dc990"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -256,17 +256,17 @@ export default function AgentTeamsPage() {
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{teamMembers.length} 个成员</div>
+                      <div>{teamMembers.length} ui.generated.ce8bf2e8cb2</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {roleSummary || "未配置职责"}
+                        {roleSummary || "ui.generated.caf1c75f2b4"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
                       <div>{translateVisibility(team.visibility)}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {teamShares.length > 0
-                          ? `共享给 ${teamShares.length} 个业务团队`
-                          : "未共享给其他团队"}
+                          ? <>ui.common.shareToPrefix {teamShares.length} ui.common.count.teams</>
+                          : "ui.generated.c1743329113"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(team.updatedAt)}</DataTableCell>
@@ -276,64 +276,64 @@ export default function AgentTeamsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,1080px)]">
                             <DialogHeader>
                               <DialogTitle>{team.name}</DialogTitle>
-                              <DialogDescription>查看团队结构、成员编排、共享权限和工作流定义。</DialogDescription>
+                              <DialogDescription>ui.generated.ce0b6c2a1ec</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "归属业务团队", value: ownerBusinessTeam?.name ?? "未指定" },
-                                  { label: "可见性", value: translateVisibility(team.visibility) },
-                                  { label: "工作流", value: translateWorkflowType(team.workflowType) },
-                                  { label: "团队结构", value: translateTeamStructure(workflow.teamStructure) },
-                                  { label: "Leader", value: leader?.name ?? "未指定" },
-                                  { label: "默认运行约束", value: executionPolicy?.name ?? "未绑定" },
-                                  { label: "并发数", value: String(team.maxConcurrency) },
-                                  { label: "超时", value: `${Math.round(team.timeoutMs / 60000)} 分钟` },
-                                  { label: "成功率目标", value: `${Math.round(team.successRateThreshold * 100)}%` },
-                                  { label: "更新时间", value: formatDateTime(team.updatedAt) },
+                                  { label: "ui.generated.c26f30fd79b", value: ownerBusinessTeam?.name ?? "ui.generated.c8c577dc72c" },
+                                  { label: "ui.generated.c747b74cec9", value: translateVisibility(team.visibility) },
+                                  { label: "ui.generated.ccc19798b0c", value: translateWorkflowType(team.workflowType) },
+                                  { label: "ui.generated.c16dc2c92c6", value: translateTeamStructure(workflow.teamStructure) },
+                                  { label: "Leader", value: leader?.name ?? "ui.generated.c8c577dc72c" },
+                                  { label: "ui.generated.c9d3ef9b7be", value: executionPolicy?.name ?? "ui.generated.c3bf179d8d0" },
+                                  { label: "ui.generated.cad9cc2683a", value: String(team.maxConcurrency) },
+                                  { label: "ui.generated.cff06c243d7", value: `${Math.round(team.timeoutMs / 60000)} min` },
+                                  { label: "ui.generated.c1ce42c1fd6", value: `${Math.round(team.successRateThreshold * 100)}%` },
+                                  { label: "ui.generated.c093dea88c9", value: formatDateTime(team.updatedAt) },
                                 ]}
                               />
 
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">团队说明</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c0ed5cf4445</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
-                                  {team.description || "未填写"}
+                                  {team.description || "ui.generated.c287a1d1034"}
                                 </div>
                               </div>
 
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">编排提示词</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c3d23524681</div>
                                 <pre className="max-h-[220px] overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 text-xs leading-5 text-[var(--ink)]">
-                                  {team.orchestrationPrompt || "未填写"}
+                                  {team.orchestrationPrompt || "ui.generated.c287a1d1034"}
                                 </pre>
                               </div>
 
                               <DefinitionList
                                 items={[
-                                  { label: "团队目标", value: workflow.teamObjective || "未定义" },
-                                  { label: "汇总方式", value: workflow.aggregationMethod },
-                                  { label: "冲突处理", value: workflow.conflictResolution },
-                                  { label: "拆分策略", value: workflow.splitStrategy || "未定义" },
+                                  { label: "ui.generated.c6a361e464d", value: workflow.teamObjective || "ui.generated.c47024abd2c" },
+                                  { label: "ui.generated.cbab38435a9", value: workflow.aggregationMethod },
+                                  { label: "ui.generated.c4aeeacc808", value: workflow.conflictResolution },
+                                  { label: "ui.generated.c815a1c560d", value: workflow.splitStrategy || "ui.generated.c47024abd2c" },
                                 ]}
                               />
 
                               <div className="space-y-3">
-                                <div className="text-sm font-medium text-[var(--ink)]">成员编排</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c7fb887709e</div>
                                 <div className="overflow-hidden rounded-xl border border-[var(--line)]">
                                   <DataTable>
                                     <DataTableHeader>
                                       <DataTableRow>
-                                        <DataTableHead>顺序</DataTableHead>
+                                        <DataTableHead>ui.generated.c20ee03ce77</DataTableHead>
                                         <DataTableHead>Agent</DataTableHead>
-                                        <DataTableHead>团队角色</DataTableHead>
-                                        <DataTableHead>状态</DataTableHead>
-                                        <DataTableHead>工作说明</DataTableHead>
+                                        <DataTableHead>ui.generated.cf39bcb6746</DataTableHead>
+                                        <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                                        <DataTableHead>ui.generated.c2a76f7b961</DataTableHead>
                                       </DataTableRow>
                                     </DataTableHeader>
                                     <DataTableBody>
@@ -348,7 +348,7 @@ export default function AgentTeamsPage() {
                                           </DataTableCell>
                                           <DataTableCell>{member.memberRole}</DataTableCell>
                                           <DataTableCell>{translateStatus(member.status)}</DataTableCell>
-                                          <DataTableCell>{member.workInstruction || "继承默认职责"}</DataTableCell>
+                                          <DataTableCell>{member.workInstruction || "ui.generated.c5a80718a62"}</DataTableCell>
                                         </DataTableRow>
                                       ))}
                                     </DataTableBody>
@@ -357,18 +357,18 @@ export default function AgentTeamsPage() {
                               </div>
 
                               <div className="space-y-3">
-                                <div className="text-sm font-medium text-[var(--ink)]">共享到业务团队</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c21a61d9642</div>
                                 <div className="overflow-hidden rounded-xl border border-[var(--line)]">
                                   <DataTable>
                                     <DataTableHeader>
                                       <DataTableRow>
-                                        <DataTableHead>业务团队</DataTableHead>
-                                        <DataTableHead>访问级别</DataTableHead>
+                                        <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
+                                        <DataTableHead>ui.generated.cf1b1d674c3</DataTableHead>
                                       </DataTableRow>
                                     </DataTableHeader>
                                     <DataTableBody>
                                       <DataTableRow>
-                                        <DataTableCell>{ownerBusinessTeam?.name ?? "未指定"}</DataTableCell>
+                                        <DataTableCell>{ownerBusinessTeam?.name ?? "ui.generated.c8c577dc72c"}</DataTableCell>
                                         <DataTableCell>{translateAccessLevel("owner")}</DataTableCell>
                                       </DataTableRow>
                                       {teamShares.map((share) => (
@@ -392,18 +392,18 @@ export default function AgentTeamsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 {team.name}</DialogTitle>
-                              <DialogDescription>调整团队结构、工作流、共享权限和成员职责。</DialogDescription>
+                              <DialogTitle>ui.generated.ca7f814c0a4 {team.name}</DialogTitle>
+                              <DialogDescription>ui.generated.c423411c827</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <AgentTeamForm
                                 embedded
-                                title={`编辑 ${team.name}`}
+                                title="actions.edit"
                                 team={team}
                                 members={teamMembers.map((member) => ({
                                   id: member.id,
@@ -434,7 +434,7 @@ export default function AgentTeamsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/agent-teams" id={team.id} confirmText={`确认删除 Agent 团队「${team.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/agent-teams" id={team.id} confirmParams={{ resource: "ui.common.resources.agentTeam", name: team.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

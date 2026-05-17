@@ -16,6 +16,7 @@ import {
   type TeamPermissionGrant,
   type TenantSpace,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 function nowIso() {
   return new Date().toISOString();
@@ -179,7 +180,7 @@ export function importTeamMembersFromRows(args: {
       tenantSpaceId: args.tenantSpaceId,
       businessTeamId: args.businessTeamId,
       employeeNo: row[0] ?? "",
-      name: row[1] ?? row[0] ?? "未命名成员",
+      name: row[1] ?? row[0] ?? uiText("ui.generated.cc8c611f694"),
       email: row[2] ?? "",
       role: row[3] ?? "member",
       title: row[4] ?? "",
@@ -415,7 +416,7 @@ export function deleteManagedResource(input: { type: string; id: string }) {
       execute("UPDATE task_blueprints SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
       break;
     default:
-      throw new Error(`不支持删除的资源类型: ${input.type}`);
+      throw new Error(uiText("ui.server.governance.unsupportedDelete", undefined, { type: input.type }));
   }
   return { ok: true };
 }

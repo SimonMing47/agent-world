@@ -54,39 +54,39 @@ export default async function TeamPermissionsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="团队治理"
-        title="团队成员权限"
-        description="维护成员和角色对系统资源的操作权限。"
+        eyebrow="ui.generated.c41decbbd6e"
+        title="ui.generated.cee253da8fd"
+        description="ui.generated.c1a899e8410"
         badges={[
-          { label: `${visibleGrants.length} 条权限`, variant: "accent" },
-          { label: `${visibleGrants.filter((grant) => grant.effect === "deny").length} 条拒绝`, variant: "warning" },
+          { label: <>{visibleGrants.length} ui.common.count.permissionRules</>, variant: "accent" },
+          { label: <>{visibleGrants.filter((grant) => grant.effect === "deny").length} ui.common.count.rejectionRules</>, variant: "warning" },
           ...(selectedTeam ? [{ label: selectedTeam.name, variant: "success" as const }] : []),
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "当前视角", value: selectedTeam?.name ?? "全部团队", detail: selectedTeam ? "来自组织树跳转" : "未限定业务团队" },
-          { label: "允许", value: visibleGrants.filter((grant) => grant.effect === "allow").length, detail: "直接放行规则" },
-          { label: "需审批", value: visibleGrants.filter((grant) => grant.effect === "ask").length, detail: "运行时确认" },
-          { label: "拒绝", value: visibleGrants.filter((grant) => grant.effect === "deny").length, detail: "优先阻断规则" },
+          { label: "ui.generated.c4ffbca2945", value: selectedTeam?.name ?? "ui.generated.cbd2c65c3b9", detail: selectedTeam ? "ui.generated.cbc11cb027d" : "ui.generated.c37efe8d964" },
+          { label: "ui.generated.c4c0c0aed67", value: visibleGrants.filter((grant) => grant.effect === "allow").length, detail: "ui.generated.c67a85b8c85" },
+          { label: "ui.generated.cd00dc39af5", value: visibleGrants.filter((grant) => grant.effect === "ask").length, detail: "ui.generated.cff7c9677f6" },
+          { label: "ui.generated.c03e210a66d", value: visibleGrants.filter((grant) => grant.effect === "deny").length, detail: "ui.generated.c09f0ffea66" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="权限规则"
-          title="权限规则"
-          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的权限规则。` : "查看主体、资源、范围和策略效果。"}
+          eyebrow="ui.generated.c95f4519aab"
+          title="ui.generated.c95f4519aab"
+          description={selectedTeam ? <>ui.common.detail.currentOnlyShows {selectedTeam.name} ui.common.detail.permissionsOnly</> : "ui.generated.cbd2a8e919d"}
           action={
             <div className="flex flex-wrap gap-2">
               {selectedTeam ? (
-                <Button asChild size="sm" variant="ghost"><Link href="/team-permissions">查看全部</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href="/team-permissions">ui.generated.ced2172fd78</Link></Button>
               ) : null}
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增权限</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.c31493c4a03</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,860px)]">
-                  <DialogHeader><DialogTitle>新增权限规则</DialogTitle><DialogDescription>配置成员、资源范围和允许动作。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.c5b3707437a</DialogTitle><DialogDescription>ui.generated.ce6f2bfc65d</DialogDescription></DialogHeader>
                   <DialogBody>
                     <PermissionGrantForm
                       businessTeams={teamOptions}
@@ -114,12 +114,12 @@ export default async function TeamPermissionsPage({
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>角色</DataTableHead>
-                <DataTableHead>团队 / 成员</DataTableHead>
-                <DataTableHead>资源</DataTableHead>
-                <DataTableHead>动作</DataTableHead>
-                <DataTableHead>效果</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c6b26695e4d</DataTableHead>
+                <DataTableHead>ui.generated.c79b92cb768</DataTableHead>
+                <DataTableHead>ui.generated.cc5ca3950cb</DataTableHead>
+                <DataTableHead>ui.generated.cd9d9827827</DataTableHead>
+                <DataTableHead>ui.generated.c151ddd4f1f</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -130,8 +130,8 @@ export default async function TeamPermissionsPage({
                   <DataTableRow key={grant.id}>
                     <DataTableCell>{grant.roleKey}</DataTableCell>
                     <DataTableCell>
-                      <div className="font-medium text-[var(--ink)]">{team?.name ?? "未知团队"}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member?.name ?? "团队角色"}</div>
+                      <div className="font-medium text-[var(--ink)]">{team?.name ?? "ui.generated.c718c1c03d6"}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member?.name ?? "ui.generated.cf39bcb6746"}</div>
                     </DataTableCell>
                     <DataTableCell>{grant.resourceType} · {grant.resourceScope}</DataTableCell>
                     <DataTableCell className="max-w-[320px]">{actions(grant.actionsJson)}</DataTableCell>
@@ -139,13 +139,13 @@ export default async function TeamPermissionsPage({
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
-                            <DialogHeader><DialogTitle>编辑权限</DialogTitle><DialogDescription>{grant.roleKey}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.c143e809caf</DialogTitle><DialogDescription>{grant.roleKey}</DialogDescription></DialogHeader>
                             <DialogBody><PermissionGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/team-permissions" id={grant.id} confirmText={`确认删除权限规则「${grant.roleKey}」？`} />
+                        <DeleteResourceButton endpoint="/api/team-permissions" id={grant.id} confirmParams={{ resource: "ui.common.resources.permissionRules", name: grant.roleKey }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

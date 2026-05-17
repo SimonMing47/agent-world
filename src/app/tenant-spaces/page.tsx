@@ -34,29 +34,29 @@ export default function TenantSpacesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="租户空间"
-        title="租户空间"
-        description="维护租户、预算、模型白名单和全局策略。"
-        badges={[{ label: `${tenantSpaces.length} 个租户空间`, variant: "accent" }]}
+        eyebrow="ui.generated.c3db35d2741"
+        title="ui.generated.c3db35d2741"
+        description="ui.generated.c20aad74d91"
+        badges={[{ label: <>{tenantSpaces.length} ui.common.count.tenantSpaces</>, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="租户空间目录"
-          description="查看租户状态、配额和模型范围。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.c876e95aa2c"
+          description="ui.generated.cbd9a3fbb56"
           action={
             <Dialog>
-              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增租户</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.ceed541bc43</Button></DialogTrigger>
               <DialogContent className="w-[min(94vw,900px)]">
-                <DialogHeader><DialogTitle>新增租户空间</DialogTitle><DialogDescription>配置配额、模型白名单和全局 Guardrails。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>ui.generated.c228c87ecd3</DialogTitle><DialogDescription>ui.generated.c004f7c0cda</DialogDescription></DialogHeader>
                 <DialogBody>
                   <TenantSpaceForm
                     executionPolicies={policyOptions}
                     tenantSpace={{
                       id: "",
                       slug: "new-tenant",
-                      name: "新增租户空间",
+                      name: "",
                       ownerUserId: "console",
                       status: "active",
                       quotaLimitJson: "{}",
@@ -74,12 +74,12 @@ export default function TenantSpacesPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>租户</DataTableHead>
-                <DataTableHead>业务团队</DataTableHead>
-                <DataTableHead>默认策略</DataTableHead>
+                <DataTableHead>ui.generated.ccc04fa896e</DataTableHead>
+                <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
+                <DataTableHead>ui.generated.c42dbbbccc8</DataTableHead>
                 <DataTableHead>Owner</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -93,21 +93,21 @@ export default function TenantSpacesPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{tenantSpace.slug}</div>
                     </DataTableCell>
                     <DataTableCell>{teamCount}</DataTableCell>
-                    <DataTableCell>{policy?.name ?? "未绑定"}</DataTableCell>
+                    <DataTableCell>{policy?.name ?? "ui.generated.c3bf179d8d0"}</DataTableCell>
                     <DataTableCell>{tenantSpace.ownerUserId}</DataTableCell>
                     <DataTableCell><Badge variant={tenantSpace.status === "active" ? "success" : "neutral"}>{tenantSpace.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{tenantSpace.name}</DialogTitle><DialogDescription>租户空间明细。</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>{tenantSpace.name}</DialogTitle><DialogDescription>ui.generated.cf3cb68d9f5</DialogDescription></DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 items={[
-                                  { label: "租户 ID", value: tenantSpace.id },
-                                  { label: "配额", value: tenantSpace.quotaLimitJson },
-                                  { label: "模型白名单", value: tenantSpace.modelWhitelistJson },
+                                  { label: "ui.generated.cf1799641bb", value: tenantSpace.id },
+                                  { label: "ui.generated.c560ab47a63", value: tenantSpace.quotaLimitJson },
+                                  { label: "ui.generated.c2a36e7056a", value: tenantSpace.modelWhitelistJson },
                                   { label: "Guardrails", value: tenantSpace.globalGuardrailsJson },
                                 ]}
                               />
@@ -115,13 +115,13 @@ export default function TenantSpacesPage() {
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,900px)]">
-                            <DialogHeader><DialogTitle>编辑租户空间</DialogTitle><DialogDescription>{tenantSpace.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.c827a0e1301</DialogTitle><DialogDescription>{tenantSpace.name}</DialogDescription></DialogHeader>
                             <DialogBody><TenantSpaceForm executionPolicies={policyOptions} tenantSpace={tenantSpace} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/tenant-spaces" id={tenantSpace.id} confirmText={`确认删除租户空间「${tenantSpace.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/tenant-spaces" id={tenantSpace.id} confirmParams={{ resource: "ui.common.resources.tenantSpace", name: tenantSpace.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

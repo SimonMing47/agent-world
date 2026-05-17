@@ -10,6 +10,7 @@ import {
 } from "@/server/db";
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
 import { writeLayeredKnowledge } from "@/server/openviking-core";
+import { uiText } from "@/lib/language-pack";
 
 export type SkillDraft = {
   id?: string;
@@ -127,7 +128,7 @@ export function upsertSkill(input: SkillDraft) {
 
 export async function syncSkillToOpenViking(skillId: string) {
   const skill = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
-  if (!skill) throw new Error("Skill 不存在。");
+  if (!skill) throw new Error(uiText("ui.generated.cd4fe99088a"));
 
   const result = await writeLayeredKnowledge({
     layer: skill.layer,
@@ -171,13 +172,13 @@ export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizatio
         promptMd: [
           input.skill.promptMd.trim(),
           "",
-          "## 执行要求",
-          "- 明确输入范围、证据来源和输出格式。",
-          "- 只基于可见证据生成结论，无法确认时输出待确认项。",
-          "- 产出结果需要可追溯到任务、知识空间和工具调用。",
+          uiText("ui.generated.c0586838af3"),
+          uiText("ui.generated.ca94d6b5839"),
+          uiText("ui.generated.c87bbbb5776"),
+          uiText("ui.generated.c8f0ea7cbd5"),
         ].join("\n"),
-        tags: Array.from(new Set([...normalizeTags(input.skill.tags), "可运行", "团队治理"])),
-        notes: ["当前没有可用模型或 API Key，已使用本地规则完成结构化润色。"],
+        tags: Array.from(new Set([...normalizeTags(input.skill.tags), uiText("ui.generated.cf381c96b91"), uiText("ui.generated.c41decbbd6e")])),
+        notes: [uiText("ui.generated.c6f1aed420b")],
       },
     };
   }
@@ -191,8 +192,8 @@ export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizatio
           role: "user",
           timestamp: Date.now(),
           content: [
-            "请优化下面这个 AgentWorld Skill，使它适合团队级 Agent 在任务运行时调用。",
-            "输出必须是 JSON，不要输出额外解释。",
+            uiText("ui.generated.c02dd3e809e"),
+            uiText("ui.generated.cbc1f6c13ce"),
             'JSON schema: {"name":"string","description":"string","promptMd":"string","tags":["string"],"heuristics":{},"notes":["string"]}',
             `Name: ${input.skill.name}`,
             `Layer: ${input.skill.layer}`,
@@ -202,7 +203,7 @@ export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizatio
             `Prompt:\n${input.skill.promptMd}`,
             `Heuristics:\n${input.skill.heuristicsJson}`,
             input.optimizationGoal ? `Optimization goal:\n${input.optimizationGoal}` : "",
-            "目标：强化职责边界、输入输出契约、证据要求、权限约束和可复用标签，不要写成泛泛提示词。",
+            uiText("ui.generated.ce1ebfa417c"),
           ]
             .filter(Boolean)
             .join("\n\n"),
@@ -217,12 +218,12 @@ export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizatio
   );
 
   if (response.stopReason === "error") {
-    throw new Error(response.errorMessage ?? "优化 Skill 失败。");
+    throw new Error(response.errorMessage ?? uiText("ui.generated.c7449e0571d"));
   }
 
   const rawText = flattenVisibleText(response);
   const parsed = extractJsonObject(rawText);
-  if (!parsed) throw new Error("模型返回的 Skill 优化结果不是有效 JSON。");
+  if (!parsed) throw new Error(uiText("ui.generated.c6ce01bd0a3"));
 
   return {
     usedModel: true,

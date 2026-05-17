@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteManagedResource } from "@/server/governance-core";
 import { getAgentDefinition, upsertAgentDefinition } from "@/server/queries";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const detail = getAgentDefinition(id);
 
   if (!detail) {
-    return NextResponse.json({ ok: false, error: "Agent 定义不存在。" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: uiText("ui.api.errors.agentDefinitionNotFound") }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true, detail });
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ ok: true, detail });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Agent 定义失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveAgentDefinitionFailed") },
       { status: 400 },
     );
   }

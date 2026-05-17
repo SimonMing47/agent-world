@@ -104,34 +104,34 @@ export function KnowledgeSpaceForm({
       <DialogTrigger asChild>
         <Button variant={isEdit ? "secondary" : "primary"} size={isEdit ? "sm" : "md"}>
           {isEdit ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {triggerLabel ?? (isEdit ? "编辑" : "新增知识空间")}
+          {triggerLabel ?? (isEdit ? "ui.generated.ca7f814c0a4" : "ui.generated.ce8ee721172")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑知识空间" : "新增知识空间"}</DialogTitle>
+          <DialogTitle>{isEdit ? "ui.generated.cf0358f24e2" : "ui.generated.ce8ee721172"}</DialogTitle>
           <DialogDescription>
-            为业务团队、项目或 Agent 团队创建 OpenViking URI 空间，并自动写入访问绑定。
+            ui.generated.c5a59ef27cc
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <form action={submit} className="grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldGroup label="名称">
-                <Input name="name" required defaultValue={space?.name} placeholder="例如：支付项目安全知识" />
+              <FieldGroup label="ui.generated.c1be7ae4fc2">
+                <Input name="name" required defaultValue={space?.name} placeholder="ui.generated.cb96b5b40e4" />
               </FieldGroup>
-              <FieldGroup label="标识">
+              <FieldGroup label="ui.generated.c3537d5ef90">
                 <Input name="slug" defaultValue={space?.slug} placeholder="payment-security" />
               </FieldGroup>
-              <FieldGroup label="空间类型">
+              <FieldGroup label="ui.generated.cf0346e5ccd">
                 <Select value={spaceType} onChange={(event) => setSpaceType(event.target.value)}>
-                  <option value="global">全局</option>
-                  <option value="team">团队</option>
-                  <option value="project">项目</option>
-                  <option value="agent_team">Agent 团队</option>
+                  <option value="global">ui.generated.ca5644f4bbf</option>
+                  <option value="team">ui.generated.c21d7042ff0</option>
+                  <option value="project">ui.generated.c22336e6b89</option>
+                  <option value="agent_team">ui.generated.c70f970c1fc</option>
                 </Select>
               </FieldGroup>
-              <FieldGroup label="业务团队">
+              <FieldGroup label="ui.generated.c2b90028ff3">
                 <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
                   {businessTeams.map((team) => (
                     <option key={team.id} value={team.id}>
@@ -140,9 +140,9 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="Agent 团队">
+              <FieldGroup label="ui.generated.c70f970c1fc">
                 <Select name="agentTeamId" disabled={spaceType !== "agent_team"} defaultValue={space?.agentTeamId ?? ""}>
-                  <option value="">不绑定</option>
+                  <option value="">ui.generated.c9a0ee40403</option>
                   {availableAgentTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -150,33 +150,33 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="项目 Key">
+              <FieldGroup label="ui.generated.cc7e9d69ec3">
                 <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder="group/project" />
               </FieldGroup>
-              <FieldGroup label="可见性">
+              <FieldGroup label="ui.generated.c747b74cec9">
                 <Select name="visibility" defaultValue={space?.visibility ?? (spaceType === "global" ? "global" : "team")}>
-                  <option value="global">全局可见</option>
-                  <option value="team">团队可见</option>
-                  <option value="private">私有</option>
+                  <option value="global">ui.generated.cdab54dd8bb</option>
+                  <option value="team">ui.generated.c2fb77afec8</option>
+                  <option value="private">ui.generated.c6858674b88</option>
                 </Select>
               </FieldGroup>
-              <FieldGroup label="状态">
+              <FieldGroup label="ui.generated.c62e951a692">
                 <Select name="status" defaultValue={space?.status ?? "active"}>
-                  <option value="active">启用</option>
-                  <option value="paused">停用</option>
-                  <option value="archived">归档</option>
+                  <option value="active">ui.generated.cd4e9ca3dd4</option>
+                  <option value="paused">ui.generated.cd989e55188</option>
+                  <option value="archived">ui.generated.cddfde75bec</option>
                 </Select>
               </FieldGroup>
             </div>
-            <FieldGroup label="描述">
+            <FieldGroup label="ui.generated.c412f54dc38">
               <Textarea
                 name="description"
                 rows={4}
                 defaultValue={space?.description}
-                placeholder="说明这个空间保存哪些规范、历史经验、项目上下文或 Skill。"
+                placeholder="ui.generated.c1bb4774122"
               />
             </FieldGroup>
-            <FieldGroup label="保留策略 JSON">
+            <FieldGroup label="ui.generated.c912c81fea0">
               <Textarea
                 name="retentionPolicyJson"
                 rows={4}
@@ -186,10 +186,10 @@ export function KnowledgeSpaceForm({
             </FieldGroup>
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setOpen(false)}>
-                取消
+                ui.generated.c4d0b4688c7
               </Button>
               <Button type="submit" variant="primary" disabled={pending}>
-                {pending ? "保存中" : "保存"}
+                {pending ? "ui.generated.ca032e8fdda" : "ui.generated.cfadf24dbc5"}
               </Button>
             </div>
           </form>

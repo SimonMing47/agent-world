@@ -13,6 +13,7 @@ import {
   type WorkflowBlockType,
 } from "@/components/task-workflow-block-editor";
 import { Textarea } from "@/components/ui/textarea";
+import { uiText } from "@/lib/language-pack";
 
 type AgentTeamOption = {
   id: string;
@@ -223,7 +224,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       return {
         id: normalizeBlockId(raw.id, index),
         type,
-        title: typeof raw.title === "string" ? raw.title : `执行块 ${index + 1}`,
+        title: typeof raw.title === "string" ? raw.title : uiText("ui.common.workflowBlockTitle", undefined, { index: index + 1 }),
         agentId:
           typeof raw.agentId === "string"
             ? raw.agentId
@@ -269,11 +270,11 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
     blocks.push({
       id: "plan",
       type: "agent",
-      title: "任务拆解",
+      title: "ui.generated.cf6da0a93ac",
       agentId: leader.id,
       agentTeamId: "",
       dependsOn: [],
-      instruction: runPlan.objective || "读取输入并拆解执行计划。",
+      instruction: runPlan.objective || "ui.generated.c1433d74547",
       tool: "memory.retrieve",
       action: "plan",
       script: "",
@@ -292,13 +293,13 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
           .filter((member) => member.id !== leader?.id)
           .map((member) => ({
             agent: member.id,
-            task: member.workInstruction || `${member.memberRole || member.role} 执行任务`,
+            task: member.workInstruction || uiText("ui.common.workflowMemberTask", undefined, { role: member.memberRole || member.role }),
           }));
   workerBlocks.forEach((worker, index) => {
     blocks.push({
       id: `worker_${index + 1}`,
       type: "agent",
-      title: `执行分工 ${index + 1}`,
+      title: uiText("ui.common.workflowAssignmentTitle", undefined, { index: index + 1 }),
       agentId: String(worker.agent ?? ""),
       agentTeamId: "",
       dependsOn: leader ? ["plan"] : [],
@@ -318,11 +319,11 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
     blocks.push({
       id: "publish",
       type: "notification",
-      title: "结果汇总与发布",
+      title: "ui.generated.c6d055fd14e",
       agentId: leader.id,
       agentTeamId: "",
       dependsOn: workerBlocks.length ? workerBlocks.map((_, index) => `worker_${index + 1}`) : ["plan"],
-      instruction: "汇总执行结果，生成 Finding、报告或通知。",
+      instruction: uiText("ui.common.workflowAggregationInstruction"),
       tool: "finding.aggregate",
       action: "publish",
       script: "",
@@ -500,7 +501,7 @@ export function TaskBlueprintEditor({
   blueprint,
   options,
   embedded = false,
-  title = "任务定义编辑",
+  title = uiText("ui.common.workflowEditorTitle"),
   onSaved,
 }: TaskBlueprintEditorProps) {
   const router = useRouter();
@@ -606,19 +607,19 @@ export function TaskBlueprintEditor({
 
     if (!form.name.trim()) {
       setIsSaving(false);
-      setMessage("请先填写任务名称。");
+      setMessage("ui.generated.c9f0353fb87");
       return;
     }
 
     if (!form.ownerBusinessTeamId.trim()) {
       setIsSaving(false);
-      setMessage("请先选择归属业务团队。");
+      setMessage("ui.generated.ca5569f6d6d");
       return;
     }
 
     if (!form.teamId.trim()) {
       setIsSaving(false);
-      setMessage("请先关联 Agent 团队。");
+      setMessage("ui.generated.c80262586b1");
       return;
     }
 
@@ -626,19 +627,19 @@ export function TaskBlueprintEditor({
 
     if (form.triggerType === "cron" && !form.triggerExpression.trim()) {
       setIsSaving(false);
-      setMessage("定时任务需要填写 Cron 表达式。");
+      setMessage("ui.generated.c9269fbd4c7");
       return;
     }
 
     if (form.triggerType === "webhook" && !form.triggerWebhookPathKey.trim()) {
       setIsSaving(false);
-      setMessage("Webhook 任务需要填写自定义路径标识。");
+      setMessage("ui.generated.c1a99f7840e");
       return;
     }
 
     if (form.blocks.length === 0) {
       setIsSaving(false);
-      setMessage("请至少配置一个执行编排块。");
+      setMessage("ui.generated.cc79d90e253");
       return;
     }
 
@@ -653,7 +654,9 @@ export function TaskBlueprintEditor({
     });
     if (invalidBlock) {
       setIsSaving(false);
-      setMessage(`执行块 ${invalidBlock.title || invalidBlock.id} 配置不完整。`);
+      setMessage(uiText("ui.common.workflowBlockInvalid", undefined, {
+        title: invalidBlock.title || invalidBlock.id,
+      }));
       return;
     }
 
@@ -682,7 +685,7 @@ export function TaskBlueprintEditor({
       });
     } catch {
       setIsSaving(false);
-      setMessage("JSON 格式不正确。");
+      setMessage("ui.generated.ce0ca545e60");
       return;
     }
 
@@ -765,11 +768,11 @@ export function TaskBlueprintEditor({
     setIsSaving(false);
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setMessage(body.error ?? "保存失败。");
+      setMessage(body.error ?? "ui.generated.c052ebc86b3");
       return;
     }
 
-    setMessage("已保存任务定义。");
+    setMessage("ui.generated.ca17f0ff2ba");
     onSaved?.();
     router.refresh();
   }
@@ -777,7 +780,7 @@ export function TaskBlueprintEditor({
   const content = (
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="任务名称">
+        <FieldGroup label="ui.generated.c2e30469899">
           <Input
             value={form.name}
             onChange={(event) =>
@@ -787,10 +790,10 @@ export function TaskBlueprintEditor({
                 id: current.id ? current.id : slugifyTaskKey(event.target.value),
               }))
             }
-            placeholder="每日安全检视"
+            placeholder="ui.generated.c0b74771e95"
           />
         </FieldGroup>
-        <FieldGroup label="任务 Key" hint="新建任务时自动按名称生成，可手动覆盖。">
+        <FieldGroup label="ui.generated.c617a5f9a25" hint="ui.generated.c15ec820bb8">
           <Input
             value={form.id}
             onChange={(event) => setForm({ ...form, id: slugifyTaskKey(event.target.value) })}
@@ -798,19 +801,19 @@ export function TaskBlueprintEditor({
             disabled={Boolean(blueprint.id)}
           />
         </FieldGroup>
-        <FieldGroup label="任务类别">
+        <FieldGroup label="ui.generated.c3c943b28b2">
           <Input
             value={form.category}
             onChange={(event) => setForm({ ...form, category: event.target.value })}
             placeholder="security_review"
           />
         </FieldGroup>
-        <FieldGroup label="归属业务团队">
+        <FieldGroup label="ui.generated.c26f30fd79b">
           <Select
             value={form.ownerBusinessTeamId}
             onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
           >
-            <option value="">选择业务团队</option>
+            <option value="">ui.generated.cc51fbedf93</option>
             {options.businessTeams.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
@@ -818,7 +821,7 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="关联 Agent 团队" hint="任务实际执行时会调用这里选中的 Agent 团队。">
+        <FieldGroup label="ui.generated.c773c1f915b" hint="ui.generated.cd5ac6f172a">
           <Select
             value={form.teamId}
             onChange={(event) => {
@@ -832,7 +835,7 @@ export function TaskBlueprintEditor({
               });
             }}
           >
-            <option value="">选择 Agent 团队</option>
+            <option value="">ui.generated.c9750d7aa4d</option>
             {options.agentTeams.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
@@ -840,7 +843,7 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="可见性">
+        <FieldGroup label="ui.generated.c747b74cec9">
           <Select
             value={form.visibility}
             onChange={(event) => setForm({ ...form, visibility: event.target.value })}
@@ -852,7 +855,7 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select
             value={form.status}
             onChange={(event) => setForm({ ...form, status: event.target.value })}
@@ -864,7 +867,7 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="版本">
+        <FieldGroup label="ui.generated.c989d1affa0">
           <Input
             value={form.version}
             onChange={(event) => setForm({ ...form, version: event.target.value })}
@@ -874,16 +877,16 @@ export function TaskBlueprintEditor({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="触发方式">
+        <FieldGroup label="ui.generated.cf67f1852d8">
           <Select
             value={form.triggerType}
             onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
           >
             {[
-              ["manual", "一次性 / 手动触发"],
-              ["cron", "定时触发"],
-              ["webhook", "Webhook 触发"],
-              ["access_grant", "跨团队授权触发"],
+              ["manual", "ui.generated.c4a5859fe7a"],
+              ["cron", "ui.generated.c71a57ee3f4"],
+              ["webhook", "ui.generated.cbae9dc4399"],
+              ["access_grant", "ui.generated.cd6f28580d0"],
             ].map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -891,35 +894,35 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="幂等键模板" hint="例如 ${repo_id}:${mr_id}:${source_commit_sha}">
+        <FieldGroup label="ui.generated.cbec9421d1b" hint="ui.generated.c39ea9b45fa">
           <Input
             value={form.triggerIdempotencyKey}
             onChange={(event) => setForm({ ...form, triggerIdempotencyKey: event.target.value })}
             placeholder="${task_blueprint_id}:${run_date}"
           />
         </FieldGroup>
-        <FieldGroup label="连接器">
+        <FieldGroup label="ui.generated.cc2dd028659">
           <Input
             value={form.triggerConnector}
             onChange={(event) => setForm({ ...form, triggerConnector: event.target.value })}
             placeholder="gitlab / github / custom"
           />
         </FieldGroup>
-        <FieldGroup label="事件名">
+        <FieldGroup label="ui.generated.c4c93b76aa6">
           <Input
             value={form.triggerEvent}
             onChange={(event) => setForm({ ...form, triggerEvent: event.target.value })}
             placeholder="merge_request.updated"
           />
         </FieldGroup>
-        <FieldGroup label="Webhook 路径标识">
+        <FieldGroup label="ui.generated.c7ce0c7ebfa">
           <Input
             value={form.triggerWebhookPathKey}
             onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
             placeholder="shield-review"
           />
         </FieldGroup>
-        <FieldGroup label="Cron 表达式">
+        <FieldGroup label="ui.generated.c6859f82ab2">
           <Input
             value={form.triggerExpression}
             onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
@@ -929,12 +932,12 @@ export function TaskBlueprintEditor({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="执行环境" hint="选择代码仓、执行人、默认路径和未来沙箱的归属环境。">
+        <FieldGroup label="ui.generated.c059d73c843" hint="ui.generated.c7600fcef60">
           <Select
             value={form.environmentId}
             onChange={(event) => setForm({ ...form, environmentId: event.target.value })}
           >
-            <option value="">未绑定环境</option>
+            <option value="">ui.generated.c304b35fa0b</option>
             {options.environments.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
@@ -942,23 +945,23 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="仓库绑定表达式">
+        <FieldGroup label="ui.generated.c9d9b3556ce">
           <Input
             value={form.repoBinding}
             onChange={(event) => setForm({ ...form, repoBinding: event.target.value })}
             placeholder="${repo_id}"
           />
         </FieldGroup>
-        <FieldGroup label="Checkout 模式">
+        <FieldGroup label="ui.generated.cba5d810d8e">
           <Select
             value={form.checkoutMode}
             onChange={(event) => setForm({ ...form, checkoutMode: event.target.value })}
           >
             {[
-              ["full_clone", "全量拉取"],
-              ["diff_context", "Diff 上下文"],
-              ["shallow_clone", "浅克隆"],
-              ["workspace_only", "仅工作区"],
+              ["full_clone", "ui.generated.ce06ef8ad7c"],
+              ["diff_context", "ui.generated.c7b5bd8f102"],
+              ["shallow_clone", "ui.generated.ce41afa49e0"],
+              ["workspace_only", "ui.generated.cde9f5743a1"],
             ].map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -966,23 +969,23 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="运行路径" hint="可覆盖执行环境默认工作目录。">
+        <FieldGroup label="ui.generated.c9ff2c99ee4" hint="ui.generated.c7106a4b39c">
           <Input
             value={form.executionPath}
             onChange={(event) => setForm({ ...form, executionPath: event.target.value })}
             placeholder={selectedEnvironment?.workingDirectory ?? "."}
           />
         </FieldGroup>
-        <FieldGroup label="沙箱模式">
+        <FieldGroup label="ui.generated.c5b587a4e31">
           <Select
             value={form.sandboxMode}
             onChange={(event) => setForm({ ...form, sandboxMode: event.target.value })}
           >
             {[
-              ["inherit", "继承环境默认"],
-              ["process", "进程隔离"],
-              ["workspace", "工作区隔离"],
-              ["future", "预留未来沙箱"],
+              ["inherit", "ui.generated.c42d96899e4"],
+              ["process", "ui.generated.c61f80a29ce"],
+              ["workspace", "ui.generated.c9f475f65d9"],
+              ["future", "ui.generated.c3d25f5aab9"],
             ].map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -990,18 +993,18 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="沙箱引用">
+        <FieldGroup label="ui.generated.c945fc763f7">
           <Input
             value={form.sandboxRef}
             onChange={(event) => setForm({ ...form, sandboxRef: event.target.value })}
             placeholder="sandbox:security-review"
           />
         </FieldGroup>
-        <FieldGroup label="任务目标" className="md:col-span-2">
+        <FieldGroup label="ui.generated.ce869b36d04" className="md:col-span-2">
           <Textarea
             value={form.taskObjective}
             onChange={(event) => setForm({ ...form, taskObjective: event.target.value })}
-            placeholder="描述这个任务要让 Agent 团队完成什么。"
+            placeholder="ui.generated.c38f0c4a96f"
           />
         </FieldGroup>
       </div>
@@ -1009,23 +1012,23 @@ export function TaskBlueprintEditor({
       <div className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-sm font-semibold text-[var(--ink)]">执行编排</div>
+            <div className="text-sm font-semibold text-[var(--ink)]">ui.generated.c36deb09d20</div>
             <div className="text-xs text-[var(--ink-muted)]">
-              通过块组合任务流程，块配置会写入任务蓝图并在任务运行时生成节点。
+              ui.generated.cdee6457cec
             </div>
           </div>
           <div className="w-full sm:w-56">
             <Select
               value={form.orchestrationStrategy}
               onChange={(event) => setForm({ ...form, orchestrationStrategy: event.target.value })}
-              aria-label="编排策略"
+              aria-label="ui.generated.c4ce28e0e5f"
             >
               {[
-                ["block_graph", "块图编排"],
-                ["leader_worker_parallel", "Leader 并行分工"],
-                ["parallel", "并行执行"],
-                ["sequential", "串行执行"],
-                ["dag", "DAG 执行"],
+                ["block_graph", "ui.generated.c1ba7f07a2c"],
+                ["leader_worker_parallel", "ui.generated.c771fc1cb59"],
+                ["parallel", "ui.generated.c00f5174435"],
+                ["sequential", "ui.generated.ca21bbf9046"],
+                ["dag", "ui.generated.c23f05b1901"],
               ].map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -1043,7 +1046,7 @@ export function TaskBlueprintEditor({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="输入 Schema" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c29518b8b22" className="md:col-span-2">
           <Textarea
             className="min-h-32"
             value={form.inputSchemaJson}
@@ -1051,7 +1054,7 @@ export function TaskBlueprintEditor({
             placeholder='{"type":"object","properties":{}}'
           />
         </FieldGroup>
-        <FieldGroup label="结果 Schema" className="md:col-span-2">
+        <FieldGroup label="ui.generated.cd8cce53c0b" className="md:col-span-2">
           <Textarea
             className="min-h-32"
             value={form.resultSchemaJson}
@@ -1062,65 +1065,65 @@ export function TaskBlueprintEditor({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="记忆策略 JSON">
+        <FieldGroup label="ui.generated.cb120ff61f1">
           <Textarea
             className="min-h-28"
             value={form.memoryPolicyJson}
             onChange={(event) => setForm({ ...form, memoryPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="权限策略 JSON">
+        <FieldGroup label="ui.generated.c6bf9680606">
           <Textarea
             className="min-h-28"
             value={form.permissionPolicyJson}
             onChange={(event) => setForm({ ...form, permissionPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="输出策略 JSON">
+        <FieldGroup label="ui.generated.c7dff341b42">
           <Textarea
             className="min-h-28"
             value={form.outputPolicyJson}
             onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="执行策略 JSON">
+        <FieldGroup label="ui.generated.c7784da8cb9">
           <Textarea
             className="min-h-28"
             value={form.executionPolicyJson}
             onChange={(event) => setForm({ ...form, executionPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="模型服务策略 JSON">
+        <FieldGroup label="ui.generated.c1eda7ac653">
           <Textarea
             className="min-h-28"
             value={form.providerPolicyJson}
             onChange={(event) => setForm({ ...form, providerPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="附加环境选择器 JSON">
+        <FieldGroup label="ui.generated.cfdfcc9e3fe">
           <Textarea
             className="min-h-28"
             value={form.environmentSelectorExtraJson}
             onChange={(event) => setForm({ ...form, environmentSelectorExtraJson: event.target.value })}
-            placeholder="额外字段会并入 environment selector。"
+            placeholder="ui.generated.c84b41788aa"
           />
         </FieldGroup>
-        <FieldGroup label="附加触发器 JSON">
+        <FieldGroup label="ui.generated.c8656c35176">
           <Textarea
             className="min-h-28"
             value={form.triggerExtraJson}
             onChange={(event) => setForm({ ...form, triggerExtraJson: event.target.value })}
-            placeholder="额外字段会并入 trigger。"
+            placeholder="ui.generated.c7d186160a1"
           />
         </FieldGroup>
-        <FieldGroup label="看板策略 JSON">
+        <FieldGroup label="ui.generated.cc653cfb563">
           <Textarea
             className="min-h-28"
             value={form.dashboardPolicyJson}
             onChange={(event) => setForm({ ...form, dashboardPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="归档策略 JSON">
+        <FieldGroup label="ui.generated.c28b9ca056a">
           <Textarea
             className="min-h-28"
             value={form.archivePolicyJson}
@@ -1131,7 +1134,7 @@ export function TaskBlueprintEditor({
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "保存中" : blueprint.id ? "保存任务定义" : "新增任务定义"}
+          {isSaving ? "ui.generated.ca032e8fdda" : blueprint.id ? "ui.generated.cbc7177b624" : "ui.generated.c776ad11882"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
@@ -1143,9 +1146,9 @@ export function TaskBlueprintEditor({
   return (
     <Panel>
       <PanelHeader
-        eyebrow="编辑器"
+        eyebrow="ui.generated.c86362a82bf"
         title={title}
-        description="围绕触发器、Agent 团队和执行环境定义任务，保留高级策略作为可选 JSON。"
+        description="ui.generated.c70f362ad5b"
       />
       <PanelBody>{content}</PanelBody>
     </Panel>

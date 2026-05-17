@@ -4,6 +4,7 @@ import {
   getLanguagePackSetting,
   saveLanguagePackSetting,
 } from "@/server/language-pack-store";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ ok: true, setting, languagePack: getActiveLanguagePack() });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "语言包配置保存失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveLanguagePackFailed") },
       { status: 400 },
     );
   }

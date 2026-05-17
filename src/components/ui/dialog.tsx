@@ -200,7 +200,7 @@ export function DialogContent({
   return createPortal(
     <>
       <button
-        aria-label={text("关闭弹窗")}
+        aria-label={text("ui.generated.c81f18d4d48")}
         className="fixed inset-0 z-40 cursor-default bg-black/18 backdrop-blur-[3px]"
         onClick={() => context.setOpen(false)}
         tabIndex={-1}
@@ -220,7 +220,7 @@ export function DialogContent({
       >
         {children}
         <button
-          aria-label={text("关闭")}
+          aria-label={text("ui.generated.c6c14bd7f6f")}
           className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
           onClick={() => context.setOpen(false)}
           type="button"

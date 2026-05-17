@@ -16,106 +16,106 @@ import { getSettingsSnapshot } from "@/server/queries";
 
 const systemEntries = [
   {
-    name: "语言包",
+    name: "ui.common.resources.languagePack",
     href: "#language-pack",
-    group: "通用设置",
-    scope: "界面文字",
-    description: "当前语言、术语和界面文案覆盖。",
+    group: "ui.generated.c918a0a7cf1",
+    scope: "ui.generated.c71d6a654d0",
+    description: "ui.generated.c8f35d729e3",
   },
   {
-    name: "模型服务",
+    name: "ui.common.resources.providerProfile",
     href: "/runtimes",
-    group: "常用基础配置",
-    scope: "模型服务",
-    description: "Base URL、模型、密钥引用和能力参数配置。",
+    group: "ui.generated.cfad8b39e99",
+    scope: "ui.generated.cbc56f948bb",
+    description: "ui.generated.c2319d41387",
   },
   {
     name: "Skill",
     href: "/skills",
-    group: "常用基础配置",
-    scope: "运行能力",
-    description: "可被 Agent 在任务运行时引用的团队能力，内容存储到 OpenViking。",
+    group: "ui.generated.cfad8b39e99",
+    scope: "ui.generated.c51d7485af0",
+    description: "ui.generated.c3301e76b0f",
   },
   {
     name: "MCP",
     href: "/mcp",
-    group: "常用基础配置",
-    scope: "工具服务",
-    description: "MCP Server、传输方式、鉴权引用和工具白名单。",
+    group: "ui.generated.cfad8b39e99",
+    scope: "ui.generated.c04935ddca3",
+    description: "ui.generated.cc16692125c",
   },
   {
     name: "Connector",
     href: "/connectors",
-    group: "常用基础配置",
-    scope: "外部通道",
-    description: "IM、邮件、Web Push 和任务输出发布通道。",
+    group: "ui.generated.cfad8b39e99",
+    scope: "ui.generated.c25b04ef9ba",
+    description: "ui.generated.cff9cc38dbc",
   },
   {
     name: "Codebase",
     href: "/codebases",
-    group: "常用基础配置",
-    scope: "代码资产",
-    description: "代码仓地址、归属团队和多个操作者 token。",
+    group: "ui.generated.cfad8b39e99",
+    scope: "ui.generated.ca650a73ddc",
+    description: "ui.generated.c9d67f38216",
   },
   {
-    name: "知识库",
+    name: "ui.common.resources.knowledgeSpace",
     href: "/knowledge",
-    group: "常用基础配置",
+    group: "ui.generated.cfad8b39e99",
     scope: "OpenViking",
-    description: "团队、项目和 Agent 团队级知识空间。",
+    description: "ui.generated.c35200d5ff0",
   },
   {
-    name: "执行配置",
+    name: "ui.common.resources.runtimeBinding",
     href: "/runtime-bindings",
-    group: "系统运行配置",
-    scope: "模型执行",
-    description: "默认模型服务、服务地址、密钥引用、审批模式和附加参数。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c9aed77b291",
+    description: "ui.generated.c686b86b156",
   },
   {
-    name: "执行环境",
+    name: "ui.common.resources.environment",
     href: "/environments",
-    group: "系统运行配置",
-    scope: "任务运行对象",
-    description: "代码仓、执行人、私钥引用、运行路径、沙箱和记忆依赖。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.cfcdc5822f5",
+    description: "ui.generated.ca4cd3470c9",
   },
   {
     name: "Webhook",
     href: "/webhooks",
-    group: "系统运行配置",
-    scope: "外部触发入口",
-    description: "Webhook 路径、签名密钥引用、请求 Schema 和接收 Agent 团队。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c3ba8e6fc8e",
+    description: "ui.generated.cc9448416c2",
   },
   {
-    name: "执行策略",
+    name: "ui.common.resources.executionPolicy",
     href: "/execution-policies",
-    group: "系统运行配置",
-    scope: "权限与审批",
-    description: "工具权限、预算、审批和输出约束。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c5c65475044",
+    description: "ui.generated.ccb9d6e36ae",
   },
   {
-    name: "租户空间",
+    name: "ui.common.resources.tenantSpace",
     href: "/tenant-spaces",
-    group: "系统运行配置",
-    scope: "系统边界",
-    description: "租户配额、白名单和全局 Guardrail。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c6de3899374",
+    description: "ui.generated.c97534db4ce",
   },
   {
-    name: "服务目录",
+    name: "ui.common.resources.serviceCatalogEntry",
     href: "/service-catalog",
-    group: "系统运行配置",
-    scope: "跨团队能力",
-    description: "团队之间复用 Agent 能力时的服务目录。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c3024908881",
+    description: "ui.generated.c03071850af",
   },
   {
-    name: "跨团队授权",
+    name: "ui.common.resources.accessGrant",
     href: "/access-grants",
-    group: "系统运行配置",
-    scope: "授权关系",
-    description: "业务团队之间调用 Agent 服务的授权、SLA 和范围约束。",
+    group: "ui.generated.c2e03739792",
+    scope: "ui.generated.c5e5e2bb0e4",
+    description: "ui.generated.c75a71e8955",
   },
 ];
 
-const systemEntryGroups = ["通用设置", "常用基础配置", "系统运行配置"] as const;
+const systemEntryGroups = ["ui.generated.c918a0a7cf1", "ui.generated.cfad8b39e99", "ui.generated.c2e03739792"] as const;
 
 export default function SettingsPage() {
   const snapshot = getSettingsSnapshot();
@@ -123,29 +123,29 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="系统配置"
-        title="系统配置"
-        description="集中管理低频系统入口和运行配置。"
+        eyebrow="ui.generated.c3c71dca8a0"
+        title="ui.generated.c3c71dca8a0"
+        description="ui.generated.cb2d089ae22"
         badges={[
-          { label: `${snapshot.providers.length} 个模型服务`, variant: "accent" },
-          { label: `${snapshot.environments.length} 个执行环境`, variant: "neutral" },
+          { label: <>{snapshot.providers.length} ui.common.count.modelServices</>, variant: "accent" },
+          { label: <>{snapshot.environments.length} ui.common.count.environments</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "模型服务", value: snapshot.providers.length, detail: "可用模型服务" },
-          { label: "执行环境", value: snapshot.environments.length, detail: "任务运行对象" },
-          { label: "Webhook", value: snapshot.webhooks.length, detail: "外部触发入口" },
-          { label: "任务定义", value: snapshot.taskBlueprints.length, detail: "归属业务团队" },
+          { label: "ui.generated.cbc56f948bb", value: snapshot.providers.length, detail: "ui.generated.c3ecb393f86" },
+          { label: "ui.generated.c059d73c843", value: snapshot.environments.length, detail: "ui.generated.cfcdc5822f5" },
+          { label: "Webhook", value: snapshot.webhooks.length, detail: "ui.generated.c3ba8e6fc8e" },
+          { label: "ui.generated.c971c6e5190", value: snapshot.taskBlueprints.length, detail: "ui.generated.c26f30fd79b" },
         ]}
       />
 
       <Panel id="language-pack">
         <PanelHeader
-          eyebrow="通用设置"
-          title="语言包配置"
-          description="界面文字、术语和短语默认从语言包加载，可用 JSON 覆盖默认简体中文。"
+          eyebrow="ui.generated.c918a0a7cf1"
+          title="ui.generated.ce13af2e292"
+          description="ui.generated.c2ef0fab9c9"
         />
         <PanelBody>
           <LanguagePackSettingsForm setting={snapshot.languagePackSetting} />
@@ -155,18 +155,18 @@ export default function SettingsPage() {
       {systemEntryGroups.map((group) => (
         <Panel key={group}>
           <PanelHeader
-            eyebrow="系统模块"
+            eyebrow="ui.generated.cf84ec364a6"
             title={group}
-            description={group === "常用基础配置" ? "高频配置入口。" : "运行、租户、策略和授权入口。"}
+            description={group === "ui.generated.cfad8b39e99" ? "ui.generated.c328dd8d617" : "ui.generated.c8109a3b527"}
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>模块</DataTableHead>
-                  <DataTableHead>范围</DataTableHead>
-                  <DataTableHead>说明</DataTableHead>
-                  <DataTableHead align="right">操作</DataTableHead>
+                  <DataTableHead>ui.generated.cc1bebd4ab3</DataTableHead>
+                  <DataTableHead>ui.generated.c785b52eb97</DataTableHead>
+                  <DataTableHead>ui.generated.c26670dda42</DataTableHead>
+                  <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
@@ -177,7 +177,7 @@ export default function SettingsPage() {
                     <DataTableCell>{entry.description}</DataTableCell>
                     <DataTableCell align="right">
                       <Button asChild size="sm" variant="ghost">
-                        <Link href={entry.href}>打开</Link>
+                        <Link href={entry.href}>ui.generated.c65fc81e161</Link>
                       </Button>
                     </DataTableCell>
                   </DataTableRow>

@@ -28,7 +28,7 @@ import { translateExecutionPolicyScope } from "@/lib/presentation";
 import { listAgentTeams, listBusinessTeams, listExecutionPolicies, listTenantSpaces } from "@/server/queries";
 
 function scopeOf(profile: { teamId: string | null; businessTeamId: string | null; tenantSpaceId: string | null }) {
-  return profile.teamId ? "Agent 团队" : profile.businessTeamId ? "业务团队" : profile.tenantSpaceId ? "租户空间" : "全局";
+  return profile.teamId ? "ui.generated.c70f970c1fc" : profile.businessTeamId ? "ui.generated.c2b90028ff3" : profile.tenantSpaceId ? "ui.generated.c3db35d2741" : "ui.generated.ca5644f4bbf";
 }
 
 export default function ExecutionPolicyPage() {
@@ -43,22 +43,22 @@ export default function ExecutionPolicyPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="执行策略"
-        title="执行策略"
-        description="维护工具许可、人工门禁、预算和输出策略。"
-        badges={[{ label: `${executionPolicies.length} 条执行策略`, variant: "accent" }]}
+        eyebrow="ui.generated.c6408e9f93d"
+        title="ui.generated.c6408e9f93d"
+        description="ui.generated.c275dbd5d7b"
+        badges={[{ label: <>{executionPolicies.length} ui.common.count.executionPolicies</>, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="执行策略目录"
-          description="查看作用域、审批模式、预算和状态。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cd5d169228c"
+          description="ui.generated.c756b8eca35"
           action={
             <Dialog>
-              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增策略</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.c294d9cb571</Button></DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
-                <DialogHeader><DialogTitle>新增执行策略</DialogTitle><DialogDescription>配置策略适用范围和各类 JSON 规则。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>ui.generated.c0da4967602</DialogTitle><DialogDescription>ui.generated.ccd5cad2742</DialogDescription></DialogHeader>
                 <DialogBody>
                   <ExecutionPolicyForm
                     tenantSpaces={tenantOptions}
@@ -69,7 +69,7 @@ export default function ExecutionPolicyPage() {
                       tenantSpaceId: null,
                       businessTeamId: null,
                       teamId: null,
-                      name: "新增执行策略",
+                      name: "",
                       systemInstruction: "",
                       toolPolicyJson: JSON.stringify({ allow: [], deny: [] }, null, 2),
                       approvalPolicyJson: JSON.stringify({ mode: "ask" }, null, 2),
@@ -87,12 +87,12 @@ export default function ExecutionPolicyPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>策略</DataTableHead>
-                <DataTableHead>范围</DataTableHead>
-                <DataTableHead>预算约束</DataTableHead>
-                <DataTableHead>人工门禁</DataTableHead>
-                <DataTableHead>安全</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.cf3c49831c6</DataTableHead>
+                <DataTableHead>ui.generated.c785b52eb97</DataTableHead>
+                <DataTableHead>ui.generated.cc4a935a9c3</DataTableHead>
+                <DataTableHead>ui.generated.c1ce79677a9</DataTableHead>
+                <DataTableHead>ui.generated.c8e662a5618</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -106,37 +106,37 @@ export default function ExecutionPolicyPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{executionPolicy.instruction}</div>
                     </DataTableCell>
                     <DataTableCell><Badge variant="neutral">{translateExecutionPolicyScope(scope)}</Badge></DataTableCell>
-                    <DataTableCell>{executionPolicy.budget.maxRuntimeMinutes} 分钟 / {executionPolicy.budget.maxToolCalls} 次工具</DataTableCell>
-                    <DataTableCell>{executionPolicy.approvalRequiredTools.join(", ") || "无"}</DataTableCell>
-                    <DataTableCell>{executionPolicy.safety.promptScan ? "Prompt 扫描" : "未开扫描"}</DataTableCell>
+                    <DataTableCell>{executionPolicy.budget.maxRuntimeMinutes} ui.generated.cc15da1ef70 {executionPolicy.budget.maxToolCalls} ui.generated.c02acc3b1c4</DataTableCell>
+                    <DataTableCell>{executionPolicy.approvalRequiredTools.join(", ") || "ui.generated.c72077749f7"}</DataTableCell>
+                    <DataTableCell>{executionPolicy.safety.promptScan ? "ui.generated.cea15810cf6" : "ui.generated.cd35af39b0a"}</DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{profile.name}</DialogTitle><DialogDescription>执行策略明细。</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>{profile.name}</DialogTitle><DialogDescription>ui.generated.c0fc696b711</DialogDescription></DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 items={[
-                                  { label: "策略 ID", value: profile.id },
-                                  { label: "工具策略", value: profile.toolPolicyJson },
-                                  { label: "审批策略", value: profile.approvalPolicyJson },
-                                  { label: "预算策略", value: profile.budgetPolicyJson },
-                                  { label: "输出策略", value: profile.outputPolicyJson },
-                                  { label: "安全策略", value: profile.securityPolicyJson },
+                                  { label: "ui.generated.c225a81e171", value: profile.id },
+                                  { label: "ui.generated.cc15757bcfa", value: profile.toolPolicyJson },
+                                  { label: "ui.generated.c065633d525", value: profile.approvalPolicyJson },
+                                  { label: "ui.generated.c4499bd58a7", value: profile.budgetPolicyJson },
+                                  { label: "ui.generated.c084415a1ec", value: profile.outputPolicyJson },
+                                  { label: "ui.generated.c7fb27626a0", value: profile.securityPolicyJson },
                                 ]}
                               />
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
-                            <DialogHeader><DialogTitle>编辑执行策略</DialogTitle><DialogDescription>{profile.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.c1866d4c0fb</DialogTitle><DialogDescription>{profile.name}</DialogDescription></DialogHeader>
                             <DialogBody><ExecutionPolicyForm tenantSpaces={tenantOptions} businessTeams={teamOptions} agentTeams={agentTeamOptions} policy={profile} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/execution-policies" id={profile.id} confirmText={`确认删除执行策略「${profile.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/execution-policies" id={profile.id} confirmParams={{ resource: "ui.common.resources.executionPolicy", name: profile.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

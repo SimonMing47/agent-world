@@ -1,4 +1,5 @@
 import { type Agent, type AgentTeam } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type AgentTeamRunPlanWorker = {
   agent: string;
@@ -170,7 +171,7 @@ export function summarizeAgentTeamRunPlan(
     strategy: parsed?.strategy ?? team?.workflowType ?? "single",
     leader: {
       agentId: leaderId,
-      agentName: leader?.name ?? (leaderId || "未配置 Leader"),
+      agentName: leader?.name ?? (leaderId || uiText("ui.generated.c724e005491")),
       role: leader?.role ?? "leader",
     },
     workers,

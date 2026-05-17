@@ -55,52 +55,52 @@ export default function RuntimeInteractionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="交互工作台"
-        title="交互工作台"
-        description="验证模型服务、Agent、Agent 团队和人工介入流程。"
+        eyebrow="ui.generated.cd7d45d4eb7"
+        title="ui.generated.cd7d45d4eb7"
+        description="ui.generated.c923f90e11b"
         badges={[
-          { label: `${runtimeSessions.length} 个会话`, variant: "accent" },
-          { label: `${providerProfiles.length} 个模型服务`, variant: "neutral" },
+          { label: <>{runtimeSessions.length} ui.common.count.sessions</>, variant: "accent" },
+          { label: <>{providerProfiles.length} ui.common.count.modelServices</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "会话数",
+            label: "ui.generated.c4d72abd2e9",
             value: runtimeSessions.length,
-            detail: `${runtimeSessions.filter((session) => session.status === "running").length} 个运行中`,
+            detail: <>{runtimeSessions.filter((session) => session.status === "running").length} ui.common.detail.running</>,
           },
           {
-            label: "Agent 团队会话",
+            label: "ui.generated.c6f6a995823",
             value: runtimeSessions.filter((session) => session.mode === "agent_team").length,
-            detail: "支持多 Agent 协作输出",
+            detail: "ui.generated.c2f7aaafef2",
           },
           {
-            label: "执行配置",
+            label: "ui.generated.c8e175e7aa9",
             value: runtimeBindings.length,
-            detail: `${providerProfiles.length} 个模型服务可选`,
+            detail: <>{providerProfiles.length} ui.common.detail.modelServicesSelectable</>,
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="会话目录"
-          title="模型会话"
-          description="查看、打开和删除测试会话。"
+          eyebrow="ui.generated.c592ea605ec"
+          title="ui.generated.c4e71e7bdab"
+          description="ui.generated.c6dc32bec15"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新建会话
+                  ui.generated.c3da224c43d
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(92vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>新建模型会话</DialogTitle>
-                  <DialogDescription>选择模型服务和单 Agent 或 Agent 团队模式。</DialogDescription>
+                  <DialogTitle>ui.generated.c200cb4b94a</DialogTitle>
+                  <DialogDescription>ui.generated.cfb9ea35772</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <RuntimeSessionCreateForm
@@ -129,13 +129,13 @@ export default function RuntimeInteractionsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHead>会话</DataTableHead>
-                <DataTableHead>模式</DataTableHead>
-                <DataTableHead>执行配置</DataTableHead>
-                <DataTableHead>模型</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead>更新时间</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c836ffe0e10</DataTableHead>
+                <DataTableHead>ui.generated.ced0eea8f20</DataTableHead>
+                <DataTableHead>ui.generated.c8e175e7aa9</DataTableHead>
+                <DataTableHead>ui.generated.c98fd0cbd9c</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -148,7 +148,7 @@ export default function RuntimeInteractionsPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
                     </DataTableCell>
                     <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
-                    <DataTableCell>{runtime?.name ?? "默认执行配置"}</DataTableCell>
+                    <DataTableCell>{runtime?.name ?? "ui.generated.c53215c3826"}</DataTableCell>
                     <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
                       <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
@@ -159,13 +159,13 @@ export default function RuntimeInteractionsPage() {
                         <Link href={`/interactions/${session.id}`}>
                           <Button size="sm" variant="ghost">
                             <Eye className="h-4 w-4" />
-                            打开
+                            ui.generated.c65fc81e161
                           </Button>
                         </Link>
                         <DeleteResourceButton
                           endpoint={`/api/runtime-sessions/${session.id}`}
                           id={session.id}
-                          confirmText={`确认删除会话「${session.title}」？`}
+                          confirmParams={{ resource: "ui.common.resources.session", name: session.title }}
                         />
                       </div>
                     </DataTableCell>

@@ -20,7 +20,9 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
@@ -57,7 +59,7 @@ type RuntimeInteractionConsoleProps = {
   compactFacts: Array<{
     label: string;
     value: string;
-    detail?: string;
+    detail?: ReactNode;
   }>;
 };
 
@@ -174,12 +176,12 @@ function renderEventSummary(payload: Record<string, unknown>) {
 }
 
 function labelForPhase(phase: ActorPhase) {
-  if (phase === "thinking") return "思考中";
-  if (phase === "replying") return "回复中";
-  if (phase === "tool") return "工具处理中";
-  if (phase === "waiting") return "等待人工";
-  if (phase === "error") return "异常";
-  return "空闲";
+  if (phase === "thinking") return "ui.generated.c138d5364bb";
+  if (phase === "replying") return "ui.generated.c40f42daae7";
+  if (phase === "tool") return "ui.generated.ccda8fcb667";
+  if (phase === "waiting") return "ui.generated.c8ff9347ecc";
+  if (phase === "error") return "ui.generated.c5caf279339";
+  return "ui.generated.c837e7a109a";
 }
 
 function badgeVariantForPhase(phase: ActorPhase): "neutral" | "accent" | "success" | "warning" | "danger" {
@@ -223,10 +225,10 @@ function buildParticipants(
       name: message.actorName,
       role:
         message.actorType === "human"
-          ? "人工介入"
+          ? "ui.generated.c8d8f100fb8"
           : message.role === "toolResult"
-            ? "工具输出"
-            : "协作成员",
+            ? "ui.generated.cfb7edd231f"
+            : "ui.generated.cb01dd40289",
       kind: actorKindFromMessage(message),
     });
   }
@@ -250,7 +252,7 @@ function buildActorActivities(
       kind,
       phase: "idle",
       active: false,
-      summary: "等待输入",
+      summary: "ui.generated.c32d948a2ef",
       updatedAt: "",
     };
     registry.set(name, next);
@@ -278,15 +280,15 @@ function buildActorActivities(
     ) {
       current.phase = "thinking";
       current.active = true;
-      current.summary = eventSummary || "正在组织思路";
+      current.summary = eventSummary || "ui.generated.c43fba8ce70";
     } else if (event.eventType === "thinking_end") {
       current.phase = "replying";
       current.active = true;
-      current.summary = "准备输出回复";
+      current.summary = "ui.generated.c96f528a547";
     } else if (event.eventType === "agent_message_delta") {
       current.phase = "replying";
       current.active = true;
-      current.summary = eventSummary || "正在生成回复";
+      current.summary = eventSummary || "ui.generated.c5e40fbee29";
     } else if (
       event.eventType === "tool_call_requested" ||
       event.eventType === "tool_call_started" ||
@@ -294,27 +296,27 @@ function buildActorActivities(
     ) {
       current.phase = "tool";
       current.active = true;
-      current.summary = toolName ? `正在处理 ${toolName}` : "正在处理工具调用";
+      current.summary = toolName ? `ui.common.processingPrefix ${toolName}` : "ui.generated.c847d330a47";
     } else if (event.eventType === "tool_call_finished") {
       current.phase = "thinking";
       current.active = true;
-      current.summary = toolName ? `${toolName} 已完成` : "工具调用完成";
+      current.summary = toolName ? `${toolName} ui.common.completed` : "ui.generated.ca7977ccccd";
     } else if (event.eventType === "human_approval_required") {
       current.phase = "waiting";
       current.active = true;
-      current.summary = toolName ? `等待审批 ${toolName}` : "等待人工批准";
+      current.summary = toolName ? `ui.common.approvalPrefix ${toolName}` : "ui.generated.c793239df50";
     } else if (event.eventType === "session_completed") {
       current.phase = "idle";
       current.active = false;
-      current.summary = "本轮执行完成";
+      current.summary = "ui.generated.c0a9ed3f757";
     } else if (event.eventType === "session_failed") {
       current.phase = "error";
       current.active = false;
-      current.summary = eventSummary || "执行失败";
+      current.summary = eventSummary || "ui.generated.c9746cfc7d2";
     } else if (event.eventType === "human_message" || event.eventType === "human_steer") {
       current.phase = "idle";
       current.active = false;
-      current.summary = "已发送人工消息";
+      current.summary = "ui.generated.c8787872f4c";
       current.kind = "human";
     }
 
@@ -325,13 +327,13 @@ function buildActorActivities(
     const current = ensureActor(message.actorName, actorKindFromMessage(message));
     if (current.active) continue;
     if (message.role === "assistant") {
-      current.summary = redactSecrets(messageText(message.content)).slice(0, 72) || "已输出回复";
+      current.summary = redactSecrets(messageText(message.content)).slice(0, 72) || "ui.generated.cbe6d5af7f7";
       current.updatedAt = message.createdAt;
     } else if (message.role === "toolResult") {
-      current.summary = `返回 ${message.actorName} 输出`;
+      current.summary = `ui.common.returnOutputPrefix ${message.actorName} ui.common.outputSuffix`;
       current.updatedAt = message.createdAt;
     } else if (message.role === "user") {
-      current.summary = "已发送消息";
+      current.summary = "ui.generated.c85c9b52bb7";
       current.updatedAt = message.createdAt;
     }
   }
@@ -344,7 +346,7 @@ function buildActorActivities(
         const current = ensureActor(fallback.name, fallback.kind);
         current.phase = "replying";
         current.active = true;
-        current.summary = "正在继续处理";
+        current.summary = "ui.generated.c70f83dd504";
       }
     }
   }
@@ -362,6 +364,18 @@ function TypingIndicator({
   label: string;
   className?: string;
 }) {
+  const text = useLanguageText();
+  const displayLabel = label.startsWith("ui.common.processingPrefix ")
+    ? `${text("ui.common.processingPrefix")} ${label.slice("ui.common.processingPrefix ".length)}`
+    : label.startsWith("ui.common.approvalPrefix ")
+      ? `${text("ui.common.approvalPrefix")} ${label.slice("ui.common.approvalPrefix ".length)}`
+      : label.endsWith(" ui.common.completed")
+        ? `${label.slice(0, -" ui.common.completed".length)} ${text("ui.common.completed")}`
+        : label.startsWith("ui.common.returnOutputPrefix ") && label.endsWith(" ui.common.outputSuffix")
+          ? `${text("ui.common.returnOutputPrefix")} ${label
+            .slice("ui.common.returnOutputPrefix ".length, -" ui.common.outputSuffix".length)} ${text("ui.common.outputSuffix")}`
+          : text(label);
+
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div className="agent-typing-indicator" aria-hidden="true">
@@ -369,7 +383,7 @@ function TypingIndicator({
         <span />
         <span />
       </div>
-      <div className="text-xs font-medium text-[var(--ink-muted)]">{label}</div>
+      <div className="text-xs font-medium text-[var(--ink-muted)]">{displayLabel}</div>
     </div>
   );
 }
@@ -425,16 +439,17 @@ function BubbleMeta({
       <span className={cn("font-medium", inverted ? "text-white" : "text-[var(--ink)]")}>
         {message.actorName}
       </span>
-      {participant.isLeader ? <Badge variant="accent">负责人</Badge> : null}
-      {message.role === "toolResult" ? <Badge variant="warning">工具</Badge> : null}
+      {participant.isLeader ? <Badge variant="accent">ui.generated.c974d383f36</Badge> : null}
+      {message.role === "toolResult" ? <Badge variant="warning">ui.generated.ca72ef18d9a</Badge> : null}
       {message.role === "assistant" ? <Badge variant="neutral">Agent</Badge> : null}
-      {message.role === "user" ? <Badge variant="neutral">人工</Badge> : null}
+      {message.role === "user" ? <Badge variant="neutral">ui.generated.c80212d3591</Badge> : null}
       <span>{formatDateTime(message.createdAt)}</span>
     </div>
   );
 }
 
 export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps) {
+  const text = useLanguageText();
   const [status, setStatus] = useState(props.initialStatus);
   const [messages, setMessages] = useState(props.initialMessages);
   const [events, setEvents] = useState(props.initialEvents);
@@ -559,7 +574,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         }),
       });
       if (!response.ok) {
-        throw new Error(`发送失败: ${response.status}`);
+        throw new Error(text("ui.common.sendFailedWithStatus", undefined, { status: response.status }));
       }
       setDraft("");
       requestAnimationFrame(() => {
@@ -567,7 +582,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         scrollToLatest("smooth");
       });
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : "发送失败，请稍后重试");
+      setSendError(error instanceof Error ? error.message : "ui.generated.cfc43172b72");
     } finally {
       setIsSending(false);
     }
@@ -576,9 +591,9 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
   return (
     <Panel className="overflow-hidden">
       <PanelHeader
-        eyebrow="会话"
-        title="模型交互"
-        description="让对话、协作和执行状态待在同一个工作台里。"
+        eyebrow="ui.generated.c836ffe0e10"
+        title="ui.generated.c282129d737"
+        description="ui.generated.c4bd66b4bf7"
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={status === "running" ? "accent" : status === "error" ? "danger" : "neutral"}>
@@ -587,7 +602,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
             <Badge variant="neutral">
               {translateSessionMode(props.sessionMode)}
             </Badge>
-            {activeActors.length > 1 ? <Badge variant="accent">{activeActors.length} 路并行</Badge> : null}
+            {activeActors.length > 1 ? <Badge variant="accent">{activeActors.length} ui.generated.c49ec72c849</Badge> : null}
           </div>
         }
       />
@@ -598,8 +613,8 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               key={`${fact.label}:${fact.value}`}
               className="rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs text-[var(--ink-muted)]"
             >
-              <span className="font-medium text-[var(--ink)]">{fact.label}</span>
-              <span className="ml-1">{fact.value}</span>
+              <span className="font-medium text-[var(--ink)]">{text(fact.label)}</span>
+              <span className="ml-1">{text(fact.value)}</span>
             </div>
           ))}
         </div>
@@ -622,7 +637,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="truncate text-sm font-semibold text-[var(--ink)]">{participant.name}</div>
-                      {participant.isLeader ? <Badge variant="accent">负责人</Badge> : null}
+                      {participant.isLeader ? <Badge variant="accent">ui.generated.c974d383f36</Badge> : null}
                     </div>
                     <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">{participant.role}</div>
                     <div className="mt-3 flex items-center gap-2">
@@ -637,7 +652,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                       </span>
                     </div>
                     <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">
-                      {activity?.summary ?? "等待协作"}
+                      {activity?.summary ?? "ui.generated.cf3e50f365b"}
                     </div>
                   </div>
                 </div>
@@ -651,7 +666,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         <section className="min-w-0 space-y-4">
           <div
             ref={scrollerRef}
-            aria-label="会话消息"
+            aria-label="ui.generated.c089a724d1f"
             className="relative min-h-[520px] max-h-[calc(100vh-25rem)] scroll-smooth overflow-auto overscroll-contain rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
             onScroll={handleMessageScroll}
             tabIndex={0}
@@ -660,7 +675,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               {!isPinnedToBottom ? (
                 <div className="sticky top-0 z-10 flex justify-center">
                   <div className="rounded-full border border-[var(--line)] bg-white/95 px-3 py-1.5 text-xs font-medium text-[var(--ink-muted)] shadow-sm backdrop-blur">
-                    正在浏览历史，已暂停自动跟随
+                    ui.generated.ceb16ef1a7f
                   </div>
                 </div>
               ) : null}
@@ -710,7 +725,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                         {message.role === "assistant" && thinkingText(message.content) ? (
                           <details className="mt-3 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
                             <summary className="cursor-pointer text-xs font-medium text-[var(--ink-muted)]">
-                              推理摘要
+                              ui.generated.cf6145bc4ca
                             </summary>
                             <div className="mt-2 whitespace-pre-wrap text-xs leading-5 text-[var(--ink-muted)]">
                               {redactSecrets(thinkingText(message.content))}
@@ -720,18 +735,18 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                         {message.role === "assistant" ? (
                           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-muted)]">
                             {typeof message.content.responseModel === "string" ? (
-                              <span>模型: {message.content.responseModel}</span>
+                              <span>ui.generated.cf21d6e8111 {message.content.responseModel}</span>
                             ) : null}
                             {renderUsage(message.content) ? <span>{renderUsage(message.content)}</span> : null}
                             {typeof message.content.stopReason === "string" ? (
-                              <span>停止原因: {message.content.stopReason}</span>
+                              <span>ui.generated.ce7a4d45901 {message.content.stopReason}</span>
                             ) : null}
                           </div>
                         ) : null}
                         {message.role === "toolResult" && message.content.details ? (
                           <details className="mt-3 rounded-lg border border-[#f0d9b5] bg-white/80 p-3">
                             <summary className="cursor-pointer text-xs font-medium text-[var(--ink-muted)]">
-                              工具细节
+                              ui.generated.c58c7b46168
                             </summary>
                             <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs leading-5 text-[var(--ink-muted)]">
                               {redactSecrets(JSON.stringify(message.content.details, null, 2))}
@@ -748,9 +763,9 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               {orderedMessages.length === 0 ? (
                 <div className="flex min-h-[340px] items-center justify-center px-4 text-center">
                   <div>
-                    <div className="text-sm font-semibold text-[var(--ink)]">暂无会话消息</div>
+                    <div className="text-sm font-semibold text-[var(--ink)]">ui.generated.ca6658b3a48</div>
                     <div className="mt-2 max-w-[28rem] text-sm leading-6 text-[var(--ink-muted)]">
-                      发送人工消息或触发任务后，Agent、工具和人工介入记录会按时间顺序显示在这里。
+                      ui.generated.c62a4e600e7
                     </div>
                   </div>
                 </div>
@@ -793,7 +808,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => scrollToLatest("smooth")}
               >
                 <ArrowDown className="h-4 w-4" />
-                {unseenUpdates > 0 ? `${unseenUpdates} 条新动态` : "回到底部"}
+                {unseenUpdates > 0 ? <>{unseenUpdates} ui.common.newUpdates</> : "ui.generated.c32282e734a"}
               </button>
             ) : null}
           </div>
@@ -813,7 +828,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   setDraft(event.target.value);
                   if (sendError) setSendError(null);
                 }}
-                placeholder="输入人工介入消息。Enter 发送，Shift+Enter 换行。"
+                placeholder="ui.generated.c5da4989f38"
                 className="max-h-36 min-h-[52px] resize-none border-transparent bg-[var(--surface-muted)] shadow-none focus:border-[var(--accent)]/35"
                 onKeyDown={(event) => {
                   if (event.nativeEvent.isComposing) return;
@@ -827,12 +842,12 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               />
               <Button type="submit" disabled={!canSendMessage} className="h-[52px] shrink-0 px-4">
                 <SendHorizontal className="h-4 w-4" />
-                {isSending ? "发送中" : "发送"}
+                {isSending ? "ui.generated.cd948e6a3fb" : "ui.generated.c1214d633a4"}
               </Button>
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-muted)]">
-              <span>人工消息会进入同一条会话轨迹，供 Agent 团队继续处理。</span>
-              <span>{draft.trim().length} 字</span>
+              <span>ui.generated.c633f10d101</span>
+              <span>{draft.trim().length} ui.generated.c582c50066c</span>
             </div>
             {sendError ? (
               <div className="mt-2 rounded-lg border border-[var(--danger)]/20 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)]">
@@ -852,7 +867,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => setInspectorTab("activity")}
               >
                 <Activity className="h-4 w-4" />
-                活动
+                ui.generated.cb2548636f0
               </Button>
               <Button
                 type="button"
@@ -861,7 +876,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => setInspectorTab("events")}
               >
                 <MessageSquareMore className="h-4 w-4" />
-                事件
+                ui.generated.c550e328062
               </Button>
               <Button
                 type="button"
@@ -870,7 +885,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => setInspectorTab("summary")}
               >
                 <BrainCircuit className="h-4 w-4" />
-                摘要
+                ui.generated.c46d4c1b4e4
               </Button>
             </div>
             <Button
@@ -901,7 +916,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                           <Badge variant={badgeVariantForPhase(actor.phase)}>{labelForPhase(actor.phase)}</Badge>
                         </div>
                         {actor.active ? (
-                          <TypingIndicator className="mt-3" label="正在持续更新状态" />
+                          <TypingIndicator className="mt-3" label="ui.generated.c943db1095f" />
                         ) : null}
                       </div>
                     ))}
@@ -940,11 +955,11 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                         className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
                       >
                         <div className="text-xs font-medium text-[var(--ink-muted)]">
-                          {fact.label}
+                          {text(fact.label)}
                         </div>
-                        <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{fact.value}</div>
+                        <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{text(fact.value)}</div>
                         {fact.detail ? (
-                          <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{fact.detail}</div>
+                          <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{localizeNode(fact.detail, text)}</div>
                         ) : null}
                       </div>
                     ))}

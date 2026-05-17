@@ -47,11 +47,11 @@ type Props = {
 };
 
 const blockTypeLabels: Record<WorkflowBlockType, string> = {
-  agent: "Agent 执行",
-  agent_team: "Agent 团队执行",
-  script_hook: "脚本 Hook",
+  agent: "ui.common.workflow.blockTypes.agent",
+  agent_team: "ui.common.workflow.blockTypes.agentTeam",
+  script_hook: "ui.common.workflow.blockTypes.scriptHook",
   http_hook: "HTTP Hook",
-  notification: "通知 Hook",
+  notification: "ui.common.workflow.blockTypes.notification",
 };
 
 function nextBlockId(type: WorkflowBlockType, index: number) {
@@ -154,7 +154,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
 
       {blocks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--ink-muted)]">
-          还没有编排块。至少添加一个 Agent、Agent 团队、脚本 Hook 或通知 Hook。
+          ui.generated.c520e5c03ff
         </div>
       ) : (
         <div className="space-y-3">
@@ -173,7 +173,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                   type="button"
                   size="icon"
                   variant="ghost"
-                  aria-label="删除编排块"
+                  aria-label="ui.generated.cacc11e48de"
                   onClick={() => onChange(removeBlock(blocks, block.id))}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -181,13 +181,13 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <FieldGroup label="块 ID">
+                <FieldGroup label="ui.generated.c5abc4eaab8">
                   <Input
                     value={block.id}
                     onChange={(event) => onChange(renameBlock(blocks, block.id, event.target.value))}
                   />
                 </FieldGroup>
-                <FieldGroup label="块类型">
+                <FieldGroup label="ui.generated.ca5a837ff34">
                   <Select
                     value={block.type}
                     onChange={(event) => {
@@ -209,16 +209,16 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                     ))}
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="显示名称">
+                <FieldGroup label="ui.generated.c75ae6a8a7d">
                   <Input
                     value={block.title}
                     onChange={(event) => onChange(updateBlock(blocks, block.id, { title: event.target.value }))}
                   />
                 </FieldGroup>
-                <FieldGroup label="依赖块">
+                <FieldGroup label="ui.generated.c21c87436e6">
                   <div className="flex min-h-10 flex-wrap gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
                     {dependencyOptions(blocks, block.id).length === 0 ? (
-                      <span className="text-xs text-[var(--ink-muted)]">无可选依赖</span>
+                      <span className="text-xs text-[var(--ink-muted)]">ui.generated.c77c35984b8</span>
                     ) : (
                       dependencyOptions(blocks, block.id).map((option) => (
                         <button
@@ -241,12 +241,12 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                 </FieldGroup>
 
                 {block.type === "agent" ? (
-                  <FieldGroup label="执行 Agent">
+                  <FieldGroup label="ui.generated.cb47dee4a4d">
                     <Select
                       value={block.agentId}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { agentId: event.target.value }))}
                     >
-                      <option value="">选择 Agent</option>
+                      <option value="">ui.generated.ce3f8fc92e0</option>
                       {agents.map((agent) => (
                         <option key={agent.id} value={agent.id}>
                           {agent.name} · {agent.memberRole || agent.role}
@@ -257,12 +257,12 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                 ) : null}
 
                 {block.type === "agent_team" ? (
-                  <FieldGroup label="目标 Agent 团队">
+                  <FieldGroup label="ui.generated.c0fab7492c3">
                     <Select
                       value={block.agentTeamId}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { agentTeamId: event.target.value }))}
                     >
-                      <option value="">选择 Agent 团队</option>
+                      <option value="">ui.generated.c9750d7aa4d</option>
                       {agentTeams.map((team) => (
                         <option key={team.id} value={team.id}>
                           {team.name}
@@ -273,7 +273,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                 ) : null}
 
                 {block.type === "script_hook" ? (
-                  <FieldGroup label="脚本命令" className="md:col-span-2">
+                  <FieldGroup label="ui.generated.cc03a3fe687" className="md:col-span-2">
                     <Textarea
                       className="min-h-24 font-mono text-xs"
                       value={block.script}
@@ -285,7 +285,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
 
                 {block.type === "http_hook" ? (
                   <>
-                    <FieldGroup label="HTTP 方法">
+                    <FieldGroup label="ui.generated.cb1d337493c">
                       <Select
                         value={block.method}
                         onChange={(event) => onChange(updateBlock(blocks, block.id, { method: event.target.value }))}
@@ -309,7 +309,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
 
                 {block.type === "notification" ? (
                   <>
-                    <FieldGroup label="Connector 类型">
+                    <FieldGroup label="ui.generated.c67dd5805d6">
                       <Select
                         value={block.connectorType}
                         onChange={(event) =>
@@ -323,7 +323,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                         ))}
                       </Select>
                     </FieldGroup>
-                    <FieldGroup label="发布器引用">
+                    <FieldGroup label="ui.generated.c4b3e58ebcf">
                       <Input
                         value={block.publisherRef}
                         onChange={(event) =>
@@ -335,28 +335,28 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                   </>
                 ) : null}
 
-                <FieldGroup label="动作">
+                <FieldGroup label="ui.generated.cd9d9827827">
                   <Input
                     value={block.action}
                     onChange={(event) => onChange(updateBlock(blocks, block.id, { action: event.target.value }))}
                   />
                 </FieldGroup>
-                <FieldGroup label="工具 / Hook">
+                <FieldGroup label="ui.generated.c57d167c53b">
                   <Input
                     value={block.tool}
                     onChange={(event) => onChange(updateBlock(blocks, block.id, { tool: event.target.value }))}
                   />
                 </FieldGroup>
-                <FieldGroup label="块指令" className="md:col-span-2">
+                <FieldGroup label="ui.generated.cc505956d32" className="md:col-span-2">
                   <Textarea
                     className="min-h-24"
                     value={block.instruction}
                     onChange={(event) => onChange(updateBlock(blocks, block.id, { instruction: event.target.value }))}
-                    placeholder="说明这个块要处理的输入、输出和完成标准。"
+                    placeholder="ui.generated.c59562a8651"
                   />
                 </FieldGroup>
                 {block.type === "http_hook" || block.type === "notification" ? (
-                  <FieldGroup label="Payload 模板" className="md:col-span-2">
+                  <FieldGroup label="ui.generated.c74a4d559a2" className="md:col-span-2">
                     <Textarea
                       className="min-h-24 font-mono text-xs"
                       value={block.payloadTemplate}

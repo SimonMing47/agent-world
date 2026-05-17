@@ -4,6 +4,7 @@ import {
   listLayeredKnowledge,
   upsertKnowledgeEntry,
 } from "@/server/openviking-core";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, entry });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存知识条目失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveKnowledgeEntryFailed") },
       { status: 400 },
     );
   }

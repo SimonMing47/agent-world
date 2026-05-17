@@ -1,3 +1,4 @@
+import { uiText } from "@/lib/language-pack";
 export type PluginCapability =
   | "provider"
   | "tool"
@@ -37,7 +38,7 @@ export function listBuiltinPluginManifests(): PluginManifest[] {
   return [
     {
       id: "builtin.provider.agentworld-runtime",
-      name: "AgentWorld 内置模型执行接口",
+      name: uiText("ui.generated.c7d6c4d526b"),
       version: "1.0.0",
       capability: "provider",
       lifecycle: "configured",
@@ -120,52 +121,52 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
   return [
     {
       id: "provider-runtime",
-      name: "模型服务执行扩展点",
+      name: uiText("ui.generated.ccccb1f3b93"),
       accepts: ["provider"],
-      implementationContract: "实现 invoke/discover/health 三个能力，主干只读取清单与健康结果。",
-      noCoreChangeRule: "新增 Hermes、LangGraph、Mastra 或其他 Runtime Adapter 时只新增插件目录和配置。",
+      implementationContract: uiText("ui.generated.c61ae8fc81d"),
+      noCoreChangeRule: uiText("ui.generated.cb7b7f0ebb7"),
     },
     {
       id: "tool-skill-registry",
-      name: "工具与 Skill 扩展点",
+      name: uiText("ui.generated.ccd071c0275"),
       accepts: ["tool", "skill"],
-      implementationContract: "声明工具权限、输入 schema、输出 schema、审计级别，并交由运行约束决策。",
-      noCoreChangeRule: "工具实现独立挂载，主干只消费 tool id、权限和审计事件。",
+      implementationContract: uiText("ui.generated.c171a42720d"),
+      noCoreChangeRule: uiText("ui.generated.cb4c1bcf3f1"),
     },
     {
       id: "notification-channel",
-      name: "通知通道扩展点",
+      name: uiText("ui.generated.c8a70566169"),
       accepts: ["notify_email", "notify_im"],
-      implementationContract: "实现 send/test/health；任务结果只依赖通用通知接口。",
-      noCoreChangeRule: "邮件、IM、企业内部系统都作为外部插件声明，不把 SDK 写进主干。",
+      implementationContract: uiText("ui.generated.c7c1832d5ab"),
+      noCoreChangeRule: uiText("ui.generated.cba28092b21"),
     },
     {
       id: "execution-environment",
-      name: "代码仓与环境扩展点",
+      name: uiText("ui.generated.c876aed85e3"),
       accepts: ["code_repo"],
-      implementationContract: "实现 clone/readDiff/comment/cleanup；凭据统一走 secret ref。",
-      noCoreChangeRule: "代码平台差异留在插件内，主干只保存仓库、执行人、路径和私钥引用。",
+      implementationContract: uiText("ui.generated.cdc64063e0f"),
+      noCoreChangeRule: uiText("ui.generated.c369f9ab399"),
     },
     {
       id: "task-trigger",
-      name: "触发器扩展点",
+      name: uiText("ui.generated.ce9852dc24c"),
       accepts: ["trigger"],
-      implementationContract: "实现 validate/normalize/idempotency 三个能力，输出标准任务输入。",
-      noCoreChangeRule: "Webhook、Cron、消息队列或企业事件总线只通过触发器插件接入。",
+      implementationContract: uiText("ui.generated.c19036d0068"),
+      noCoreChangeRule: uiText("ui.generated.c0fe7faf90e"),
     },
     {
       id: "output-publisher",
-      name: "输出发布扩展点",
+      name: uiText("ui.generated.c392147014c"),
       accepts: ["output_publisher", "notify_email", "notify_im", "code_repo"],
-      implementationContract: "实现 publish/retry/audit；任务只产出标准 Finding、artifact 和报告。",
-      noCoreChangeRule: "MR 评论、邮件、IM、工单、看板指标都作为发布器插件声明。",
+      implementationContract: uiText("ui.generated.cc8a731496b"),
+      noCoreChangeRule: uiText("ui.generated.c052f99a7b5"),
     },
     {
       id: "dashboard-metric",
-      name: "看板指标扩展点",
+      name: uiText("ui.generated.c2990573379"),
       accepts: ["dashboard_metric"],
-      implementationContract: "声明指标维度、聚合方式和可见性边界，读取标准事件与 Finding。",
-      noCoreChangeRule: "业务看板差异通过指标插件扩展，不写入核心任务引擎。",
+      implementationContract: uiText("ui.generated.c5c84bfb8dc"),
+      noCoreChangeRule: uiText("ui.generated.c87b3c77504"),
     },
   ];
 }
@@ -173,9 +174,9 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
 export function getPluginSecurityModel() {
   return {
     extensionOnly: true,
-    secretPolicy: "主干只保存 secret ref，不保存明文 key。",
-    permissionModel: "插件权限与运行约束工具权限对齐，执行前统一做 allow/deny/approval 判断。",
-    lifecycle: "插件生命周期包括安装、启用、禁用、升级、配置、健康检查、权限申请和审计日志。",
-    openSourceBoundary: "开源主干提供协议和默认清单，企业内 IM/邮件/代码仓实现可闭源外挂。",
+    secretPolicy: uiText("ui.generated.cea435969ec"),
+    permissionModel: uiText("ui.generated.c12ee563fb1"),
+    lifecycle: uiText("ui.generated.c1e91b92d21"),
+    openSourceBoundary: uiText("ui.generated.c7b6c5278b3"),
   };
 }

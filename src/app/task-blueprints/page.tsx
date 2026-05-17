@@ -59,8 +59,8 @@ function parsePublishers(value: unknown) {
 function triggerLabel(trigger: Record<string, unknown>) {
   if (trigger.type === "webhook") return `Webhook · ${String(trigger.event ?? trigger.webhookPathKey ?? "")}`;
   if (trigger.type === "cron") return `Cron · ${String(trigger.expression ?? "")}`;
-  if (trigger.type === "access_grant") return "跨团队授权";
-  return "手动触发";
+  if (trigger.type === "access_grant") return "ui.generated.c2c4520c3e3";
+  return "ui.generated.c044f207b47";
 }
 
 function defaultBlueprint(options: ReturnType<typeof getTaskBlueprintEditorOptions>) {
@@ -101,8 +101,8 @@ function defaultBlueprint(options: ReturnType<typeof getTaskBlueprintEditorOptio
 }
 
 function compactValue(value: unknown) {
-  if (value === undefined || value === null || value === "") return "无";
-  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "无";
+  if (value === undefined || value === null || value === "") return "ui.generated.c72077749f7";
+  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "ui.generated.c72077749f7";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
@@ -134,66 +134,66 @@ export default async function TaskBlueprintsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="任务治理"
-        title="任务定义"
-        description="维护任务、触发方式、执行环境和编排块。"
+        eyebrow="ui.generated.c4b2b8be8a2"
+        title="ui.generated.c971c6e5190"
+        description="ui.generated.c8fc234d252"
         badges={[
-          { label: `${visibleBlueprints.length} 个任务定义`, variant: "accent" },
-          { label: selectedTeam?.name ?? "团队视角治理", variant: "neutral" },
+          { label: <>{visibleBlueprints.length} ui.common.count.taskBlueprints</>, variant: "accent" },
+          { label: selectedTeam?.name ?? "ui.generated.ce3bcba3752", variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "任务定义",
+            label: "ui.generated.c971c6e5190",
             value: visibleBlueprints.length,
-            detail: `${visibleBlueprints.filter((item) => item.status === "active").length} 个启用中`,
+            detail: <>{visibleBlueprints.filter((item) => item.status === "active").length} ui.common.detail.enabled</>,
           },
           {
             label: "Webhook / Cron",
             value: visibleBlueprints.filter((item) => ["webhook", "cron"].includes(String(item.trigger.type))).length,
-            detail: "事件与定时触发",
+            detail: "ui.generated.c59abb92a56",
           },
           {
-            label: "绑定环境",
-            value: visibleBlueprints.filter((item) => item.environmentName !== "未绑定环境").length,
-            detail: "已关联执行环境",
+            label: "ui.generated.c549d54135d",
+            value: visibleBlueprints.filter((item) => item.environmentName !== "ui.generated.c304b35fa0b").length,
+            detail: "ui.generated.c3fd83f822a",
           },
           {
-            label: "Finding 总数",
+            label: "ui.generated.cb8c4d70c66",
             value: snapshot.findingDashboard.total,
-            detail: "任务累计产出",
+            detail: "ui.generated.cd6f1ab3e5c",
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="任务定义目录"
-          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的任务定义。` : "查看团队、触发方式、环境和状态。"}
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.c1d43bcb9b7"
+          description={selectedTeam ? <>ui.common.detail.currentOnlyShows {selectedTeam.name} ui.common.detail.blueprintsOnly</> : "ui.generated.c22951a6db9"}
           action={
             <div className="flex flex-wrap gap-2">
               {selectedTeam ? (
-                <Button asChild size="sm" variant="ghost"><Link href="/task-blueprints">查看全部</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href="/task-blueprints">ui.generated.ced2172fd78</Link></Button>
               ) : null}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="secondary">
                     <Plus className="h-4 w-4" />
-                    新增任务
+                    ui.generated.ca503a0712c
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="w-[min(96vw,1180px)]">
                   <DialogHeader>
-                    <DialogTitle>新增任务定义</DialogTitle>
-                    <DialogDescription>选择 Agent 团队、执行环境和触发方式，建立一个新的任务配置。</DialogDescription>
+                    <DialogTitle>ui.generated.c776ad11882</DialogTitle>
+                    <DialogDescription>ui.generated.c4ab4516d37</DialogDescription>
                   </DialogHeader>
                   <DialogBody>
                     <TaskBlueprintEditor
                       embedded
-                      title="新增任务定义"
+                      title="ui.generated.c776ad11882"
                       blueprint={defaultNewBlueprint}
                       options={options}
                     />
@@ -207,13 +207,13 @@ export default async function TaskBlueprintsPage({
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>任务定义</DataTableHead>
-                <DataTableHead>业务团队 / Agent 团队</DataTableHead>
-                <DataTableHead>触发方式</DataTableHead>
-                <DataTableHead>执行环境</DataTableHead>
-                <DataTableHead>状态 / 可见性</DataTableHead>
-                <DataTableHead>更新时间</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c971c6e5190</DataTableHead>
+                <DataTableHead>ui.generated.c97fa784b22</DataTableHead>
+                <DataTableHead>ui.generated.cf67f1852d8</DataTableHead>
+                <DataTableHead>ui.generated.c059d73c843</DataTableHead>
+                <DataTableHead>ui.generated.cdcb82b8701</DataTableHead>
+                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -246,13 +246,13 @@ export default async function TaskBlueprintsPage({
                     <DataTableCell>
                       <div>{triggerLabel(trigger)}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {trigger.idempotencyKey ? `幂等键 ${String(trigger.idempotencyKey)}` : "无幂等键模板"}
+                        {trigger.idempotencyKey ? <>ui.common.idempotencyKeyPrefix {String(trigger.idempotencyKey)}</> : "ui.generated.cb2b6bde95b"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
                       <div>{blueprint.environmentName}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {selector.executionPath ? `路径 ${String(selector.executionPath)}` : "继承环境默认路径"}
+                        {selector.executionPath ? <>ui.common.pathPrefix {String(selector.executionPath)}</> : "ui.generated.c4202f60d95"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -265,7 +265,7 @@ export default async function TaskBlueprintsPage({
                         </span>
                       </div>
                       <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                        发布 {publishers.length ? publishers.join(", ") : "dashboard"}
+                        ui.generated.c94f172d02f {publishers.length ? publishers.join(", ") : "dashboard"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(raw.updatedAt)}</DataTableCell>
@@ -275,47 +275,47 @@ export default async function TaskBlueprintsPage({
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
                               <DialogTitle>{blueprint.name}</DialogTitle>
-                              <DialogDescription>查看任务与 Agent 团队、环境、触发方式和发布策略的绑定关系。</DialogDescription>
+                              <DialogDescription>ui.generated.c70a5b469a0</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "任务 Key", value: blueprint.id },
-                                  { label: "任务类别", value: blueprint.category },
-                                  { label: "业务团队", value: blueprint.businessTeamName },
-                                  { label: "Agent 团队", value: blueprint.agentTeamName },
-                                  { label: "执行环境", value: blueprint.environmentName },
-                                  { label: "执行底座", value: "系统内置" },
-                                  { label: "状态", value: translateStatus(blueprint.status) },
-                                  { label: "可见性", value: translateVisibility(blueprint.visibility) },
+                                  { label: "ui.generated.c617a5f9a25", value: blueprint.id },
+                                  { label: "ui.generated.c3c943b28b2", value: blueprint.category },
+                                  { label: "ui.generated.c2b90028ff3", value: blueprint.businessTeamName },
+                                  { label: "ui.generated.c70f970c1fc", value: blueprint.agentTeamName },
+                                  { label: "ui.generated.c059d73c843", value: blueprint.environmentName },
+                                  { label: "ui.generated.c130e6348e4", value: "ui.generated.c130e6348e4" },
+                                  { label: "ui.generated.c62e951a692", value: translateStatus(blueprint.status) },
+                                  { label: "ui.generated.c747b74cec9", value: translateVisibility(blueprint.visibility) },
                                 ]}
                               />
 
                               <DefinitionList
                                 items={[
-                                  { label: "触发方式", value: triggerLabel(trigger) },
-                                  { label: "连接器", value: compactValue(trigger.connector) },
-                                  { label: "事件", value: compactValue(trigger.event) },
-                                  { label: "Webhook 路径", value: compactValue(trigger.webhookPathKey) },
+                                  { label: "ui.generated.cf67f1852d8", value: triggerLabel(trigger) },
+                                  { label: "ui.generated.cc2dd028659", value: compactValue(trigger.connector) },
+                                  { label: "ui.generated.c550e328062", value: compactValue(trigger.event) },
+                                  { label: "ui.generated.cb2b35cae7f", value: compactValue(trigger.webhookPathKey) },
                                   { label: "Cron", value: compactValue(trigger.expression) },
-                                  { label: "幂等键模板", value: compactValue(trigger.idempotencyKey) },
+                                  { label: "ui.generated.cbec9421d1b", value: compactValue(trigger.idempotencyKey) },
                                 ]}
                               />
 
                               <DefinitionList
                                 items={[
-                                  { label: "仓库绑定", value: compactValue(selector.repoBinding) },
-                                  { label: "Checkout 模式", value: compactValue(selector.checkoutMode) },
-                                  { label: "运行路径", value: compactValue(selector.executionPath) },
-                                  { label: "沙箱模式", value: compactValue(selector.sandboxMode) },
-                                  { label: "沙箱引用", value: compactValue(selector.sandboxRef) },
-                                  { label: "发布通道", value: publishers.length ? publishers.join(", ") : "dashboard" },
+                                  { label: "ui.generated.c2e570732c1", value: compactValue(selector.repoBinding) },
+                                  { label: "ui.generated.cba5d810d8e", value: compactValue(selector.checkoutMode) },
+                                  { label: "ui.generated.c9ff2c99ee4", value: compactValue(selector.executionPath) },
+                                  { label: "ui.generated.c5b587a4e31", value: compactValue(selector.sandboxMode) },
+                                  { label: "ui.generated.c945fc763f7", value: compactValue(selector.sandboxRef) },
+                                  { label: "ui.generated.c305d5f7578", value: publishers.length ? publishers.join(", ") : "dashboard" },
                                 ]}
                               />
                             </DialogBody>
@@ -326,25 +326,25 @@ export default async function TaskBlueprintsPage({
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 {blueprint.name}</DialogTitle>
-                              <DialogDescription>调整任务关联的 Agent 团队、执行环境和触发方式。</DialogDescription>
+                              <DialogTitle>ui.generated.ca7f814c0a4 {blueprint.name}</DialogTitle>
+                              <DialogDescription>ui.generated.cec4658d09a</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <TaskBlueprintEditor
                                 embedded
-                                title={`编辑 ${blueprint.name}`}
+                                title="actions.edit"
                                 blueprint={raw}
                                 options={options}
                               />
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/task-blueprints" id={blueprint.id} confirmText={`确认删除任务定义「${blueprint.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/task-blueprints" id={blueprint.id} confirmParams={{ resource: "ui.common.resources.taskBlueprint", name: blueprint.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

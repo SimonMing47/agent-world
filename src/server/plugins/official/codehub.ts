@@ -6,6 +6,7 @@ import {
   type ExecutableWebhookParser,
   type PluginRuntimeContext,
 } from "@/server/plugin-sdk-core";
+import { uiText } from "@/lib/language-pack";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -85,8 +86,8 @@ async function resolveCodeHubConfig(input: Record<string, unknown>, ctx?: Plugin
       ? process.env[tokenRef.slice(4)] ?? null
       : null;
 
-  if (!baseUrl) throw new Error("CodeHub baseUrl 未配置。");
-  if (!token) throw new Error(`CodeHub token 未配置：${tokenRef}`);
+  if (!baseUrl) throw new Error(uiText("ui.generated.c828e083628"));
+  if (!token) throw new Error(uiText("ui.server.codehub.tokenMissing", undefined, { tokenRef }));
 
   return { baseUrl, token };
 }
@@ -287,18 +288,18 @@ const toolBundle: ExecutableToolBundle = {
   tools: [
     {
       id: "codehub.project.get",
-      title: "获取项目信息",
-      description: "读取 CodeHub 项目元数据。",
+      title: uiText("ui.generated.cbcb673f983"),
+      description: uiText("ui.generated.c994188be9a"),
     },
     {
       id: "codehub.merge_request.changes",
-      title: "获取 MR 变更",
-      description: "读取 Merge Request 变更详情。",
+      title: uiText("ui.generated.c4ed82e1f89"),
+      description: uiText("ui.generated.c669c44c877"),
     },
     {
       id: "codehub.merge_request.review.publish",
-      title: "发布 MR 审查评论",
-      description: "向 Merge Request 写入普通评论或行级评论。",
+      title: uiText("ui.generated.c86c0e27f8d"),
+      description: uiText("ui.generated.c82f8f202e1"),
     },
   ],
   async executeTool(toolId, input, ctx) {

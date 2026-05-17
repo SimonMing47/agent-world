@@ -53,39 +53,39 @@ export default async function TeamAssetsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="团队治理"
-        title="团队资产治理"
-        description="维护团队可使用的 Skill、知识库、Codebase 和 Connector。"
+        eyebrow="ui.generated.c41decbbd6e"
+        title="ui.generated.cca8171b97e"
+        description="ui.generated.cea69c1cb77"
         badges={[
-          { label: `${visibleGrants.length} 条资产授权`, variant: "accent" },
-          { label: `${new Set(visibleGrants.map((grant) => grant.assetType)).size} 类资产`, variant: "neutral" },
+          { label: <>{visibleGrants.length} ui.common.count.assetGrants</>, variant: "accent" },
+          { label: <>{new Set(visibleGrants.map((grant) => grant.assetType)).size} ui.common.count.categories</>, variant: "neutral" },
           ...(selectedTeam ? [{ label: selectedTeam.name, variant: "success" as const }] : []),
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "当前视角", value: selectedTeam?.name ?? "全部团队", detail: selectedTeam ? "来自组织树跳转" : "未限定业务团队" },
-          { label: "团队级资产", value: visibleGrants.filter((grant) => !grant.memberId).length, detail: "团队共享使用" },
-          { label: "成员级资产", value: visibleGrants.filter((grant) => Boolean(grant.memberId)).length, detail: "授权到具体成员" },
-          { label: "资产类型", value: new Set(visibleGrants.map((grant) => grant.assetType)).size, detail: "Skill / 知识库 / Codebase / Connector" },
+          { label: "ui.generated.c4ffbca2945", value: selectedTeam?.name ?? "ui.generated.cbd2c65c3b9", detail: selectedTeam ? "ui.generated.cbc11cb027d" : "ui.generated.c37efe8d964" },
+          { label: "ui.generated.c697e6f3e85", value: visibleGrants.filter((grant) => !grant.memberId).length, detail: "ui.generated.c39ad083712" },
+          { label: "ui.generated.ce788115afc", value: visibleGrants.filter((grant) => Boolean(grant.memberId)).length, detail: "ui.generated.cdcb62e5950" },
+          { label: "ui.generated.c74e3df5bd8", value: new Set(visibleGrants.map((grant) => grant.assetType)).size, detail: "ui.generated.c2b0869c742" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="资产授权"
-          title="团队资产授权"
-          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的资产授权。` : "查看资产、授权对象、范围和有效期。"}
+          eyebrow="ui.generated.c778ab92119"
+          title="ui.generated.ccdec5a201c"
+          description={selectedTeam ? <>ui.common.detail.currentOnlyShows {selectedTeam.name} ui.common.detail.assetsOnly</> : "ui.generated.c40a38886dd"}
           action={
             <div className="flex flex-wrap gap-2">
               {selectedTeam ? (
-                <Button asChild size="sm" variant="ghost"><Link href="/team-assets">查看全部</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href="/team-assets">ui.generated.ced2172fd78</Link></Button>
               ) : null}
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增资产授权</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.ca6f30f10f3</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,860px)]">
-                  <DialogHeader><DialogTitle>新增资产授权</DialogTitle><DialogDescription>选择资产类型和权限 JSON。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.ca6f30f10f3</DialogTitle><DialogDescription>ui.generated.cad0e1ea67f</DialogDescription></DialogHeader>
                   <DialogBody>
                     <AssetGrantForm
                       businessTeams={teamOptions}
@@ -111,12 +111,12 @@ export default async function TeamAssetsPage({
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>资产</DataTableHead>
-                <DataTableHead>团队 / 成员</DataTableHead>
-                <DataTableHead>类型</DataTableHead>
-                <DataTableHead>权限</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c713fd96fb2</DataTableHead>
+                <DataTableHead>ui.generated.c79b92cb768</DataTableHead>
+                <DataTableHead>ui.generated.ce4e46c7235</DataTableHead>
+                <DataTableHead>ui.generated.c560165a6d7</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -130,8 +130,8 @@ export default async function TeamAssetsPage({
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{grant.assetId}</div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{team?.name ?? "未知团队"}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member?.name ?? "团队级"}</div>
+                      <div>{team?.name ?? "ui.generated.c718c1c03d6"}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member?.name ?? "ui.generated.cc09ac5c242"}</div>
                     </DataTableCell>
                     <DataTableCell>{grant.assetType}</DataTableCell>
                     <DataTableCell className="max-w-[360px] truncate font-mono text-xs">{permission(grant.permissionJson)}</DataTableCell>
@@ -139,13 +139,13 @@ export default async function TeamAssetsPage({
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
-                            <DialogHeader><DialogTitle>编辑资产授权</DialogTitle><DialogDescription>{grant.assetName}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.ccc191ecf7c</DialogTitle><DialogDescription>{grant.assetName}</DialogDescription></DialogHeader>
                             <DialogBody><AssetGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/team-assets" id={grant.id} confirmText={`确认删除资产授权「${grant.assetName}」？`} />
+                        <DeleteResourceButton endpoint="/api/team-assets" id={grant.id} confirmParams={{ resource: "ui.common.resources.assetGrant", name: grant.assetName }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

@@ -7,6 +7,7 @@ import {
   type TaskRun,
   type BusinessTeam,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type FindingSeverity = "info" | "low" | "medium" | "high" | "critical";
 export type FindingStatus = "open" | "published" | "ignored" | "false_positive" | "fixed" | "deleted";
@@ -170,7 +171,7 @@ export function updateFinding(input: {
   publicationJson?: string | Record<string, unknown>;
 }) {
   const current = queryOne<Finding>("SELECT * FROM findings WHERE id = ?", input.id);
-  if (!current) throw new Error("Finding 不存在。");
+  if (!current) throw new Error(uiText("ui.generated.cc157098911"));
 
   return upsertFinding({
     ...current,

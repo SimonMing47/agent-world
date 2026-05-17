@@ -87,10 +87,10 @@ function teamHref(path: string, teamId: string) {
 function TeamOperationLinks({ teamId }: { teamId: string }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-members", teamId)}>成员</Link></Button>
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-permissions", teamId)}>权限</Link></Button>
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-assets", teamId)}>资产</Link></Button>
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/task-blueprints", teamId)}>任务</Link></Button>
+      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-members", teamId)}>ui.generated.cc1ee9f0190</Link></Button>
+      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-permissions", teamId)}>ui.generated.c560165a6d7</Link></Button>
+      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-assets", teamId)}>ui.generated.c713fd96fb2</Link></Button>
+      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/task-blueprints", teamId)}>ui.generated.c3172b317f9</Link></Button>
     </div>
   );
 }
@@ -142,7 +142,7 @@ function TeamTreeNode({
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-semibold text-[var(--ink)]">{team.name}</div>
               <Badge variant={statusVariant(team.status)}>{team.status}</Badge>
-              {children.length ? <Badge variant="neutral">{children.length} 个下级</Badge> : null}
+              {children.length ? <Badge variant="neutral">{children.length} ui.generated.c99dfa3e2ed</Badge> : null}
             </div>
             <div className="mt-1 text-xs text-[var(--ink-muted)]">{team.slug}</div>
             {team.description ? (
@@ -152,10 +152,10 @@ function TeamTreeNode({
           <TeamOperationLinks teamId={team.id} />
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricPill icon={<Users className="h-4 w-4" />} label="成员" value={summary?.memberCount ?? 0} />
-          <MetricPill icon={<Bot className="h-4 w-4" />} label="执行团队" value={summary?.agentTeamCount ?? 0} />
-          <MetricPill icon={<ScrollText className="h-4 w-4" />} label="任务" value={summary?.taskBlueprintCount ?? 0} />
-          <MetricPill icon={<Boxes className="h-4 w-4" />} label="资产" value={summary?.assetCount ?? 0} />
+          <MetricPill icon={<Users className="h-4 w-4" />} label="ui.generated.cc1ee9f0190" value={summary?.memberCount ?? 0} />
+          <MetricPill icon={<Bot className="h-4 w-4" />} label="ui.generated.cd4f6dd33b7" value={summary?.agentTeamCount ?? 0} />
+          <MetricPill icon={<ScrollText className="h-4 w-4" />} label="ui.generated.c3172b317f9" value={summary?.taskBlueprintCount ?? 0} />
+          <MetricPill icon={<Boxes className="h-4 w-4" />} label="ui.generated.c713fd96fb2" value={summary?.assetCount ?? 0} />
         </div>
       </div>
       {children.length ? (
@@ -193,33 +193,33 @@ function TeamDetailDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button>
+        <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button>
       </DialogTrigger>
       <DialogContent className="w-[min(94vw,980px)]">
         <DialogHeader>
           <DialogTitle>{team.name}</DialogTitle>
-          <DialogDescription>团队画像、组织关系、资产和任务情况。</DialogDescription>
+          <DialogDescription>ui.generated.c659cf80ea8</DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-5">
           <DefinitionList
             columnsClassName="sm:grid-cols-2 xl:grid-cols-3"
             items={[
-              { label: "团队 ID", value: team.id },
-              { label: "租户空间", value: tenantName },
-              { label: "上级团队", value: parent?.name ?? "无上级团队" },
+              { label: "ui.generated.cc581b5b399", value: team.id },
+              { label: "ui.generated.c3db35d2741", value: tenantName },
+              { label: "ui.generated.c8febffdb94", value: parent?.name ?? "ui.generated.c7c6b663c4c" },
               { label: "Owner", value: team.ownerUserId },
-              { label: "私有知识命名空间", value: team.privateMemoryNamespace },
-              { label: "预算使用", value: `${money(team.balance)} / ${money(team.creditLimit)} (${budgetPercent}%)` },
-              { label: "团队说明", value: team.description || "未填写" },
-              { label: "私有工具引用", value: team.privateToolRefsJson },
-              { label: "团队策略", value: team.policyJson },
+              { label: "ui.generated.c095885b526", value: team.privateMemoryNamespace },
+              { label: "ui.generated.ceadd946554", value: `${money(team.balance)} / ${money(team.creditLimit)} (${budgetPercent}%)` },
+              { label: "ui.generated.c0ed5cf4445", value: team.description || "ui.generated.c287a1d1034" },
+              { label: "ui.generated.c17324cd203", value: team.privateToolRefsJson },
+              { label: "ui.generated.c628a862a9b", value: team.policyJson },
             ]}
           />
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricPill icon={<Users className="h-4 w-4" />} label="成员" value={`${summary.activeMemberCount}/${summary.memberCount}`} />
-            <MetricPill icon={<KeyRound className="h-4 w-4" />} label="权限规则" value={summary.permissionCount} />
-            <MetricPill icon={<Boxes className="h-4 w-4" />} label="资产授权" value={summary.assetCount} />
-            <MetricPill icon={<ScrollText className="h-4 w-4" />} label="任务定义" value={summary.taskBlueprintCount} />
+            <MetricPill icon={<Users className="h-4 w-4" />} label="ui.generated.cc1ee9f0190" value={`${summary.activeMemberCount}/${summary.memberCount}`} />
+            <MetricPill icon={<KeyRound className="h-4 w-4" />} label="ui.generated.c95f4519aab" value={summary.permissionCount} />
+            <MetricPill icon={<Boxes className="h-4 w-4" />} label="ui.generated.c778ab92119" value={summary.assetCount} />
+            <MetricPill icon={<ScrollText className="h-4 w-4" />} label="ui.generated.c971c6e5190" value={summary.taskBlueprintCount} />
           </div>
           <TeamOperationLinks teamId={team.id} />
         </DialogBody>
@@ -283,39 +283,39 @@ export default function BusinessTeamsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="团队治理"
-        title="组织结构定义"
-        description="维护业务团队结构，并从团队视角查看成员、权限、资产和任务情况。"
+        eyebrow="ui.generated.c41decbbd6e"
+        title="ui.generated.c1b746595c2"
+        description="ui.generated.c32315d277c"
         badges={[
-          { label: `${businessTeams.length} 个业务团队`, variant: "accent" },
-          { label: `${totalActiveMembers} 个活跃成员`, variant: "neutral" },
+          { label: <>{businessTeams.length} ui.common.count.teams</>, variant: "accent" },
+          { label: <>{totalActiveMembers} ui.common.count.activeMembers</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "业务团队", value: businessTeams.length, detail: `${activeTeamCount} 个启用中` },
-          { label: "团队成员", value: members.length, detail: `${totalActiveMembers} 个启用中` },
-          { label: "团队资产", value: assetGrants.length, detail: "Skill / 知识库 / Codebase / Connector" },
-          { label: "团队任务", value: taskBlueprints.length, detail: "按业务团队归属治理" },
+          { label: "ui.generated.c2b90028ff3", value: businessTeams.length, detail: <>{activeTeamCount} ui.common.detail.enabled</> },
+          { label: "ui.generated.c7de0251fdd", value: members.length, detail: <>{totalActiveMembers} ui.common.detail.enabled</> },
+          { label: "ui.generated.ce40458cdde", value: assetGrants.length, detail: "ui.generated.c2b0869c742" },
+          { label: "ui.generated.cc371224569", value: taskBlueprints.length, detail: "ui.generated.cc90de61dca" },
         ]}
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <Panel>
           <PanelHeader
-            eyebrow="组织结构"
-            title="团队树"
-            description="按租户和上级团队展示组织结构。"
+            eyebrow="ui.generated.c21dfec6104"
+            title="ui.generated.c4ba393db14"
+            description="ui.generated.c438e4a540a"
             action={
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增团队</Button>
+                  <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.c4996d49a42</Button>
                 </DialogTrigger>
                 <DialogContent className="w-[min(94vw,900px)]">
                   <DialogHeader>
-                    <DialogTitle>新增业务团队</DialogTitle>
-                    <DialogDescription>配置团队归属、上级团队、预算、知识命名空间和团队策略。</DialogDescription>
+                    <DialogTitle>ui.generated.c25deec1bd3</DialogTitle>
+                    <DialogDescription>ui.generated.c7d1cf58091</DialogDescription>
                   </DialogHeader>
                   <DialogBody>
                     <BusinessTeamForm
@@ -326,7 +326,7 @@ export default function BusinessTeamsPage() {
                         tenantSpaceId: defaultTenantSpaceId,
                         parentBusinessTeamId: null,
                         slug: "new-team",
-                        name: "新增业务团队",
+                        name: "",
                         description: "",
                         ownerUserId: "console",
                         status: "active",
@@ -365,7 +365,7 @@ export default function BusinessTeamsPage() {
                       </div>
                     ) : (
                       <div className="rounded-lg border border-dashed border-[var(--line)] px-4 py-8 text-sm text-[var(--ink-muted)]">
-                        暂无业务团队。
+                        ui.generated.c4e6f52d038
                       </div>
                     )}
                   </section>
@@ -377,25 +377,25 @@ export default function BusinessTeamsPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="团队情况"
-            title="团队治理概览"
-            description="配置完成后，可以在这里直接看到每个团队的成员、权限、资产和任务情况。"
+            eyebrow="ui.generated.c4ad934b950"
+            title="ui.generated.c042d6729c4"
+            description="ui.generated.c975b1afa5b"
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>团队</DataTableHead>
-                  <DataTableHead>组织关系</DataTableHead>
-                  <DataTableHead>成员</DataTableHead>
-                  <DataTableHead>资产 / 任务</DataTableHead>
-                  <DataTableHead>预算</DataTableHead>
-                  <DataTableHead align="right">操作</DataTableHead>
+                  <DataTableHead>ui.generated.c21d7042ff0</DataTableHead>
+                  <DataTableHead>ui.generated.c6d5f2521b4</DataTableHead>
+                  <DataTableHead>ui.generated.cc1ee9f0190</DataTableHead>
+                  <DataTableHead>ui.generated.c37f2163e2f</DataTableHead>
+                  <DataTableHead>ui.generated.c0dcf0e012a</DataTableHead>
+                  <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
                 {businessTeams.map((team) => {
-                  const tenantName = tenantNameById.get(team.tenantSpaceId) ?? "未绑定";
+                  const tenantName = tenantNameById.get(team.tenantSpaceId) ?? "ui.generated.c3bf179d8d0";
                   const parent = team.parentBusinessTeamId ? teamsById.get(team.parentBusinessTeamId) : undefined;
                   const summary = summaries.get(team.id) ?? {
                     memberCount: 0,
@@ -419,15 +419,15 @@ export default function BusinessTeamsPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <div className="text-[var(--ink)]">{tenantName}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{parent ? `上级：${parent.name}` : "根团队"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{parent ? <>ui.common.parentPrefix{parent.name}</> : "ui.generated.c3c5b0132ad"}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{summary.activeMemberCount} / {summary.memberCount}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.permissionCount} 条权限 · {summary.denyPermissionCount} 条拒绝</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.permissionCount} ui.generated.c096bff697a {summary.denyPermissionCount} ui.generated.c9814ee699c</div>
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{summary.assetCount} 项资产 · {summary.taskBlueprintCount} 个任务</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} 个 Agent 团队 · {summary.knowledgeSpaceCount} 个知识空间</div>
+                        <div className="font-medium text-[var(--ink)]">{summary.assetCount} ui.generated.c9a9997a2da {summary.taskBlueprintCount} ui.generated.cc5680a85b1</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} ui.generated.c65b0845cb8 {summary.knowledgeSpaceCount} ui.generated.c4b183f17ca</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{money(team.balance)} / {money(team.creditLimit)}</div>
@@ -439,13 +439,13 @@ export default function BusinessTeamsPage() {
                         <div className="flex flex-wrap justify-end gap-2">
                           <TeamDetailDialog team={team} parent={parent} tenantName={tenantName} summary={summary} />
                           <Dialog>
-                            <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                            <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                             <DialogContent className="w-[min(94vw,900px)]">
-                              <DialogHeader><DialogTitle>编辑业务团队</DialogTitle><DialogDescription>{team.name}</DialogDescription></DialogHeader>
+                              <DialogHeader><DialogTitle>ui.generated.c6379b5b772</DialogTitle><DialogDescription>{team.name}</DialogDescription></DialogHeader>
                               <DialogBody><BusinessTeamForm tenantSpaces={tenantOptions} businessTeams={teamOptions} team={team} /></DialogBody>
                             </DialogContent>
                           </Dialog>
-                          <DeleteResourceButton endpoint="/api/business-teams" id={team.id} confirmText={`确认删除业务团队「${team.name}」？`} />
+                          <DeleteResourceButton endpoint="/api/business-teams" id={team.id} confirmParams={{ resource: "ui.common.resources.businessTeam", name: team.name }} />
                         </div>
                       </DataTableCell>
                     </DataTableRow>

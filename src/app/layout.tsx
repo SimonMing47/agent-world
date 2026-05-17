@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Noto_Sans_SC } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { uiText } from "@/lib/language-pack";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import "./globals.css";
 
@@ -21,8 +22,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "AgentWorld",
-  description:
-    "一个面向租户空间、业务团队、任务、跨团队授权、服务目录与运行约束的 TypeScript Agent 平台。",
+  description: uiText("ui.generated.caab5c6c8a4"),
 };
 
 export const dynamic = "force-dynamic";

@@ -44,28 +44,28 @@ export default function McpPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="MCP"
-        title="MCP 管理"
-        description="维护 MCP Server、传输方式、鉴权引用和工具白名单。"
+        title="ui.generated.c0950f9419b"
+        description="ui.generated.cec6d685a99"
         badges={[
-          { label: `${servers.length} 个 Server`, variant: "accent" },
-          { label: `${servers.filter((server) => server.status === "active").length} 个启用`, variant: "success" },
+          { label: <>{servers.length} ui.common.count.servers</>, variant: "accent" },
+          { label: <>{servers.filter((server) => server.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="服务目录"
-          title="MCP Server 目录"
-          description="查看传输协议、工具白名单和健康状态。"
+          eyebrow="ui.generated.cab63588ee3"
+          title="ui.generated.c847752d637"
+          description="ui.generated.c88fd702a14"
           action={
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增 MCP</Button>
+                <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.cc9bbf9d28c</Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 MCP Server</DialogTitle>
-                  <DialogDescription>配置 MCP 传输方式、命令或 URL，以及可暴露工具。</DialogDescription>
+                  <DialogTitle>ui.generated.c80d3b4a082</DialogTitle>
+                  <DialogDescription>ui.generated.c194a744ff1</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <McpServerForm
@@ -73,7 +73,7 @@ export default function McpPage() {
                     server={{
                       id: "",
                       businessTeamId: null,
-                      name: "新增 MCP Server",
+                      name: "",
                       transport: "stdio",
                       command: "",
                       url: "",
@@ -92,11 +92,11 @@ export default function McpPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Server</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
                 <DataTableHead>Transport</DataTableHead>
-                <DataTableHead>工具</DataTableHead>
-                <DataTableHead>健康</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.ca72ef18d9a</DataTableHead>
+                <DataTableHead>ui.generated.c28ff5ffe95</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -107,11 +107,11 @@ export default function McpPage() {
                   <DataTableRow key={server.id}>
                     <DataTableCell className="min-w-[260px]">
                       <div className="font-semibold text-[var(--ink)]">{server.name}</div>
-                      <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">{server.command || server.url || "未配置入口"}</div>
+                      <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">{server.command || server.url || "ui.generated.cc63d0e243e"}</div>
                     </DataTableCell>
-                    <DataTableCell>{team?.name ?? "全局"}</DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.ca5644f4bbf"}</DataTableCell>
                     <DataTableCell>{server.transport}</DataTableCell>
-                    <DataTableCell>{tools.length ? tools.slice(0, 3).join(", ") : "未限制"}</DataTableCell>
+                    <DataTableCell>{tools.length ? tools.slice(0, 3).join(", ") : "ui.generated.c7a433d5959"}</DataTableCell>
                     <DataTableCell>
                       <Badge variant={server.status === "active" ? "success" : "neutral"}>{server.lastHealthStatus}</Badge>
                     </DataTableCell>
@@ -119,20 +119,20 @@ export default function McpPage() {
                       <div className="flex justify-end gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button>
+                            <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button>
                           </DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{server.name}</DialogTitle><DialogDescription>MCP Server 明细。</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>{server.name}</DialogTitle><DialogDescription>ui.generated.c9ea3e1dae0</DialogDescription></DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 items={[
                                   { label: "ID", value: server.id },
-                                  { label: "团队", value: team?.name ?? "全局" },
+                                  { label: "ui.generated.c21d7042ff0", value: team?.name ?? "ui.generated.ca5644f4bbf" },
                                   { label: "Transport", value: server.transport },
-                                  { label: "命令", value: server.command || "无" },
-                                  { label: "URL", value: server.url || "无" },
-                                  { label: "Auth Ref", value: server.authRef || "无" },
-                                  { label: "工具", value: tools.join(", ") || "未限制" },
+                                  { label: "ui.generated.cb114b91547", value: server.command || "ui.generated.c72077749f7" },
+                                  { label: "URL", value: server.url || "ui.generated.c72077749f7" },
+                                  { label: "Auth Ref", value: server.authRef || "ui.generated.c72077749f7" },
+                                  { label: "ui.generated.ca72ef18d9a", value: tools.join(", ") || "ui.generated.c7a433d5959" },
                                 ]}
                               />
                             </DialogBody>
@@ -140,14 +140,14 @@ export default function McpPage() {
                         </Dialog>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button>
+                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
-                            <DialogHeader><DialogTitle>编辑 MCP Server</DialogTitle><DialogDescription>{server.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.ca787995e10</DialogTitle><DialogDescription>{server.name}</DialogDescription></DialogHeader>
                             <DialogBody><McpServerForm businessTeams={teamOptions} server={server} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/mcp-servers" id={server.id} confirmText={`确认删除 MCP Server「${server.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/mcp-servers" id={server.id} confirmParams={{ resource: "ui.common.resources.mcpServer", name: server.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

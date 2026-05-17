@@ -12,6 +12,7 @@ import {
   type TaskRun,
 } from "@/server/db";
 import { getOpenVikingHealth, getOpenVikingTree } from "@/server/openviking-core";
+import { uiText } from "@/lib/language-pack";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -104,7 +105,7 @@ export function createKnowledgeSpace(input: {
   const now = nowIso();
   const id = randomUUID();
   const tenantSpaceId = getDefaultTenantId();
-  if (!tenantSpaceId) throw new Error("租户空间不存在，无法创建知识空间。");
+  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
 
   const businessTeam = input.businessTeamId
     ? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", input.businessTeamId)

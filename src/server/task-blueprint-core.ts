@@ -14,6 +14,7 @@ import { summarizeAgentTeamRunPlan } from "@/server/agent-orchestration-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
 import { summarizeProviderAdapter } from "@/server/provider-core";
 import { summarizeFinding } from "@/server/finding-core";
+import { uiText } from "@/lib/language-pack";
 
 function parseRecord(value: string) {
   try {
@@ -76,12 +77,12 @@ export function buildTaskBlueprintSummary(args: {
     version: args.blueprint.version,
     businessTeamName:
       args.businessTeams.find((team) => team.id === args.blueprint.ownerBusinessTeamId)?.name ??
-      "未知业务团队",
+      uiText("ui.generated.c7ae513bf4d"),
     agentTeamName:
-      args.teams.find((team) => team.id === args.blueprint.teamId)?.name ?? "未知 Agent 团队",
+      args.teams.find((team) => team.id === args.blueprint.teamId)?.name ?? uiText("ui.generated.c603903ef14"),
     environmentName:
       args.environments.find((environment) => environment.id === args.blueprint.environmentId)?.name ??
-      "未绑定环境",
+      uiText("ui.generated.c304b35fa0b"),
     providerName:
       args.providerAdapters.find((adapter) => adapter.id === args.blueprint.providerAdapterId)?.name ??
       args.blueprint.providerAdapterId,

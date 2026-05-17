@@ -3,6 +3,7 @@ import {
   createPluginRuntimeContext,
   resolveOutputPublisher,
 } from "@/server/plugin-sdk-core";
+import { uiText } from "@/lib/language-pack";
 
 type PublisherSpec = {
   type?: string;
@@ -43,7 +44,7 @@ function parsePublishers(blueprint: TaskBlueprint) {
 
 function buildFindingMarkdown(findings: Finding[]) {
   if (findings.length === 0) {
-    return "本次任务未生成结构化 Finding。";
+    return uiText("ui.generated.c9d4101ab82");
   }
 
   return findings
@@ -58,9 +59,11 @@ function buildFindingMarkdown(findings: Finding[]) {
         .join(" ");
       return [
         `${index + 1}. [${finding.severity}] ${finding.title}`,
-        location ? `位置: ${location}` : null,
+        location ? uiText("ui.server.outputPublisher.location", undefined, { location }) : null,
         finding.description,
-        finding.recommendation ? `建议: ${finding.recommendation}` : null,
+        finding.recommendation
+          ? uiText("ui.server.outputPublisher.recommendation", undefined, { recommendation: finding.recommendation })
+          : null,
       ]
         .filter(Boolean)
         .join("\n");
@@ -80,8 +83,8 @@ function buildPublicationInput(args: {
   const commentBody = [
     `## ${args.blueprint.name}`,
     "",
-    `任务运行: ${args.taskRun.id}`,
-    `触发来源: ${args.taskRun.sourceType}`,
+    uiText("ui.server.outputPublisher.taskRun", undefined, { taskRunId: args.taskRun.id }),
+    uiText("ui.server.outputPublisher.sourceType", undefined, { sourceType: args.taskRun.sourceType }),
     "",
     buildFindingMarkdown(args.findings),
   ].join("\n");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLanguageText } from "@/components/language-pack-provider";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 export function Panel({
@@ -32,7 +32,7 @@ export function PanelHeader({
 }: {
   eyebrow?: string;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   const text = useLanguageText();
@@ -46,7 +46,7 @@ export function PanelHeader({
           </div>
         ) : null}
         <h3 className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{text(title)}</h3>
-        {description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{text(description)}</p> : null}
+        {description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{localizeNode(description, text)}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>

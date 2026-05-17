@@ -118,7 +118,7 @@ export function ProviderProfileForm({
       JSON.parse(form.headersJson);
     } catch {
       setIsSaving(false);
-      setMessage("JSON 格式不正确");
+      setMessage("ui.generated.cf09c995336");
       return;
     }
 
@@ -129,7 +129,7 @@ export function ProviderProfileForm({
 
     if (models.length === 0) {
       setIsSaving(false);
-      setMessage("请至少配置一个模型");
+      setMessage("ui.generated.c058b4726f2");
       return;
     }
 
@@ -163,11 +163,11 @@ export function ProviderProfileForm({
 
     setIsSaving(false);
     if (!response.ok) {
-      setMessage("保存失败");
+      setMessage("ui.generated.c40525a7328");
       return;
     }
 
-    setMessage("已保存");
+    setMessage("ui.generated.ccdfab96f75");
     onSaved?.();
     router.refresh();
   }
@@ -179,7 +179,7 @@ export function ProviderProfileForm({
         checked={form.isEnabled}
         onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      启用
+      ui.generated.cd4e9ca3dd4
     </label>
   );
 
@@ -188,14 +188,14 @@ export function ProviderProfileForm({
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="模型服务名称">
+          <FieldGroup label="ui.generated.c94e4102c81">
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="模型服务名称"
+              placeholder="ui.generated.c94e4102c81"
             />
           </FieldGroup>
-          <FieldGroup label="API 风格">
+          <FieldGroup label="ui.generated.c269a00cd6b">
             <Select
               value={form.apiStyle}
               onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
@@ -223,26 +223,26 @@ export function ProviderProfileForm({
               placeholder="https://api.openai.com/v1"
             />
           </FieldGroup>
-          <FieldGroup label="请求协议">
+          <FieldGroup label="ui.generated.c91534309be">
             <Select
               value={form.modelApi}
               onChange={(event) => setForm({ ...form, modelApi: event.target.value })}
             >
-              <option value="">跟随 API 风格自动判断</option>
+              <option value="">ui.generated.cb576fa372a</option>
               <option value="openai-responses">OpenAI Responses</option>
               <option value="openai-completions">OpenAI Chat / Completions</option>
               <option value="azure-openai-responses">Azure OpenAI Responses</option>
               <option value="anthropic-messages">Anthropic Messages</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="默认模型">
+          <FieldGroup label="ui.generated.cb5bff31cdd">
             <Input
               value={form.defaultModel}
               onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
               placeholder="gpt-5.4"
             />
           </FieldGroup>
-          <FieldGroup label="API Key 引用" className="md:col-span-2">
+          <FieldGroup label="ui.generated.c10df5dca33" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
@@ -250,8 +250,8 @@ export function ProviderProfileForm({
             />
           </FieldGroup>
           <FieldGroup
-            label="模型列表"
-            hint="每行一个模型名。"
+            label="ui.generated.cc271d29118"
+            hint="ui.generated.ca6024ebc28"
             className="md:col-span-2"
           >
             <Textarea
@@ -260,14 +260,14 @@ export function ProviderProfileForm({
               placeholder={"gpt-5.4\ngpt-5.4-mini"}
             />
           </FieldGroup>
-          <FieldGroup label="上下文窗口">
+          <FieldGroup label="ui.generated.c9a1fbe0bb9">
             <Input
               value={form.contextWindow}
               onChange={(event) => setForm({ ...form, contextWindow: event.target.value })}
               placeholder="128000"
             />
           </FieldGroup>
-          <FieldGroup label="最大输出 Tokens">
+          <FieldGroup label="ui.generated.ca21133348e">
             <Input
               value={form.maxTokens}
               onChange={(event) => setForm({ ...form, maxTokens: event.target.value })}
@@ -275,8 +275,8 @@ export function ProviderProfileForm({
             />
           </FieldGroup>
           <FieldGroup
-            label="附加 Headers"
-            hint="给 OpenAI Compatible / 企业网关追加自定义请求头。"
+            label="ui.generated.cf7a9fb4dbc"
+            hint="ui.generated.c51a73b89c2"
             className="md:col-span-2"
           >
             <Textarea
@@ -310,12 +310,12 @@ export function ProviderProfileForm({
                 checked={form.reasoning}
                 onChange={(event) => setForm({ ...form, reasoning: event.target.checked })}
               />
-              推理能力
+              ui.generated.caa23f730d0
             </label>
           </div>
           <FieldGroup
-            label="扩展配置覆盖"
-            hint="保留给供应商私有能力或暂未结构化的附加参数。"
+            label="ui.generated.cbdb1ce25f5"
+            hint="ui.generated.c573da6f520"
             className="md:col-span-2"
           >
             <Textarea
@@ -331,7 +331,7 @@ export function ProviderProfileForm({
             onClick={save}
             disabled={isSaving}
           >
-            {isSaving ? "保存中" : "保存模型服务"}
+            {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.cd3a54b3d46"}
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
@@ -347,7 +347,7 @@ export function ProviderProfileForm({
     <Panel>
       <PanelHeader
         title={title}
-        description="模型服务、默认模型和 API Key 引用。"
+        description="ui.generated.c0cb178a6a9"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

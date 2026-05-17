@@ -3,6 +3,7 @@ import {
   type ProviderProfile,
   type ProviderRuntimeBinding,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type ProviderProfileConfig = {
   modelApi?: string;
@@ -152,7 +153,7 @@ export function buildRuntimeDescriptor(
     approvalMode: bindingConfig.approvalMode ?? "allow",
     humanIntervention: bindingConfig.humanIntervention ?? "steer",
     defaultModel: provider ? resolveProviderModelId(provider, binding) : bindingConfig.defaultModel ?? "",
-    providerLabel: provider ? `${provider.name} / ${resolveProviderModelId(provider, binding)}` : "未绑定模型服务",
+    providerLabel: provider ? `${provider.name} / ${resolveProviderModelId(provider, binding)}` : uiText("ui.generated.c89b342a06a"),
     apiKeyRefMasked: maskSecretRef(binding.apiKeyRef || provider?.apiKeyRef || ""),
   };
 }
