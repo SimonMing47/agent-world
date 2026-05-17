@@ -111,7 +111,7 @@ export function KnowledgeSpaceForm({
         <DialogHeader>
           <DialogTitle>{isEdit ? "编辑知识空间" : "新增知识空间"}</DialogTitle>
           <DialogDescription>
-            为业务团队、项目或 AgentTeam 创建 OpenViking URI 空间，并自动写入访问绑定。
+            为业务团队、项目或 Agent 团队创建 OpenViking URI 空间，并自动写入访问绑定。
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
@@ -128,7 +128,7 @@ export function KnowledgeSpaceForm({
                   <option value="global">全局</option>
                   <option value="team">团队</option>
                   <option value="project">项目</option>
-                  <option value="agent_team">AgentTeam</option>
+                  <option value="agent_team">Agent 团队</option>
                 </Select>
               </FieldGroup>
               <FieldGroup label="业务团队">
@@ -140,7 +140,7 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="AgentTeam">
+              <FieldGroup label="Agent 团队">
                 <Select name="agentTeamId" disabled={spaceType !== "agent_team"} defaultValue={space?.agentTeamId ?? ""}>
                   <option value="">不绑定</option>
                   {availableAgentTeams.map((team) => (

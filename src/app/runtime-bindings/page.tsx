@@ -41,6 +41,11 @@ function stringField(value: unknown, fallback = "未配置") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+function eventContractLabel(value: unknown) {
+  const text = stringField(value, "agent_event_v1");
+  return text === "provider_event_v1" ? "agent_event_v1" : text;
+}
+
 function defaultBinding(snapshot: ReturnType<typeof getSettingsSnapshot>) {
   const provider = snapshot.providers[0] ?? null;
   return {
@@ -59,7 +64,7 @@ function defaultBinding(snapshot: ReturnType<typeof getSettingsSnapshot>) {
       {
         defaultModel: provider?.defaultModel ?? "",
         approvalMode: "ask",
-        eventContract: "provider_event_v1",
+        eventContract: "agent_event_v1",
         env: {},
       },
       null,
@@ -78,9 +83,9 @@ export default function RuntimeBindingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Execution"
-        title="Provider 执行配置"
-        description="把业务团队、默认模型接口、密钥引用、执行参数和审批模式绑定成可复用配置，供 Agent 和任务运行时选择。"
+        eyebrow="执行配置"
+        title="模型执行配置"
+        description="把业务团队、默认模型服务、密钥引用、执行参数和审批模式绑定成可复用配置，供 Agent 和任务运行时选择。"
         badges={[
           { label: `${snapshot.providerRuntimeBindings.length} 个执行配置`, variant: "accent" },
           { label: `启用 ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
@@ -91,16 +96,16 @@ export default function RuntimeBindingsPage() {
         items={[
           { label: "执行配置", value: snapshot.providerRuntimeBindings.length, detail: "供 Agent 与任务引用" },
           { label: "启用", value: snapshot.providerRuntimeBindings.filter((item) => item.isEnabled === 1).length, detail: "当前可选" },
-          { label: "模型接口", value: snapshot.providers.length, detail: "AI Provider Profile" },
+          { label: "模型服务", value: snapshot.providers.length, detail: "可治理服务" },
           { label: "团队绑定", value: snapshot.providerRuntimeBindings.filter((item) => item.businessTeamId).length, detail: "团队专属配置" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Bindings"
+          eyebrow="配置目录"
           title="执行配置目录"
-          description="执行配置支持新增、查看、编辑和删除；底层 Agent Runtime 由系统内置，不作为业务配置项暴露。"
+          description="执行配置支持新增、查看、编辑和删除；底层执行接口由系统内置，不作为业务配置项暴露。"
           action={
             <Dialog>
               <DialogTrigger asChild>
@@ -112,7 +117,7 @@ export default function RuntimeBindingsPage() {
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
                   <DialogTitle>新增执行配置</DialogTitle>
-                  <DialogDescription>配置默认模型接口、服务地址、密钥引用、审批模式和附加参数。</DialogDescription>
+                  <DialogDescription>配置默认模型服务、服务地址、密钥引用、审批模式和附加参数。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <ProviderRuntimeBindingForm
@@ -134,7 +139,7 @@ export default function RuntimeBindingsPage() {
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>执行配置</DataTableHead>
                 <DataTableHead>归属业务团队</DataTableHead>
-                <DataTableHead>默认模型接口</DataTableHead>
+                <DataTableHead>默认模型服务</DataTableHead>
                 <DataTableHead>服务地址</DataTableHead>
                 <DataTableHead>状态</DataTableHead>
                 <DataTableHead align="right">操作</DataTableHead>
@@ -158,7 +163,7 @@ export default function RuntimeBindingsPage() {
                     </DataTableCell>
                     <DataTableCell className="max-w-[280px] truncate">{binding.baseUrl || "内置"}</DataTableCell>
                     <DataTableCell>
-                      <Badge variant={binding.isEnabled === 1 ? "success" : "neutral"}>{binding.isEnabled === 1 ? "enabled" : "disabled"}</Badge>
+                      <Badge variant={binding.isEnabled === 1 ? "success" : "neutral"}>{binding.isEnabled === 1 ? "启用" : "停用"}</Badge>
                     </DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
@@ -172,7 +177,7 @@ export default function RuntimeBindingsPage() {
                           <DialogContent className="w-[min(96vw,920px)]">
                             <DialogHeader>
                               <DialogTitle>{binding.name}</DialogTitle>
-                              <DialogDescription>Provider 执行配置明细。</DialogDescription>
+                              <DialogDescription>模型执行配置明细。</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <DefinitionList
@@ -181,11 +186,11 @@ export default function RuntimeBindingsPage() {
                                   { label: "ID", value: binding.id },
                                   { label: "租户空间", value: binding.tenantSpaceId },
                                   { label: "业务团队", value: businessTeam?.name ?? "全局默认" },
-                                  { label: "默认模型接口", value: provider?.name ?? "未绑定" },
+                                  { label: "默认模型服务", value: provider?.name ?? "未绑定" },
                                   { label: "默认模型", value: stringField(config.defaultModel, provider?.defaultModel ?? "未配置") },
                                   { label: "API Key 引用", value: binding.apiKeyRef || provider?.apiKeyRef || "未配置" },
                                   { label: "审批模式", value: stringField(config.approvalMode, "ask") },
-                                  { label: "事件协议", value: stringField(config.eventContract, "provider_event_v1") },
+                                  { label: "事件协议", value: eventContractLabel(config.eventContract) },
                                   { label: "服务地址", value: binding.baseUrl || "内置" },
                                   { label: "启动命令", value: binding.command || "内置" },
                                   { label: "工作目录", value: binding.workspaceRoot || "." },

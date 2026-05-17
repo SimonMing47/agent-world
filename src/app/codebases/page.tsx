@@ -46,7 +46,7 @@ export default function CodebasesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Codebase"
+        eyebrow="代码仓"
         title="Codebase 管理"
         description="统一录入代码仓地址、归属团队和多个操作者 token，任务执行时只引用受控的 Codebase 和 Token。"
         badges={[
@@ -66,7 +66,7 @@ export default function CodebasesPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Repositories"
+          eyebrow="仓库目录"
           title="代码仓目录"
           description="代码仓作为团队资产被任务蓝图、执行环境和插件引用。"
           action={

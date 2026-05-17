@@ -34,7 +34,7 @@ export default function TenantSpacesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Tenant Spaces"
+        eyebrow="租户空间"
         title="租户空间"
         description="租户空间决定团队、预算、模型白名单和全局 Guardrails，支持增删查改。"
         badges={[{ label: `${tenantSpaces.length} 个租户空间`, variant: "accent" }]}
@@ -42,7 +42,7 @@ export default function TenantSpacesPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="租户空间目录"
           description="租户空间是团队治理的顶层边界。"
           action={

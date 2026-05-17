@@ -79,7 +79,9 @@ export function ProviderRuntimeBindingForm({
     approvalMode:
       typeof parsedConfig.approvalMode === "string" ? parsedConfig.approvalMode : "ask",
     eventContract:
-      typeof parsedConfig.eventContract === "string" ? parsedConfig.eventContract : "provider_event_v1",
+      typeof parsedConfig.eventContract === "string" && parsedConfig.eventContract !== "provider_event_v1"
+        ? parsedConfig.eventContract
+        : "agent_event_v1",
     envJson: normalizeJson(
       JSON.stringify(
         parsedConfig.env && typeof parsedConfig.env === "object" && !Array.isArray(parsedConfig.env)
@@ -218,7 +220,7 @@ export function ProviderRuntimeBindingForm({
             <Input
               value={form.eventContract}
               onChange={(event) => setForm({ ...form, eventContract: event.target.value })}
-              placeholder="provider_event_v1"
+              placeholder="agent_event_v1"
             />
           </FieldGroup>
           <FieldGroup label="默认模型覆盖">
@@ -228,14 +230,14 @@ export function ProviderRuntimeBindingForm({
               placeholder="gpt-5.4"
             />
           </FieldGroup>
-          <FieldGroup label="Provider API Key 引用" className="md:col-span-2">
+          <FieldGroup label="模型服务 API Key 引用" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
               placeholder="env:AGENTWORLD_GLM_API_KEY"
             />
           </FieldGroup>
-          <FieldGroup label="默认模型接口" className="md:col-span-2">
+          <FieldGroup label="默认模型服务" className="md:col-span-2">
             <Select
               value={form.defaultProviderProfileId}
               onChange={(event) => setForm({ ...form, defaultProviderProfileId: event.target.value })}
@@ -267,7 +269,7 @@ export function ProviderRuntimeBindingForm({
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"providerProfileAlias":"openai-default"}'
+              placeholder='{"modelServiceAlias":"openai-default"}'
             />
           </FieldGroup>
         </div>
@@ -293,7 +295,7 @@ export function ProviderRuntimeBindingForm({
       <Panel>
       <PanelHeader
         title={title}
-        description="默认模型接口、执行参数、密钥引用与环境变量映射。"
+        description="默认模型服务、执行参数、密钥引用与环境变量映射。"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

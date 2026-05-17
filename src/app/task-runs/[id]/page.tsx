@@ -104,7 +104,7 @@ export default async function TaskRunDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Run Detail"
+        eyebrow="运行详情"
         title={detail.taskRun.sourceRef ?? detail.taskRun.sourceType}
         description="面向值班排障、审计复盘和人工介入的任务运行控制台。"
         badges={[
@@ -150,7 +150,7 @@ export default async function TaskRunDetailPage({
         <main className="space-y-6">
           <Panel>
             <PanelHeader
-              eyebrow="Execution"
+              eyebrow="执行"
               title="节点执行表"
               description={detail.plan?.summary ? localizeDemoCopy(detail.plan.summary) : "按计划节点展示 Agent、依赖和重试状态。"}
             />
@@ -183,7 +183,7 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Stages" title="调用阶段" description="从上下文组装到输出收尾的执行检查点。" />
+            <PanelHeader eyebrow="阶段" title="调用阶段" description="从上下文组装到输出收尾的执行检查点。" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
@@ -217,7 +217,7 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Audit Trail" title="执行轨迹" description="按 fold group 保留原始执行事件，便于审计和复盘。" />
+            <PanelHeader eyebrow="审计轨迹" title="执行轨迹" description="按分组保留原始执行事件，便于审计和复盘。" />
             <PanelBody className="space-y-4">
               {eventGroups.length === 0 ? (
                 <EmptyState>暂无执行事件。</EmptyState>
@@ -258,7 +258,7 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Events" title="标准事件流" description="统一 Provider 事件、工具事件和状态事件。" />
+            <PanelHeader eyebrow="事件" title="标准事件流" description="统一模型服务事件、工具事件和状态事件。" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
@@ -294,7 +294,7 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Findings" title="Finding 输出" description="本次运行产出的标准化问题、建议和置信度。" />
+            <PanelHeader eyebrow="问题输出" title="Finding 输出" description="本次运行产出的标准化问题、建议和置信度。" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
@@ -343,7 +343,7 @@ export default async function TaskRunDetailPage({
 
         <aside className="space-y-6">
           <Panel>
-            <PanelHeader eyebrow="Summary" title="运行摘要" description="主体对象、来源、时间和幂等信息。" />
+            <PanelHeader eyebrow="摘要" title="运行摘要" description="主体对象、来源、时间和幂等信息。" />
             <PanelBody>
               <DefinitionList
                 columnsClassName="grid-cols-1"
@@ -365,7 +365,7 @@ export default async function TaskRunDetailPage({
 
           {detail.kernel.blueprint ? (
             <Panel>
-              <PanelHeader eyebrow="Blueprint" title="蓝图快照" description="本次运行绑定的蓝图版本。" />
+              <PanelHeader eyebrow="蓝图" title="蓝图快照" description="本次运行绑定的蓝图版本。" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
@@ -383,7 +383,7 @@ export default async function TaskRunDetailPage({
           {detail.kernel.agentTeamRunPlan ? (
             <Panel>
               <PanelHeader
-                eyebrow="Orchestration"
+                eyebrow="编排"
                 title="编排协议"
                 description={`${detail.kernel.agentTeamRunPlan.strategy} · Leader ${detail.kernel.agentTeamRunPlan.leader.agentName}`}
               />
@@ -402,7 +402,7 @@ export default async function TaskRunDetailPage({
 
           {detail.accessGrant ? (
             <Panel>
-              <PanelHeader eyebrow="Access Grant" title="跨团队授权" description={detail.accessGrant.serviceAccountRef} />
+              <PanelHeader eyebrow="授权" title="跨团队授权" description={detail.accessGrant.serviceAccountRef} />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
@@ -422,7 +422,7 @@ export default async function TaskRunDetailPage({
 
           {detail.executionPolicy ? (
             <Panel>
-              <PanelHeader eyebrow="Policy" title="运行约束" description={detail.executionPolicy.name} />
+              <PanelHeader eyebrow="策略" title="运行约束" description={detail.executionPolicy.name} />
               <PanelBody className="space-y-4">
                 <p className="text-sm leading-6 text-[var(--ink-muted)]">{detail.executionPolicy.instruction}</p>
                 <DefinitionList
@@ -436,7 +436,7 @@ export default async function TaskRunDetailPage({
                       value: `${detail.executionPolicy.budget.maxRuntimeMinutes} 分钟 / ${detail.executionPolicy.budget.maxSteps} 步 / ${detail.executionPolicy.budget.maxToolCalls} 次工具调用`,
                     },
                     { label: "默认语言", value: detail.executionPolicy.safety.defaultLocale },
-                    { label: "默认折叠思考", value: detail.executionPolicy.safety.collapseThinkingByDefault ? "是" : "否" },
+                    { label: "默认折叠推理摘要", value: detail.executionPolicy.safety.collapseThinkingByDefault ? "是" : "否" },
                   ]}
                 />
               </PanelBody>
@@ -444,7 +444,7 @@ export default async function TaskRunDetailPage({
           ) : null}
 
           <Panel>
-            <PanelHeader eyebrow="Provider" title="Provider 选择依据" description="调度前的模型接口选择说明。" />
+            <PanelHeader eyebrow="模型服务" title="模型服务选择依据" description="调度前的模型服务选择说明。" />
             <PanelBody>
               <ul className="space-y-2 text-sm leading-6 text-[var(--ink-muted)]">
                 {detail.providerRationale.map((line) => (
@@ -457,7 +457,7 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Interventions" title="人工干预记录" description="审批门禁和人工决策请求。" />
+            <PanelHeader eyebrow="人工介入" title="人工干预记录" description="审批门禁和人工决策请求。" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
@@ -495,7 +495,7 @@ export default async function TaskRunDetailPage({
 
           {detail.executionInsights ? (
             <Panel>
-              <PanelHeader eyebrow="Metrics" title="执行指标" description="吞吐、失败和人工介入水平。" />
+              <PanelHeader eyebrow="指标" title="执行指标" description="吞吐、失败和人工介入水平。" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
@@ -512,7 +512,7 @@ export default async function TaskRunDetailPage({
 
           {detail.costBreakdown ? (
             <Panel>
-              <PanelHeader eyebrow="Costs" title="成本明细" description="估算与实际消耗对照。" />
+              <PanelHeader eyebrow="成本" title="成本明细" description="估算与实际消耗对照。" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
@@ -529,7 +529,7 @@ export default async function TaskRunDetailPage({
 
           {detail.kernel.environmentSnapshot ? (
             <Panel>
-              <PanelHeader eyebrow="Environment" title="环境快照" description="仓库、执行路径与凭据绑定。" />
+              <PanelHeader eyebrow="环境" title="环境快照" description="仓库、执行路径与凭据绑定。" />
               <PanelBody>
                 <JsonBlock value={detail.kernel.environmentSnapshot} />
               </PanelBody>
@@ -537,7 +537,7 @@ export default async function TaskRunDetailPage({
           ) : null}
 
           <Panel>
-            <PanelHeader eyebrow="Permissions" title="权限快照" description="本次运行实际生效的权限规则。" />
+            <PanelHeader eyebrow="权限" title="权限快照" description="本次运行实际生效的权限规则。" />
             <PanelBody>
               <JsonBlock value={detail.kernel.permissionSnapshot} />
             </PanelBody>

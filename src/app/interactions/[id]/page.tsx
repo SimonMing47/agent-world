@@ -30,9 +30,9 @@ export default async function RuntimeInteractionDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Interaction Detail"
+        eyebrow="会话详情"
         title={detail.session.title}
-        description="真实模型交互、Agent Team 协作和人工介入都在这里展开。"
+        description="真实模型交互、Agent 团队协作和人工介入都在这里展开。"
         badges={[
           { label: detail.session.mode, variant: "neutral" },
           { label: detail.session.status, variant: statusVariant(detail.session.status) },
@@ -81,7 +81,7 @@ export default async function RuntimeInteractionDetailPage({
             detail: detail.runtimeDescriptor?.executionMode ?? "unknown",
           },
           {
-            label: "模型接口",
+            label: "模型服务",
             value: detail.providerProfile?.name ?? "未绑定",
             detail: detail.session.model,
           },
@@ -93,7 +93,7 @@ export default async function RuntimeInteractionDetailPage({
               : "未绑定默认画像",
           },
           {
-            label: "Agent Team",
+            label: "Agent 团队",
             value: detail.agentTeam?.name ?? "无",
             detail: detail.agentTeam
               ? `${detail.agents.length} 个成员`

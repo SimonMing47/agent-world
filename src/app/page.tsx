@@ -23,12 +23,12 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Operations"
+        eyebrow="运营总览"
         title="团队级 Agent 治理总览"
         description="Agent 是调度的最小单位；业务团队负责人员、资产、权限和任务归属；Agent 团队负责复杂任务的协作执行。"
         badges={[
           { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
-          { label: `${settings.metrics.providerProfileCount} 个 AI Provider`, variant: "neutral" },
+          { label: `${settings.metrics.providerProfileCount} 个模型服务`, variant: "neutral" },
         ]}
       />
 
@@ -37,7 +37,7 @@ export default function OverviewPage() {
       <section className="grid gap-4 2xl:grid-cols-[1.35fr_0.65fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Runs"
+            eyebrow="任务运行"
             title="最近任务运行"
             description="按来源、团队、状态和时间直接查看最近的任务执行。"
           />
@@ -97,7 +97,7 @@ export default function OverviewPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="Load"
+            eyebrow="负载"
             title="来源与问题分布"
             description="值班时先看这里，判断负载来自哪里，问题集中在哪个等级。"
           />
@@ -158,17 +158,17 @@ export default function OverviewPage() {
       <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Readiness"
+            eyebrow="就绪度"
             title="配置完整度"
-            description="从模型接口、任务定义、Webhook、执行环境观察平台可运行程度。"
+            description="从模型服务、任务定义、Webhook、执行环境观察平台可运行程度。"
           />
           <PanelBody>
             <DefinitionList
               items={[
                 {
-                  label: "模型接口",
+                  label: "模型服务",
                   value: `${settings.metrics.enabledProviderProfileCount}/${settings.metrics.providerProfileCount}`,
-                  detail: "已启用模型接口 / 全部接口",
+                  detail: "已启用模型服务 / 全部服务",
                 },
                 {
                   label: "任务蓝图",
@@ -187,7 +187,7 @@ export default function OverviewPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="Blueprints"
+            eyebrow="任务蓝图"
             title="蓝图目录"
             description="蓝图作为统一任务入口，直接在表格里看触发器、运行量和 Finding 产出。"
           />

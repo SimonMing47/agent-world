@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Sparkles, TestTube2 } from "lucide-react";
+import { SlidersHorizontal, TestTube2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [optimizationGoal, setOptimizationGoal] = useState("让这个 Agent 的职责边界更清楚，并提升默认系统提示词与 Harness 权限约束的一致性。");
+  const [optimizationGoal, setOptimizationGoal] = useState("让这个 Agent 的职责边界更清楚，并提升默认系统提示词与运行约束的一致性。");
   const [testPrompt, setTestPrompt] = useState("请用 3 条要点介绍你的职责边界，并给出一个你会如何处理问题的示例。");
   const [testResult, setTestResult] = useState<null | {
     status: string;
@@ -333,7 +333,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       return;
     }
 
-    setMessage("已保存 Agent 定义");
+    setMessage("已保存 Agent");
     onSaved();
   }
 
@@ -383,7 +383,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     if (suggestion.testPrompt) {
       setTestPrompt(suggestion.testPrompt);
     }
-    setMessage(`AI 已应用优化建议${suggestion.notes.length ? `：${suggestion.notes.join("；")}` : ""}`);
+    setMessage(`已应用优化建议${suggestion.notes.length ? `：${suggestion.notes.join("；")}` : ""}`);
   }
 
   async function testDefinition() {
@@ -420,7 +420,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         validationStatus: "failed",
         lastValidationSummary: payload.error ?? "测试失败",
       }));
-      setMessage(payload.error ?? "测试失败");
+      setMessage(payload.error ?? "验证失败");
       return;
     }
 
@@ -449,7 +449,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       }),
     );
     setTestResult(payload.result);
-    setMessage("Agent 测试已完成");
+    setMessage("定义验证已完成");
   }
 
   function onSaved() {
@@ -524,7 +524,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="默认模型接口">
+        <FieldGroup label="默认模型服务">
           <Select
             value={form.defaultProviderProfileId}
             onChange={(event) => {
@@ -609,8 +609,8 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="Agent Harness"
-          title="默认执行画像"
+          eyebrow="策略"
+          title="运行约束"
           description="把默认审批模式、权限边界和人工介入方式绑定到这个 Agent。"
         />
         <PanelBody className="grid gap-3 md:grid-cols-2">
@@ -626,7 +626,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Thinking 强度">
+          <FieldGroup label="推理强度">
             <Select
               value={form.harnessThinkingLevel}
               onChange={(event) => setForm({ ...form, harnessThinkingLevel: event.target.value })}
@@ -683,7 +683,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Secret 权限">
+          <FieldGroup label="密钥权限">
             <Select
               value={form.permissionSecretAccess}
               onChange={(event) => setForm({ ...form, permissionSecretAccess: event.target.value })}
@@ -739,17 +739,17 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       <div className="grid gap-4 xl:grid-cols-2">
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-            <Sparkles className="h-4 w-4" />
-            AI 优化定义
+            <SlidersHorizontal className="h-4 w-4" />
+            辅助优化定义
           </div>
           <div className="mt-3 space-y-3">
             <Textarea
               value={optimizationGoal}
               onChange={(event) => setOptimizationGoal(event.target.value)}
-              placeholder="希望模型重点优化什么。"
+              placeholder="希望重点优化什么。"
             />
             <Button type="button" variant="secondary" onClick={optimize} disabled={isOptimizing}>
-              {isOptimizing ? "优化中" : "使用当前 Provider 优化"}
+              {isOptimizing ? "优化中" : "使用当前模型服务优化"}
             </Button>
           </div>
         </div>
@@ -757,16 +757,16 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
             <TestTube2 className="h-4 w-4" />
-            测试 Agent 可用性
+            验证定义可用性
           </div>
           <div className="mt-3 space-y-3">
             <Textarea
               value={testPrompt}
               onChange={(event) => setTestPrompt(event.target.value)}
-              placeholder="输入一段测试任务，验证这个 Agent 的输出质量。"
+              placeholder="输入一段验证任务，检查这个 Agent 的输出质量。"
             />
             <Button type="button" variant="secondary" onClick={testDefinition} disabled={isTesting}>
-              {isTesting ? "测试中" : "测试 Agent"}
+              {isTesting ? "验证中" : "验证定义"}
             </Button>
           </div>
         </div>
@@ -775,7 +775,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       {testResult ? (
         <div className="space-y-4 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--ink-muted)]">
-            <span>测试状态: {testResult.status}</span>
+            <span>验证状态: {testResult.status}</span>
             <span>响应模型: {testResult.responseModel}</span>
           </div>
           <div>
@@ -786,7 +786,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
           </div>
           {testResult.thinkingText ? (
             <div>
-              <div className="text-sm font-medium text-[var(--ink)]">Thinking</div>
+              <div className="text-sm font-medium text-[var(--ink)]">推理摘要</div>
               <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
                 {testResult.thinkingText}
               </pre>
@@ -814,7 +814,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "保存中" : "保存 Agent 定义"}
+          {isSaving ? "保存中" : "保存 Agent"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
@@ -827,7 +827,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
   return (
     <Panel>
-      <PanelHeader title={props.title} description="管理 Agent 名称、默认系统提示词、Harness 权限、共享范围、优化和验证。" />
+      <PanelHeader title={props.title} description="管理 Agent 名称、默认系统提示词、运行约束、共享范围、优化和验证。" />
       <PanelBody>{content}</PanelBody>
     </Panel>
   );

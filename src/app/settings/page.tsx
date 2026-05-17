@@ -15,11 +15,11 @@ import { getSettingsSnapshot } from "@/server/queries";
 
 const systemEntries = [
   {
-    name: "AI Provider",
+    name: "模型服务",
     href: "/runtimes",
     group: "常用基础配置",
-    scope: "模型接口",
-    description: "Base URL、模型、密钥引用和模型能力配置。",
+    scope: "模型服务",
+    description: "Base URL、模型、密钥引用和能力参数配置。",
   },
   {
     name: "Skill",
@@ -54,14 +54,14 @@ const systemEntries = [
     href: "/knowledge",
     group: "常用基础配置",
     scope: "OpenViking",
-    description: "团队、项目和 AgentTeam 级知识空间。",
+    description: "团队、项目和 Agent 团队级知识空间。",
   },
   {
     name: "执行配置",
     href: "/runtime-bindings",
     group: "系统运行配置",
-    scope: "Provider 绑定",
-    description: "默认模型接口、服务地址、密钥引用、审批模式和附加参数。",
+    scope: "模型执行",
+    description: "默认模型服务、服务地址、密钥引用、审批模式和附加参数。",
   },
   {
     name: "执行环境",
@@ -115,18 +115,18 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Settings"
+        eyebrow="系统配置"
         title="系统配置"
         description="左侧只放高频治理入口；执行配置、执行环境、Webhook、租户、策略和服务目录等长尾系统项在这里统一进入。"
         badges={[
-          { label: `${snapshot.providers.length} 个 Provider`, variant: "accent" },
+          { label: `${snapshot.providers.length} 个模型服务`, variant: "accent" },
           { label: `${snapshot.environments.length} 个执行环境`, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "Provider", value: snapshot.providers.length, detail: "模型接口" },
+          { label: "模型服务", value: snapshot.providers.length, detail: "可用模型服务" },
           { label: "执行环境", value: snapshot.environments.length, detail: "任务运行对象" },
           { label: "Webhook", value: snapshot.webhooks.length, detail: "外部触发入口" },
           { label: "任务定义", value: snapshot.taskBlueprints.length, detail: "归属业务团队" },
@@ -136,7 +136,7 @@ export default function SettingsPage() {
       {systemEntryGroups.map((group) => (
         <Panel key={group}>
           <PanelHeader
-            eyebrow="System Modules"
+            eyebrow="系统模块"
             title={group}
             description={group === "常用基础配置" ? "这些模块也保留在侧边栏，便于日常治理。" : "这些模块不占用侧边栏，用于系统运行和长尾配置治理。"}
           />

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, detail });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Agent Team 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : "保存 Agent 团队失败。" },
       { status: 400 },
     );
   }
@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, detail });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Agent Team 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : "保存 Agent 团队失败。" },
       { status: 400 },
     );
   }

@@ -9,9 +9,9 @@
   --line-strong: #cbd5e1;
   --ink: #111827;
   --ink-muted: #667085;
-  --accent: #0f766e;
-  --accent-strong: #115e59;
-  --accent-soft: #dcfce7;
+  --accent: #315f5a;
+  --accent-strong: #244944;
+  --accent-soft: #e6f0ee;
   --danger: #b42318;
   --warning: #b54708;
   --sidebar: #0f1720;
@@ -23,7 +23,7 @@
   --sidebar-ink-softer: #c6d2de;
   --sidebar-muted: #d9e4ef;
   --sidebar-subtle: #92a4b9;
-  --sidebar-accent: #5eead4;
+  --sidebar-accent: #9ab7b0;
 }
 
 @theme inline {
@@ -64,7 +64,7 @@ textarea::placeholder {
 }
 
 ::selection {
-  background: rgba(37, 100, 90, 0.18);
+  background: rgba(49, 95, 90, 0.18);
 }
 
 .agent-sidebar {

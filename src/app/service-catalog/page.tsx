@@ -52,22 +52,22 @@ export default function ServiceCatalogPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Service Catalog"
+        eyebrow="服务目录"
         title="服务目录"
-        description="配置跨团队可招募的 Agent Team 服务能力，支持新增、查看、编辑和删除。"
+        description="配置跨团队可招募的 Agent 团队服务能力，支持新增、查看、编辑和删除。"
         badges={[{ label: `${listings.length} 条目录记录`, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="服务目录"
-          description="目录条目决定哪些 Agent Team 能被其他团队发现、申请和授权使用。"
+          description="目录条目决定哪些 Agent 团队能被其他团队发现、申请和授权使用。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增目录</Button></DialogTrigger>
               <DialogContent className="w-[min(94vw,820px)]">
-                <DialogHeader><DialogTitle>新增服务目录条目</DialogTitle><DialogDescription>选择 Agent Team 并配置招募模式和服务履历。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>新增服务目录条目</DialogTitle><DialogDescription>选择 Agent 团队并配置招募模式和服务履历。</DialogDescription></DialogHeader>
                 <DialogBody>
                   <ServiceCatalogForm
                     agentTeams={agentTeamOptions}
@@ -89,7 +89,7 @@ export default function ServiceCatalogPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>Agent Team</DataTableHead>
+                <DataTableHead>Agent 团队</DataTableHead>
                 <DataTableHead>招募模式</DataTableHead>
                 <DataTableHead>成功率</DataTableHead>
                 <DataTableHead>平均耗时</DataTableHead>

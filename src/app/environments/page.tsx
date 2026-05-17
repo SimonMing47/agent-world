@@ -53,7 +53,7 @@ export default function EnvironmentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Environment"
+        eyebrow="执行环境"
         title="执行环境管理"
         description="执行环境是任务运行对象，配置代码仓、执行人、私钥引用、运行路径、沙箱和记忆依赖。"
         badges={[
@@ -73,7 +73,7 @@ export default function EnvironmentsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Catalog"
+          eyebrow="目录"
           title="执行环境目录"
           description="环境配置必须可新增、查看、编辑和删除；PRIVATE_KEY 只保存 Secret 引用，不保存明文。"
           action={

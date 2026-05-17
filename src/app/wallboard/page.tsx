@@ -8,7 +8,7 @@ export default function WallboardPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <section className="space-y-4">
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             活跃任务
           </div>
@@ -16,7 +16,7 @@ export default function WallboardPage() {
             {snapshot.activeTaskRuns.map((taskRun) => (
               <div
                 key={taskRun.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">
@@ -34,15 +34,15 @@ export default function WallboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Provider 健康度
+            模型服务健康度
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {snapshot.runtimes.map((runtime) => (
               <div
                 key={runtime.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">{runtime.name}</div>
@@ -58,13 +58,13 @@ export default function WallboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             任务类别
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
-              <div key={item.sourceType} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div key={item.sourceType} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
                 <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.taskRunCount}</div>
                 <div className="mt-1 text-xs text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
@@ -73,13 +73,13 @@ export default function WallboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             Finding 聚合
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-5">
             {snapshot.findingDashboard.bySeverity.map((item) => (
-              <div key={item.severity} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div key={item.severity} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
                 <div className="text-sm uppercase text-[var(--ink-muted)]">{item.severity}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.count}</div>
               </div>
@@ -89,7 +89,7 @@ export default function WallboardPage() {
       </section>
 
       <section className="space-y-4">
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             核心 Agent 团队
           </div>
@@ -97,7 +97,7 @@ export default function WallboardPage() {
             {snapshot.topTeams.map((team) => (
               <div
                 key={team.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{team.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
@@ -108,7 +108,7 @@ export default function WallboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             活跃代码仓
           </div>
@@ -116,7 +116,7 @@ export default function WallboardPage() {
             {snapshot.topRepositories.map((repository) => (
               <div
                 key={repository.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{repository.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
@@ -127,7 +127,7 @@ export default function WallboardPage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
             活跃开发者
           </div>
@@ -135,7 +135,7 @@ export default function WallboardPage() {
             {snapshot.topDevelopers.map((developer) => (
               <div
                 key={developer.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{developer.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "测试 Agent 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : "验证 Agent 失败。" },
       { status: 400 },
     );
   }

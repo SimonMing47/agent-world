@@ -43,9 +43,9 @@ export default function TeamAssetsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Team Governance"
+        eyebrow="团队治理"
         title="团队资产治理"
-        description="给团队和成员配置 Skill、知识库、Codebase、Connector、AgentTeam 等资产的使用和治理权限。"
+        description="给团队和成员配置 Skill、知识库、Codebase、Connector、Agent 团队等资产的使用和治理权限。"
         badges={[
           { label: `${grants.length} 条资产授权`, variant: "accent" },
           { label: `${new Set(grants.map((grant) => grant.assetType)).size} 类资产`, variant: "neutral" },
@@ -54,7 +54,7 @@ export default function TeamAssetsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Asset Grants"
+          eyebrow="资产授权"
           title="团队资产授权"
           description="资产授权明确谁能看、谁能用、谁能编辑和谁能授权。"
           action={

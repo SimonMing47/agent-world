@@ -99,7 +99,7 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
   return [
     {
       id: "pi-runtime-adapter",
-      name: "AgentWorld Runtime Adapter",
+      name: "AgentWorld 内置执行接口",
       command: "system://agentworld-runtime",
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       status: "default",
@@ -107,7 +107,7 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
     },
     {
       id: "hermes-runtime-adapter",
-      name: "Hermes Runtime Adapter",
+      name: "Hermes 执行接口",
       command: "plugin://runtime-adapter/hermes",
       secretRefs: [],
       status: "plugin",
@@ -115,7 +115,7 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
     },
     {
       id: "langgraph-runtime-adapter",
-      name: "LangGraph Runtime Adapter",
+      name: "LangGraph 执行接口",
       command: "plugin://runtime-adapter/langgraph",
       secretRefs: [],
       status: "plugin",

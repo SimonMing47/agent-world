@@ -44,7 +44,7 @@ export default function SkillsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Skill Management"
+        eyebrow="Skill 管理"
         title="Skill 管理"
         description="Skill 是 Agent 运行时可复用的能力单元，归属团队、标签、权限和内容统一治理，内容同步存储到 OpenViking。"
         badges={[
@@ -55,7 +55,7 @@ export default function SkillsPage() {
 
       <SummaryStrip
         items={[
-          { label: "Skill 总数", value: skills.length, detail: "可被 AgentTeam 和任务引用" },
+          { label: "Skill 总数", value: skills.length, detail: "可被 Agent 团队和任务引用" },
           { label: "团队 Skill", value: skills.filter((skill) => skill.visibility === "team").length, detail: "归属业务团队" },
           { label: "全局 Skill", value: skills.filter((skill) => skill.visibility === "global").length, detail: "跨团队可读" },
           { label: "已同步", value: skills.filter((skill) => skill.vikingUri).length, detail: "OpenViking URI 已生成" },
@@ -64,7 +64,7 @@ export default function SkillsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="Skill 注册表"
           description="新增、编辑、优化润色和同步 OpenViking 都通过弹窗完成。"
           action={

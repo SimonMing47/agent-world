@@ -20,19 +20,19 @@ export default function AgentTeamWallboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Overview"
-        title="智能体团队大屏"
-        description="智能体团队是完成复杂任务的调度单元，由多个 Agent、编排策略和运行约束组成。"
-        badges={[{ label: `${snapshot.teamSummaries.length} 个 AgentTeam`, variant: "accent" }]}
+        eyebrow="总览"
+        title="Agent 团队看板"
+        description="Agent 团队是完成复杂任务的调度单元，由多个 Agent、编排策略和运行约束组成。"
+        badges={[{ label: `${snapshot.teamSummaries.length} 个 Agent 团队`, variant: "accent" }]}
       />
 
       <Panel>
-        <PanelHeader eyebrow="Agent Team Board" title="AgentTeam 调度概览" description="从调度单元视角观察任务数量、成员规模和运行表现。" />
+        <PanelHeader eyebrow="执行团队" title="Agent 团队调度概览" description="从调度单元视角观察任务数量、成员规模和运行表现。" />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>AgentTeam</DataTableHead>
+                <DataTableHead>Agent 团队</DataTableHead>
                 <DataTableHead>业务团队</DataTableHead>
                 <DataTableHead>成员</DataTableHead>
                 <DataTableHead>任务定义</DataTableHead>

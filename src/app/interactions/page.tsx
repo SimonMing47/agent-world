@@ -52,12 +52,12 @@ export default function RuntimeInteractionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Interactions"
-        title="模型交互工作台"
-        description="会话、团队协作和人工介入统一通过模型会话管理。"
+        eyebrow="交互工作台"
+        title="交互工作台"
+        description="用于验证模型服务、Agent 定义、Agent 团队协作和人工介入流程。"
         badges={[
           { label: `${runtimeSessions.length} 个会话`, variant: "accent" },
-          { label: `${providerProfiles.length} 个模型接口`, variant: "neutral" },
+          { label: `${providerProfiles.length} 个模型服务`, variant: "neutral" },
         ]}
       />
 
@@ -69,21 +69,21 @@ export default function RuntimeInteractionsPage() {
             detail: `${runtimeSessions.filter((session) => session.status === "running").length} 个运行中`,
           },
           {
-            label: "Agent Team 会话",
+            label: "Agent 团队会话",
             value: runtimeSessions.filter((session) => session.mode === "agent_team").length,
             detail: "支持多 Agent 协作输出",
           },
           {
             label: "执行配置",
             value: runtimeBindings.length,
-            detail: `${providerProfiles.length} 个模型接口可选`,
+            detail: `${providerProfiles.length} 个模型服务可选`,
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Sessions"
+          eyebrow="会话目录"
           title="模型会话"
           description="已创建的模型交互会话统一在表格里管理。"
           action={
@@ -97,7 +97,7 @@ export default function RuntimeInteractionsPage() {
               <DialogContent className="w-[min(92vw,860px)]">
                 <DialogHeader>
                   <DialogTitle>新建模型会话</DialogTitle>
-                  <DialogDescription>选择模型接口和单 Agent 或 Team 模式。</DialogDescription>
+                  <DialogDescription>选择模型服务和单 Agent 或 Agent 团队模式。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <RuntimeSessionCreateForm

@@ -59,11 +59,11 @@ export default function AgentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Agents"
-        title="Agent 定义中心"
-        description="定义个人 Agent、共享到业务团队，并配置默认系统提示词、Harness 权限和可用性验证。"
+        eyebrow="Agent 管理"
+        title="Agent 目录"
+        description="定义个人 Agent、共享到业务团队，并配置默认系统提示词、运行约束和可用性验证。"
         badges={[
-          { label: `${definitions.length} 个 Agent 定义`, variant: "accent" },
+          { label: `${definitions.length} 个 Agent`, variant: "accent" },
           { label: `${definitions.filter((item) => item.validationStatus === "passed").length} 个已验证`, variant: "neutral" },
         ]}
       />
@@ -86,18 +86,18 @@ export default function AgentsPage() {
             detail: "可被多个团队复用",
           },
           {
-            label: "可测试",
+            label: "可验证",
             value: runtimeBindings.length,
-            detail: `${providers.length} 个模型接口可参与优化`,
+            detail: `${providers.length} 个模型服务可参与优化`,
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Catalog"
-          title="Agent 定义目录"
-          description="定义、共享和验证全部在这里完成。"
+          eyebrow="目录"
+          title="Agent 目录"
+          description="按归属、共享、模型服务和验证状态管理可调度单元。"
           action={
             <Dialog>
               <DialogTrigger asChild>
@@ -108,8 +108,8 @@ export default function AgentsPage() {
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Agent 定义</DialogTitle>
-                  <DialogDescription>通过默认系统提示词和 Agent Harness 定义职责，并直接调用当前 Provider 优化和测试。</DialogDescription>
+                  <DialogTitle>新增 Agent</DialogTitle>
+                  <DialogDescription>通过默认系统提示词、运行约束和模型服务验证职责边界。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentDefinitionForm
@@ -164,7 +164,7 @@ export default function AgentsPage() {
               <DataTableRow>
                 <DataTableHead>Agent</DataTableHead>
                 <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>Provider / 模型</DataTableHead>
+                <DataTableHead>模型服务 / 模型</DataTableHead>
                 <DataTableHead>可见性</DataTableHead>
                 <DataTableHead>验证</DataTableHead>
                 <DataTableHead>更新时间</DataTableHead>
@@ -195,7 +195,7 @@ export default function AgentsPage() {
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{provider?.name ?? "未绑定 Provider"}</div>
+                      <div>{provider?.name ?? "未绑定模型服务"}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.model}</div>
                     </DataTableCell>
                     <DataTableCell>{translateVisibility(definition.visibility)}</DataTableCell>
@@ -218,7 +218,7 @@ export default function AgentsPage() {
                           <DialogContent className="w-[min(92vw,880px)]">
                             <DialogHeader>
                               <DialogTitle>{definition.name}</DialogTitle>
-                              <DialogDescription>查看 Agent 定义、默认系统提示词、Harness 和共享范围。</DialogDescription>
+                              <DialogDescription>查看 Agent 定义、默认系统提示词、运行约束和共享范围。</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
@@ -227,7 +227,7 @@ export default function AgentsPage() {
                                   { label: "归属团队", value: ownerTeam?.name ?? "未指定" },
                                   { label: "可见性", value: translateVisibility(definition.visibility) },
                                   { label: "模型", value: definition.model },
-                                  { label: "Provider", value: provider?.name ?? "未绑定" },
+                                  { label: "模型服务", value: provider?.name ?? "未绑定" },
                                   { label: "验证状态", value: translateStatus(definition.validationStatus) },
                                 ]}
                               />
@@ -244,11 +244,11 @@ export default function AgentsPage() {
                                 </pre>
                               </div>
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">Agent Harness</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">运行约束</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
                                   审批模式: {harnessProfile.approvalMode}
                                   <br />
-                                  Thinking: {harnessProfile.thinkingLevel}
+                                  推理强度: {harnessProfile.thinkingLevel}
                                   <br />
                                   人工介入: {harnessProfile.humanIntervention}
                                   <br />
@@ -256,7 +256,7 @@ export default function AgentsPage() {
                                   <br />
                                   记忆权限: {harnessProfile.memoryAccess}
                                   <br />
-                                  Secret 权限: {harnessProfile.secretAccess}
+                                  密钥权限: {harnessProfile.secretAccess}
                                   <br />
                                   允许工具: {harnessProfile.allowedToolNames.join(", ") || "全部只读工具"}
                                   <br />
@@ -286,7 +286,7 @@ export default function AgentsPage() {
                           </DialogTrigger>
                           <DialogContent className="w-[min(94vw,980px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 Agent 定义</DialogTitle>
+                              <DialogTitle>编辑 Agent</DialogTitle>
                               <DialogDescription>{definition.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>

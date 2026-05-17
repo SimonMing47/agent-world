@@ -160,7 +160,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
     if (!form.name.trim()) {
       setIsSaving(false);
-      setMessage("请先填写 Team 名称。");
+      setMessage("请先填写团队名称。");
       return;
     }
 
@@ -219,7 +219,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       return;
     }
 
-    setMessage("已保存 Agent Team");
+    setMessage("已保存 Agent 团队");
     props.onSaved?.();
     router.refresh();
   }
@@ -237,7 +237,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 slug: current.id ? current.slug : slugify(event.target.value),
               }))
             }
-            placeholder="Security Review Team"
+            placeholder="安全检视团队"
           />
         </FieldGroup>
         <FieldGroup label="Slug">
@@ -299,7 +299,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
           <Textarea
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
-            placeholder="这个 Agent Team 面向什么业务目标。"
+            placeholder="这个 Agent 团队面向什么业务目标。"
           />
         </FieldGroup>
         <FieldGroup label="编排提示词" className="md:col-span-2">
@@ -390,8 +390,8 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="Members"
-          title="Team 成员"
+          eyebrow="成员配置"
+          title="团队成员"
           description="从 Agent 定义目录中选成员，并设置工作职责与 Leader。"
           action={
             <Button
@@ -501,7 +501,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                           ),
                         )
                       }
-                      placeholder="描述这个 Agent 在 Team 中承担的具体职责和输出要求。"
+                      placeholder="描述这个 Agent 在团队中承担的具体职责和输出要求。"
                     />
                   </FieldGroup>
                   <div className="flex items-end justify-end">
@@ -529,9 +529,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="Sharing"
+          eyebrow="共享范围"
           title="可见性与使用权限"
-          description="把这个 Team 共享给其他人类业务团队，并定义它们的访问级别。"
+          description="把这个 Agent 团队共享给其他业务团队，并定义它们的访问级别。"
         />
         <PanelBody className="grid gap-3 md:grid-cols-2">
           {props.businessTeamOptions.map((team) => {
@@ -582,7 +582,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "保存中" : "保存 Agent Team"}
+          {isSaving ? "保存中" : "保存 Agent 团队"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
@@ -595,7 +595,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
   return (
     <Panel>
-      <PanelHeader title={props.title} description="定义 Team 结构、工作流、成员分工和共享范围。" />
+      <PanelHeader title={props.title} description="定义团队结构、工作流、成员分工和共享范围。" />
       <PanelBody>{content}</PanelBody>
     </Panel>
   );

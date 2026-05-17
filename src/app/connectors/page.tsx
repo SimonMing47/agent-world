@@ -43,7 +43,7 @@ export default function ConnectorsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Connectors"
+        eyebrow="连接器"
         title="Connector 管理"
         description="IM、邮件、Web Push 和企业通知通道统一作为 Connector 配置，任务输出和人工审批都通过这些通道发布。"
         badges={[
@@ -54,7 +54,7 @@ export default function ConnectorsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="Connector 目录"
           description="连接器只保存配置和 Secret 引用，具体实现通过插件扩展。"
           action={
@@ -90,7 +90,7 @@ export default function ConnectorsPage() {
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Connector</DataTableHead>
                 <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>类型 / Provider</DataTableHead>
+                <DataTableHead>类型 / 服务方</DataTableHead>
                 <DataTableHead>能力</DataTableHead>
                 <DataTableHead>状态</DataTableHead>
                 <DataTableHead align="right">操作</DataTableHead>
@@ -122,7 +122,7 @@ export default function ConnectorsPage() {
                                   { label: "ID", value: connector.id },
                                   { label: "团队", value: team?.name ?? "全局" },
                                   { label: "类型", value: connector.connectorType },
-                                  { label: "Provider", value: connector.provider },
+                                  { label: "服务方", value: connector.provider },
                                   { label: "Endpoint", value: connector.endpoint || "无" },
                                   { label: "Secret Ref", value: connector.secretRef || "无" },
                                   { label: "能力", value: capabilities.join(", ") || "无" },

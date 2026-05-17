@@ -44,17 +44,17 @@ export default function AccessGrantsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Access Grants"
+        eyebrow="跨团队授权"
         title="跨团队授权"
-        description="跨业务团队使用 Agent Team 服务必须通过授权配置，支持新增、查看、编辑和删除。"
+        description="跨业务团队使用 Agent 团队服务必须通过授权配置，支持新增、查看、编辑和删除。"
         badges={[{ label: `${accessGrants.length} 条授权`, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="授权目录"
-          description="配置服务方 Agent Team、消费方业务团队、价格、SLA 和服务账号引用。"
+          description="配置服务方 Agent 团队、消费方业务团队、价格、SLA 和服务账号引用。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增授权</Button></DialogTrigger>

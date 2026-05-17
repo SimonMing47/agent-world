@@ -70,7 +70,7 @@ export default function WebhooksPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Endpoints"
+          eyebrow="入口目录"
           title="Webhook 入口目录"
           description="所有入口都可新增、查看、编辑和删除；具体代码平台解析能力由插件提供。"
           action={
@@ -128,7 +128,7 @@ export default function WebhooksPage() {
                       <div className="mt-1 font-mono text-xs text-[var(--ink-muted)]">/api/webhooks/{webhook.pathKey}</div>
                     </DataTableCell>
                     <DataTableCell>
-                      <Badge variant={webhook.isEnabled === 1 ? "success" : "neutral"}>{webhook.isEnabled === 1 ? "enabled" : "disabled"}</Badge>
+                      <Badge variant={webhook.isEnabled === 1 ? "success" : "neutral"}>{webhook.isEnabled === 1 ? "启用" : "停用"}</Badge>
                     </DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">

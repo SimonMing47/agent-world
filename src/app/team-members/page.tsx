@@ -34,7 +34,7 @@ export default function TeamMembersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Team Governance"
+        eyebrow="团队治理"
         title="团队成员管理"
         description="录入成员姓名、工号、邮箱、归属团队和角色，支持从 Excel 复制表格后批量导入。"
         badges={[
@@ -45,7 +45,7 @@ export default function TeamMembersPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Members"
+          eyebrow="成员"
           title="成员目录"
           description="团队是 AgentWorld 的业务治理中心，成员和权限都从这里进入。"
           action={
