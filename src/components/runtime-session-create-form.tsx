@@ -48,7 +48,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
-    title: "新建运行时会话",
+    title: "新建模型会话",
     mode: "single_agent",
     agentDefinitionId: "",
     runtimeBindingId: firstBinding?.id ?? "",
@@ -158,7 +158,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             </Select>
           </FieldGroup>
         ) : null}
-        <FieldGroup label="运行时">
+        <FieldGroup label="执行配置">
           <Select
             value={form.runtimeBindingId}
             onChange={(event) => {

@@ -38,6 +38,22 @@ function parseConfig(value: string) {
   }
 }
 
+function userVisibleConfig(value: string) {
+  const visible = { ...parseConfig(value) };
+  [
+    "piApi",
+    "supportsResponsesApi",
+    "supportsChatCompletions",
+    "contextWindow",
+    "maxTokens",
+    "reasoning",
+    "headers",
+  ].forEach((key) => {
+    delete visible[key];
+  });
+  return normalizeJson(JSON.stringify(visible), "{}");
+}
+
 function normalizeJson(value: string, fallback: string) {
   try {
     return JSON.stringify(JSON.parse(value), null, 2);
@@ -89,7 +105,7 @@ export function ProviderProfileForm({
       ),
       "{}",
     ),
-    configJson: normalizeJson(provider.configJson, "{}"),
+    configJson: userVisibleConfig(provider.configJson),
     isEnabled: provider.isEnabled === 1,
   });
 
@@ -207,16 +223,16 @@ export function ProviderProfileForm({
               placeholder="https://api.openai.com/v1"
             />
           </FieldGroup>
-          <FieldGroup label="Pi 协议">
+          <FieldGroup label="请求协议">
             <Select
               value={form.piApi}
               onChange={(event) => setForm({ ...form, piApi: event.target.value })}
             >
               <option value="">跟随 API 风格自动判断</option>
-              <option value="openai-responses">openai-responses</option>
-              <option value="openai-completions">openai-completions</option>
-              <option value="azure-openai-responses">azure-openai-responses</option>
-              <option value="anthropic-messages">anthropic-messages</option>
+              <option value="openai-responses">OpenAI Responses</option>
+              <option value="openai-completions">OpenAI Chat / Completions</option>
+              <option value="azure-openai-responses">Azure OpenAI Responses</option>
+              <option value="anthropic-messages">Anthropic Messages</option>
             </Select>
           </FieldGroup>
           <FieldGroup label="默认模型">

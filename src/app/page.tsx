@@ -28,7 +28,7 @@ export default function OverviewPage() {
         description="围绕任务运行、Finding、配置完整度和蓝图活跃度组织日常操作视图。"
         badges={[
           { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
-          { label: `${settings.metrics.runtimeBindingCount} 个执行引擎`, variant: "neutral" },
+          { label: `${settings.metrics.providerProfileCount} 个 AI Provider`, variant: "neutral" },
         ]}
       />
 
@@ -160,7 +160,7 @@ export default function OverviewPage() {
           <PanelHeader
             eyebrow="Readiness"
             title="配置完整度"
-            description="从模型接口、执行引擎、蓝图和 Webhook 观察平台可运行程度。"
+            description="从模型接口、任务定义、Webhook、执行环境观察平台可运行程度。"
           />
           <PanelBody>
             <DefinitionList
@@ -169,11 +169,6 @@ export default function OverviewPage() {
                   label: "模型接口",
                   value: `${settings.metrics.enabledProviderProfileCount}/${settings.metrics.providerProfileCount}`,
                   detail: "已启用模型接口 / 全部接口",
-                },
-                {
-                  label: "执行引擎",
-                  value: `${settings.metrics.enabledRuntimeBindingCount}/${settings.metrics.runtimeBindingCount}`,
-                  detail: "已启用运行时绑定 / 全部运行时",
                 },
                 {
                   label: "任务蓝图",

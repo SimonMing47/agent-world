@@ -444,7 +444,7 @@ export default async function TaskRunDetailPage({
           ) : null}
 
           <Panel>
-            <PanelHeader eyebrow="Provider" title="Provider 选择依据" description="调度前的模型和运行时选择说明。" />
+            <PanelHeader eyebrow="Provider" title="Provider 选择依据" description="调度前的模型接口选择说明。" />
             <PanelBody>
               <ul className="space-y-2 text-sm leading-6 text-[var(--ink-muted)]">
                 {detail.providerRationale.map((line) => (

@@ -54,10 +54,10 @@ export default function RuntimeInteractionsPage() {
       <PageHeader
         eyebrow="Interactions"
         title="模型交互工作台"
-        description="会话、团队协作和人工介入统一通过运行时会话管理。"
+        description="会话、团队协作和人工介入统一通过模型会话管理。"
         badges={[
           { label: `${runtimeSessions.length} 个会话`, variant: "accent" },
-          { label: `${runtimeBindings.length} 个运行时`, variant: "neutral" },
+          { label: `${providerProfiles.length} 个模型接口`, variant: "neutral" },
         ]}
       />
 
@@ -74,7 +74,7 @@ export default function RuntimeInteractionsPage() {
             detail: "支持多 Agent 协作输出",
           },
           {
-            label: "运行时绑定",
+            label: "执行配置",
             value: runtimeBindings.length,
             detail: `${providerProfiles.length} 个模型接口可选`,
           },
@@ -84,7 +84,7 @@ export default function RuntimeInteractionsPage() {
       <Panel>
         <PanelHeader
           eyebrow="Sessions"
-          title="运行时会话"
+          title="模型会话"
           description="已创建的模型交互会话统一在表格里管理。"
           action={
             <Dialog>
@@ -96,8 +96,8 @@ export default function RuntimeInteractionsPage() {
               </DialogTrigger>
               <DialogContent className="w-[min(92vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>新建运行时会话</DialogTitle>
-                  <DialogDescription>选择运行时、模型接口和单 Agent 或 Team 模式。</DialogDescription>
+                  <DialogTitle>新建模型会话</DialogTitle>
+                  <DialogDescription>选择模型接口和单 Agent 或 Team 模式。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <RuntimeSessionCreateForm
@@ -128,7 +128,7 @@ export default function RuntimeInteractionsPage() {
               <DataTableRow>
                 <DataTableHead>会话</DataTableHead>
                 <DataTableHead>模式</DataTableHead>
-                <DataTableHead>运行时</DataTableHead>
+                <DataTableHead>执行配置</DataTableHead>
                 <DataTableHead>模型</DataTableHead>
                 <DataTableHead>状态</DataTableHead>
                 <DataTableHead>更新时间</DataTableHead>
@@ -145,7 +145,7 @@ export default function RuntimeInteractionsPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
                     </DataTableCell>
                     <DataTableCell>{session.mode}</DataTableCell>
-                    <DataTableCell>{runtime?.name ?? "未知运行时"}</DataTableCell>
+                    <DataTableCell>{runtime?.name ?? "默认执行配置"}</DataTableCell>
                     <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
                       <Badge variant={statusVariant(session.status)}>{session.status}</Badge>

@@ -544,7 +544,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="默认运行时">
+        <FieldGroup label="默认执行配置">
           <Select
             value={form.defaultRuntimeBindingId}
             onChange={(event) => setForm({ ...form, defaultRuntimeBindingId: event.target.value })}
@@ -696,7 +696,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             </Select>
           </FieldGroup>
           <div />
-          <FieldGroup label="允许工具" hint="写运行时真实工具名，每行一个。" className="md:col-span-2">
+          <FieldGroup label="允许工具" hint="写真实工具名，每行一个。" className="md:col-span-2">
             <Textarea
               value={form.allowedToolNamesText}
               onChange={(event) => setForm({ ...form, allowedToolNamesText: event.target.value })}

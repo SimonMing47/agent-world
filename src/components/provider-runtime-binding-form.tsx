@@ -175,14 +175,14 @@ export function ProviderRuntimeBindingForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="执行引擎名称">
+          <FieldGroup label="执行配置名称">
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="Pi Production"
+              placeholder="默认执行配置"
             />
           </FieldGroup>
-          <FieldGroup label="Provider Adapter">
+          <FieldGroup label="执行底座">
             <Select
               value={form.adapterDefinitionId}
               onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
@@ -206,7 +206,7 @@ export function ProviderRuntimeBindingForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Runtime Base URL">
+          <FieldGroup label="服务地址">
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
@@ -275,7 +275,7 @@ export function ProviderRuntimeBindingForm({
           </FieldGroup>
           <FieldGroup
             label="环境变量映射"
-            hint="在这里维护运行时需要的环境变量引用。"
+            hint="在这里维护执行配置需要的环境变量引用。"
             className="md:col-span-2"
           >
             <Textarea
@@ -286,7 +286,7 @@ export function ProviderRuntimeBindingForm({
           </FieldGroup>
           <FieldGroup
             label="附加配置"
-            hint="保留给 Provider Adapter 的额外参数。"
+            hint="保留给执行底座的额外参数。"
             className="md:col-span-2"
           >
             <Textarea
@@ -302,7 +302,7 @@ export function ProviderRuntimeBindingForm({
             onClick={save}
             disabled={isSaving}
           >
-            {isSaving ? "保存中" : "保存执行引擎"}
+            {isSaving ? "保存中" : "保存执行配置"}
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
@@ -318,7 +318,7 @@ export function ProviderRuntimeBindingForm({
       <Panel>
       <PanelHeader
         title={title}
-        description="运行时协议、默认接口与环境变量映射。"
+        description="执行协议、默认接口与环境变量映射。"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

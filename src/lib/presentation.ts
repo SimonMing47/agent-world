@@ -76,7 +76,7 @@ const labels = {
     hermes: "Hermes",
     langgraph: "LangGraph",
     mastra: "Mastra",
-    pi: "Pi Runtime",
+    pi: "内置运行底座",
   },
   foldGroup: {
     Analysis: "分析思考",

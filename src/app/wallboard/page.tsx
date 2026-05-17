@@ -36,7 +36,7 @@ export default function WallboardPage() {
 
         <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Runtime 健康度
+            Provider 健康度
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {snapshot.runtimes.map((runtime) => (
