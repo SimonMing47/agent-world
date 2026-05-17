@@ -59,8 +59,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       <div className="h-screen overflow-hidden bg-[var(--canvas)] text-[var(--ink)]">
         <div className="flex h-full">
           <aside
-            className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] shadow-[8px_0_24px_rgba(15,23,42,0.08)] transition-[width] duration-200 lg:block ${
-              collapsed ? "w-[80px]" : "w-[284px]"
+            className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] transition-[width] duration-200 lg:block ${
+              collapsed ? "w-[72px]" : "w-[260px]"
             }`}
           >
             <SidebarNav
@@ -70,7 +70,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           </aside>
 
           <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[var(--canvas)]/94 backdrop-blur">
+            <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[rgba(251,251,253,0.82)] backdrop-blur-xl">
               <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                   <SheetTrigger asChild>
@@ -87,7 +87,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="hidden text-[var(--ink-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)] lg:inline-flex"
+                  className="hidden text-[var(--ink-muted)] hover:bg-[var(--surface)] hover:text-[var(--ink)] lg:inline-flex"
                   onClick={() => updateCollapsed(!collapsed)}
                 >
                   {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
@@ -100,7 +100,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             </header>
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-              <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+              <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 {localizedChildren}
               </div>
             </main>

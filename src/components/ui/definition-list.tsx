@@ -16,7 +16,7 @@ export function DefinitionList({
     <dl className={cn("grid gap-x-8 gap-y-0", columnsClassName)}>
       {items.map((item, index) => (
         <div key={`${item.label}-${index}`} className="border-b border-[var(--line)] py-3 last:border-b-0">
-          <dt className="text-xs font-medium text-[var(--ink-muted)]">
+          <dt className="text-xs font-medium text-[var(--ink-subtle)]">
             {text(item.label)}
           </dt>
           <dd className="mt-2 text-sm font-medium text-[var(--ink)]">

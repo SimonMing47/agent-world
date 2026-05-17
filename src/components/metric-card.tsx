@@ -4,8 +4,8 @@ export function MetricCard(props: {
   detail: string;
 }) {
   return (
-    <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.02)]">
-      <div className="text-xs font-medium text-[var(--ink-muted)]">
+    <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+      <div className="text-xs font-medium text-[var(--ink-subtle)]">
         {props.label}
       </div>
       <div className="mt-3 text-2xl font-semibold tracking-normal text-[var(--ink)] sm:text-3xl">

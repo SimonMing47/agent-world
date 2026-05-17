@@ -92,25 +92,25 @@ const participantTones: Tone[] = [
     shell: "border-[#c8d5e4] bg-white",
     avatar: "bg-[#e8eef8]",
     avatarText: "text-[#1d4ed8]",
-    ring: "shadow-[0_0_0_3px_rgba(191,219,254,0.55)]",
+    ring: "ring-2 ring-[#dbeafe]",
   },
   {
     shell: "border-[#d5dfcb] bg-white",
     avatar: "bg-[#edf6e8]",
     avatarText: "text-[#166534]",
-    ring: "shadow-[0_0_0_3px_rgba(187,247,208,0.5)]",
+    ring: "ring-2 ring-[#dcfce7]",
   },
   {
     shell: "border-[#e1d5c7] bg-white",
     avatar: "bg-[#fbefe4]",
     avatarText: "text-[#b45309]",
-    ring: "shadow-[0_0_0_3px_rgba(253,230,138,0.45)]",
+    ring: "ring-2 ring-[#fef3c7]",
   },
   {
     shell: "border-[#d8d2ea] bg-white",
     avatar: "bg-[#efe8fb]",
     avatarText: "text-[#7c3aed]",
-    ring: "shadow-[0_0_0_3px_rgba(221,214,254,0.5)]",
+    ring: "ring-2 ring-[#ede9fe]",
   },
 ];
 
@@ -686,7 +686,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                     <div className={cn("max-w-[min(100%,760px)]", isHuman && "order-first")}>
                       <div
                         className={cn(
-                          "rounded-[22px] border px-4 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+                          "rounded-[22px] border px-4 py-3",
                           isHuman
                             ? "border-transparent bg-[var(--accent)] text-white"
                             : isTool
@@ -789,7 +789,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
             {!isPinnedToBottom ? (
               <button
                 type="button"
-                className="sticky bottom-3 left-full z-10 ml-auto flex w-fit items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--ink)] px-3 py-2 text-xs font-medium text-white shadow-lg transition hover:bg-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35"
+                className="sticky bottom-3 left-full z-10 ml-auto flex w-fit items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--ink)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35"
                 onClick={() => scrollToLatest("smooth")}
               >
                 <ArrowDown className="h-4 w-4" />
@@ -799,7 +799,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
           </div>
 
           <form
-            className="rounded-lg border border-[var(--line)] bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+            className="rounded-lg border border-[var(--line)] bg-white p-3"
             onSubmit={(event) => {
               event.preventDefault();
               void submitMessage();

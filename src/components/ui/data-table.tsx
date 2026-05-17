@@ -15,7 +15,7 @@ export function DataTable({
   return (
     <div
       aria-label={text("数据表格")}
-      className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/20"
+      className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/18"
       role="region"
       tabIndex={0}
     >
@@ -31,7 +31,7 @@ export function DataTableHeader({
 }: {
   children: React.ReactNode;
 }) {
-  return <thead className="sticky top-0 z-10 bg-[var(--surface-muted)]">{children}</thead>;
+  return <thead className="sticky top-0 z-10 bg-[var(--surface-subtle)]">{children}</thead>;
 }
 
 export function DataTableBody({
@@ -50,7 +50,7 @@ export function DataTableRow({
   children: React.ReactNode;
 }) {
   return (
-    <tr className={cn("transition hover:bg-[var(--surface-muted)]/70 focus-within:bg-[var(--surface-muted)]/70", className)}>
+    <tr className={cn("transition-colors hover:bg-[var(--surface-muted)] focus-within:bg-[var(--surface-muted)]", className)}>
       {children}
     </tr>
   );
@@ -70,7 +70,7 @@ export function DataTableHead({
   return (
     <th
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 text-xs font-semibold text-[var(--ink-muted)]",
+        "border-b border-[var(--line)] px-4 py-3 text-xs font-medium text-[var(--ink-subtle)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}

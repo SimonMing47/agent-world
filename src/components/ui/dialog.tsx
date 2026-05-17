@@ -201,7 +201,7 @@ export function DialogContent({
     <>
       <button
         aria-label={text("关闭弹窗")}
-        className="fixed inset-0 z-40 cursor-default bg-slate-950/24 backdrop-blur-[2px]"
+        className="fixed inset-0 z-40 cursor-default bg-black/18 backdrop-blur-[3px]"
         onClick={() => context.setOpen(false)}
         tabIndex={-1}
         type="button"
@@ -212,7 +212,7 @@ export function DialogContent({
         aria-labelledby={context.titleId}
         aria-modal="true"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(92vw,760px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[0_24px_60px_rgba(15,23,42,0.18)] outline-none",
+          "fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(92vw,760px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[0_18px_48px_rgba(0,0,0,0.12)] outline-none",
           className,
         )}
         role="dialog"
@@ -221,7 +221,7 @@ export function DialogContent({
         {children}
         <button
           aria-label={text("关闭")}
-          className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+          className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-muted)] transition-colors hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
           onClick={() => context.setOpen(false)}
           type="button"
         >
@@ -240,7 +240,7 @@ export function DialogHeader({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={cn("border-b border-[var(--line)] px-6 py-5", className)}>{children}</div>;
+  return <div className={cn("border-b border-[var(--line)] bg-[var(--surface-subtle)] px-6 py-5", className)}>{children}</div>;
 }
 
 export function DialogTitle({
