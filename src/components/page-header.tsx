@@ -23,15 +23,15 @@ export function PageHeader({
   const text = useLanguageText();
 
   return (
-    <header className={cn("space-y-2", className)}>
+    <header className={cn("space-y-2 border-b border-[var(--line)] pb-5", className)}>
       {eyebrow ? (
-        <div className="text-xs font-medium text-[var(--ink-muted)]">
+        <div className="text-xs font-medium text-[var(--ink-subtle)]">
           {text(eyebrow)}
         </div>
       ) : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="text-2xl font-semibold tracking-normal text-[var(--ink)]">
+          <h1 className="text-2xl font-semibold tracking-normal text-[var(--ink)] sm:text-[28px]">
             {text(title)}
           </h1>
           {description ? <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{text(description)}</p> : null}

@@ -14,7 +14,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[0_1px_2px_rgba(16,24,40,0.02)]",
+        "overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]",
         className,
       )}
       {...props}
@@ -38,14 +38,14 @@ export function PanelHeader({
   const text = useLanguageText();
 
   return (
-    <div className="flex flex-col gap-4 border-b border-[var(--line)] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-4 border-b border-[var(--line)] bg-[var(--surface-subtle)] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         {eyebrow ? (
-          <div className="text-xs font-medium text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-subtle)]">
             {text(eyebrow)}
           </div>
         ) : null}
-        <h3 className="mt-1 text-base font-semibold text-[var(--ink)]">{text(title)}</h3>
+        <h3 className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{text(title)}</h3>
         {description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{text(description)}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

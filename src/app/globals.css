@@ -1,29 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f4f6f8;
+  --canvas: #f5f5f7;
   --surface: #ffffff;
   --surface-strong: #ffffff;
-  --surface-muted: #f7fafc;
-  --line: #e2e8f0;
-  --line-strong: #cbd5e1;
-  --ink: #111827;
-  --ink-muted: #667085;
-  --accent: #315f5a;
-  --accent-strong: #244944;
-  --accent-soft: #e6f0ee;
-  --danger: #b42318;
-  --warning: #b54708;
-  --sidebar: #0f1720;
-  --sidebar-surface: #17212b;
-  --sidebar-surface-strong: #1e2a36;
-  --sidebar-line: rgba(148, 163, 184, 0.16);
-  --sidebar-ink: #f8fafc;
-  --sidebar-ink-soft: #e8eef5;
-  --sidebar-ink-softer: #c6d2de;
-  --sidebar-muted: #d9e4ef;
-  --sidebar-subtle: #92a4b9;
-  --sidebar-accent: #9ab7b0;
+  --surface-muted: #f7f7f8;
+  --surface-subtle: #fbfbfc;
+  --line: #e5e5ea;
+  --line-strong: #d1d1d6;
+  --ink: #1d1d1f;
+  --ink-muted: #6e6e73;
+  --ink-subtle: #86868b;
+  --accent: #0071e3;
+  --accent-strong: #005bb5;
+  --accent-soft: #e8f2ff;
+  --danger: #d70015;
+  --warning: #b25b00;
+  --sidebar: #fbfbfd;
+  --sidebar-surface: #f2f2f5;
+  --sidebar-surface-strong: #ffffff;
+  --sidebar-line: #e5e5ea;
+  --sidebar-ink: #1d1d1f;
+  --sidebar-ink-soft: #424245;
+  --sidebar-ink-softer: #6e6e73;
+  --sidebar-muted: #6e6e73;
+  --sidebar-subtle: #86868b;
+  --sidebar-accent: #0071e3;
 }
 
 @theme inline {
@@ -39,6 +41,7 @@
 
 html {
   background: var(--canvas);
+  color-scheme: light;
 }
 
 body {
@@ -58,30 +61,59 @@ button {
   cursor: pointer;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 input::placeholder,
 textarea::placeholder {
-  color: #98a2b3;
+  color: #a1a1a6;
 }
 
 ::selection {
-  background: rgba(49, 95, 90, 0.18);
+  background: rgba(0, 113, 227, 0.16);
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(110, 110, 115, 0.28);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 110, 115, 0.42);
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 .agent-sidebar {
-  color: #f8fafc;
+  color: var(--sidebar-ink);
 }
 
 .agent-sidebar .sidebar-section-title {
-  color: #a8b6c8;
+  color: var(--sidebar-subtle);
 }
 
 .agent-sidebar .sidebar-nav-link {
-  color: #eef4fb !important;
+  color: var(--sidebar-ink-soft) !important;
 }
 
 .agent-sidebar .sidebar-nav-link:hover,
 .agent-sidebar .sidebar-nav-link[data-active="true"] {
-  color: #ffffff !important;
+  color: var(--sidebar-ink) !important;
 }
 
 .agent-sidebar .sidebar-nav-label {
@@ -89,7 +121,7 @@ textarea::placeholder {
 }
 
 .agent-sidebar .sidebar-nav-icon {
-  color: #dbe6f2 !important;
+  color: var(--sidebar-subtle) !important;
   stroke: currentColor;
 }
 

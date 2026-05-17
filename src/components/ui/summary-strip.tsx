@@ -21,14 +21,14 @@ export function SummaryStrip({
           <div
             key={`${item.label}-${index}`}
             className={cn(
-              "px-5 py-3.5",
+              "px-5 py-4",
               index !== items.length - 1 && "border-b border-[var(--line)] sm:border-b-0 xl:border-r",
             )}
           >
-            <div className="text-xs font-medium text-[var(--ink-muted)]">
+            <div className="text-xs font-medium text-[var(--ink-subtle)]">
               {text(item.label)}
             </div>
-            <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.value}</div>
+            <div className="mt-2 text-[26px] font-semibold leading-none text-[var(--ink)]">{item.value}</div>
             {item.detail ? (
               <div className="mt-1.5 text-sm text-[var(--ink-muted)]">
                 {typeof item.detail === "string" ? text(item.detail) : item.detail}
