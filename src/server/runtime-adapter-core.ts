@@ -207,7 +207,7 @@ function flattenThinkingText(message: AssistantMessage | null) {
 }
 
 class PiRuntimeAdapter implements AgentRuntimeInterface {
-  id = "pi-runtime-adapter";
+  id = "agentworld-runtime-adapter";
   label = "AgentWorld 内置执行接口";
   private readonly sessionStreams = new Map<string, SessionStreamState>();
 

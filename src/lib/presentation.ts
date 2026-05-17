@@ -80,7 +80,7 @@ const labels = {
     hermes: "Hermes",
     langgraph: "LangGraph",
     mastra: "Mastra",
-    pi: "内置运行底座",
+    agentworld: "内置运行底座",
   },
   foldGroup: {
     Analysis: "分析思考",

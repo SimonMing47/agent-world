@@ -98,7 +98,7 @@ export type ProviderExecutionMode = {
 export function listProviderExecutionModes(): ProviderExecutionMode[] {
   return [
     {
-      id: "pi-runtime-adapter",
+      id: "agentworld-runtime-adapter",
       name: "AgentWorld 内置执行接口",
       command: "system://agentworld-runtime",
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],

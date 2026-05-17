@@ -2,7 +2,7 @@
 
 ## 1. 定位
 
-ProviderAdapter 是 AgentWorld 中 Agent 调用层的标准适配接口。它屏蔽 Pi Runtime、Hermes、LangGraph、Mastra、Claude Code、OpenClaw、HTTP 模型服务、企业内部 CLI 或其他执行器的差异，使调度层只面对能力、状态、成本和事件，而不直接依赖具体 Provider 实现。
+ProviderAdapter 是 AgentWorld 中 Agent 调用层的标准适配接口。它屏蔽内置 Agent Runtime、Hermes、LangGraph、Mastra、Claude Code、OpenClaw、HTTP 模型服务、企业内部 CLI 或其他执行器的差异，使调度层只面对能力、状态、成本和事件，而不直接依赖具体 Provider 实现。
 
 ProviderAdapter 不负责创建任务、修改调度状态或决定业务流程。它只执行调度器分派的 Agent 调用节点。
 
@@ -51,13 +51,13 @@ ProviderAdapter 必须通过插件或内置注册表声明 manifest：
 apiVersion: agentworld.io/v1
 kind: ProviderAdapter
 metadata:
-  id: pi-runtime-adapter
-  name: Pi Runtime Adapter
+  id: agentworld-runtime-adapter
+  name: AgentWorld Runtime Adapter
   version: 1.0.0
 spec:
   runtime:
     type: sdk
-    packageRef: "@earendil-works/pi-agent-core"
+    packageRef: "internal-agent-runtime"
   capabilities:
     streaming: true
     cancel: true
@@ -97,7 +97,7 @@ agentRef:
 environmentSnapshotRef:
   id: envsnap_001
 providerPolicy:
-  preferredAdapters: [pi-runtime-adapter]
+  preferredAdapters: [agentworld-runtime-adapter]
 permissionSnapshot:
   default: ask
 memoryContext:

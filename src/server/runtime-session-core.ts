@@ -904,6 +904,24 @@ export function getRuntimeSessionDetail(sessionId: string) {
   };
 }
 
+export function deleteRuntimeSession(sessionId: string) {
+  const session = getRuntimeSession(sessionId);
+  if (!session) {
+    throw new Error("会话不存在。");
+  }
+  const activeHandle = activeRuntimeHandles.get(sessionId);
+  if (activeHandle?.isRunning || session.status === "running") {
+    throw new Error("会话正在运行，请等待执行完成后再删除。");
+  }
+
+  sessionSubscribers.delete(sessionId);
+  activeRuntimeHandles.delete(sessionId);
+  execute("DELETE FROM runtime_session_events WHERE session_id = ?", sessionId);
+  execute("DELETE FROM runtime_session_messages WHERE session_id = ?", sessionId);
+  execute("DELETE FROM runtime_sessions WHERE id = ?", sessionId);
+  return { ok: true };
+}
+
 export async function submitRuntimeSessionMessage(args: {
   sessionId: string;
   content: string;

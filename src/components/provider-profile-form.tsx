@@ -41,7 +41,7 @@ function parseConfig(value: string) {
 function userVisibleConfig(value: string) {
   const visible = { ...parseConfig(value) };
   [
-    "piApi",
+    "modelApi",
     "supportsResponsesApi",
     "supportsChatCompletions",
     "contextWindow",
@@ -90,7 +90,7 @@ export function ProviderProfileForm({
     defaultModel: provider.defaultModel,
     modelList: normalizeModelList(provider.modelsJson),
     apiKeyRef: provider.apiKeyRef,
-    piApi: typeof parsedConfig.piApi === "string" ? parsedConfig.piApi : "",
+    modelApi: typeof parsedConfig.modelApi === "string" ? parsedConfig.modelApi : "",
     supportsResponsesApi: Boolean(parsedConfig.supportsResponsesApi ?? true),
     supportsChatCompletions: Boolean(parsedConfig.supportsChatCompletions ?? true),
     contextWindow:
@@ -135,7 +135,7 @@ export function ProviderProfileForm({
 
     const nextConfig = {
       ...parseConfig(form.configJson),
-      piApi: form.piApi || undefined,
+      modelApi: form.modelApi || undefined,
       supportsResponsesApi: form.supportsResponsesApi,
       supportsChatCompletions: form.supportsChatCompletions,
       contextWindow: form.contextWindow ? Number(form.contextWindow) : undefined,
@@ -225,8 +225,8 @@ export function ProviderProfileForm({
           </FieldGroup>
           <FieldGroup label="请求协议">
             <Select
-              value={form.piApi}
-              onChange={(event) => setForm({ ...form, piApi: event.target.value })}
+              value={form.modelApi}
+              onChange={(event) => setForm({ ...form, modelApi: event.target.value })}
             >
               <option value="">跟随 API 风格自动判断</option>
               <option value="openai-responses">OpenAI Responses</option>
