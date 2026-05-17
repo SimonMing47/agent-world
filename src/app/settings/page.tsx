@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LanguagePackSettingsForm } from "@/components/language-pack-settings-form";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,13 @@ import { SummaryStrip } from "@/components/ui/summary-strip";
 import { getSettingsSnapshot } from "@/server/queries";
 
 const systemEntries = [
+  {
+    name: "语言包",
+    href: "#language-pack",
+    group: "通用设置",
+    scope: "界面文字",
+    description: "当前语言、术语和界面文案覆盖。",
+  },
   {
     name: "模型服务",
     href: "/runtimes",
@@ -107,7 +115,7 @@ const systemEntries = [
   },
 ];
 
-const systemEntryGroups = ["常用基础配置", "系统运行配置"] as const;
+const systemEntryGroups = ["通用设置", "常用基础配置", "系统运行配置"] as const;
 
 export default function SettingsPage() {
   const snapshot = getSettingsSnapshot();
@@ -132,6 +140,17 @@ export default function SettingsPage() {
           { label: "任务定义", value: snapshot.taskBlueprints.length, detail: "归属业务团队" },
         ]}
       />
+
+      <Panel id="language-pack">
+        <PanelHeader
+          eyebrow="通用设置"
+          title="语言包配置"
+          description="界面文字、术语和短语默认从语言包加载，可用 JSON 覆盖默认简体中文。"
+        />
+        <PanelBody>
+          <LanguagePackSettingsForm setting={snapshot.languagePackSetting} />
+        </PanelBody>
+      </Panel>
 
       {systemEntryGroups.map((group) => (
         <Panel key={group}>

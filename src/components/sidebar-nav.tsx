@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { navigationGroups } from "@/components/navigation-config";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,14 +24,15 @@ export function SidebarNav({
   showBrand = true,
 }: SidebarNavProps) {
   const pathname = usePathname();
+  const text = useLanguageText();
 
   return (
     <div className="agent-sidebar flex h-full flex-col">
       {showBrand ? (
         <div className="flex items-center justify-between border-b border-[var(--sidebar-line)] px-4 pb-4 pt-5">
           <div className={cn("min-w-0", collapsed && "sr-only")}>
-            <div className="text-base font-semibold tracking-[0.01em] text-[var(--sidebar-ink)]">AgentWorld</div>
-            <div className="mt-1 text-xs font-medium text-[var(--sidebar-ink-softer)]">控制台</div>
+            <div className="text-base font-semibold tracking-[0.01em] text-[var(--sidebar-ink)]">{text("terminology.productName", "AgentWorld")}</div>
+            <div className="mt-1 text-xs font-medium text-[var(--sidebar-ink-softer)]">{text("控制台")}</div>
           </div>
           {onToggleCollapse ? (
             <Button
@@ -52,7 +54,7 @@ export function SidebarNav({
             <div key={group.title} className="space-y-2">
               {!collapsed ? (
                 <div className="sidebar-section-title px-3 pb-1 text-xs font-semibold">
-                  {group.title}
+                  {text(group.title)}
                 </div>
               ) : null}
               {group.items.map((item) => {
@@ -84,7 +86,7 @@ export function SidebarNav({
                     {!collapsed ? (
                       <div className="min-w-0 flex-1">
                         <div className="sidebar-nav-label truncate text-sm font-semibold tracking-[0.01em]">
-                          {displayLabel}
+                          {text(displayLabel)}
                         </div>
                       </div>
                     ) : null}
@@ -94,7 +96,7 @@ export function SidebarNav({
                 return collapsed ? (
                   <Tooltip key={item.href}>
                     <TooltipTrigger asChild>{content}</TooltipTrigger>
-                    <TooltipContent>{displayLabel}</TooltipContent>
+                    <TooltipContent>{text(displayLabel)}</TooltipContent>
                   </Tooltip>
                 ) : (
                   content

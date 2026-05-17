@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Noto_Sans_SC } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import "./globals.css";
 
 const notoSansSc = Noto_Sans_SC({
@@ -31,13 +32,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const languagePack = getActiveLanguagePack();
+
   return (
     <html
-      lang="zh-CN"
+      lang={languagePack.locale}
+      dir={languagePack.direction}
       className={`${notoSansSc.variable} ${plexMono.variable} h-full bg-[var(--canvas)] text-[var(--ink)] antialiased`}
     >
       <body className="min-h-full">
-        <AppShell>{children}</AppShell>
+        <AppShell languagePack={languagePack}>{children}</AppShell>
       </body>
     </html>
   );

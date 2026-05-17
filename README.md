@@ -2,7 +2,7 @@
 
 AgentWorld 是一个团队级 Agent 平台，核心目标是把 Agent 从“单次对话”升级为可治理、可配置、可观测、可扩展的团队任务执行系统。
 
-系统默认使用严肃标准术语：租户空间、业务团队、Agent、Agent 团队、服务目录、跨团队授权、任务执行、运行约束、执行环境、记忆层。产品名称保留 AgentWorld；风格化叙事不再作为默认表达。需要行业化或企业化命名时，可通过 `AGENTWORLD_TERMINOLOGY_JSON` / `NEXT_PUBLIC_AGENTWORLD_TERMINOLOGY_JSON` 做全局术语皮肤覆盖。
+系统默认使用严肃标准术语：租户空间、业务团队、Agent、Agent 团队、服务目录、跨团队授权、任务执行、运行约束、执行环境、记忆层。产品名称保留 AgentWorld；风格化叙事不再作为默认表达。界面文字、术语、状态枚举和常用短语默认从内置 `zh-CN` 语言包加载，后续可通过系统配置页或 `AGENTWORLD_LANGUAGE_PACK_JSON` / `NEXT_PUBLIC_AGENTWORLD_LANGUAGE_PACK_JSON` 做语言包覆盖；新旧页面的可见文本、表单提示、按钮、弹窗和常用辅助属性都会走同一套语言包短语解析。
 
 ## 主线方向
 
@@ -34,6 +34,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Next.js + TypeScript 单服务应用。
 - React 19 + Radix UI 组件层，提供自适应后台布局、可收缩左侧导航、移动端抽屉侧栏，以及以摘要条、数据表、定义列表和表单工作台为核心的控制台界面。
 - SQLite 本地持久化，启动时自动初始化领域模型、任务蓝图、模型服务、基础配置、团队治理资产和两个核心案例配置。
+- 语言包治理：内置 `src/locales/zh-CN.ts` 作为默认语言包，页面标题、面板、表格头、表单字段、按钮、弹窗、状态枚举和术语均通过语言包加载；运行时还会对剩余可见短语做语言包精确覆盖，系统配置页提供语言包 JSON 覆盖，配置写入 SQLite 的 `system_settings`。
 - 左侧导航已收敛为四个域：总览、智能体治理、团队治理、基础配置。侧边栏只放高频治理入口；执行环境、Webhook、执行配置、租户、执行策略、服务目录和跨团队授权等长尾配置统一从系统配置进入。
 - 模型服务配置：`/runtimes`，支持 OpenAI Compatible、OpenAI Responses、OpenAI Chat / Completions、Anthropic、Azure OpenAI 等接口风格，控制台只暴露可治理的模型服务。
 - Agent 目录：`/agents`，支持按默认系统提示词定义 Agent，配置默认模型服务、模型、工具、记忆范围，并附带运行约束，包括审批模式、推理强度、人工介入、允许 / 禁止工具、仓库权限、记忆权限和密钥权限。
@@ -55,6 +56,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Finding API：`GET /api/findings`、`POST /api/findings`、`PATCH /api/findings`、`DELETE /api/findings`。
 - Agent 定义 API：`GET /api/agent-definitions`、`POST /api/agent-definitions`、`PATCH /api/agent-definitions`、`POST /api/agent-definitions/optimize`、`POST /api/agent-definitions/test`。
 - 基础配置 API：`/api/provider-profiles`、`/api/provider-runtime-bindings`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/environments`、`/api/webhooks`、`/api/knowledge/spaces`、`/api/knowledge/entries`，均按资源方式支持查询、新增、编辑和删除。
+- 通用设置 API：`GET/PUT /api/system-settings/language-pack`，用于读取和保存当前语言包、术语和短语覆盖。
 - 团队治理 API：`/api/tenant-spaces`、`/api/business-teams`、`/api/team-members`、`/api/team-permissions`、`/api/team-assets`、`/api/execution-policies`、`/api/service-catalog`、`/api/access-grants`，均按资源方式支持查询、新增、编辑和删除。
 - Webhook 入口：`GET /api/webhooks/:pathKey`、`POST /api/webhooks/:pathKey`。保存 Webhook 类型任务蓝图时会按 `trigger.webhookPathKey` 自动创建或更新对应 endpoint，外部系统可以直接调用自定义路径调入任务。
 - OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/entries`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
@@ -74,6 +76,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 ## 商用化控制台原则
 
 - 页面语言面向业务治理和运行管理，避免把底层框架、过程态术语或演示型文案放到主界面。
+- 页面可见文案必须从语言包加载。新增页面或组件时，应复用 `PageHeader`、`PanelHeader`、`SummaryStrip`、`DataTableHead`、`FieldGroup`、`Button`、`DialogTitle` 等已接入语言包的共享组件，新增枚举文案放入语言包 `labels`，新增固定短语放入语言包 `phrases`；已有页面里的直接短语也可以通过 `phrases` 精确覆盖，避免企业定制时遗漏。
 - 高频入口保持四个域：总览、智能体治理、团队治理、基础配置；长尾系统配置统一收敛到系统配置页。
 - 配置页优先使用表格、表单、详情弹窗和明确操作按钮；看板页优先展示状态、趋势、风险和待处理事项。
 - “模型服务、运行约束、推理摘要、Agent 团队、业务团队”是默认产品术语；底层适配器和运行接口只在规格、插件协议和扩展开发文档中出现。
@@ -340,6 +343,8 @@ CODE_PLATFORM_TOKEN=
 CODE_PLATFORM_WEBHOOK_SECRET=
 OPENVIKING_BASE_URL=http://127.0.0.1:1933
 AGENTWORLD_OPENVIKING_AUTO_START=1
+AGENTWORLD_LANGUAGE_PACK_JSON=
+NEXT_PUBLIC_AGENTWORLD_LANGUAGE_PACK_JSON=
 OPENVIKING_SERVER_BIN=thirdparty/openviking/bin/openviking-server
 OPENVIKING_CONFIG_FILE=data/openviking/ov.conf
 OPENVIKING_CLI_CONFIG_FILE=data/openviking/ovcli.conf
