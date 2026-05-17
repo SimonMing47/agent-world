@@ -52,7 +52,7 @@ export default function WebhooksPage() {
       <PageHeader
         eyebrow="Webhook"
         title="Webhook 管理"
-        description="Webhook 是任务蓝图的外部触发入口，负责校验路径、签名提示、请求 Schema 和接收的 Agent 团队。"
+        description="维护外部触发路径、签名提示、请求 Schema 和接收团队。"
         badges={[
           { label: `${webhooks.length} 个入口`, variant: "accent" },
           { label: `启用 ${webhooks.filter((webhook) => webhook.isEnabled === 1).length}`, variant: "success" },
@@ -72,7 +72,7 @@ export default function WebhooksPage() {
         <PanelHeader
           eyebrow="入口目录"
           title="Webhook 入口目录"
-          description="所有入口都可新增、查看、编辑和删除；具体代码平台解析能力由插件提供。"
+          description="查看路径、方法、插件、团队和启用状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

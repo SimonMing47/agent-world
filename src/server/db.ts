@@ -785,7 +785,9 @@ export type ReviewFeedback = {
   createdAt: string;
 };
 
-const DATA_DIR = path.join("data");
+const DATA_DIR = process.env.AGENTWORLD_DATA_DIR
+  ? path.resolve(process.env.AGENTWORLD_DATA_DIR)
+  : path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "agentworld.db");
 
 const requiredCurrentTables = [

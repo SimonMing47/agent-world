@@ -26,10 +26,10 @@ export function TraceGroup({
       <summary className="cursor-pointer list-none px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+            <div className="text-xs font-medium text-[var(--ink-muted)]">
               {translateFoldGroup(title)}
             </div>
-            <div className="mt-1 text-lg font-semibold tracking-normal text-[var(--ink)]">
+            <div className="mt-1 text-base font-semibold tracking-normal text-[var(--ink)]">
               {events.length} 条事件
             </div>
           </div>
@@ -49,7 +49,7 @@ export function TraceGroup({
                 <div className="text-sm font-medium text-[var(--ink)]">
                   {localizeDemoCopy(event.title)}
                 </div>
-                <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                <div className="text-xs text-[var(--ink-muted)]">
                   {event.phase} · {formatDateTime(event.createdAt)}
                 </div>
               </div>
@@ -57,7 +57,7 @@ export function TraceGroup({
                 {localizeDemoCopy(event.content)}
               </p>
               {metadata ? (
-                <pre className="mt-3 overflow-x-auto rounded-xl bg-[var(--surface-strong)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
+                <pre className="mt-3 overflow-x-auto rounded-lg bg-[var(--surface-strong)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
                   {JSON.stringify(metadata, null, 2)}
                 </pre>
               ) : null}

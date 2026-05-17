@@ -34,11 +34,11 @@ export function PanelHeader({
     <div className="flex flex-col gap-4 border-b border-[var(--line)] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         {eyebrow ? (
-          <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             {eyebrow}
           </div>
         ) : null}
-        <h3 className="mt-1 text-lg font-semibold text-[var(--ink)]">{title}</h3>
+        <h3 className="mt-1 text-base font-semibold text-[var(--ink)]">{title}</h3>
         {description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

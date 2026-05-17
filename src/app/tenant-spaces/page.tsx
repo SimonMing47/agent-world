@@ -36,7 +36,7 @@ export default function TenantSpacesPage() {
       <PageHeader
         eyebrow="租户空间"
         title="租户空间"
-        description="租户空间决定团队、预算、模型白名单和全局 Guardrails，支持增删查改。"
+        description="维护租户、预算、模型白名单和全局策略。"
         badges={[{ label: `${tenantSpaces.length} 个租户空间`, variant: "accent" }]}
       />
 
@@ -44,7 +44,7 @@ export default function TenantSpacesPage() {
         <PanelHeader
           eyebrow="目录"
           title="租户空间目录"
-          description="租户空间是团队治理的顶层边界。"
+          description="查看租户状态、配额和模型范围。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增租户</Button></DialogTrigger>

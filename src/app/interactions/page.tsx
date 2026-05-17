@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateSessionMode, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import {
   listAgentDefinitions,
@@ -38,6 +39,7 @@ import { listRuntimeSessions } from "@/server/runtime-session-core";
 function statusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
   if (status === "running") return "accent";
   if (status === "error") return "danger";
+  if (status === "idle") return "neutral";
   return "success";
 }
 
@@ -55,7 +57,7 @@ export default function RuntimeInteractionsPage() {
       <PageHeader
         eyebrow="交互工作台"
         title="交互工作台"
-        description="用于验证模型服务、Agent 定义、Agent 团队协作和人工介入流程。"
+        description="验证模型服务、Agent、Agent 团队和人工介入流程。"
         badges={[
           { label: `${runtimeSessions.length} 个会话`, variant: "accent" },
           { label: `${providerProfiles.length} 个模型服务`, variant: "neutral" },
@@ -86,7 +88,7 @@ export default function RuntimeInteractionsPage() {
         <PanelHeader
           eyebrow="会话目录"
           title="模型会话"
-          description="已创建的模型交互会话统一在表格里管理。"
+          description="查看、打开和删除测试会话。"
           action={
             <Dialog>
               <DialogTrigger asChild>
@@ -123,7 +125,7 @@ export default function RuntimeInteractionsPage() {
             </Dialog>
           }
         />
-        <div className="overflow-hidden rounded-b-2xl">
+        <div className="overflow-hidden rounded-b-lg">
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
@@ -145,11 +147,11 @@ export default function RuntimeInteractionsPage() {
                       <div className="font-medium text-[var(--ink)]">{session.title}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
                     </DataTableCell>
-                    <DataTableCell>{session.mode}</DataTableCell>
+                    <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
                     <DataTableCell>{runtime?.name ?? "默认执行配置"}</DataTableCell>
                     <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
-                      <Badge variant={statusVariant(session.status)}>{session.status}</Badge>
+                      <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(session.updatedAt)}</DataTableCell>
                     <DataTableCell align="right">

@@ -54,7 +54,7 @@ export default function ServiceCatalogPage() {
       <PageHeader
         eyebrow="服务目录"
         title="服务目录"
-        description="配置跨团队可招募的 Agent 团队服务能力，支持新增、查看、编辑和删除。"
+        description="维护可跨团队使用的 Agent 团队服务。"
         badges={[{ label: `${listings.length} 条目录记录`, variant: "accent" }]}
       />
 
@@ -62,7 +62,7 @@ export default function ServiceCatalogPage() {
         <PanelHeader
           eyebrow="目录"
           title="服务目录"
-          description="目录条目决定哪些 Agent 团队能被其他团队发现、申请和授权使用。"
+          description="查看服务方、价格、SLA 和状态。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增目录</Button></DialogTrigger>

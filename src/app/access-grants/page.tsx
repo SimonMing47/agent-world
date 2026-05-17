@@ -46,7 +46,7 @@ export default function AccessGrantsPage() {
       <PageHeader
         eyebrow="跨团队授权"
         title="跨团队授权"
-        description="跨业务团队使用 Agent 团队服务必须通过授权配置，支持新增、查看、编辑和删除。"
+        description="维护服务方团队与消费方团队之间的授权。"
         badges={[{ label: `${accessGrants.length} 条授权`, variant: "accent" }]}
       />
 
@@ -54,7 +54,7 @@ export default function AccessGrantsPage() {
         <PanelHeader
           eyebrow="目录"
           title="授权目录"
-          description="配置服务方 Agent 团队、消费方业务团队、价格、SLA 和服务账号引用。"
+          description="查看授权双方、价格、SLA 和服务账号。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增授权</Button></DialogTrigger>

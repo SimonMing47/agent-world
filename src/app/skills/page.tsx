@@ -46,7 +46,7 @@ export default function SkillsPage() {
       <PageHeader
         eyebrow="Skill 管理"
         title="Skill 管理"
-        description="Skill 是 Agent 运行时可复用的能力单元，归属团队、标签、权限和内容统一治理，内容同步存储到 OpenViking。"
+        description="维护 Skill 内容、归属团队、标签和同步状态。"
         badges={[
           { label: `${skills.length} 个 Skill`, variant: "accent" },
           { label: `启用 ${skills.filter((skill) => skill.isEnabled).length}`, variant: "success" },
@@ -66,7 +66,7 @@ export default function SkillsPage() {
         <PanelHeader
           eyebrow="目录"
           title="Skill 注册表"
-          description="新增、编辑、优化润色和同步 OpenViking 都通过弹窗完成。"
+          description="查看团队归属、标签、版本和启用状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

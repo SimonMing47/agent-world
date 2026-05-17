@@ -12,7 +12,7 @@ import {
 import { DefinitionList } from "@/components/ui/definition-list";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
-import { translateSourceType, translateStatus } from "@/lib/presentation";
+import { translateSeverity, translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getDashboardSnapshot, getSettingsSnapshot } from "@/server/queries";
 
@@ -23,9 +23,9 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="运营总览"
-        title="团队级 Agent 治理总览"
-        description="Agent 是调度的最小单位；业务团队负责人员、资产、权限和任务归属；Agent 团队负责复杂任务的协作执行。"
+        eyebrow="总览"
+        title="运营总览"
+        description="查看任务运行、风险、团队和配置状态。"
         badges={[
           { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
           { label: `${settings.metrics.providerProfileCount} 个模型服务`, variant: "neutral" },
@@ -39,7 +39,7 @@ export default function OverviewPage() {
           <PanelHeader
             eyebrow="任务运行"
             title="最近任务运行"
-            description="按来源、团队、状态和时间直接查看最近的任务执行。"
+            description="按来源、团队、状态和时间查看任务执行。"
           />
           <PanelBody className="p-0">
             <DataTable>
@@ -99,11 +99,11 @@ export default function OverviewPage() {
           <PanelHeader
             eyebrow="负载"
             title="来源与问题分布"
-            description="值班时先看这里，判断负载来自哪里，问题集中在哪个等级。"
+            description="按触发来源和严重度查看当前负载。"
           />
           <PanelBody className="space-y-6">
             <div>
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+              <div className="mb-3 text-xs font-medium text-[var(--ink-muted)]">
                 触发来源
               </div>
               <DataTable>
@@ -129,7 +129,7 @@ export default function OverviewPage() {
             </div>
 
             <div>
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+              <div className="mb-3 text-xs font-medium text-[var(--ink-muted)]">
                 Finding 严重级别
               </div>
               <DataTable>
@@ -142,8 +142,8 @@ export default function OverviewPage() {
                 <DataTableBody>
                   {snapshot.findingDashboard.bySeverity.map((item) => (
                     <DataTableRow key={item.severity}>
-                      <DataTableCell className="font-medium uppercase text-[var(--ink)]">
-                        {item.severity}
+                      <DataTableCell className="font-medium text-[var(--ink)]">
+                        {translateSeverity(item.severity)}
                       </DataTableCell>
                       <DataTableCell align="right">{item.count}</DataTableCell>
                     </DataTableRow>
@@ -160,7 +160,7 @@ export default function OverviewPage() {
           <PanelHeader
             eyebrow="就绪度"
             title="配置完整度"
-            description="从模型服务、任务定义、Webhook、执行环境观察平台可运行程度。"
+            description="模型服务、任务、Webhook 和环境的配置状态。"
           />
           <PanelBody>
             <DefinitionList
@@ -189,7 +189,7 @@ export default function OverviewPage() {
           <PanelHeader
             eyebrow="任务蓝图"
             title="蓝图目录"
-            description="蓝图作为统一任务入口，直接在表格里看触发器、运行量和 Finding 产出。"
+            description="查看触发器、运行量和 Finding 产出。"
           />
           <PanelBody className="p-0">
             <DataTable>

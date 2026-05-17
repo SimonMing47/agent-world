@@ -63,7 +63,7 @@ export function DataTableHead({
   return (
     <th
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-[var(--ink-muted)]",
+        "border-b border-[var(--line)] px-4 py-3 text-xs font-semibold text-[var(--ink-muted)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}

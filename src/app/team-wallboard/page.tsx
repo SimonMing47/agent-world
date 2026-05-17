@@ -20,12 +20,12 @@ export default function TeamWallboardPage() {
       <PageHeader
         eyebrow="总览"
         title="团队任务看板"
-        description="所有任务以业务团队为治理入口，展示团队拥有的任务、运行实例、Finding 和风险状态。"
+        description="按业务团队查看任务、运行、Finding 和风险状态。"
         badges={[{ label: `${snapshot.businessTeamSummaries.length} 个团队`, variant: "accent" }]}
       />
 
       <Panel>
-        <PanelHeader eyebrow="团队任务" title="团队任务概览" description="团队是人和业务资产的集合，任务蓝图归属于团队。" />
+        <PanelHeader eyebrow="团队任务" title="团队任务概览" description="按团队统计任务和运行数据。" />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>

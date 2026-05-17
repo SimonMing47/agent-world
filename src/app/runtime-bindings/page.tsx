@@ -85,7 +85,7 @@ export default function RuntimeBindingsPage() {
       <PageHeader
         eyebrow="执行配置"
         title="模型执行配置"
-        description="把业务团队、默认模型服务、密钥引用、执行参数和审批模式绑定成可复用配置，供 Agent 和任务运行时选择。"
+        description="维护默认模型服务、密钥引用、执行参数和审批模式。"
         badges={[
           { label: `${snapshot.providerRuntimeBindings.length} 个执行配置`, variant: "accent" },
           { label: `启用 ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
@@ -105,7 +105,7 @@ export default function RuntimeBindingsPage() {
         <PanelHeader
           eyebrow="配置目录"
           title="执行配置目录"
-          description="执行配置支持新增、查看、编辑和删除；底层执行接口由系统内置，不作为业务配置项暴露。"
+          description="查看团队、默认模型、工作区和审批配置。"
           action={
             <Dialog>
               <DialogTrigger asChild>
