@@ -42,6 +42,7 @@ export const navigationGroups: NavGroup[] = [
       { href: "/", label: "整体任务看板", sidebarLabel: "整体", description: "平台级任务、风险和治理指标", icon: LayoutDashboard },
       { href: "/team-wallboard", label: "团队任务看板", sidebarLabel: "团队", description: "按业务团队组织的任务运行情况", icon: ChartNoAxesCombined },
       { href: "/agent-team-wallboard", label: "Agent 团队看板", sidebarLabel: "执行团队", description: "按 Agent 团队观察调度效果", icon: Activity },
+      { href: "/findings", label: "Finding 治理", sidebarLabel: "风险", description: "标准化问题输出、误报、修复和发布状态", icon: ShieldCheck },
     ],
   },
   {

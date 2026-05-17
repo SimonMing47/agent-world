@@ -4,6 +4,7 @@ import {
   type ExecutableRepositoryConnector,
   type ExecutableToolBundle,
   type ExecutableWebhookParser,
+  type PluginRuntimeContext,
 } from "@/server/plugin-sdk-core";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -61,7 +62,15 @@ async function requestJson(args: {
   return payload;
 }
 
-async function resolveCodeHubConfig(input: Record<string, unknown>) {
+async function ensurePermission(ctx: PluginRuntimeContext | undefined, resource: string, scope?: string) {
+  if (!ctx) return;
+  const decision = await ctx.requestPermission({ resource, scope });
+  if (decision.effect === "deny") {
+    throw new Error(decision.reason ?? `Permission denied: ${resource}`);
+  }
+}
+
+async function resolveCodeHubConfig(input: Record<string, unknown>, ctx?: PluginRuntimeContext) {
   const baseUrl =
     typeof input.baseUrl === "string" && input.baseUrl
       ? input.baseUrl
@@ -70,7 +79,11 @@ async function resolveCodeHubConfig(input: Record<string, unknown>) {
     typeof input.tokenRef === "string" && input.tokenRef
       ? input.tokenRef
       : "env:CODEHUB_TOKEN";
-  const token = tokenRef.startsWith("env:") ? process.env[tokenRef.slice(4)] ?? null : null;
+  const token = ctx
+    ? await ctx.resolveSecretRef(tokenRef)
+    : tokenRef.startsWith("env:")
+      ? process.env[tokenRef.slice(4)] ?? null
+      : null;
 
   if (!baseUrl) throw new Error("CodeHub baseUrl 未配置。");
   if (!token) throw new Error(`CodeHub token 未配置：${tokenRef}`);
@@ -80,17 +93,19 @@ async function resolveCodeHubConfig(input: Record<string, unknown>) {
 
 const repositoryConnector: ExecutableRepositoryConnector = {
   id: "official.codehub.repository",
-  async getProject(input) {
-    const config = await resolveCodeHubConfig(input);
+  async getProject(input, ctx) {
     const projectId = encodeURIComponent(String(input.projectId ?? input.project_id ?? ""));
+    await ensurePermission(ctx, "repo.read", projectId);
+    const config = await resolveCodeHubConfig(input, ctx);
     return (await requestJson({
       ...config,
       path: `/api/v4/projects/${projectId}`,
     })) as Record<string, unknown>;
   },
-  async compare(input) {
-    const config = await resolveCodeHubConfig(input);
+  async compare(input, ctx) {
     const projectId = encodeURIComponent(String(input.projectId ?? input.project_id ?? ""));
+    await ensurePermission(ctx, "repo.read", projectId);
+    const config = await resolveCodeHubConfig(input, ctx);
     const from = encodeURIComponent(String(input.fromRef ?? input.from_ref ?? ""));
     const to = encodeURIComponent(String(input.toRef ?? input.to_ref ?? ""));
     return (await requestJson({
@@ -98,29 +113,32 @@ const repositoryConnector: ExecutableRepositoryConnector = {
       path: `/api/v4/projects/${projectId}/repository/compare?from=${from}&to=${to}&compare_type=${encodeURIComponent(String(input.compareType ?? input.compare_type ?? "branch"))}`,
     })) as Record<string, unknown>;
   },
-  async getMergeRequestChanges(input) {
-    const config = await resolveCodeHubConfig(input);
+  async getMergeRequestChanges(input, ctx) {
     const projectId = encodeURIComponent(String(input.projectId ?? input.project_id ?? ""));
     const mrIid = encodeURIComponent(String(input.mergeRequestIid ?? input.merge_request_iid ?? input.mr_iid ?? ""));
+    await ensurePermission(ctx, "repo.read", `${projectId}:${mrIid}`);
+    const config = await resolveCodeHubConfig(input, ctx);
     return (await requestJson({
       ...config,
       path: `/api/v4/projects/${projectId}/merge_requests/${mrIid}/changes?exclude_sub_mr=true&ignore_whitespace_change=false&view=simple&filters=diffs`,
     })) as Record<string, unknown>;
   },
-  async getRepoFile(input) {
-    const config = await resolveCodeHubConfig(input);
+  async getRepoFile(input, ctx) {
     const projectId = encodeURIComponent(String(input.projectId ?? input.project_id ?? ""));
     const ref = encodeURIComponent(String(input.ref ?? ""));
     const filePath = encodeURIComponent(String(input.filePath ?? input.file_path ?? ""));
+    await ensurePermission(ctx, "repo.read", `${projectId}:${filePath}`);
+    const config = await resolveCodeHubConfig(input, ctx);
     return (await requestJson({
       ...config,
       path: `/api/v4/projects/${projectId}/repository/files?ref=${ref}&file_path=${filePath}`,
     })) as Record<string, unknown>;
   },
-  async merge(input) {
-    const config = await resolveCodeHubConfig(input);
+  async merge(input, ctx) {
     const projectId = encodeURIComponent(String(input.projectId ?? input.project_id ?? ""));
     const mrIid = encodeURIComponent(String(input.mergeRequestIid ?? input.merge_request_iid ?? input.mr_iid ?? ""));
+    await ensurePermission(ctx, "repo.mr.merge", `${projectId}:${mrIid}`);
+    const config = await resolveCodeHubConfig(input, ctx);
     return (await requestJson({
       ...config,
       path: `/api/v4/projects/${projectId}/merge_requests/${mrIid}/merge`,
@@ -227,7 +245,7 @@ const webhookParser: ExecutableWebhookParser = {
 
 const outputPublisher: ExecutableOutputPublisher = {
   id: "official.codehub.publisher.merge_request_review",
-  async publish(input) {
+  async publish(input, ctx) {
     const projectIdValue = String(input.projectId ?? input.project_id ?? "");
     const mrIidValue = String(input.mergeRequestIid ?? input.merge_request_iid ?? input.mr_iid ?? "");
     const body = isRecord(input.body) ? input.body : { body: String(input.comment ?? "") };
@@ -241,7 +259,8 @@ const outputPublisher: ExecutableOutputPublisher = {
 
     let config: { baseUrl: string; token: string };
     try {
-      config = await resolveCodeHubConfig(input);
+      await ensurePermission(ctx, "repo.mr.comment", `${projectIdValue}:${mrIidValue}`);
+      config = await resolveCodeHubConfig(input, ctx);
     } catch (error) {
       return {
         publicationStatus: "drafted",

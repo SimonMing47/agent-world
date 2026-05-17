@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
+import { FindingForm } from "@/components/finding-form";
 import { PageHeader } from "@/components/page-header";
 import { TaskRunOpsConsole } from "@/components/task-run-ops-console";
 import { Badge } from "@/components/ui/badge";
@@ -304,6 +306,7 @@ export default async function TaskRunDetailPage({
                     <DataTableHead>来源</DataTableHead>
                     <DataTableHead align="right">置信度</DataTableHead>
                     <DataTableHead>状态</DataTableHead>
+                    <DataTableHead align="right">操作</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -324,11 +327,39 @@ export default async function TaskRunDetailPage({
                       <DataTableCell>
                         <Badge variant={statusVariant(finding.status)}>{translateStatus(finding.status)}</Badge>
                       </DataTableCell>
+                      <DataTableCell align="right">
+                        <div className="flex justify-end gap-2">
+                          <FindingForm
+                            finding={{
+                              id: finding.id,
+                              taskRunId: finding.taskRunId,
+                              sourceAgent: finding.sourceAgent,
+                              category: finding.category,
+                              severity: finding.severity,
+                              confidence: finding.confidence,
+                              title: finding.title,
+                              description: finding.description,
+                              evidenceJson: JSON.stringify(finding.evidence, null, 2),
+                              recommendation: finding.recommendation,
+                              skillRefsJson: JSON.stringify(finding.skillRefs, null, 2),
+                              status: finding.status,
+                              publicationJson: JSON.stringify(finding.publication, null, 2),
+                            }}
+                            triggerLabel="编辑"
+                          />
+                          <DeleteResourceButton
+                            endpoint="/api/findings"
+                            id={finding.id}
+                            confirmText={`确认删除 Finding「${finding.title}」？`}
+                          />
+                        </div>
+                      </DataTableCell>
                     </DataTableRow>
                   ))}
                   {detail.kernel.findings.length === 0 ? (
                     <DataTableRow>
                       <DataTableCell>暂无 Finding 输出。</DataTableCell>
+                      <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
