@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { listExecutionEnvironments, upsertExecutionEnvironment } from "@/server/queries";
+import {
+  deleteExecutionEnvironment,
+  listExecutionEnvironments,
+  upsertExecutionEnvironment,
+} from "@/server/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -17,4 +21,10 @@ export async function PATCH(request: Request) {
   const body = (await request.json()) as Parameters<typeof upsertExecutionEnvironment>[0];
   const environment = upsertExecutionEnvironment(body);
   return NextResponse.json({ ok: true, environment });
+}
+
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string };
+  deleteExecutionEnvironment(body.id);
+  return NextResponse.json({ ok: true });
 }

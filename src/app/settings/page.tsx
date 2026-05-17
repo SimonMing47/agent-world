@@ -45,6 +45,24 @@ const systemEntries = [
     description: "代码仓地址、归属团队和多个操作者 token。",
   },
   {
+    name: "执行环境",
+    href: "/environments",
+    scope: "任务运行对象",
+    description: "代码仓、执行人、私钥引用、运行路径、沙箱和记忆依赖。",
+  },
+  {
+    name: "Webhook",
+    href: "/webhooks",
+    scope: "外部触发入口",
+    description: "Webhook 路径、签名密钥引用、请求 Schema 和接收 Agent 团队。",
+  },
+  {
+    name: "执行配置",
+    href: "/runtime-bindings",
+    scope: "Provider 绑定",
+    description: "默认模型接口、服务地址、密钥引用、审批模式和附加参数。",
+  },
+  {
     name: "知识库",
     href: "/knowledge",
     scope: "OpenViking",

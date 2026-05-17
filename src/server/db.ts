@@ -2067,8 +2067,8 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     tenantSpaceId,
     platformBusinessTeamId,
-    "Pi Research Runtime",
-    "embedded://pi/research",
+    "AgentWorld Research Runtime",
+    "embedded://agentworld/research",
     "pi",
     "offline",
     JSON.stringify(["leader-meridian", "market-scout"]),
@@ -2084,9 +2084,9 @@ function seed(db: DatabaseSync) {
     tenantSpaceId,
     releaseBusinessTeamId,
     "pi-runtime-adapter",
-    "Pi 默认运行时",
+    "AgentWorld 默认执行配置",
     "pi",
-    "embedded://pi/default",
+    "embedded://agentworld/default",
     "embedded",
     process.cwd(),
     glmProviderId,
@@ -2095,7 +2095,7 @@ function seed(db: DatabaseSync) {
       defaultModel: "GLM-5.1",
       executionMode: "embedded",
       approvalMode: "allow",
-      eventContract: "pi_agent_event_v1",
+      eventContract: "provider_event_v1",
       humanIntervention: "steer",
       env: {
         AGENTWORLD_GLM_API_KEY: "ref:env:AGENTWORLD_GLM_API_KEY",
@@ -2109,8 +2109,8 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     tenantSpaceId,
     releaseBusinessTeamId,
-    "Pi Release Runtime",
-    "embedded://pi/release",
+    "AgentWorld Release Runtime",
+    "embedded://agentworld/release",
     "pi",
     "offline",
     JSON.stringify(["release-reviewer", "merge-steward"]),
@@ -3288,9 +3288,9 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
   [
     {
       id: "pi-runtime-adapter",
-      name: "Pi Runtime Adapter",
+      name: "AgentWorld Runtime Adapter",
       adapterType: "sdk",
-      entryRef: "@earendil-works/pi-agent-core",
+      entryRef: "system://agentworld-runtime",
       lifecycle: "configured",
       capabilities: [
         "session.create",
@@ -3307,7 +3307,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
           baseUrl: { type: "string" },
           apiKeySecretRef: { type: "string" },
           defaultModel: { type: "string" },
-          eventContract: { type: "string", default: "pi_agent_event_v1" },
+          eventContract: { type: "string", default: "provider_event_v1" },
         },
       },
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
@@ -3403,6 +3403,24 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
       now,
     );
   });
+}
+
+function ensureRuntimeDisplayNames(db: DatabaseSync) {
+  db.prepare(
+    "UPDATE provider_runtime_bindings SET name = REPLACE(name, 'Pi 默认运行时', 'AgentWorld 默认执行配置'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/'), config_json = REPLACE(config_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%' OR config_json LIKE '%pi_agent_event_v1%'",
+  ).run();
+  db.prepare(
+    "UPDATE runtime_endpoints SET name = REPLACE(name, 'Pi', 'AgentWorld'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%'",
+  ).run();
+  db.prepare(
+    "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(config_schema_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE id = ?",
+  ).run("AgentWorld Runtime Adapter", "system://agentworld-runtime", "pi-runtime-adapter");
+  db.prepare(
+    "UPDATE task_blueprints SET provider_policy_json = REPLACE(provider_policy_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE provider_policy_json LIKE '%pi_agent_event_v1%'",
+  ).run();
+  db.prepare(
+    "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, '默认 Pi 运行时', '默认运行接口') WHERE last_validation_summary LIKE '%默认 Pi 运行时%'",
+  ).run();
 }
 
 function ensureCoreCaseSeed(db: DatabaseSync) {
@@ -3780,7 +3798,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     JSON.stringify({
       adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "pi_agent_event_v1",
+      eventContract: "provider_event_v1",
       timeoutMinutes: 30,
     }),
     JSON.stringify({
@@ -3911,7 +3929,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     JSON.stringify({
       adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "pi_agent_event_v1",
+      eventContract: "provider_event_v1",
       timeoutMinutes: 240,
     }),
     JSON.stringify({
@@ -4025,7 +4043,7 @@ function ensureAgentDefinitionSeed(db: DatabaseSync) {
       visibility: "team",
       status: "ready",
       validationStatus: "passed",
-      lastValidationSummary: "已通过默认 Pi 运行时完成定义校验。",
+      lastValidationSummary: "已通过默认运行接口完成定义校验。",
       harnessConfig: { approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "high", maxToolCalls: 10 },
       permissionPolicy: {
         repositoryAccess: "read_only",
@@ -4366,6 +4384,7 @@ export function getDb() {
     seed(database);
     ensureCodeReviewSkillSeed(database);
     ensureProviderAdapterSeed(database);
+    ensureRuntimeDisplayNames(database);
     ensureCoreCaseSeed(database);
     ensureAgentDefinitionSeed(database);
     ensureLegacyAgentsPromotedToTeamMembers(database);

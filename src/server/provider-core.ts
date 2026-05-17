@@ -99,11 +99,11 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
   return [
     {
       id: "pi-runtime-adapter",
-      name: "Pi Runtime Adapter",
-      command: "@earendil-works/pi-agent-core",
+      name: "AgentWorld Runtime Adapter",
+      command: "system://agentworld-runtime",
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       status: "default",
-      note: "默认执行层，主干通过 Pi Agent Core 和 Pi AI 嵌入式发起真实会话。",
+      note: "默认执行层，主干通过系统内置运行接口发起真实会话。",
     },
     {
       id: "hermes-runtime-adapter",

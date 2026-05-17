@@ -42,7 +42,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - 交互实验台：`/interactions`、`/interactions/:id`，用于真实模型对话、Team 会话、thinking / tool call 轨迹和人工介入；它保留为 human-in-the-loop 实验面，不再承担任务内核建模职责。单 Agent 会话可直接选择 Agent 定义并继承默认系统提示词与 Harness 画像。
 - 任务定义中心：`/task-blueprints`、`/task-blueprints/:id`，支持把任务与 Agent Team、执行环境和触发方式绑定起来，并保留 Task Blueprint 内核的高级策略能力。
 - 团队治理：`/business-teams`、`/team-members`、`/team-permissions`、`/team-assets`，支持组织结构、成员、权限和团队资产治理；团队成员支持从 Excel 复制粘贴批量导入。
-- 基础配置：`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token。
+- 基础配置：`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/environments`、`/webhooks`、`/runtime-bindings`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token；执行环境、Webhook 和 Provider 执行配置均可表格化维护。
 - 任务蓝图 API：`GET /api/task-blueprints`、`GET /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`GET /api/task-blueprints/:id/permission-preview`。
 - 任务模板和定时模板只作为兼容视图存在，主读取路径由 `task_blueprints` 派生，避免 `task_templates` / `schedule_templates` 形成第二套任务模型。
 - 插件清单和扩展包导入 API：`GET/POST /api/plugins/manifests`，支持导入插件、执行环境、Webhook endpoint、任务蓝图和兼容模板；`plugins/official/*` 目录用于承载主干自带的官方插件包。
@@ -51,7 +51,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - 任务空间 API：成本、依赖图、执行看板、策略命中和人工干预解析。
 - Finding API：`GET /api/findings`。
 - Agent 定义 API：`GET /api/agent-definitions`、`POST /api/agent-definitions`、`PATCH /api/agent-definitions`、`POST /api/agent-definitions/optimize`、`POST /api/agent-definitions/test`。
-- 基础配置 API：`/api/provider-profiles`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/knowledge/spaces`，均按资源方式支持查询、新增、编辑和删除。
+- 基础配置 API：`/api/provider-profiles`、`/api/provider-runtime-bindings`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/environments`、`/api/webhooks`、`/api/knowledge/spaces`、`/api/knowledge/entries`，均按资源方式支持查询、新增、编辑和删除。
 - 团队治理 API：`/api/tenant-spaces`、`/api/business-teams`、`/api/team-members`、`/api/team-permissions`、`/api/team-assets`、`/api/execution-policies`、`/api/service-catalog`、`/api/access-grants`，均按资源方式支持查询、新增、编辑和删除。
 - Webhook 入口：`POST /api/webhooks/:pathKey`。
 - OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/entries`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
@@ -60,7 +60,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 
 控制台中出现的配置对象都必须是可持久化资源，不能把页面当作架构说明书或静态示例。当前后台页面统一采用“表格列表 + 详情弹窗 + 新增 / 编辑弹窗 + 删除动作”的形态，配置写入 SQLite，任务运行时再从数据库读取：
 
-- 基础配置：AI Provider、Skill、MCP Server、Connector、Codebase、Codebase 操作者 Token、知识空间、知识条目。
+- 基础配置：AI Provider、Provider 执行配置、Skill、MCP Server、Connector、Codebase、Codebase 操作者 Token、执行环境、Webhook、知识空间、知识条目。
 - 团队治理：租户空间、业务团队、团队成员、团队权限、团队资产、执行策略、服务目录、跨团队授权。
 - 智能体治理：Agent 定义、Agent Team 定义、Agent Team 成员与共享关系。
 - 任务治理：Task Blueprint、触发方式、执行环境、权限策略、记忆策略和输出策略。
