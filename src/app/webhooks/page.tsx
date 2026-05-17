@@ -29,13 +29,13 @@ import { listAgentTeams, listBusinessTeams, listWebhooks } from "@/server/querie
 function defaultWebhook(businessTeamId: string, teamId: string) {
   return {
     id: "",
-    businessTeamId,
-    teamId,
-    name: "",
-    pathKey: "new-webhook",
-    method: "POST",
-    requestSchemaJson: "{}",
-    secretHint: "env:AGENTWORLD_WEBHOOK_SECRET",
+	    businessTeamId,
+	    teamId,
+	    name: "",
+	    pathKey: "",
+	    method: "POST",
+	    requestSchemaJson: "{}",
+	    secretHint: "",
     isEnabled: 1,
   };
 }
@@ -89,10 +89,10 @@ export default function WebhooksPage() {
                 <DialogBody>
                   <WebhookEndpointForm
                     embedded
-                    title="ui.generated.c78cb758aca"
-                    businessTeamOptions={businessTeamOptions}
-                    agentTeamOptions={agentTeamOptions}
-                    webhook={defaultWebhook(businessTeams[0]?.id ?? "", agentTeams[0]?.id ?? "")}
+	                    title="ui.generated.c78cb758aca"
+	                    businessTeamOptions={businessTeamOptions}
+	                    agentTeamOptions={agentTeamOptions}
+	                    webhook={defaultWebhook("", "")}
                   />
                 </DialogBody>
               </DialogContent>

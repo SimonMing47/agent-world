@@ -63,40 +63,30 @@ function triggerLabel(trigger: Record<string, unknown>) {
   return "ui.generated.c044f207b47";
 }
 
-function defaultBlueprint(options: ReturnType<typeof getTaskBlueprintEditorOptions>) {
+function defaultBlueprint() {
   return {
     id: "",
-    name: "New Task Definition",
-    category: "general_task",
+    name: "",
+    category: "",
     visibility: "team",
-    ownerBusinessTeamId: options.businessTeams[0]?.id ?? "",
-    teamId: options.agentTeams[0]?.id ?? "",
-    environmentId: options.environments[0]?.id ?? null,
-    providerAdapterId: options.providerAdapters[0]?.id ?? "",
+    ownerBusinessTeamId: "",
+    teamId: "",
+    environmentId: null,
+    providerAdapterId: "",
     version: 1,
     status: "draft",
     triggerJson: JSON.stringify({ type: "manual" }, null, 2),
     inputSchemaJson: JSON.stringify({ type: "object", properties: {}, required: [] }, null, 2),
-    environmentSelectorJson: JSON.stringify(
-      {
-        type: "repository_workspace",
-        repoBinding: "${repo_id}",
-        checkoutMode: "full_clone",
-        executionPath: options.environments[0]?.workingDirectory ?? ".",
-        sandboxMode: "inherit",
-      },
-      null,
-      2,
-    ),
+    environmentSelectorJson: "{}",
     agentTeamRunPlanJson: "{}",
     memoryPolicyJson: JSON.stringify({ requiredSpaces: [], archiveOutputTo: [] }, null, 2),
     providerPolicyJson: "{}",
     permissionPolicyJson: JSON.stringify({ defaultMode: "ask", rules: [] }, null, 2),
     resultSchemaJson: JSON.stringify({ type: "object", properties: {} }, null, 2),
-    outputPolicyJson: JSON.stringify({ publishers: [{ type: "dashboard" }] }, null, 2),
-    dashboardPolicyJson: JSON.stringify({ groupBy: ["business_team", "category", "trigger_type"] }, null, 2),
-    executionPolicyJson: JSON.stringify({ timeoutMinutes: 30, retry: 1 }, null, 2),
-    archivePolicyJson: JSON.stringify({ enabled: true }, null, 2),
+    outputPolicyJson: JSON.stringify({ publishers: [] }, null, 2),
+    dashboardPolicyJson: "{}",
+    executionPolicyJson: "{}",
+    archivePolicyJson: "{}",
   };
 }
 
@@ -125,7 +115,7 @@ export default async function TaskBlueprintsPage({
       .map((blueprint) => blueprint.id),
   );
   const visibleBlueprints = snapshot.blueprints.filter((blueprint) => visibleBlueprintIds.has(blueprint.id));
-  const baseDefaultBlueprint = defaultBlueprint(options);
+  const baseDefaultBlueprint = defaultBlueprint();
   const defaultNewBlueprint = {
     ...baseDefaultBlueprint,
     ownerBusinessTeamId: selectedTeam?.id ?? baseDefaultBlueprint.ownerBusinessTeamId,

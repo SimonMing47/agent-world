@@ -90,11 +90,11 @@ export default async function TeamAssetsPage({
                     <AssetGrantForm
                       businessTeams={teamOptions}
                       members={memberOptions}
-                      grant={{
-                        id: "",
-                        businessTeamId: selectedTeam?.id ?? businessTeams[0]?.id ?? "",
-                        memberId: null,
-                        assetType: "skill",
+	                      grant={{
+	                        id: "",
+	                        businessTeamId: selectedTeam?.id ?? "",
+	                        memberId: null,
+	                        assetType: "",
                         assetId: "",
                         assetName: "",
                         permissionJson: "{}",

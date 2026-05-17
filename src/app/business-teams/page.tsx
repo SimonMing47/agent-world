@@ -242,7 +242,6 @@ export default function BusinessTeamsPage() {
 
   const tenantOptions = tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
-  const defaultTenantSpaceId = tenantSpaces[0]?.id ?? "";
   const teamsById = new Map(businessTeams.map((team) => [team.id, team]));
   const tenantNameById = new Map(tenantSpaces.map((space) => [space.id, space.name]));
 
@@ -321,21 +320,21 @@ export default function BusinessTeamsPage() {
                     <BusinessTeamForm
                       tenantSpaces={tenantOptions}
                       businessTeams={teamOptions}
-                      team={{
-                        id: "",
-                        tenantSpaceId: defaultTenantSpaceId,
-                        parentBusinessTeamId: null,
-                        slug: "new-team",
-                        name: "",
-                        description: "",
-                        ownerUserId: "console",
-                        status: "active",
-                        balance: 0,
-                        creditLimit: 1000,
-                        privateToolRefsJson: "[]",
-                        privateMemoryNamespace: "viking://teams/new-team/",
-                        policyJson: "{}",
-                      }}
+	                      team={{
+	                        id: "",
+	                        tenantSpaceId: "",
+	                        parentBusinessTeamId: null,
+	                        slug: "",
+	                        name: "",
+	                        description: "",
+	                        ownerUserId: "",
+	                        status: "active",
+	                        balance: 0,
+	                        creditLimit: 0,
+	                        privateToolRefsJson: "[]",
+	                        privateMemoryNamespace: "",
+	                        policyJson: "{}",
+	                      }}
                     />
                   </DialogBody>
                 </DialogContent>

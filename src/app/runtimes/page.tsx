@@ -55,7 +55,7 @@ function EnabledBadge({ enabled }: { enabled: boolean | number }) {
 
 export default function AiProvidersPage() {
   const snapshot = getSettingsSnapshot();
-  const tenantSpaceId = snapshot.tenantSpaces[0]?.id ?? "";
+  const tenantSpaceOptions = snapshot.tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
 
   return (
     <div className="space-y-6">
@@ -113,29 +113,21 @@ export default function AiProvidersPage() {
                   <DialogDescription>ui.generated.cb112cd2d2f</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
-                  <ProviderProfileForm
-                    embedded
-                    provider={{
-                      id: "",
-                      tenantSpaceId,
-                      name: "",
-                      baseUrl: "https://api.openai.com/v1",
-                      apiStyle: "openai-compatible",
-                      defaultModel: "gpt-5.4",
-                      modelsJson: JSON.stringify(["gpt-5.4"], null, 2),
-                      apiKeyRef: "env:OPENAI_API_KEY",
-                      configJson: JSON.stringify(
-                        {
-                          supportsResponsesApi: false,
-                          supportsChatCompletions: true,
-                          reasoning: true,
-                          headers: {},
-                        },
-                        null,
-                        2,
-                      ),
-                      isEnabled: 1,
-                    }}
+	                  <ProviderProfileForm
+	                    embedded
+	                    tenantSpaceOptions={tenantSpaceOptions}
+	                    provider={{
+	                      id: "",
+	                      tenantSpaceId: "",
+	                      name: "",
+	                      baseUrl: "",
+	                      apiStyle: "",
+	                      defaultModel: "",
+	                      modelsJson: "[]",
+	                      apiKeyRef: "",
+	                      configJson: "{}",
+	                      isEnabled: 1,
+	                    }}
                     title="ui.generated.ccaf3f1f123"
                   />
                 </DialogBody>
@@ -226,7 +218,12 @@ export default function AiProvidersPage() {
                               <DialogDescription>{provider.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
-                              <ProviderProfileForm embedded provider={provider} title={provider.name} />
+	                              <ProviderProfileForm
+	                                embedded
+	                                tenantSpaceOptions={tenantSpaceOptions}
+	                                provider={provider}
+	                                title={provider.name}
+	                              />
                             </DialogBody>
                           </DialogContent>
                         </Dialog>

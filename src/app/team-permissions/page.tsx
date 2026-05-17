@@ -91,14 +91,14 @@ export default async function TeamPermissionsPage({
                     <PermissionGrantForm
                       businessTeams={teamOptions}
                       members={memberOptions}
-                      grant={{
-                        id: "",
-                        businessTeamId: selectedTeam?.id ?? businessTeams[0]?.id ?? "",
-                        memberId: null,
-                        principalType: "team_role",
-                        roleKey: "operator",
-                        resourceType: "task_blueprint",
-                        resourceScope: "team:*",
+	                      grant={{
+	                        id: "",
+	                        businessTeamId: selectedTeam?.id ?? "",
+	                        memberId: null,
+	                        principalType: "",
+	                        roleKey: "",
+	                        resourceType: "",
+	                        resourceScope: "",
                         actionsJson: "[]",
                         effect: "allow",
                         status: "active",

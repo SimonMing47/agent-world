@@ -438,11 +438,12 @@ export function CodebaseForm({
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
         <FieldGroup label="ui.generated.c6f55a5a54c"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="ui.generated.c53d4919c45">
-          <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
-            {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-          </Select>
-        </FieldGroup>
+	        <FieldGroup label="ui.generated.c53d4919c45">
+	          <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
+	            <option value="">ui.generated.ca5644f4bbf</option>
+	            {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+	          </Select>
+	        </FieldGroup>
         <FieldGroup label="ui.generated.ceb737abfde"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.cdc900d83b2"><Input value={form.defaultBranch} onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c747b74cec9">
@@ -600,7 +601,7 @@ export function TeamMemberImportForm({
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [businessTeamId, setBusinessTeamId] = useState(businessTeams[0]?.id ?? "");
+  const [businessTeamId, setBusinessTeamId] = useState("");
   const [rows, setRows] = useState(uiText("ui.common.excelMemberImportHeader"));
   async function save() {
     setIsSaving(true);
@@ -618,9 +619,10 @@ export function TeamMemberImportForm({
   return (
     <div className="space-y-4">
       <FieldGroup label="ui.generated.c53d4919c45">
-        <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
-          {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-        </Select>
+	        <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
+	          <option value="">ui.generated.ca5644f4bbf</option>
+	          {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+	        </Select>
       </FieldGroup>
       <FieldGroup label="ui.generated.c7671abe767" hint="ui.generated.c26c89f0fd8">
         <Textarea className="min-h-48" value={rows} onChange={(event) => setRows(event.target.value)} />
@@ -887,7 +889,7 @@ export function BusinessTeamForm({
       <div className="grid gap-3 md:grid-cols-2">
         <FieldGroup label="ui.generated.cb2629c388f"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
         <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
-        <FieldGroup label="ui.generated.c3db35d2741"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+	        <FieldGroup label="ui.generated.c3db35d2741"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}><option value="">ui.generated.ca5644f4bbf</option>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="ui.generated.c8febffdb94">
           <Select value={form.parentBusinessTeamId} onChange={(event) => setForm({ ...form, parentBusinessTeamId: event.target.value })}>
             <option value="">ui.generated.c7c6b663c4c</option>

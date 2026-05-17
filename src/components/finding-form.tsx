@@ -61,14 +61,14 @@ export function FindingForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const isEdit = Boolean(finding?.id);
-  const [form, setForm] = useState({
-    id: finding?.id ?? "",
-    taskRunId: finding?.taskRunId ?? taskRuns[0]?.id ?? "",
-    sourceAgent: finding?.sourceAgent ?? "operator",
-    category: finding?.category ?? "manual",
-    severity: finding?.severity ?? "info",
-    confidence: String(finding?.confidence ?? 1),
-    title: finding?.title ?? "ui.generated.c3b576dc25d",
+	  const [form, setForm] = useState({
+	    id: finding?.id ?? "",
+	    taskRunId: finding?.taskRunId ?? "",
+	    sourceAgent: finding?.sourceAgent ?? "",
+	    category: finding?.category ?? "",
+	    severity: finding?.severity ?? "info",
+	    confidence: String(finding?.confidence ?? 1),
+	    title: finding?.title ?? "",
     description: finding?.description ?? "",
     evidenceJson: normalizeJson(finding?.evidenceJson ?? "{}", "{}"),
     recommendation: finding?.recommendation ?? "",

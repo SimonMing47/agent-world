@@ -25,7 +25,7 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { getKnowledgeManagementSnapshot } from "@/server/openviking-core";
-import { listAgentTeams, listBusinessTeams } from "@/server/queries";
+import { listAgentTeams, listBusinessTeams, listTenantSpaces } from "@/server/queries";
 
 function syncStatusLabel(status: string) {
   if (status.startsWith("remote_")) return "ui.generated.c90c4dd94ff";
@@ -54,10 +54,11 @@ function statusLabel(status: string) {
 }
 
 export default async function KnowledgePage() {
-  const [snapshot, spaces, bindings, businessTeams, agentTeams] = await Promise.all([
+  const [snapshot, spaces, bindings, tenantSpaces, businessTeams, agentTeams] = await Promise.all([
     getKnowledgeManagementSnapshot(),
     Promise.resolve(listKnowledgeSpaces()),
     Promise.resolve(listKnowledgeSpaceBindings()),
+    Promise.resolve(listTenantSpaces()),
     Promise.resolve(listBusinessTeams()),
     Promise.resolve(listAgentTeams()),
   ]);
@@ -78,7 +79,8 @@ export default async function KnowledgePage() {
         ]}
         action={
           <KnowledgeSpaceForm
-            businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
+            tenantSpaces={tenantSpaces.map((space) => ({ id: space.id, name: space.name }))}
+            businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name, tenantSpaceId: team.tenantSpaceId }))}
             agentTeams={agentTeams.map((team) => ({ id: team.id, businessTeamId: team.businessTeamId, name: team.name }))}
           />
         }
@@ -189,7 +191,8 @@ export default async function KnowledgePage() {
                       </DialogContent>
                     </Dialog>
                     <KnowledgeSpaceForm
-                      businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
+                      tenantSpaces={tenantSpaces.map((tenantSpace) => ({ id: tenantSpace.id, name: tenantSpace.name }))}
+                      businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name, tenantSpaceId: team.tenantSpaceId }))}
                       agentTeams={agentTeams.map((team) => ({ id: team.id, businessTeamId: team.businessTeamId, name: team.name }))}
                       space={space}
                       triggerLabel="ui.generated.ca7f814c0a4"

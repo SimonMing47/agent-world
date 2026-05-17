@@ -78,14 +78,14 @@ export default function CodebasesPage() {
                   <DialogBody>
                     <CodebaseForm
                       businessTeams={teamOptions}
-                      codebase={{
-                        id: "",
-                        businessTeamId: businessTeams[0]?.id ?? "",
-                        name: "",
-                        provider: "git",
-                        repositoryUrl: "",
-                        defaultBranch: "main",
-                        visibility: "team",
+	                      codebase={{
+	                        id: "",
+	                        businessTeamId: "",
+	                        name: "",
+	                        provider: "",
+	                        repositoryUrl: "",
+	                        defaultBranch: "",
+	                        visibility: "team",
                         description: "",
                         status: "active",
                       }}
@@ -100,12 +100,12 @@ export default function CodebasesPage() {
                   <DialogBody>
                     <CodebaseTokenForm
                       codebases={codebaseOptions}
-                      token={{
-                        id: "",
-                        codebaseId: codebases[0]?.id ?? "",
-                        operatorName: "",
-                        tokenRef: "secret:",
-                        role: "readonly",
+	                      token={{
+	                        id: "",
+	                        codebaseId: "",
+	                        operatorName: "",
+	                        tokenRef: "",
+	                        role: "",
                         permissionJson: "[]",
                         status: "active",
                       }}

@@ -564,7 +564,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
           <Input
             value={form.model}
             onChange={(event) => setForm({ ...form, model: event.target.value })}
-            placeholder={providerHint?.defaultModel ?? "GLM-5.1"}
+            placeholder={providerHint?.defaultModel ?? "ui.common.unconfigured"}
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.cb303d0833d">

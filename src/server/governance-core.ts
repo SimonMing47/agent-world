@@ -61,6 +61,10 @@ export function upsertTenantSpace(input: Partial<TenantSpace> & Pick<TenantSpace
 export function upsertBusinessTeam(input: Partial<BusinessTeam> & Pick<BusinessTeam, "tenantSpaceId" | "name" | "slug">) {
   const id = input.id || randomUUID();
   const current = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", id);
+  const memoryNamespace =
+    input.privateMemoryNamespace !== undefined
+      ? input.privateMemoryNamespace
+      : current?.privateMemoryNamespace ?? "";
   execute(
     "INSERT OR REPLACE INTO business_teams (id, tenant_space_id, parent_business_team_id, slug, name, description, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
@@ -71,12 +75,12 @@ export function upsertBusinessTeam(input: Partial<BusinessTeam> & Pick<BusinessT
     input.slug,
     input.name,
     input.description ?? current?.description ?? "",
-    input.ownerUserId ?? current?.ownerUserId ?? "console",
+    input.ownerUserId ?? current?.ownerUserId ?? "",
     input.status ?? current?.status ?? "active",
     input.balance ?? current?.balance ?? 0,
-    input.creditLimit ?? current?.creditLimit ?? 1000,
+    input.creditLimit ?? current?.creditLimit ?? 0,
     normalizeJson(input.privateToolRefsJson ?? current?.privateToolRefsJson, []),
-    input.privateMemoryNamespace ?? current?.privateMemoryNamespace ?? `viking://teams/${input.slug}/`,
+    memoryNamespace,
     normalizeJson(input.policyJson ?? current?.policyJson, {}),
     current?.createdAt ?? nowIso(),
   );
@@ -145,16 +149,18 @@ export function upsertAccessGrant(
 export function upsertTeamMember(input: Partial<TeamMember> & Pick<TeamMember, "tenantSpaceId" | "businessTeamId" | "name">) {
   const id = input.id || randomUUID();
   const current = queryOne<TeamMember>("SELECT * FROM team_members WHERE id = ?", id);
+  const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", input.businessTeamId);
+  const tenantSpaceId = input.tenantSpaceId || current?.tenantSpaceId || businessTeam?.tenantSpaceId || "";
   const createdAt = current?.createdAt ?? nowIso();
   execute(
     "INSERT OR REPLACE INTO team_members (id, tenant_space_id, business_team_id, employee_no, name, email, role, title, status, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
-    input.tenantSpaceId,
+    tenantSpaceId,
     input.businessTeamId,
     input.employeeNo ?? current?.employeeNo ?? "",
     input.name,
     input.email ?? current?.email ?? "",
-    input.role ?? current?.role ?? "member",
+    input.role ?? current?.role ?? "",
     input.title ?? current?.title ?? "",
     input.status ?? current?.status ?? "active",
     input.source ?? current?.source ?? "manual",
@@ -182,7 +188,7 @@ export function importTeamMembersFromRows(args: {
       employeeNo: row[0] ?? "",
       name: row[1] ?? row[0] ?? uiText("ui.generated.cc8c611f694"),
       email: row[2] ?? "",
-      role: row[3] ?? "member",
+      role: row[3] ?? "",
       title: row[4] ?? "",
       status: "active",
       source: "excel_import",
@@ -207,7 +213,7 @@ export function upsertTeamPermissionGrant(
     id,
     input.businessTeamId,
     input.memberId ?? current?.memberId ?? null,
-    input.principalType ?? current?.principalType ?? "team_role",
+    input.principalType ?? current?.principalType ?? "",
     input.roleKey,
     input.resourceType,
     input.resourceScope,
@@ -327,9 +333,9 @@ export function upsertCodebase(input: Partial<CodebaseProfile> & Pick<CodebasePr
     id,
     input.businessTeamId,
     input.name,
-    input.provider ?? current?.provider ?? "git",
+    input.provider ?? current?.provider ?? "",
     input.repositoryUrl,
-    input.defaultBranch ?? current?.defaultBranch ?? "main",
+    input.defaultBranch ?? current?.defaultBranch ?? "",
     input.visibility ?? current?.visibility ?? "team",
     input.description ?? current?.description ?? "",
     input.status ?? current?.status ?? "active",

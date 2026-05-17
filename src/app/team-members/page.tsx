@@ -25,7 +25,7 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { listTeamMembers } from "@/server/governance-core";
-import { listBusinessTeams, listTenantSpaces } from "@/server/queries";
+import { listBusinessTeams } from "@/server/queries";
 
 export default async function TeamMembersPage({
   searchParams,
@@ -38,7 +38,6 @@ export default async function TeamMembersPage({
   const selectedTeamId = params?.teamId ?? "";
   const selectedTeam = businessTeams.find((team) => team.id === selectedTeamId);
   const visibleMembers = selectedTeam ? members.filter((member) => member.businessTeamId === selectedTeam.id) : members;
-  const tenantSpaceId = listTenantSpaces()[0]?.id ?? "";
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (
@@ -78,16 +77,16 @@ export default async function TeamMembersPage({
                 <DialogContent className="w-[min(94vw,760px)]">
                   <DialogHeader><DialogTitle>ui.generated.ca0ea3f8562</DialogTitle><DialogDescription>ui.generated.c52ec0060ba</DialogDescription></DialogHeader>
                   <DialogBody>
-                    <TeamMemberForm
-                      tenantSpaceId={tenantSpaceId}
-                      businessTeams={teamOptions}
-                      member={{
-                        id: "",
-                        businessTeamId: businessTeams[0]?.id ?? "",
-                        employeeNo: "",
+	                    <TeamMemberForm
+                      tenantSpaceId={selectedTeam?.tenantSpaceId ?? ""}
+	                      businessTeams={teamOptions}
+	                      member={{
+	                        id: "",
+	                        businessTeamId: selectedTeam?.id ?? "",
+	                        employeeNo: "",
                         name: "",
                         email: "",
-                        role: "member",
+	                        role: "",
                         title: "",
                         status: "active",
                       }}
@@ -99,7 +98,7 @@ export default async function TeamMembersPage({
                 <DialogTrigger asChild><Button size="sm" variant="ghost"><Upload className="h-4 w-4" />ui.generated.cb7cf68c0cf</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,760px)]">
                   <DialogHeader><DialogTitle>ui.generated.c336333de1b</DialogTitle><DialogDescription>ui.generated.cd8506c3d96</DialogDescription></DialogHeader>
-                  <DialogBody><TeamMemberImportForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} /></DialogBody>
+                  <DialogBody><TeamMemberImportForm tenantSpaceId={selectedTeam?.tenantSpaceId ?? ""} businessTeams={teamOptions} /></DialogBody>
                 </DialogContent>
               </Dialog>
             </div>
@@ -138,7 +137,7 @@ export default async function TeamMembersPage({
                           <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,760px)]">
                             <DialogHeader><DialogTitle>ui.generated.cab5fcb9927</DialogTitle><DialogDescription>{member.name}</DialogDescription></DialogHeader>
-                            <DialogBody><TeamMemberForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} member={member} /></DialogBody>
+                            <DialogBody><TeamMemberForm tenantSpaceId={member.tenantSpaceId} businessTeams={teamOptions} member={member} /></DialogBody>
                           </DialogContent>
                         </Dialog>
                         <DeleteResourceButton endpoint="/api/team-members" id={member.id} confirmParams={{ resource: "ui.common.resources.member", name: member.name }} />

@@ -21,11 +21,12 @@ type ProviderProfileFormProps = {
     apiKeyRef: string;
     configJson: string;
     isEnabled: number;
-  };
-  title: string;
-  embedded?: boolean;
-  onSaved?: () => void;
-};
+	  };
+	  title: string;
+	  tenantSpaceOptions: Array<{ id: string; name: string }>;
+	  embedded?: boolean;
+	  onSaved?: () => void;
+	};
 
 function parseConfig(value: string) {
   try {
@@ -65,15 +66,16 @@ function normalizeJson(value: string, fallback: string) {
 function normalizeModelList(value: string) {
   try {
     const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) ? parsed.map(String).join("\n") : "gpt-5.4";
+    return Array.isArray(parsed) ? parsed.map(String).join("\n") : "";
   } catch {
-    return "gpt-5.4";
+    return "";
   }
 }
 
 export function ProviderProfileForm({
   provider,
   title,
+  tenantSpaceOptions,
   embedded = false,
   onSaved,
 }: ProviderProfileFormProps) {
@@ -187,20 +189,34 @@ export function ProviderProfileForm({
     <>
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
-        <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="ui.generated.c94e4102c81">
-            <Input
-              value={form.name}
+	        <div className="grid gap-3 md:grid-cols-2">
+	          <FieldGroup label="ui.generated.c3db35d2741">
+	            <Select
+	              value={form.tenantSpaceId}
+	              onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}
+	            >
+	              <option value="">ui.generated.ca5644f4bbf</option>
+	              {tenantSpaceOptions.map((space) => (
+	                <option key={space.id} value={space.id}>
+	                  {space.name}
+	                </option>
+	              ))}
+	            </Select>
+	          </FieldGroup>
+	          <FieldGroup label="ui.generated.c94e4102c81">
+	            <Input
+	              value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               placeholder="ui.generated.c94e4102c81"
             />
           </FieldGroup>
-          <FieldGroup label="ui.generated.c269a00cd6b">
-            <Select
-              value={form.apiStyle}
-              onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
-            >
-              {[
+	          <FieldGroup label="ui.generated.c269a00cd6b">
+	            <Select
+	              value={form.apiStyle}
+	              onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
+	            >
+	              <option value="">ui.generated.ca5644f4bbf</option>
+	              {[
                 ["openai", "OpenAI / Auto"],
                 ["openai-compatible", "OpenAI Compatible"],
                 ["openai-responses", "OpenAI Responses"],
@@ -220,7 +236,7 @@ export function ProviderProfileForm({
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-              placeholder="https://api.openai.com/v1"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c91534309be">
@@ -239,14 +255,14 @@ export function ProviderProfileForm({
             <Input
               value={form.defaultModel}
               onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
-              placeholder="gpt-5.4"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c10df5dca33" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-              placeholder="env:OPENAI_API_KEY"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup
@@ -257,7 +273,7 @@ export function ProviderProfileForm({
             <Textarea
               value={form.modelList}
               onChange={(event) => setForm({ ...form, modelList: event.target.value })}
-              placeholder={"gpt-5.4\ngpt-5.4-mini"}
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c9a1fbe0bb9">
@@ -282,7 +298,7 @@ export function ProviderProfileForm({
             <Textarea
               value={form.headersJson}
               onChange={(event) => setForm({ ...form, headersJson: event.target.value })}
-              placeholder='{"x-tenant-id":"security-platform"}'
+	              placeholder="{}"
             />
           </FieldGroup>
           <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--ink-muted)] md:col-span-2">
@@ -321,7 +337,7 @@ export function ProviderProfileForm({
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"compat":{"reasoning_field":"reasoning_summary"}}'
+	              placeholder="{}"
             />
           </FieldGroup>
         </div>

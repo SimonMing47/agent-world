@@ -139,15 +139,15 @@ export function summarizeAgentTeamRunPlan(
   agents: Agent[],
   team?: AgentTeam | null,
 ) {
-  const parsed = parseRunPlan(value);
-  const leaderId = parsed?.leader ?? team?.leaderAgentId ?? agents[0]?.id ?? "";
+	  const parsed = parseRunPlan(value);
+	  const leaderId = parsed?.leader ?? team?.leaderAgentId ?? "";
   const leader = agents.find((agent) => agent.id === leaderId) ?? null;
   const workers =
     parsed?.blocks && parsed.blocks.length > 0
       ? parsed.blocks
           .filter((block) => block.id !== "plan")
           .map((block) => {
-            const agentId = block.agentId ?? leaderId;
+	            const agentId = block.agentId ?? "";
             return {
               agent: agentId,
               task: block.instruction ?? block.title ?? block.id,
@@ -193,18 +193,18 @@ export function summarizeAgentTeamRunPlan(
 }
 
 export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
-  const parsed = parseRunPlan(value);
-  if (!parsed) return [];
-  const leaderExists = agents.some((agent) => agent.id === parsed.leader);
-  const leaderAgentId = leaderExists ? parsed.leader : agents[0]?.id;
-  if (!leaderAgentId) return [];
+	  const parsed = parseRunPlan(value);
+	  if (!parsed) return [];
+	  const leaderExists = agents.some((agent) => agent.id === parsed.leader);
+	  const leaderAgentId = leaderExists ? parsed.leader : "";
+	  if (!leaderAgentId) return [];
 
   if (parsed.blocks && parsed.blocks.length > 0) {
     return parsed.blocks.map((block, index) => {
-      const agentId =
-        block.agentId && agents.some((agent) => agent.id === block.agentId)
-          ? block.agentId
-          : leaderAgentId;
+	      const agentId =
+	        block.agentId && agents.some((agent) => agent.id === block.agentId)
+	          ? block.agentId
+	          : "";
       return {
         nodeKey: normalizeNodeKey(block.id, index),
         agentId,

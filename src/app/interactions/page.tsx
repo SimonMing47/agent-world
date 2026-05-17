@@ -49,8 +49,8 @@ export default function RuntimeInteractionsPage() {
   const providerProfiles = listProviders();
   const agentTeams = listAgentTeams();
   const agentDefinitions = listAgentDefinitions();
-  const tenantSpaceId = listTenantSpaces()[0]?.id ?? "";
-  const businessTeamId = listBusinessTeams()[0]?.id ?? "";
+  const tenantSpaces = listTenantSpaces();
+  const businessTeams = listBusinessTeams();
 
   return (
     <div className="space-y-6">
@@ -103,10 +103,10 @@ export default function RuntimeInteractionsPage() {
                   <DialogDescription>ui.generated.cfb9ea35772</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
-                  <RuntimeSessionCreateForm
-                    tenantSpaceId={tenantSpaceId}
-                    businessTeamId={businessTeamId}
-                    runtimeBindings={runtimeBindings}
+	                  <RuntimeSessionCreateForm
+	                    tenantSpaces={tenantSpaces.map((space) => ({ id: space.id, name: space.name }))}
+	                    businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
+	                    runtimeBindings={runtimeBindings}
                     providerProfiles={providerProfiles}
                     agentTeams={agentTeams.map((team) => ({ id: team.id, name: team.name }))}
                     agentDefinitions={agentDefinitions.map((definition) => ({

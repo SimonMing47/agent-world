@@ -126,9 +126,6 @@ export default function AgentTeamsPage() {
   const businessTeams = listBusinessTeams();
   const agentDefinitions = listAgentDefinitions();
   const executionPolicies = listExecutionPolicies();
-  const defaultBusinessTeamId = businessTeams[0]?.id ?? "";
-  const defaultExecutionPolicyId = executionPolicies[0]?.id ?? null;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -186,9 +183,9 @@ export default function AgentTeamsPage() {
                 </DialogHeader>
                 <DialogBody>
                   <AgentTeamForm
-                    embedded
-                    title="ui.generated.c77ea648602"
-                    team={buildNewTeamTemplate(defaultBusinessTeamId, defaultExecutionPolicyId)}
+	                    embedded
+	                    title="ui.generated.c77ea648602"
+	                    team={buildNewTeamTemplate("", null)}
                     members={[]}
                     shares={[]}
                     businessTeamOptions={businessTeams.map((team) => ({ id: team.id, name: team.name }))}

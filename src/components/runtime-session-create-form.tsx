@@ -7,11 +7,16 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { uiText } from "@/lib/language-pack";
 
 type RuntimeSessionCreateFormProps = {
-  tenantSpaceId: string;
-  businessTeamId: string;
+  tenantSpaces: Array<{
+    id: string;
+    name: string;
+  }>;
+  businessTeams: Array<{
+    id: string;
+    name: string;
+  }>;
   runtimeBindings: Array<{
     id: string;
     name: string;
@@ -40,23 +45,19 @@ type RuntimeSessionCreateFormProps = {
 
 export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const router = useRouter();
-  const firstBinding = props.runtimeBindings[0];
-  const initialProviderId =
-    firstBinding?.defaultProviderProfileId ?? props.providerProfiles[0]?.id ?? "";
-  const initialProvider =
-    props.providerProfiles.find((provider) => provider.id === initialProviderId) ??
-    props.providerProfiles[0];
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
-    title: uiText("ui.generated.c200cb4b94a"),
+    tenantSpaceId: "",
+    businessTeamId: "",
+    title: "",
     mode: "single_agent",
     agentDefinitionId: "",
-    runtimeBindingId: firstBinding?.id ?? "",
-    providerProfileId: initialProvider?.id ?? "",
+    runtimeBindingId: "",
+    providerProfileId: "",
     agentTeamId: "",
-    model: initialProvider?.defaultModel ?? "",
-    systemPrompt: uiText("ui.common.runtimeSessionSystemPromptDefault"),
+    model: "",
+    systemPrompt: "",
   });
 
   const selectedProvider = useMemo(
@@ -72,8 +73,8 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tenantSpaceId: props.tenantSpaceId,
-        businessTeamId: props.businessTeamId,
+        tenantSpaceId: form.tenantSpaceId,
+        businessTeamId: form.businessTeamId,
         agentTeamId: form.mode === "agent_team" ? form.agentTeamId || null : null,
         agentDefinitionId: form.mode === "single_agent" ? form.agentDefinitionId || null : null,
         runtimeBindingId: form.runtimeBindingId,
@@ -106,7 +107,33 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.c864aff361d">
+        <FieldGroup label="ui.generated.c3db35d2741">
+          <Select
+            value={form.tenantSpaceId}
+            onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}
+          >
+            <option value="">ui.generated.ca5644f4bbf</option>
+            {props.tenantSpaces.map((space) => (
+              <option key={space.id} value={space.id}>
+                {space.name}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+        <FieldGroup label="ui.generated.c53d4919c45">
+          <Select
+            value={form.businessTeamId}
+            onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
+          >
+            <option value="">ui.generated.ca5644f4bbf</option>
+            {props.businessTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+	        <FieldGroup label="ui.generated.c864aff361d">
           <Input
             value={form.title}
             onChange={(event) => setForm({ ...form, title: event.target.value })}

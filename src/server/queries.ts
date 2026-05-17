@@ -266,17 +266,21 @@ export function upsertAgentDefinition(
   >,
   shareBusinessTeamIds: string[],
 ) {
-  const current = queryOne<AgentDefinition>(
-    "SELECT * FROM agent_definitions WHERE id = ?",
-    input.id,
-  );
-  const createdAt = current?.createdAt ?? new Date().toISOString();
-  const updatedAt = new Date().toISOString();
+	const current = queryOne<AgentDefinition>(
+	  "SELECT * FROM agent_definitions WHERE id = ?",
+	  input.id,
+	);
+	const ownerBusinessTeam = input.ownerBusinessTeamId
+	  ? queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", input.ownerBusinessTeamId)
+	  : null;
+	const tenantSpaceId = input.tenantSpaceId || current?.tenantSpaceId || ownerBusinessTeam?.tenantSpaceId || "";
+	const createdAt = current?.createdAt ?? new Date().toISOString();
+	const updatedAt = new Date().toISOString();
 
   execute(
     "INSERT OR REPLACE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
-    input.tenantSpaceId,
+	    tenantSpaceId,
     input.ownerBusinessTeamId ?? null,
     input.ownerUserId,
     input.sourceAgentId ?? null,
@@ -1872,7 +1876,7 @@ export function submitTaskRunFromBlueprint(args: {
     taskCategory: blueprint.category,
     taskBlueprintId: blueprint.id,
     run_date: new Date().toISOString().slice(0, 10),
-    branch: environment?.defaultBranch ?? "main",
+	    branch: environment?.defaultBranch ?? "",
     ...args.inputPayload,
   };
   const idempotencyTemplate =

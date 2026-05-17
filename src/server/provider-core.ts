@@ -87,44 +87,6 @@ export interface ProviderAdapter {
   collectArtifacts(sessionId: string): Promise<Artifact[]>;
 }
 
-export type ProviderExecutionMode = {
-  id: string;
-  name: string;
-  command: string;
-  secretRefs: string[];
-  status: "default" | "plugin";
-  note: string;
-};
-
-export function listProviderExecutionModes(): ProviderExecutionMode[] {
-  return [
-    {
-      id: "agentworld-runtime-adapter",
-      name: uiText("ui.generated.c1d9b27a203"),
-      command: "system://agentworld-runtime",
-      secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
-      status: "default",
-      note: uiText("ui.generated.cbd13243979"),
-    },
-    {
-      id: "hermes-runtime-adapter",
-      name: uiText("ui.generated.c2fc6e522d3"),
-      command: "plugin://runtime-adapter/hermes",
-      secretRefs: [],
-      status: "plugin",
-      note: uiText("ui.generated.cbb78cc5a51"),
-    },
-    {
-      id: "langgraph-runtime-adapter",
-      name: uiText("ui.generated.cd21fa9e40d"),
-      command: "plugin://runtime-adapter/langgraph",
-      secretRefs: [],
-      status: "plugin",
-      note: uiText("ui.generated.c1d1039194e"),
-    },
-  ];
-}
-
 function parseArray(value: string) {
   try {
     const parsed = JSON.parse(value) as unknown;

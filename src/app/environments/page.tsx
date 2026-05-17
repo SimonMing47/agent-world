@@ -28,16 +28,16 @@ import { listBusinessTeams, listExecutionEnvironments } from "@/server/queries";
 
 function defaultEnvironment(businessTeamId: string) {
   return {
-    id: "",
-    businessTeamId,
-    name: "",
-    repositoryProvider: "git",
-    repositoryName: "repository-name",
-    repositoryUrl: "git@example.com:team/repository.git",
-    defaultBranch: "main",
-    executorRef: "repo-executor",
-    privateKeyRef: "secret:repo_executor_key",
-    workingDirectory: ".",
+	    id: "",
+	    businessTeamId,
+	    name: "",
+	    repositoryProvider: "",
+	    repositoryName: "",
+	    repositoryUrl: "",
+	    defaultBranch: "",
+	    executorRef: "",
+	    privateKeyRef: "",
+	    workingDirectory: "",
     sandboxProfileJson: "{}",
     memoryLayerRefsJson: "[]",
     visibility: "team",
@@ -91,10 +91,10 @@ export default function EnvironmentsPage() {
                 </DialogHeader>
                 <DialogBody>
                   <ExecutionEnvironmentForm
-                    embedded
-                    title="ui.generated.c8eb6887e31"
-                    businessTeamOptions={businessTeamOptions}
-                    environment={defaultEnvironment(businessTeams[0]?.id ?? "")}
+	                    embedded
+	                    title="ui.generated.c8eb6887e31"
+	                    businessTeamOptions={businessTeamOptions}
+	                    environment={defaultEnvironment("")}
                   />
                 </DialogBody>
               </DialogContent>

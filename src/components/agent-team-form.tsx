@@ -110,19 +110,10 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
   const [members, setMembers] = useState(
     props.members.length
       ? props.members.slice().sort((left, right) => left.position - right.position)
-      : [
-          {
-            id: crypto.randomUUID(),
-            agentDefinitionId: props.agentDefinitionOptions[0]?.id ?? "",
-            memberRole: "leader",
-            workInstruction: "",
-            position: 0,
-            status: "active",
-          },
-        ],
+      : [],
   );
   const [leaderMemberId, setLeaderMemberId] = useState<string | null>(
-    props.team.leaderAgentId ?? props.members[0]?.id ?? null,
+    props.team.leaderAgentId ?? null,
   );
   const [shareMap, setShareMap] = useState<Record<string, string>>(
     Object.fromEntries(props.shares.map((share) => [share.businessTeamId, share.accessLevel])),
@@ -170,11 +161,18 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       return;
     }
 
-    if (normalizedMembers.length === 0) {
-      setIsSaving(false);
-      setMessage("ui.generated.c18901ca49b");
-      return;
-    }
+	    if (normalizedMembers.length === 0) {
+	      setIsSaving(false);
+	      setMessage("ui.generated.c18901ca49b");
+	      return;
+	    }
+
+	    const selectedLeaderId = normalizedMembers.find((member) => member.id === leaderMemberId)?.id ?? null;
+	    if (!selectedLeaderId) {
+	      setIsSaving(false);
+	      setMessage("ui.common.agentTeamLeaderRequired");
+	      return;
+	    }
 
     const normalizedShares = Object.entries(shareMap)
       .filter(([businessTeamId]) => businessTeamId.trim() && businessTeamId !== form.businessTeamId)
@@ -190,12 +188,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         id: form.id || crypto.randomUUID(),
         businessTeamId: form.businessTeamId,
         slug: form.slug || slugify(form.name) || `agent-team-${crypto.randomUUID().slice(0, 8)}`,
-        name: form.name,
-        description: form.description,
-        leaderAgentId:
-          normalizedMembers.find((member) => member.id === leaderMemberId)?.id ??
-          normalizedMembers[0]?.id ??
-          null,
+	        name: form.name,
+	        description: form.description,
+	        leaderAgentId: selectedLeaderId,
         workflowType: form.workflowType,
         orchestrationPrompt: form.orchestrationPrompt,
         workflowDefinitionJson: buildWorkflowDefinitionJson(),
@@ -401,10 +396,10 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
               onClick={() =>
                 setMembers((current) => [
                   ...current,
-                  {
-                    id: crypto.randomUUID(),
-                    agentDefinitionId: props.agentDefinitionOptions[0]?.id ?? "",
-                    memberRole: "worker",
+	                  {
+	                    id: crypto.randomUUID(),
+	                    agentDefinitionId: "",
+	                    memberRole: "worker",
                     workInstruction: "",
                     position: current.length,
                     status: "active",

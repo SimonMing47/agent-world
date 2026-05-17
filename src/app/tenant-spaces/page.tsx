@@ -53,13 +53,13 @@ export default function TenantSpacesPage() {
                 <DialogBody>
                   <TenantSpaceForm
                     executionPolicies={policyOptions}
-                    tenantSpace={{
-                      id: "",
-                      slug: "new-tenant",
-                      name: "",
-                      ownerUserId: "console",
-                      status: "active",
-                      quotaLimitJson: "{}",
+	                    tenantSpace={{
+	                      id: "",
+	                      slug: "",
+	                      name: "",
+	                      ownerUserId: "",
+	                      status: "active",
+	                      quotaLimitJson: "{}",
                       modelWhitelistJson: "[]",
                       globalGuardrailsJson: "{}",
                       defaultExecutionPolicyId: null,
