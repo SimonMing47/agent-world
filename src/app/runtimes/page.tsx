@@ -62,7 +62,7 @@ export default function AiProvidersPage() {
       <PageHeader
         eyebrow="AI Provider"
         title="AI Provider 配置"
-        description="维护模型接口、Base URL、API Key 引用、默认模型和模型能力。底层运行框架由系统内置，控制台只暴露可治理的模型接口。"
+        description="维护模型接口、Base URL、API Key 引用、默认模型和模型能力。运行接口由系统内置，控制台只暴露可治理的模型接口。"
         badges={[
           { label: `${snapshot.providers.length} 个接口`, variant: "accent" },
           { label: `启用 ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },

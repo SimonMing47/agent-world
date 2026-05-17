@@ -47,7 +47,7 @@ export function SidebarNav({
       ) : null}
 
       <AppScrollArea className={cn("flex-1 px-3 py-3", !showBrand && "pt-4")}>
-        <nav className="space-y-6 pb-6">
+        <nav className="space-y-5 pb-6">
           {navigationGroups.map((group) => (
             <div key={group.title} className="space-y-2">
               {!collapsed ? (
@@ -68,7 +68,7 @@ export function SidebarNav({
                     data-active={isActive ? "true" : "false"}
                     onClick={onItemClick}
                     className={cn(
-                      "sidebar-nav-link group flex min-h-[46px] items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
+                      "sidebar-nav-link group flex min-h-[42px] items-center gap-3 rounded-xl border px-3 py-2 transition-all",
                       collapsed && "justify-center px-0",
                       isActive
                         ? "border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
