@@ -107,11 +107,29 @@ function compactValue(value: unknown) {
   return String(value);
 }
 
-export default function TaskBlueprintsPage() {
+export default async function TaskBlueprintsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ teamId?: string }>;
+}) {
+  const params = await searchParams;
   const snapshot = getTaskBlueprintsSnapshot();
   const rawBlueprints = listTaskBlueprints();
   const options = getTaskBlueprintEditorOptions();
+  const selectedTeamId = params?.teamId ?? "";
+  const selectedTeam = options.businessTeams.find((team) => team.id === selectedTeamId);
   const rawMap = new Map(rawBlueprints.map((item) => [item.id, item]));
+  const visibleBlueprintIds = new Set(
+    rawBlueprints
+      .filter((blueprint) => !selectedTeam || blueprint.ownerBusinessTeamId === selectedTeam.id)
+      .map((blueprint) => blueprint.id),
+  );
+  const visibleBlueprints = snapshot.blueprints.filter((blueprint) => visibleBlueprintIds.has(blueprint.id));
+  const baseDefaultBlueprint = defaultBlueprint(options);
+  const defaultNewBlueprint = {
+    ...baseDefaultBlueprint,
+    ownerBusinessTeamId: selectedTeam?.id ?? baseDefaultBlueprint.ownerBusinessTeamId,
+  };
 
   return (
     <div className="space-y-6">
@@ -120,8 +138,8 @@ export default function TaskBlueprintsPage() {
         title="任务定义"
         description="维护任务、触发方式、执行环境和编排块。"
         badges={[
-          { label: `${snapshot.blueprints.length} 个任务定义`, variant: "accent" },
-          { label: "团队视角治理", variant: "neutral" },
+          { label: `${visibleBlueprints.length} 个任务定义`, variant: "accent" },
+          { label: selectedTeam?.name ?? "团队视角治理", variant: "neutral" },
         ]}
       />
 
@@ -129,17 +147,17 @@ export default function TaskBlueprintsPage() {
         items={[
           {
             label: "任务定义",
-            value: snapshot.blueprints.length,
-            detail: `${snapshot.blueprints.filter((item) => item.status === "active").length} 个启用中`,
+            value: visibleBlueprints.length,
+            detail: `${visibleBlueprints.filter((item) => item.status === "active").length} 个启用中`,
           },
           {
             label: "Webhook / Cron",
-            value: snapshot.blueprints.filter((item) => ["webhook", "cron"].includes(String(item.trigger.type))).length,
+            value: visibleBlueprints.filter((item) => ["webhook", "cron"].includes(String(item.trigger.type))).length,
             detail: "事件与定时触发",
           },
           {
             label: "绑定环境",
-            value: snapshot.blueprints.filter((item) => item.environmentName !== "未绑定环境").length,
+            value: visibleBlueprints.filter((item) => item.environmentName !== "未绑定环境").length,
             detail: "已关联执行环境",
           },
           {
@@ -154,30 +172,35 @@ export default function TaskBlueprintsPage() {
         <PanelHeader
           eyebrow="目录"
           title="任务定义目录"
-          description="查看团队、触发方式、环境和状态。"
+          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的任务定义。` : "查看团队、触发方式、环境和状态。"}
           action={
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="secondary">
-                  <Plus className="h-4 w-4" />
-                  新增任务
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[min(96vw,1180px)]">
-                <DialogHeader>
-                  <DialogTitle>新增任务定义</DialogTitle>
-                  <DialogDescription>选择 Agent 团队、执行环境和触发方式，建立一个新的任务配置。</DialogDescription>
-                </DialogHeader>
-                <DialogBody>
-                  <TaskBlueprintEditor
-                    embedded
-                    title="新增任务定义"
-                    blueprint={defaultBlueprint(options)}
-                    options={options}
-                  />
-                </DialogBody>
-              </DialogContent>
-            </Dialog>
+            <div className="flex flex-wrap gap-2">
+              {selectedTeam ? (
+                <Button asChild size="sm" variant="ghost"><Link href="/task-blueprints">查看全部</Link></Button>
+              ) : null}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="secondary">
+                    <Plus className="h-4 w-4" />
+                    新增任务
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[min(96vw,1180px)]">
+                  <DialogHeader>
+                    <DialogTitle>新增任务定义</DialogTitle>
+                    <DialogDescription>选择 Agent 团队、执行环境和触发方式，建立一个新的任务配置。</DialogDescription>
+                  </DialogHeader>
+                  <DialogBody>
+                    <TaskBlueprintEditor
+                      embedded
+                      title="新增任务定义"
+                      blueprint={defaultNewBlueprint}
+                      options={options}
+                    />
+                  </DialogBody>
+                </DialogContent>
+              </Dialog>
+            </div>
           }
         />
         <PanelBody className="p-0">
@@ -194,7 +217,7 @@ export default function TaskBlueprintsPage() {
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {snapshot.blueprints.map((blueprint) => {
+              {visibleBlueprints.map((blueprint) => {
                 const raw = rawMap.get(blueprint.id);
                 if (!raw) return null;
                 const trigger = parseRecord(raw.triggerJson);

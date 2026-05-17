@@ -61,11 +61,15 @@ export function upsertBusinessTeam(input: Partial<BusinessTeam> & Pick<BusinessT
   const id = input.id || randomUUID();
   const current = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", id);
   execute(
-    "INSERT OR REPLACE INTO business_teams (id, tenant_space_id, slug, name, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR REPLACE INTO business_teams (id, tenant_space_id, parent_business_team_id, slug, name, description, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
     input.tenantSpaceId,
+    input.parentBusinessTeamId === undefined
+      ? current?.parentBusinessTeamId ?? null
+      : input.parentBusinessTeamId || null,
     input.slug,
     input.name,
+    input.description ?? current?.description ?? "",
     input.ownerUserId ?? current?.ownerUserId ?? "console",
     input.status ?? current?.status ?? "active",
     input.balance ?? current?.balance ?? 0,

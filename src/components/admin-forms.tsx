@@ -829,12 +829,15 @@ export function TenantSpaceForm({
 export function BusinessTeamForm({
   team,
   tenantSpaces,
+  businessTeams = [],
 }: {
   team: {
     id: string;
     tenantSpaceId: string;
+    parentBusinessTeamId?: string | null;
     slug: string;
     name: string;
+    description?: string;
     ownerUserId: string;
     status: string;
     balance: number;
@@ -844,12 +847,15 @@ export function BusinessTeamForm({
     policyJson: string;
   };
   tenantSpaces: Option[];
+  businessTeams?: Option[];
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     ...team,
+    parentBusinessTeamId: team.parentBusinessTeamId ?? "",
+    description: team.description ?? "",
     balance: String(team.balance ?? 0),
     creditLimit: String(team.creditLimit ?? 0),
     privateToolRefsJson: normalizeJson(team.privateToolRefsJson, "[]"),
@@ -881,6 +887,14 @@ export function BusinessTeamForm({
         <FieldGroup label="团队名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
         <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
         <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="上级团队">
+          <Select value={form.parentBusinessTeamId} onChange={(event) => setForm({ ...form, parentBusinessTeamId: event.target.value })}>
+            <option value="">无上级团队</option>
+            {businessTeams
+              .filter((item) => item.id !== form.id)
+              .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </Select>
+        </FieldGroup>
         <FieldGroup label="Owner"><Input value={form.ownerUserId} onChange={(event) => setForm({ ...form, ownerUserId: event.target.value })} /></FieldGroup>
         <FieldGroup label="状态">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -891,6 +905,7 @@ export function BusinessTeamForm({
         </FieldGroup>
         <FieldGroup label="余额"><Input value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></FieldGroup>
         <FieldGroup label="信用额度"><Input value={form.creditLimit} onChange={(event) => setForm({ ...form, creditLimit: event.target.value })} /></FieldGroup>
+        <FieldGroup label="团队说明" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
         <FieldGroup label="私有记忆命名空间" className="md:col-span-2"><Input value={form.privateMemoryNamespace} onChange={(event) => setForm({ ...form, privateMemoryNamespace: event.target.value })} /></FieldGroup>
         <FieldGroup label="私有工具引用 JSON"><Textarea value={form.privateToolRefsJson} onChange={(event) => setForm({ ...form, privateToolRefsJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="团队策略 JSON"><Textarea value={form.policyJson} onChange={(event) => setForm({ ...form, policyJson: event.target.value })} /></FieldGroup>
