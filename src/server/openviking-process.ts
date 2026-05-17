@@ -103,10 +103,9 @@ function buildServerConfig() {
       host: resolveOpenVikingHost(),
       port: Number(resolveOpenVikingPort()),
       cors_origins: [
-        process.env.AGENTWORLD_PUBLIC_BASE_URL ?? "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3004",
-        "http://127.0.0.1:3004",
+        process.env.AGENTWORLD_PUBLIC_BASE_URL ?? "http://localhost:7369",
+        "http://127.0.0.1:7369",
+        "http://localhost:7369",
       ],
       ...(process.env.OPENVIKING_API_KEY ? { root_api_key: process.env.OPENVIKING_API_KEY } : {}),
     },

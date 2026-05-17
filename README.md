@@ -99,7 +99,7 @@ pnpm dev
 默认访问地址：
 
 ```text
-http://localhost:3000
+http://localhost:7369
 ```
 
 常用校验：

@@ -58,10 +58,9 @@ export function buildServerConfig() {
     host: resolveHost(),
     port: Number(resolvePort()),
     cors_origins: [
-      process.env.AGENTWORLD_PUBLIC_BASE_URL ?? "http://localhost:3002",
-      "http://127.0.0.1:3002",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
+      process.env.AGENTWORLD_PUBLIC_BASE_URL ?? "http://localhost:7369",
+      "http://127.0.0.1:7369",
+      "http://localhost:7369",
     ],
   };
   if (apiKey) {
