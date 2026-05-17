@@ -36,8 +36,10 @@ export type TenantSpace = {
 export type BusinessTeam = {
   id: string;
   tenantSpaceId: string;
+  parentBusinessTeamId: string | null;
   slug: string;
   name: string;
+  description: string;
   ownerUserId: string;
   status: string;
   balance: number;
@@ -881,8 +883,10 @@ CREATE TABLE IF NOT EXISTS system_settings (
 CREATE TABLE IF NOT EXISTS business_teams (
   id TEXT PRIMARY KEY,
   tenant_space_id TEXT NOT NULL,
+  parent_business_team_id TEXT,
   slug TEXT NOT NULL,
   name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
   owner_user_id TEXT NOT NULL,
   status TEXT NOT NULL,
   balance REAL NOT NULL,
@@ -1651,7 +1655,7 @@ function seed(db: DatabaseSyncType) {
     "INSERT INTO tenant_spaces (id, slug, name, owner_user_id, status, quota_limit_json, model_whitelist_json, global_guardrails_json, default_execution_policy_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertBusinessTeam = db.prepare(
-    "INSERT INTO business_teams (id, tenant_space_id, slug, name, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO business_teams (id, tenant_space_id, parent_business_team_id, slug, name, description, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   );
   const insertExecutionPolicy = db.prepare(
     "INSERT INTO execution_policies (id, tenant_space_id, business_team_id, team_id, name, system_instruction, tool_policy_json, approval_policy_json, budget_policy_json, output_policy_json, security_policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1741,8 +1745,10 @@ function seed(db: DatabaseSyncType) {
   insertBusinessTeam.run(
     platformBusinessTeamId,
     tenantSpaceId,
+    null,
     "platform-team",
     "平台工程团队",
+    "负责平台底座、运行稳定性、模型服务和团队级治理能力。",
     "ming",
     "active",
     1820,
@@ -1755,8 +1761,10 @@ function seed(db: DatabaseSyncType) {
   insertBusinessTeam.run(
     releaseBusinessTeamId,
     tenantSpaceId,
+    platformBusinessTeamId,
     "release-team",
     "发布工程团队",
+    "负责发布自动化、代码检视、安全检视和跨团队交付流程。",
     "sophia",
     "active",
     910,
@@ -4291,6 +4299,30 @@ function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
   }
 }
 
+function ensureBusinessTeamHierarchyColumns(db: DatabaseSyncType) {
+  if (!tableHasColumn(db, "business_teams", "parent_business_team_id")) {
+    db.exec("ALTER TABLE business_teams ADD COLUMN parent_business_team_id TEXT");
+  }
+  if (!tableHasColumn(db, "business_teams", "description")) {
+    db.exec("ALTER TABLE business_teams ADD COLUMN description TEXT NOT NULL DEFAULT ''");
+  }
+
+  const platformTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("platform-team") as { id: string } | undefined;
+  const releaseTeam = db
+    .prepare("SELECT id, parent_business_team_id as parentBusinessTeamId FROM business_teams WHERE slug = ?")
+    .get("release-team") as { id: string; parentBusinessTeamId: string | null } | undefined;
+  if (platformTeam && releaseTeam && !releaseTeam.parentBusinessTeamId) {
+    db.prepare("UPDATE business_teams SET parent_business_team_id = ? WHERE id = ?")
+      .run(platformTeam.id, releaseTeam.id);
+  }
+  db.prepare("UPDATE business_teams SET description = ? WHERE slug = ? AND COALESCE(description, '') = ''")
+    .run("负责平台底座、运行稳定性、模型服务和团队级治理能力。", "platform-team");
+  db.prepare("UPDATE business_teams SET description = ? WHERE slug = ? AND COALESCE(description, '') = ''")
+    .run("负责发布自动化、代码检视、安全检视和跨团队交付流程。", "release-team");
+}
+
 function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "runtime_sessions", "agent_definition_id")) {
     db.exec("ALTER TABLE runtime_sessions ADD COLUMN agent_definition_id TEXT");
@@ -4478,6 +4510,7 @@ export function getDb() {
     archiveIncompatibleDatabaseIfNeeded();
     database = new DatabaseSync(DB_PATH);
     database.exec(schemaSql);
+    ensureBusinessTeamHierarchyColumns(database);
     ensureAgentTeamCatalogColumns(database);
     ensureAgentDefinitionHarnessColumns(database);
     ensureRuntimeSessionAgentDefinitionColumn(database);

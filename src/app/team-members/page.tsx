@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PencilLine, Plus, Upload } from "lucide-react";
 import { TeamMemberForm, TeamMemberImportForm } from "@/components/admin-forms";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
@@ -22,12 +23,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { SummaryStrip } from "@/components/ui/summary-strip";
 import { listTeamMembers } from "@/server/governance-core";
 import { listBusinessTeams, listTenantSpaces } from "@/server/queries";
 
-export default function TeamMembersPage() {
+export default async function TeamMembersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ teamId?: string }>;
+}) {
+  const params = await searchParams;
   const members = listTeamMembers();
   const businessTeams = listBusinessTeams();
+  const selectedTeamId = params?.teamId ?? "";
+  const selectedTeam = businessTeams.find((team) => team.id === selectedTeamId);
+  const visibleMembers = selectedTeam ? members.filter((member) => member.businessTeamId === selectedTeam.id) : members;
   const tenantSpaceId = listTenantSpaces()[0]?.id ?? "";
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
@@ -38,8 +48,18 @@ export default function TeamMembersPage() {
         title="团队成员管理"
         description="维护成员、工号、邮箱、团队和角色，支持表格导入。"
         badges={[
-          { label: `${members.length} 个成员`, variant: "accent" },
+          { label: `${visibleMembers.length} 个成员`, variant: "accent" },
           { label: `${businessTeams.length} 个团队`, variant: "neutral" },
+          ...(selectedTeam ? [{ label: selectedTeam.name, variant: "success" as const }] : []),
+        ]}
+      />
+
+      <SummaryStrip
+        items={[
+          { label: "当前视角", value: selectedTeam?.name ?? "全部团队", detail: selectedTeam ? "来自组织树跳转" : "未限定业务团队" },
+          { label: "活跃成员", value: visibleMembers.filter((member) => member.status === "active").length, detail: "可参与团队任务" },
+          { label: "手工录入", value: visibleMembers.filter((member) => member.source === "manual").length, detail: "控制台维护" },
+          { label: "导入成员", value: visibleMembers.filter((member) => member.source === "excel_import").length, detail: "Excel 批量录入" },
         ]}
       />
 
@@ -47,9 +67,12 @@ export default function TeamMembersPage() {
         <PanelHeader
           eyebrow="成员"
           title="成员目录"
-          description="查看成员归属、角色和状态。"
+          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的成员。` : "查看成员归属、角色和状态。"}
           action={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {selectedTeam ? (
+                <Button asChild size="sm" variant="ghost"><Link href="/team-members">查看全部</Link></Button>
+              ) : null}
               <Dialog>
                 <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增成员</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,760px)]">
@@ -96,7 +119,7 @@ export default function TeamMembersPage() {
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {members.map((member) => {
+              {visibleMembers.map((member) => {
                 const team = businessTeams.find((item) => item.id === member.businessTeamId);
                 return (
                   <DataTableRow key={member.id}>

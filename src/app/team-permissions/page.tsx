@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PencilLine, Plus } from "lucide-react";
 import { PermissionGrantForm } from "@/components/admin-forms";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
@@ -22,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { SummaryStrip } from "@/components/ui/summary-strip";
 import { listTeamMembers, listTeamPermissionGrants } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -34,10 +36,18 @@ function actions(value: string) {
   }
 }
 
-export default function TeamPermissionsPage() {
+export default async function TeamPermissionsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ teamId?: string }>;
+}) {
+  const params = await searchParams;
   const grants = listTeamPermissionGrants();
   const members = listTeamMembers();
   const businessTeams = listBusinessTeams();
+  const selectedTeamId = params?.teamId ?? "";
+  const selectedTeam = businessTeams.find((team) => team.id === selectedTeamId);
+  const visibleGrants = selectedTeam ? grants.filter((grant) => grant.businessTeamId === selectedTeam.id) : grants;
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
   const memberOptions = members.map((member) => ({ id: member.id, name: `${member.name} / ${member.employeeNo}` }));
 
@@ -48,8 +58,18 @@ export default function TeamPermissionsPage() {
         title="团队成员权限"
         description="维护成员和角色对系统资源的操作权限。"
         badges={[
-          { label: `${grants.length} 条权限`, variant: "accent" },
-          { label: `${grants.filter((grant) => grant.effect === "deny").length} 条拒绝`, variant: "warning" },
+          { label: `${visibleGrants.length} 条权限`, variant: "accent" },
+          { label: `${visibleGrants.filter((grant) => grant.effect === "deny").length} 条拒绝`, variant: "warning" },
+          ...(selectedTeam ? [{ label: selectedTeam.name, variant: "success" as const }] : []),
+        ]}
+      />
+
+      <SummaryStrip
+        items={[
+          { label: "当前视角", value: selectedTeam?.name ?? "全部团队", detail: selectedTeam ? "来自组织树跳转" : "未限定业务团队" },
+          { label: "允许", value: visibleGrants.filter((grant) => grant.effect === "allow").length, detail: "直接放行规则" },
+          { label: "需审批", value: visibleGrants.filter((grant) => grant.effect === "ask").length, detail: "运行时确认" },
+          { label: "拒绝", value: visibleGrants.filter((grant) => grant.effect === "deny").length, detail: "优先阻断规则" },
         ]}
       />
 
@@ -57,32 +77,37 @@ export default function TeamPermissionsPage() {
         <PanelHeader
           eyebrow="权限规则"
           title="权限规则"
-          description="查看主体、资源、范围和策略效果。"
+          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的权限规则。` : "查看主体、资源、范围和策略效果。"}
           action={
-            <Dialog>
-              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增权限</Button></DialogTrigger>
-              <DialogContent className="w-[min(94vw,860px)]">
-                <DialogHeader><DialogTitle>新增权限规则</DialogTitle><DialogDescription>配置成员、资源范围和允许动作。</DialogDescription></DialogHeader>
-                <DialogBody>
-                  <PermissionGrantForm
-                    businessTeams={teamOptions}
-                    members={memberOptions}
-                    grant={{
-                      id: "",
-                      businessTeamId: businessTeams[0]?.id ?? "",
-                      memberId: null,
-                      principalType: "team_role",
-                      roleKey: "operator",
-                      resourceType: "task_blueprint",
-                      resourceScope: "team:*",
-                      actionsJson: "[]",
-                      effect: "allow",
-                      status: "active",
-                    }}
-                  />
-                </DialogBody>
-              </DialogContent>
-            </Dialog>
+            <div className="flex flex-wrap gap-2">
+              {selectedTeam ? (
+                <Button asChild size="sm" variant="ghost"><Link href="/team-permissions">查看全部</Link></Button>
+              ) : null}
+              <Dialog>
+                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增权限</Button></DialogTrigger>
+                <DialogContent className="w-[min(94vw,860px)]">
+                  <DialogHeader><DialogTitle>新增权限规则</DialogTitle><DialogDescription>配置成员、资源范围和允许动作。</DialogDescription></DialogHeader>
+                  <DialogBody>
+                    <PermissionGrantForm
+                      businessTeams={teamOptions}
+                      members={memberOptions}
+                      grant={{
+                        id: "",
+                        businessTeamId: selectedTeam?.id ?? businessTeams[0]?.id ?? "",
+                        memberId: null,
+                        principalType: "team_role",
+                        roleKey: "operator",
+                        resourceType: "task_blueprint",
+                        resourceScope: "team:*",
+                        actionsJson: "[]",
+                        effect: "allow",
+                        status: "active",
+                      }}
+                    />
+                  </DialogBody>
+                </DialogContent>
+              </Dialog>
+            </div>
           }
         />
         <PanelBody className="p-0">
@@ -98,7 +123,7 @@ export default function TeamPermissionsPage() {
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {grants.map((grant) => {
+              {visibleGrants.map((grant) => {
                 const team = businessTeams.find((item) => item.id === grant.businessTeamId);
                 const member = members.find((item) => item.id === grant.memberId);
                 return (
