@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eye, PencilLine, Plus } from "lucide-react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { TaskBlueprintEditor } from "@/components/task-blueprint-editor";
 import { Button } from "@/components/ui/button";
@@ -320,6 +321,7 @@ export default function TaskBlueprintsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/task-blueprints" id={blueprint.id} confirmText={`确认删除任务定义「${blueprint.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

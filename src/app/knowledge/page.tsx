@@ -1,6 +1,8 @@
-import { BookOpen, Database, Layers3, RefreshCcw } from "lucide-react";
+import { BookOpen, Database, Eye, Layers3, RefreshCcw } from "lucide-react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { KnowledgeSpaceForm } from "@/components/knowledge-space-form";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import {
   DataTable,
   DataTableBody,
@@ -9,6 +11,16 @@ import {
   DataTableHeader,
   DataTableRow,
 } from "@/components/ui/data-table";
+import { DefinitionList } from "@/components/ui/definition-list";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { getKnowledgeManagementSnapshot } from "@/server/openviking-core";
@@ -29,6 +41,15 @@ function typeLabel(type: string) {
     agent_team: "AgentTeam",
   };
   return labels[type] ?? type;
+}
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    active: "启用",
+    paused: "停用",
+    archived: "归档",
+  };
+  return labels[status] ?? status;
 }
 
 export default async function KnowledgePage() {
@@ -110,8 +131,10 @@ export default async function KnowledgePage() {
               <DataTableHead>名称</DataTableHead>
               <DataTableHead>类型</DataTableHead>
               <DataTableHead>可见性</DataTableHead>
+              <DataTableHead>状态</DataTableHead>
               <DataTableHead>绑定</DataTableHead>
               <DataTableHead>OpenViking URI</DataTableHead>
+              <DataTableHead>操作</DataTableHead>
             </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
@@ -123,8 +146,60 @@ export default async function KnowledgePage() {
                 </DataTableCell>
                 <DataTableCell>{typeLabel(space.spaceType)}</DataTableCell>
                 <DataTableCell>{space.visibility}</DataTableCell>
+                <DataTableCell>{statusLabel(space.status)}</DataTableCell>
                 <DataTableCell>{bindingCountBySpace.get(space.id) ?? 0}</DataTableCell>
                 <DataTableCell className="max-w-[520px] break-all font-mono text-xs">{space.vikingUri}</DataTableCell>
+                <DataTableCell>
+                  <div className="flex flex-wrap gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm">
+                          <Eye className="h-4 w-4" />
+                          详情
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="w-[min(92vw,920px)]">
+                        <DialogHeader>
+                          <DialogTitle>{space.name}</DialogTitle>
+                          <DialogDescription>知识空间的团队归属、OpenViking 地址和运行时加载策略。</DialogDescription>
+                        </DialogHeader>
+                        <DialogBody>
+                          <DefinitionList
+                            columnsClassName="sm:grid-cols-2"
+                            items={[
+                              { label: "ID", value: space.id },
+                              { label: "标识", value: space.slug },
+                              { label: "类型", value: typeLabel(space.spaceType) },
+                              { label: "状态", value: statusLabel(space.status) },
+                              { label: "业务团队", value: space.businessTeamId ?? "未绑定" },
+                              { label: "AgentTeam", value: space.agentTeamId ?? "未绑定" },
+                              { label: "项目 Key", value: space.projectKey ?? "未绑定" },
+                              { label: "可见性", value: space.visibility },
+                              { label: "OpenViking URI", value: <span className="break-all font-mono text-xs">{space.vikingUri}</span> },
+                              {
+                                label: "保留策略",
+                                value: <pre className="whitespace-pre-wrap break-all font-mono text-xs">{space.retentionPolicyJson}</pre>,
+                              },
+                              { label: "描述", value: space.description || "未填写" },
+                              { label: "更新时间", value: space.updatedAt },
+                            ]}
+                          />
+                        </DialogBody>
+                      </DialogContent>
+                    </Dialog>
+                    <KnowledgeSpaceForm
+                      businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
+                      agentTeams={agentTeams.map((team) => ({ id: team.id, businessTeamId: team.businessTeamId, name: team.name }))}
+                      space={space}
+                      triggerLabel="编辑"
+                    />
+                    <DeleteResourceButton
+                      endpoint="/api/knowledge/spaces"
+                      id={space.id}
+                      confirmText={`确认删除知识空间「${space.name}」？`}
+                    />
+                  </div>
+                </DataTableCell>
               </DataTableRow>
             ))}
           </DataTableBody>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listMcpServers, upsertMcpServer } from "@/server/governance-core";
+import { deleteManagedResource, listMcpServers, upsertMcpServer } from "@/server/governance-core";
 
 export const dynamic = "force-dynamic";
 
@@ -19,3 +19,8 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true, server });
 }
 
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string };
+  deleteManagedResource({ type: "mcp-server", id: body.id });
+  return NextResponse.json({ ok: true });
+}

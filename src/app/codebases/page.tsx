@@ -1,5 +1,6 @@
 import { Eye, KeyRound, PencilLine, Plus } from "lucide-react";
 import { CodebaseForm, CodebaseTokenForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -160,13 +161,25 @@ export default function CodebasesPage() {
                                 ]}
                               />
                               <DataTable>
-                                <DataTableHeader><DataTableRow><DataTableHead>操作者</DataTableHead><DataTableHead>角色</DataTableHead><DataTableHead>权限</DataTableHead></DataTableRow></DataTableHeader>
+                                <DataTableHeader><DataTableRow><DataTableHead>操作者</DataTableHead><DataTableHead>角色</DataTableHead><DataTableHead>权限</DataTableHead><DataTableHead align="right">操作</DataTableHead></DataTableRow></DataTableHeader>
                                 <DataTableBody>
                                   {codebaseTokens.map((token) => (
                                     <DataTableRow key={token.id}>
                                       <DataTableCell>{token.operatorName}</DataTableCell>
                                       <DataTableCell>{token.role}</DataTableCell>
                                       <DataTableCell>{parsePermissions(token.permissionJson).join(", ")}</DataTableCell>
+                                      <DataTableCell align="right">
+                                        <div className="flex justify-end gap-2">
+                                          <Dialog>
+                                            <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                                            <DialogContent className="w-[min(94vw,760px)]">
+                                              <DialogHeader><DialogTitle>编辑操作者 Token</DialogTitle><DialogDescription>{token.operatorName}</DialogDescription></DialogHeader>
+                                              <DialogBody><CodebaseTokenForm codebases={codebaseOptions} token={token} /></DialogBody>
+                                            </DialogContent>
+                                          </Dialog>
+                                          <DeleteResourceButton endpoint="/api/codebases" id={token.id} body={{ entity: "token" }} confirmText={`确认删除操作者 Token「${token.operatorName}」？`} />
+                                        </div>
+                                      </DataTableCell>
                                     </DataTableRow>
                                   ))}
                                 </DataTableBody>
@@ -181,6 +194,7 @@ export default function CodebasesPage() {
                             <DialogBody><CodebaseForm businessTeams={teamOptions} codebase={codebase} /></DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/codebases" id={codebase.id} confirmText={`确认删除 Codebase「${codebase.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
@@ -193,4 +207,3 @@ export default function CodebasesPage() {
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { McpServerForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,7 @@ export default function McpPage() {
                             <DialogBody><McpServerForm businessTeams={teamOptions} server={server} /></DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/mcp-servers" id={server.id} confirmText={`确认删除 MCP Server「${server.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
@@ -158,4 +160,3 @@ export default function McpPage() {
     </div>
   );
 }
-

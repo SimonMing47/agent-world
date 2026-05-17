@@ -1,5 +1,6 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { ConnectorForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,7 @@ export default function ConnectorsPage() {
                             <DialogBody><ConnectorForm businessTeams={teamOptions} connector={connector} /></DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/connectors" id={connector.id} confirmText={`确认删除 Connector「${connector.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
@@ -149,4 +151,3 @@ export default function ConnectorsPage() {
     </div>
   );
 }
-

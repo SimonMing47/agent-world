@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   listCodebaseOperatorTokens,
   listCodebases,
+  deleteManagedResource,
   upsertCodebase,
   upsertCodebaseOperatorToken,
 } from "@/server/governance-core";
@@ -30,3 +31,8 @@ export async function PATCH(request: Request) {
   return POST(request);
 }
 
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string; entity?: "codebase" | "token" };
+  deleteManagedResource({ type: body.entity === "token" ? "codebase-token" : "codebase", id: body.id });
+  return NextResponse.json({ ok: true });
+}

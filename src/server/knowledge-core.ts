@@ -79,7 +79,7 @@ function buildSpaceUri(args: {
 
 export function listKnowledgeSpaces() {
   return queryAll<KnowledgeSpace>(
-    "SELECT * FROM knowledge_spaces ORDER BY CASE space_type WHEN 'global' THEN 0 WHEN 'team' THEN 1 WHEN 'project' THEN 2 WHEN 'agent_team' THEN 3 ELSE 9 END, name ASC",
+    "SELECT * FROM knowledge_spaces WHERE status <> 'deleted' ORDER BY CASE space_type WHEN 'global' THEN 0 WHEN 'team' THEN 1 WHEN 'project' THEN 2 WHEN 'agent_team' THEN 3 ELSE 9 END, name ASC",
   );
 }
 
@@ -168,6 +168,70 @@ export function createKnowledgeSpace(input: {
   }
 
   return queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", id);
+}
+
+export function upsertKnowledgeSpace(input: {
+  id?: string;
+  name: string;
+  slug?: string;
+  spaceType: "global" | "team" | "project" | "agent_team";
+  businessTeamId?: string | null;
+  agentTeamId?: string | null;
+  projectKey?: string | null;
+  description?: string;
+  visibility?: "global" | "team" | "private";
+  status?: string;
+  retentionPolicyJson?: string;
+}) {
+  if (!input.id) return createKnowledgeSpace(input);
+
+  const current = queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", input.id);
+  if (!current) return createKnowledgeSpace(input);
+
+  const businessTeam = input.businessTeamId
+    ? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", input.businessTeamId)
+    : null;
+  const agentTeam = input.agentTeamId
+    ? queryOne<{ id: string; slug: string; businessTeamId: string }>(
+        "SELECT id, slug, business_team_id FROM agent_teams WHERE id = ?",
+        input.agentTeamId,
+      )
+    : null;
+  const ownerBusinessTeamId = input.businessTeamId ?? agentTeam?.businessTeamId ?? null;
+  const resolvedBusinessTeam = ownerBusinessTeamId
+    ? businessTeam ?? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", ownerBusinessTeamId)
+    : null;
+  const slug = slugify(input.slug ?? input.name);
+  const vikingUri = buildSpaceUri({
+    spaceType: input.spaceType,
+    businessTeamSlug: resolvedBusinessTeam?.slug,
+    agentTeamSlug: agentTeam?.slug,
+    projectKey: input.projectKey,
+    slug,
+  });
+
+  execute(
+    "UPDATE knowledge_spaces SET business_team_id = ?, agent_team_id = ?, project_key = ?, slug = ?, name = ?, space_type = ?, viking_uri = ?, description = ?, visibility = ?, status = ?, retention_policy_json = ?, updated_at = ? WHERE id = ?",
+    ownerBusinessTeamId,
+    input.agentTeamId ?? null,
+    input.projectKey ? slugify(input.projectKey) : null,
+    slug,
+    input.name,
+    input.spaceType,
+    vikingUri,
+    input.description ?? "",
+    input.visibility ?? (input.spaceType === "global" ? "global" : "team"),
+    input.status ?? current.status,
+    input.retentionPolicyJson ?? current.retentionPolicyJson,
+    nowIso(),
+    input.id,
+  );
+  return queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", input.id);
+}
+
+export function deleteKnowledgeSpace(id: string) {
+  execute("UPDATE knowledge_spaces SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), id);
+  execute("DELETE FROM knowledge_space_bindings WHERE knowledge_space_id = ?", id);
 }
 
 export function bindKnowledgeSpace(input: {

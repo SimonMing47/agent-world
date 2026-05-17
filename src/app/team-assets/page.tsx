@@ -1,5 +1,6 @@
 import { PencilLine, Plus } from "lucide-react";
 import { AssetGrantForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,13 +112,16 @@ export default function TeamAssetsPage() {
                     <DataTableCell className="max-w-[360px] truncate font-mono text-xs">{permission(grant.permissionJson)}</DataTableCell>
                     <DataTableCell><Badge variant={grant.status === "active" ? "success" : "neutral"}>{grant.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
-                      <Dialog>
-                        <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
-                        <DialogContent className="w-[min(94vw,860px)]">
-                          <DialogHeader><DialogTitle>编辑资产授权</DialogTitle><DialogDescription>{grant.assetName}</DialogDescription></DialogHeader>
-                          <DialogBody><AssetGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
-                        </DialogContent>
-                      </Dialog>
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogContent className="w-[min(94vw,860px)]">
+                            <DialogHeader><DialogTitle>编辑资产授权</DialogTitle><DialogDescription>{grant.assetName}</DialogDescription></DialogHeader>
+                            <DialogBody><AssetGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/team-assets" id={grant.id} confirmText={`确认删除资产授权「${grant.assetName}」？`} />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );
@@ -129,4 +133,3 @@ export default function TeamAssetsPage() {
     </div>
   );
 }
-

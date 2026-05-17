@@ -1,37 +1,136 @@
+import { Eye, PencilLine, Plus } from "lucide-react";
+import { TenantSpaceForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import { DefinitionList } from "@/components/ui/definition-list";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
-import { getDashboardSnapshot } from "@/server/queries";
-import { translateStatus } from "@/lib/presentation";
+import { listBusinessTeams, listExecutionPolicies, listTenantSpaces } from "@/server/queries";
 
 export default function TenantSpacesPage() {
-  const snapshot = getDashboardSnapshot();
+  const tenantSpaces = listTenantSpaces();
+  const businessTeams = listBusinessTeams();
+  const executionPolicies = listExecutionPolicies();
+  const policyOptions = executionPolicies.map((policy) => ({ id: policy.id, name: policy.name }));
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Tenant Spaces"
         title="租户空间"
-        description="从业务团队数量、预算上限和最大并发任务数观察租户级治理边界。"
-        badges={[
-          { label: `${snapshot.tenantSpaceSummaries.length} 个租户空间`, variant: "accent" },
-        ]}
+        description="租户空间决定团队、预算、模型白名单和全局 Guardrails，支持增删查改。"
+        badges={[{ label: `${tenantSpaces.length} 个租户空间`, variant: "accent" }]}
       />
 
-      {snapshot.tenantSpaceSummaries.map((tenantSpace) => (
-        <Panel key={tenantSpace.id}>
-          <PanelHeader
-            eyebrow="租户空间"
-            title={tenantSpace.name}
-            action={<Badge variant="neutral">{translateStatus(tenantSpace.status)}</Badge>}
-          />
-          <PanelBody className="grid gap-3 md:grid-cols-3 text-sm text-[var(--ink-muted)]">
-            <div>业务团队数量: <span className="font-medium text-[var(--ink)]">{tenantSpace.businessTeamCount}</span></div>
-            <div>月度预算上限: <span className="font-medium text-[var(--ink)]">${tenantSpace.monthlyUsd}</span></div>
-            <div>最大并发任务: <span className="font-medium text-[var(--ink)]">{tenantSpace.maxRunningTaskRuns}</span></div>
-          </PanelBody>
-        </Panel>
-      ))}
+      <Panel>
+        <PanelHeader
+          eyebrow="Registry"
+          title="租户空间目录"
+          description="租户空间是团队治理的顶层边界。"
+          action={
+            <Dialog>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增租户</Button></DialogTrigger>
+              <DialogContent className="w-[min(94vw,900px)]">
+                <DialogHeader><DialogTitle>新增租户空间</DialogTitle><DialogDescription>配置配额、模型白名单和全局 Guardrails。</DialogDescription></DialogHeader>
+                <DialogBody>
+                  <TenantSpaceForm
+                    executionPolicies={policyOptions}
+                    tenantSpace={{
+                      id: "",
+                      slug: "new-tenant",
+                      name: "新增租户空间",
+                      ownerUserId: "console",
+                      status: "active",
+                      quotaLimitJson: "{}",
+                      modelWhitelistJson: "[]",
+                      globalGuardrailsJson: "{}",
+                      defaultExecutionPolicyId: null,
+                    }}
+                  />
+                </DialogBody>
+              </DialogContent>
+            </Dialog>
+          }
+        />
+        <PanelBody className="p-0">
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>租户</DataTableHead>
+                <DataTableHead>业务团队</DataTableHead>
+                <DataTableHead>默认策略</DataTableHead>
+                <DataTableHead>Owner</DataTableHead>
+                <DataTableHead>状态</DataTableHead>
+                <DataTableHead align="right">操作</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {tenantSpaces.map((tenantSpace) => {
+                const teamCount = businessTeams.filter((team) => team.tenantSpaceId === tenantSpace.id).length;
+                const policy = executionPolicies.find((item) => item.id === tenantSpace.defaultExecutionPolicyId);
+                return (
+                  <DataTableRow key={tenantSpace.id}>
+                    <DataTableCell>
+                      <div className="font-semibold text-[var(--ink)]">{tenantSpace.name}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{tenantSpace.slug}</div>
+                    </DataTableCell>
+                    <DataTableCell>{teamCount}</DataTableCell>
+                    <DataTableCell>{policy?.name ?? "未绑定"}</DataTableCell>
+                    <DataTableCell>{tenantSpace.ownerUserId}</DataTableCell>
+                    <DataTableCell><Badge variant={tenantSpace.status === "active" ? "success" : "neutral"}>{tenantSpace.status}</Badge></DataTableCell>
+                    <DataTableCell align="right">
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader><DialogTitle>{tenantSpace.name}</DialogTitle><DialogDescription>租户空间明细。</DialogDescription></DialogHeader>
+                            <DialogBody>
+                              <DefinitionList
+                                items={[
+                                  { label: "租户 ID", value: tenantSpace.id },
+                                  { label: "配额", value: tenantSpace.quotaLimitJson },
+                                  { label: "模型白名单", value: tenantSpace.modelWhitelistJson },
+                                  { label: "Guardrails", value: tenantSpace.globalGuardrailsJson },
+                                ]}
+                              />
+                            </DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogContent className="w-[min(94vw,900px)]">
+                            <DialogHeader><DialogTitle>编辑租户空间</DialogTitle><DialogDescription>{tenantSpace.name}</DialogDescription></DialogHeader>
+                            <DialogBody><TenantSpaceForm executionPolicies={policyOptions} tenantSpace={tenantSpace} /></DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/tenant-spaces" id={tenantSpace.id} confirmText={`确认删除租户空间「${tenantSpace.name}」？`} />
+                      </div>
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }

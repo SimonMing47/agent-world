@@ -1,5 +1,6 @@
 import { PencilLine, Plus } from "lucide-react";
 import { PermissionGrantForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,13 +112,16 @@ export default function TeamPermissionsPage() {
                     <DataTableCell className="max-w-[320px]">{actions(grant.actionsJson)}</DataTableCell>
                     <DataTableCell><Badge variant={grant.effect === "allow" ? "success" : grant.effect === "deny" ? "warning" : "neutral"}>{grant.effect}</Badge></DataTableCell>
                     <DataTableCell align="right">
-                      <Dialog>
-                        <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
-                        <DialogContent className="w-[min(94vw,860px)]">
-                          <DialogHeader><DialogTitle>编辑权限</DialogTitle><DialogDescription>{grant.roleKey}</DialogDescription></DialogHeader>
-                          <DialogBody><PermissionGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
-                        </DialogContent>
-                      </Dialog>
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogContent className="w-[min(94vw,860px)]">
+                            <DialogHeader><DialogTitle>编辑权限</DialogTitle><DialogDescription>{grant.roleKey}</DialogDescription></DialogHeader>
+                            <DialogBody><PermissionGrantForm businessTeams={teamOptions} members={memberOptions} grant={grant} /></DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/team-permissions" id={grant.id} confirmText={`确认删除权限规则「${grant.roleKey}」？`} />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );
@@ -129,4 +133,3 @@ export default function TeamPermissionsPage() {
     </div>
   );
 }
-

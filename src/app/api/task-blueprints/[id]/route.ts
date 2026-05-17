@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deleteManagedResource } from "@/server/governance-core";
 import { getTaskBlueprintDetail, upsertTaskBlueprint } from "@/server/queries";
 
 export const dynamic = "force-dynamic";
@@ -26,4 +27,13 @@ export async function PATCH(
     id: resolved.id,
   });
   return NextResponse.json({ ok: true, blueprint });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  deleteManagedResource({ type: "task-blueprint", id });
+  return NextResponse.json({ ok: true });
 }

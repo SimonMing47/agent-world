@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import {
   bindKnowledgeSpace,
   createKnowledgeSpace,
+  deleteKnowledgeSpace,
   listKnowledgeSpaceBindings,
   listKnowledgeSpaces,
+  upsertKnowledgeSpace,
 } from "@/server/knowledge-core";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +34,9 @@ export async function POST(request: Request) {
     targetId?: string;
     accessLevel?: "read" | "write" | "archive";
     loadOrder?: number;
+    id?: string;
+    status?: string;
+    retentionPolicyJson?: string;
   };
 
   if (body.action === "bind_space") {
@@ -57,7 +62,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "name and spaceType are required" }, { status: 400 });
   }
 
-  const space = createKnowledgeSpace({
+  let retentionPolicy: Record<string, unknown> | undefined;
+  if (body.retentionPolicyJson) {
+    try {
+      const parsed = JSON.parse(body.retentionPolicyJson) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return NextResponse.json({ ok: false, error: "retentionPolicyJson must be a JSON object" }, { status: 400 });
+      }
+      retentionPolicy = parsed as Record<string, unknown>;
+    } catch {
+      return NextResponse.json({ ok: false, error: "retentionPolicyJson must be valid JSON" }, { status: 400 });
+    }
+  }
+
+  const payload = {
+    id: body.id,
     name: body.name,
     slug: body.slug,
     spaceType: body.spaceType,
@@ -66,8 +85,18 @@ export async function POST(request: Request) {
     projectKey: body.projectKey ?? null,
     description: body.description,
     visibility: body.visibility,
+    status: body.status,
+    retentionPolicyJson: body.retentionPolicyJson,
+    retentionPolicy,
     bindToAgentTeam: Boolean(body.agentTeamId),
-  });
+  };
+  const space = body.id ? upsertKnowledgeSpace(payload) : createKnowledgeSpace(payload);
 
   return NextResponse.json({ ok: true, space });
+}
+
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string };
+  deleteKnowledgeSpace(body.id);
+  return NextResponse.json({ ok: true });
 }

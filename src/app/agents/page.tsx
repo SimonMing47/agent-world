@@ -1,5 +1,6 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { AgentDefinitionForm } from "@/components/agent-definition-form";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -309,6 +310,7 @@ export default function AgentsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/agent-definitions" id={definition.id} confirmText={`确认删除 Agent「${definition.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
