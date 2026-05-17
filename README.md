@@ -33,7 +33,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 
 - Next.js + TypeScript 单服务应用。
 - React 19 + Radix UI 组件层，提供自适应后台布局、可收缩左侧导航、移动端抽屉侧栏，以及以摘要条、数据表、定义列表和表单工作台为核心的控制台界面。
-- SQLite 本地持久化，启动时自动初始化领域模型、任务蓝图、模型服务、基础配置、团队治理资产和两个核心案例配置。
+- SQLite 本地持久化，启动时只初始化数据库 schema，不预置租户、业务团队、Agent、Agent 团队、任务蓝图、模型服务、执行环境、知识空间或案例数据；所有可配置资源必须从控制台或资源 API 新增后入库。
 - 语言包治理：内置 `src/locales/zh-CN.ts` 作为默认语言包，页面标题、面板、表格头、表单字段、按钮、弹窗、状态枚举和术语均通过语言包加载；运行时还会对剩余可见短语做语言包精确覆盖，系统配置页提供语言包 JSON 覆盖，配置写入 SQLite 的 `system_settings`。
 - 左侧导航已收敛为四个域：总览、智能体治理、团队治理、基础配置。侧边栏只放高频治理入口；执行环境、Webhook、执行配置、租户、执行策略、服务目录和跨团队授权等长尾配置统一从系统配置进入。
 - 模型服务配置：`/runtimes`，支持 OpenAI Compatible、OpenAI Responses、OpenAI Chat / Completions、Anthropic、Azure OpenAI 等接口风格，控制台只暴露可治理的模型服务。
@@ -64,6 +64,10 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 ## 配置资源治理原则
 
 控制台中出现的配置对象都必须是可持久化资源，不能把页面当作架构说明书或静态示例。当前后台页面统一采用“表格列表 + 详情弹窗 + 新增 / 编辑弹窗 + 删除动作”的形态，配置写入 SQLite，任务运行时再从数据库读取：
+
+- 主干不允许通过 seed、简单配置文件或页面常量预置业务数据；租户、团队、Agent、Agent 团队、任务、Provider、Codebase、Skill、Connector、Webhook、知识空间都必须由用户显式配置。
+- 页面可以提供空表、创建入口、结构化表单和必要的枚举选项，但不能替用户选择数据库第一条记录作为默认配置，也不能把“代码检视”“每日安全检视”等 case 写成主干默认数据。
+- 插件代码可以作为扩展能力存在，但插件清单、凭据、环境、Webhook 和任务蓝图必须导入或配置后才进入数据库；未安装、未导入、未启用的插件不应出现在业务配置列表里。
 
 - 基础配置：模型服务、模型执行配置、Skill、MCP Server、Connector、Codebase、Codebase 操作者 Token、执行环境、Webhook、知识空间、知识条目。
 - 团队治理：租户空间、业务团队、团队成员、团队权限、团队资产、执行策略、服务目录、跨团队授权。
@@ -101,6 +105,7 @@ http://localhost:3000
 常用校验：
 
 ```bash
+pnpm config-data:audit
 pnpm typecheck
 pnpm lint
 pnpm build
@@ -268,7 +273,7 @@ POST /api/plugins/manifests
 plugins/official/<plugin-id>/plugin.json
 ```
 
-当前仓库已内置一个可执行官方插件样例：
+当前仓库保留一个可执行官方插件代码样例，但不会自动安装、启用或写入数据库；只有用户通过插件导入接口或控制台显式导入后，插件清单才会进入业务配置：
 
 - `official.codehub`
   - Repository Connector
@@ -296,35 +301,36 @@ SDK 给插件提供受控句柄：
 
 ### 代码检视：MR 分层检视
 
-平台默认保留一个通用 MR 检视蓝图样例，同时提供可导入的企业代码仓插件样例。核心运行路径始终是 Task Blueprint：
+平台不默认创建 MR 检视蓝图、代码仓环境、Webhook endpoint 或检视团队。代码检视能力需要通过控制台完成配置，核心运行路径始终是 Task Blueprint：
 
-- 任务蓝图：`shield_mr_review`
-- 环境：`env-shield-mr-review`
-- 团队：`代码检视执行团队`
-- 插件：`builtin.repo.git`
-- 记忆层：`repository/code-review`、`global/code-review`、`security`、`quality/test`、`data-interface`
+- 导入或配置代码仓插件。
+- 配置代码仓、操作者 token、Webhook secret 和 MR 评论回写权限。
+- 创建业务团队、Agent、Agent 团队和检视 Skill。
+- 创建 Webhook 触发的任务蓝图，绑定 Agent 团队、执行环境、权限策略、记忆策略和输出策略。
+- 启用 Webhook endpoint 后，由外部代码平台调用用户自定义 path key。
 
-Webhook 把 MR diff 给到系统后，会先进入 `shield_mr_review` 任务蓝图，校验幂等键，生成环境快照和权限快照，再由检视 Agent 团队读取 Skill 和记忆层，完成代码质量、安全、测试等分层检视。结果统一写入 Finding，再通过 MR 评论、看板和归档发布。没有配置代码平台 token 时只生成评论内容，不回写外部系统。
+Webhook 把 MR diff 给到系统后，会先进入用户配置的任务蓝图，校验幂等键，生成环境快照和权限快照，再由检视 Agent 团队读取 Skill 和记忆层，完成代码质量、安全、测试等分层检视。结果统一写入 Finding，再通过用户配置的输出发布器写回 MR、进入看板或归档。没有配置代码平台 token 时不应对外部系统发起真实回写。
 
-作为企业代码仓样例，仓库现已提供 `official.codehub` 官方插件与 `codehub-review` 导入样例。导入后会同时写入：
+作为企业代码仓样例，仓库提供 `official.codehub` 插件代码。导入后可以按用户选择写入：
 
-- `official.codehub` 插件清单
-- `env-codehub-mr-review` 执行环境
-- `webhook:codehub-mr` Webhook endpoint
-- `codehub_mr_review` 任务蓝图
+- 插件清单。
+- 执行环境。
+- Webhook endpoint。
+- 任务蓝图。
 
-`codehub_mr_review` 会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Review Publisher 生成或回写 MR 评论。没有配置 `CODEHUB_HOST` / `CODEHUB_TOKEN` 时，发布结果保持为 draft；配置完成后才对外部 CodeHub 发起真实回写。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
+CodeHub 类型的任务蓝图会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Review Publisher 生成或回写 MR 评论。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
 
 ### 每日全量安全检视
 
-已内置全局配置：
+平台不内置每日安全检视全局配置。安全检视需要通过同一套 Task Blueprint 能力配置：
 
-- 任务蓝图：`daily_security_review`
-- 环境：`env-daily-security-scan`
-- 通知插件：`builtin.notify.email`
-- 记忆层：`security`、`feedback/correct`、`feedback/incorrect`
+- 配置代码仓集合和操作者 token。
+- 配置安全检视 Skill、知识空间和误报基线。
+- 创建安全检视 Agent 团队。
+- 创建定时触发任务蓝图，选择按仓库分片、重试、超时、Finding 去重和输出发布策略。
+- 配置邮件、IM 或 Web Push Connector 作为输出通道。
 
-调度器每天按仓库集合实例化 `daily_security_review` 任务蓝图。执行策略支持按仓库分片、幂等键、重试、全量环境快照、Finding 去重、邮件报告草稿、看板发布和 artifact 归档。邮件连接器未配置时不外发，只生成可审计的发布草稿。
+调度器按用户配置的 Cron 表达式实例化任务蓝图。执行策略支持按仓库分片、幂等键、重试、全量环境快照、Finding 去重、邮件报告草稿、看板发布和 artifact 归档。邮件连接器未配置时不外发，只生成可审计的发布草稿。
 
 ## 设计文档
 

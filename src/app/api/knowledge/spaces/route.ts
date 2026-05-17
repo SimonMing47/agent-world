@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     action?: "create_space" | "bind_space";
     name?: string;
+    tenantSpaceId?: string | null;
     slug?: string;
     spaceType?: "global" | "team" | "project" | "agent_team";
     businessTeamId?: string | null;
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
 
   const payload = {
     id: body.id,
+    tenantSpaceId: body.tenantSpaceId ?? null,
     name: body.name,
     slug: body.slug,
     spaceType: body.spaceType,

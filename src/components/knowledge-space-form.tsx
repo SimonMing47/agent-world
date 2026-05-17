@@ -21,6 +21,12 @@ import { Textarea } from "@/components/ui/textarea";
 type BusinessTeamOption = {
   id: string;
   name: string;
+  tenantSpaceId?: string;
+};
+
+type TenantSpaceOption = {
+  id: string;
+  name: string;
 };
 
 type AgentTeamOption = {
@@ -31,6 +37,7 @@ type AgentTeamOption = {
 
 type KnowledgeSpaceValue = {
   id: string;
+  tenantSpaceId: string;
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
@@ -44,11 +51,13 @@ type KnowledgeSpaceValue = {
 };
 
 export function KnowledgeSpaceForm({
+  tenantSpaces,
   businessTeams,
   agentTeams,
   space,
   triggerLabel,
 }: {
+  tenantSpaces: TenantSpaceOption[];
   businessTeams: BusinessTeamOption[];
   agentTeams: AgentTeamOption[];
   space?: KnowledgeSpaceValue;
@@ -61,9 +70,9 @@ export function KnowledgeSpaceForm({
   const initialBusinessTeamId =
     space?.businessTeamId ??
     agentTeams.find((team) => team.id === space?.agentTeamId)?.businessTeamId ??
-    businessTeams[0]?.id ??
     "";
   const [spaceType, setSpaceType] = useState(space?.spaceType ?? "team");
+  const [tenantSpaceId, setTenantSpaceId] = useState(space?.tenantSpaceId ?? "");
   const [businessTeamId, setBusinessTeamId] = useState(initialBusinessTeamId);
   const availableAgentTeams = useMemo(
     () => agentTeams.filter((team) => !businessTeamId || team.businessTeamId === businessTeamId),
@@ -79,6 +88,7 @@ export function KnowledgeSpaceForm({
         body: JSON.stringify({
           action: "create_space",
           id: space?.id,
+          tenantSpaceId: tenantSpaceId || null,
           name: String(formData.get("name") ?? ""),
           slug: String(formData.get("slug") ?? ""),
           spaceType,
@@ -121,7 +131,17 @@ export function KnowledgeSpaceForm({
                 <Input name="name" required defaultValue={space?.name} placeholder="ui.generated.cb96b5b40e4" />
               </FieldGroup>
               <FieldGroup label="ui.generated.c3537d5ef90">
-                <Input name="slug" defaultValue={space?.slug} placeholder="payment-security" />
+                <Input name="slug" defaultValue={space?.slug} placeholder="ui.generated.c3537d5ef90" />
+              </FieldGroup>
+              <FieldGroup label="ui.generated.c3db35d2741">
+                <Select value={tenantSpaceId} onChange={(event) => setTenantSpaceId(event.target.value)}>
+                  <option value="">ui.generated.ca5644f4bbf</option>
+                  {tenantSpaces.map((spaceOption) => (
+                    <option key={spaceOption.id} value={spaceOption.id}>
+                      {spaceOption.name}
+                    </option>
+                  ))}
+                </Select>
               </FieldGroup>
               <FieldGroup label="ui.generated.cf0346e5ccd">
                 <Select value={spaceType} onChange={(event) => setSpaceType(event.target.value)}>
@@ -133,6 +153,7 @@ export function KnowledgeSpaceForm({
               </FieldGroup>
               <FieldGroup label="ui.generated.c2b90028ff3">
                 <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
+                  <option value="">ui.generated.ca5644f4bbf</option>
                   {businessTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -151,7 +172,7 @@ export function KnowledgeSpaceForm({
                 </Select>
               </FieldGroup>
               <FieldGroup label="ui.generated.cc7e9d69ec3">
-                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder="group/project" />
+                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder="ui.generated.cc7e9d69ec3" />
               </FieldGroup>
               <FieldGroup label="ui.generated.c747b74cec9">
                 <Select name="visibility" defaultValue={space?.visibility ?? (spaceType === "global" ? "global" : "team")}>
@@ -180,8 +201,8 @@ export function KnowledgeSpaceForm({
               <Textarea
                 name="retentionPolicyJson"
                 rows={4}
-                defaultValue={space?.retentionPolicyJson ?? '{ "keepDays": 365 }'}
-                placeholder='{ "keepDays": 365 }'
+                defaultValue={space?.retentionPolicyJson ?? "{}"}
+                placeholder="{}"
               />
             </FieldGroup>
             <div className="flex justify-end gap-2">

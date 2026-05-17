@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   execute,
   queryAll,
@@ -11,13 +10,11 @@ import {
 } from "@/server/db";
 import {
   getPluginSecurityModel,
-  listBuiltinPluginManifests,
   listPluginExtensionPoints,
   type PluginCapability,
   type PluginLifecycle,
   type PluginManifest,
 } from "@/server/plugin-core";
-import { listOfficialPluginManifests } from "@/server/plugin-sdk-core";
 import { uiText } from "@/lib/language-pack";
 
 type ExtensionEnvironmentInput = {
@@ -181,13 +178,7 @@ export function listImportedPluginManifests() {
 }
 
 export function listAllPluginManifests() {
-  const imported = listImportedPluginManifests();
-  const importedIds = new Set(imported.map((plugin) => plugin.id));
-  return [
-    ...listBuiltinPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
-    ...listOfficialPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
-    ...imported,
-  ];
+  return listImportedPluginManifests();
 }
 
 export function getExtensionRegistrySnapshot() {
@@ -310,7 +301,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       ownerBusinessTeamId,
       teamId,
       blueprint.environmentId ?? null,
-      blueprint.providerAdapterId ?? "agentworld-runtime-adapter",
+      blueprint.providerAdapterId ?? "",
       blueprint.version ?? 1,
       blueprint.status ?? "active",
       JSON.stringify(blueprint.trigger),
@@ -468,161 +459,4 @@ export function resolveWebhookTaskConfiguration(teamId: string, pathKey?: string
     nodes: taskTemplate ? parseJsonArray(taskTemplate.nodesJson) : [],
     defaultInput,
   };
-}
-
-export function buildExtensionImportExample() {
-  return {
-    id: "codehub-review",
-    source: "official.codehub",
-    plugins: [
-      {
-        id: "official.codehub",
-        name: "CodeHub Connector",
-        version: "1.0.0",
-        capability: "code_repo",
-        lifecycle: "declared",
-        mountPoint: "execution-environment",
-        configSchema: "{ baseUrl, tokenRef, webhookSecretRef }",
-        requiredSecretRefs: ["env:CODEHUB_TOKEN", "env:CODEHUB_WEBHOOK_SECRET"],
-        permissions: ["repo:read", "repo:mr:comment"],
-        healthCheck: "connector self-check",
-        extensionOnly: true,
-      },
-    ],
-    taskBlueprints: [
-      {
-        id: "codehub_mr_review",
-        name: uiText("ui.generated.ca96d3de47c"),
-        category: "code_review",
-        visibility: "team",
-        ownerBusinessTeamSlug: "release-team",
-        teamSlug: "pr-vanguard",
-        environmentId: "env-codehub-mr-review",
-        providerAdapterId: "agentworld-runtime-adapter",
-        trigger: {
-          type: "webhook",
-          connector: "official.codehub",
-          webhookParserRef: "official.codehub.webhook.merge_request",
-          event: "merge_request.updated",
-          webhookPathKey: "codehub-mr",
-          idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
-        },
-        inputSchema: { type: "object", required: ["repo_id", "mr_id", "diff_ref"] },
-        environmentSelector: {
-          type: "repository_workspace",
-          repoBinding: "${repo_id}",
-          checkoutMode: "diff_context",
-          privateKeyBinding: "codehub_repo_executor_key",
-        },
-        agentTeamRunPlan: {
-          strategy: "leader_worker_parallel",
-          leader: "agent-shield-review-leader",
-          workers: [
-            { agent: "agent-code-quality-reviewer", task: uiText("ui.generated.cf91b285b56") },
-            { agent: "agent-security-reviewer", task: uiText("ui.generated.cbbce156290") },
-          ],
-          aggregation: {
-            agent: "agent-shield-review-leader",
-            method: "deduplicate_rank_and_publish",
-          },
-        },
-        memoryPolicy: {
-          requiredSpaces: ["viking://teams/security/code-review/", "viking://global/skills/code-review/"],
-          archiveOutputTo: ["viking://teams/security/review-cases/"],
-        },
-        permissionPolicy: {
-          defaultMode: "ask",
-          rules: [
-            { effect: "allow", resource: "tool.repo.diff.read", scope: "repository" },
-            { effect: "allow", resource: "tool.repo.context.read", scope: "current_merge_request" },
-            { effect: "allow", resource: "tool.memory.retrieve", scope: "declared_spaces" },
-            { effect: "allow", resource: "tool.finding.create", scope: "task_run" },
-            { effect: "allow", resource: "tool.finding.aggregate", scope: "task_run" },
-            { effect: "allow", resource: "tool.mr.comment.write", scope: "current_merge_request" },
-            { effect: "deny", resource: "tool.repo.force_push", scope: "*" },
-            { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
-          ],
-        },
-        outputPolicy: {
-          publishers: [
-            { type: "merge_request_comment", pluginId: "official.codehub" },
-            { type: "dashboard" },
-          ],
-        },
-        executionPolicy: {
-          timeoutMinutes: 30,
-          retry: 1,
-          concurrencyKey: "${repo_id}:${mr_id}",
-        },
-      },
-    ],
-    environments: [
-      {
-        id: "env-codehub-mr-review",
-        businessTeamSlug: "release-team",
-        name: uiText("ui.generated.cc4c2624540"),
-        repositoryProvider: "codehub",
-        repositoryName: "group/project",
-        repositoryUrl: "ssh://codehub.example.com/group/project.git",
-        defaultBranch: "main",
-        executorRef: "svc-release-reviewer",
-        privateKeyRef: "secret:release-team/codehub-private-key",
-        workingDirectory: ".",
-        sandboxProfile: { isolation: "future-sandbox", network: "egress-controlled" },
-        memoryLayerRefs: ["repository/code-review", "global/code-review", "security"],
-        visibility: "team",
-      },
-    ],
-    webhooks: [
-      {
-        id: "webhook:codehub-mr",
-        businessTeamSlug: "release-team",
-        teamSlug: "pr-vanguard",
-        name: "CodeHub MR Webhook",
-        pathKey: "codehub-mr",
-        method: "POST",
-        requestSchema: { type: "object" },
-        secretHint: "env:CODEHUB_WEBHOOK_SECRET",
-        isEnabled: true,
-      },
-    ],
-    taskTemplates: [
-      {
-        id: "task-template-codehub-mr-review",
-        teamSlug: "pr-vanguard",
-        name: uiText("ui.generated.c53ac66ae27"),
-        caseKey: "shield",
-        pluginId: "official.codehub",
-        environmentId: "env-codehub-mr-review",
-        plannerMode: "rule",
-        summary: uiText("ui.generated.c921c067664"),
-        inputSchema: { type: "object", required: ["repository", "changeRequest", "diff"] },
-        defaultInput: { taskCategory: "code_review" },
-        memoryLayers: ["repository/code-review", "global/code-review", "security"],
-        outputTargets: ["mr_comment", "task_trace", "knowledge_archive"],
-        webhookParserRef: "official.codehub.webhook.merge_request",
-        visibility: "team",
-      },
-    ],
-    scheduleTemplates: [
-      {
-        id: `template-codehub-mr-review-${randomUUID().slice(0, 8)}`,
-        businessTeamSlug: "release-team",
-        teamSlug: "pr-vanguard",
-        name: uiText("ui.generated.c4f40ebdf40"),
-        scheduleKind: "event",
-        cadence: "Webhook: MR diff",
-        inputPayload: {
-          caseKey: "shield",
-          taskTemplateId: "task-template-codehub-mr-review",
-          taskCategory: "code_review",
-          webhookPathKey: "codehub-mr",
-          environmentId: "env-codehub-mr-review",
-          memoryLayers: ["repository/code-review", "global/code-review", "security"],
-          repositoryPlugin: "official.codehub",
-          output: ["mr_comment", "task_trace", "knowledge_archive"],
-        },
-      },
-    ],
-  } satisfies AgentWorldExtensionBundle;
 }

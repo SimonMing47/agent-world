@@ -64,14 +64,14 @@ export default function AccessGrantsPage() {
                   <AccessGrantForm
                     agentTeams={agentTeamOptions}
                     businessTeams={businessTeamOptions}
-                    grant={{
-                      id: "",
-                      providerTeamId: agentTeams[0]?.id ?? "",
-                      consumerBusinessTeamId: businessTeams[0]?.id ?? "",
-                      pricingModelJson: JSON.stringify({ baseUsd: 0, tokenMultiplier: 1 }, null, 2),
-                      slaJson: JSON.stringify({ responseSeconds: 60, successRateFloor: 0.95 }, null, 2),
-                      accessScopeJson: "{}",
-                      serviceAccountRef: "svc:",
+	                    grant={{
+	                      id: "",
+	                      providerTeamId: "",
+	                      consumerBusinessTeamId: "",
+	                      pricingModelJson: JSON.stringify({ baseUsd: 0, tokenMultiplier: 1 }, null, 2),
+	                      slaJson: JSON.stringify({ responseSeconds: 60, successRateFloor: 0.95 }, null, 2),
+	                      accessScopeJson: "{}",
+	                      serviceAccountRef: "",
                       status: "active",
                     }}
                   />

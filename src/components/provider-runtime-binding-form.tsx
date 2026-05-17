@@ -187,21 +187,21 @@ export function ProviderRuntimeBindingForm({
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-              placeholder="embedded://agentworld/default"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c1ea645dd58">
             <Input
               value={form.command}
               onChange={(event) => setForm({ ...form, command: event.target.value })}
-              placeholder="embedded"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c42dfc81f99">
             <Input
               value={form.workspaceRoot}
               onChange={(event) => setForm({ ...form, workspaceRoot: event.target.value })}
-              placeholder="/workspace"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c1072712e57">
@@ -227,14 +227,14 @@ export function ProviderRuntimeBindingForm({
             <Input
               value={form.defaultModel}
               onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
-              placeholder="gpt-5.4"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.ce3b1d54127" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-              placeholder="env:AGENTWORLD_GLM_API_KEY"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.cbff226d7bb" className="md:col-span-2">
@@ -258,7 +258,7 @@ export function ProviderRuntimeBindingForm({
             <Textarea
               value={form.envJson}
               onChange={(event) => setForm({ ...form, envJson: event.target.value })}
-              placeholder='{"AGENTWORLD_GLM_API_KEY":"ref:env:AGENTWORLD_GLM_API_KEY"}'
+	              placeholder="{}"
             />
           </FieldGroup>
           <FieldGroup
@@ -269,7 +269,7 @@ export function ProviderRuntimeBindingForm({
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"modelServiceAlias":"openai-default"}'
+	              placeholder="{}"
             />
           </FieldGroup>
         </div>

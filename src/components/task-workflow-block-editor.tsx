@@ -74,13 +74,13 @@ function defaultAction(type: WorkflowBlockType) {
   return "notify";
 }
 
-function createBlock(type: WorkflowBlockType, index: number, agents: AgentOption[], teams: AgentTeamOption[]) {
+function createBlock(type: WorkflowBlockType, index: number) {
   return {
     id: nextBlockId(type, index),
     type,
     title: blockTypeLabels[type],
-    agentId: agents[0]?.id ?? "",
-    agentTeamId: teams[0]?.id ?? "",
+    agentId: "",
+    agentTeamId: "",
     dependsOn: index > 0 ? [nextBlockId("agent", index - 1)] : [],
     instruction: "",
     tool: defaultTool(type),
@@ -130,7 +130,7 @@ function toggleDependency(block: WorkflowBlock, dependencyId: string) {
 
 export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }: Props) {
   function addBlock(type: WorkflowBlockType) {
-    const next = createBlock(type, blocks.length, agents, agentTeams);
+    const next = createBlock(type, blocks.length);
     const previous = blocks.at(-1);
     onChange([
       ...blocks,
@@ -301,7 +301,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                       <Input
                         value={block.url}
                         onChange={(event) => onChange(updateBlock(blocks, block.id, { url: event.target.value }))}
-                        placeholder="https://example.com/webhook"
+	                        placeholder="ui.common.unconfigured"
                       />
                     </FieldGroup>
                   </>

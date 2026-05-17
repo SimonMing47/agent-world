@@ -152,10 +152,10 @@ export function ExecutionEnvironmentForm({
             <Input value={form.workingDirectory} onChange={(event) => setForm({ ...form, workingDirectory: event.target.value })} placeholder="." />
           </FieldGroup>
           <FieldGroup label="ui.generated.c1eb6ef2856" className="md:col-span-2">
-            <Input className="md:col-span-2" value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} placeholder="git@code.example.com:team/repo.git" />
+            <Input className="md:col-span-2" value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} />
           </FieldGroup>
           <FieldGroup label="ui.generated.c8f6cc6defa">
-            <Input value={form.executorRef} onChange={(event) => setForm({ ...form, executorRef: event.target.value })} placeholder="repo-executor" />
+            <Input value={form.executorRef} onChange={(event) => setForm({ ...form, executorRef: event.target.value })} />
           </FieldGroup>
           <FieldGroup label="ui.generated.cbcd76068cd">
             <Input value={form.privateKeyRef} onChange={(event) => setForm({ ...form, privateKeyRef: event.target.value })} placeholder="secret:repo_executor_key" />

@@ -368,8 +368,9 @@ export const zhCNLanguagePack = {
       workflowAssignmentTitle: "执行分工 {index}",
       workflowMemberTask: "{role} 执行任务",
       workflowAggregationInstruction: "汇总执行结果，生成 Finding、报告或通知。",
-      workflowEditorTitle: "任务定义编辑",
-      workflowBlockInvalid: "执行块 {title} 配置不完整。",
+	      workflowEditorTitle: "任务定义编辑",
+	      workflowBlockInvalid: "执行块 {title} 配置不完整。",
+	      agentTeamLeaderRequired: "请选择 Agent 团队 Leader。",
       boolean: {
         yes: "是",
         no: "否",

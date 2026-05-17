@@ -84,10 +84,10 @@ export default function SkillsPage() {
                   <SkillForm
                     businessTeams={teamOptions}
                     skill={{
-                      id: "",
-                      ownerBusinessTeamId: businessTeams[0]?.id ?? null,
-                      name: "",
-                      layer: "global/code-review",
+	                      id: "",
+	                      ownerBusinessTeamId: null,
+	                      name: "",
+	                      layer: "",
                       description: "",
                       tagsJson: "[]",
                       visibility: "team",

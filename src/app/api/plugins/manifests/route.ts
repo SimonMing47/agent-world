@@ -1,16 +1,12 @@
 import { NextResponse } from "next/server";
 import {
-  buildExtensionImportExample,
   getExtensionRegistrySnapshot,
   importExtensionBundle,
   type AgentWorldExtensionBundle,
 } from "@/server/extension-core";
 
 export function GET() {
-  return NextResponse.json({
-    ...getExtensionRegistrySnapshot(),
-    importExample: buildExtensionImportExample(),
-  });
+  return NextResponse.json(getExtensionRegistrySnapshot());
 }
 
 export async function POST(request: Request) {

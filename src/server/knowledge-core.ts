@@ -53,10 +53,6 @@ function dedupeByUri<T extends { vikingUri: string }>(items: T[]) {
   });
 }
 
-function getDefaultTenantId() {
-  return queryOne<{ id: string }>("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")?.id ?? "";
-}
-
 function buildSpaceUri(args: {
   spaceType: string;
   businessTeamSlug?: string | null;
@@ -91,6 +87,7 @@ export function listKnowledgeSpaceBindings() {
 }
 
 export function createKnowledgeSpace(input: {
+  tenantSpaceId?: string | null;
   name: string;
   slug?: string;
   spaceType: "global" | "team" | "project" | "agent_team";
@@ -104,11 +101,12 @@ export function createKnowledgeSpace(input: {
 }) {
   const now = nowIso();
   const id = randomUUID();
-  const tenantSpaceId = getDefaultTenantId();
-  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
 
   const businessTeam = input.businessTeamId
-    ? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", input.businessTeamId)
+    ? queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ?",
+        input.businessTeamId,
+      )
     : null;
   const agentTeam = input.agentTeamId
     ? queryOne<{ id: string; slug: string; businessTeamId: string }>(
@@ -118,8 +116,14 @@ export function createKnowledgeSpace(input: {
     : null;
   const ownerBusinessTeamId = input.businessTeamId ?? agentTeam?.businessTeamId ?? null;
   const resolvedBusinessTeam = ownerBusinessTeamId
-    ? businessTeam ?? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", ownerBusinessTeamId)
+    ? businessTeam ??
+      queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ?",
+        ownerBusinessTeamId,
+      )
     : null;
+  const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || "";
+  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
   const slug = slugify(input.slug ?? input.name);
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
@@ -143,7 +147,7 @@ export function createKnowledgeSpace(input: {
     input.description ?? "",
     input.visibility ?? (input.spaceType === "global" ? "global" : "team"),
     "active",
-    JSON.stringify(input.retentionPolicy ?? { keepDays: 365 }),
+    JSON.stringify(input.retentionPolicy ?? {}),
     now,
     now,
   );
@@ -173,6 +177,7 @@ export function createKnowledgeSpace(input: {
 
 export function upsertKnowledgeSpace(input: {
   id?: string;
+  tenantSpaceId?: string | null;
   name: string;
   slug?: string;
   spaceType: "global" | "team" | "project" | "agent_team";
@@ -190,7 +195,10 @@ export function upsertKnowledgeSpace(input: {
   if (!current) return createKnowledgeSpace(input);
 
   const businessTeam = input.businessTeamId
-    ? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", input.businessTeamId)
+    ? queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ?",
+        input.businessTeamId,
+      )
     : null;
   const agentTeam = input.agentTeamId
     ? queryOne<{ id: string; slug: string; businessTeamId: string }>(
@@ -200,8 +208,14 @@ export function upsertKnowledgeSpace(input: {
     : null;
   const ownerBusinessTeamId = input.businessTeamId ?? agentTeam?.businessTeamId ?? null;
   const resolvedBusinessTeam = ownerBusinessTeamId
-    ? businessTeam ?? queryOne<{ id: string; slug: string }>("SELECT id, slug FROM business_teams WHERE id = ?", ownerBusinessTeamId)
+    ? businessTeam ??
+      queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ?",
+        ownerBusinessTeamId,
+      )
     : null;
+  const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || current.tenantSpaceId || "";
+  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
   const slug = slugify(input.slug ?? input.name);
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
@@ -212,7 +226,8 @@ export function upsertKnowledgeSpace(input: {
   });
 
   execute(
-    "UPDATE knowledge_spaces SET business_team_id = ?, agent_team_id = ?, project_key = ?, slug = ?, name = ?, space_type = ?, viking_uri = ?, description = ?, visibility = ?, status = ?, retention_policy_json = ?, updated_at = ? WHERE id = ?",
+    "UPDATE knowledge_spaces SET tenant_space_id = ?, business_team_id = ?, agent_team_id = ?, project_key = ?, slug = ?, name = ?, space_type = ?, viking_uri = ?, description = ?, visibility = ?, status = ?, retention_policy_json = ?, updated_at = ? WHERE id = ?",
+    tenantSpaceId,
     ownerBusinessTeamId,
     input.agentTeamId ?? null,
     input.projectKey ? slugify(input.projectKey) : null,

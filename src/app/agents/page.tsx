@@ -36,7 +36,6 @@ import {
   listBusinessTeams,
   listProviders,
   listProviderRuntimeBindings,
-  listTenantSpaces,
 } from "@/server/queries";
 
 function parseStringArray(value: string) {
@@ -54,7 +53,6 @@ export default function AgentsPage() {
   const businessTeams = listBusinessTeams();
   const providers = listProviders();
   const runtimeBindings = listProviderRuntimeBindings();
-  const tenantSpaceId = listTenantSpaces()[0]?.id ?? "";
 
   return (
     <div className="space-y-6">
@@ -114,20 +112,20 @@ export default function AgentsPage() {
                 <DialogBody>
                   <AgentDefinitionForm
                     embedded
-                    definition={{
-                      id: "",
-                      tenantSpaceId,
-                      ownerBusinessTeamId: businessTeams[0]?.id ?? null,
-                      ownerUserId: "console",
-                      sourceAgentId: null,
-                      slug: "",
-                      name: "New Agent",
-                      role: "analyst",
-                      description: "",
-                      systemPrompt: "",
-                      model: providers[0]?.defaultModel ?? "GLM-5.1",
-                      defaultProviderProfileId: providers[0]?.id ?? null,
-                      defaultRuntimeBindingId: runtimeBindings[0]?.id ?? null,
+	                    definition={{
+	                      id: "",
+	                      tenantSpaceId: "",
+	                      ownerBusinessTeamId: null,
+	                      ownerUserId: "",
+	                      sourceAgentId: null,
+	                      slug: "",
+	                      name: "",
+	                      role: "",
+	                      description: "",
+	                      systemPrompt: "",
+	                      model: "",
+	                      defaultProviderProfileId: null,
+	                      defaultRuntimeBindingId: null,
                       toolBindingsJson: JSON.stringify([], null, 2),
                       harnessConfigJson: JSON.stringify(buildDefaultAgentHarnessConfig(), null, 2),
                       permissionPolicyJson: JSON.stringify(buildDefaultAgentPermissionPolicy(), null, 2),

@@ -389,17 +389,16 @@ function buildRunPlanJson(args: {
     members.find((member) => member.memberRole.toLowerCase().includes("leader")) ??
     members[0] ??
     null;
-  const fallbackAgentId = leader?.id ?? members[0]?.id ?? "";
   const blocks = args.blocks.map((block, index) => ({
     ...block,
     id: normalizeBlockId(block.id, index),
     dependsOn: block.dependsOn.filter(Boolean),
-    agentId: block.agentId || fallbackAgentId,
+    agentId: block.agentId,
   }));
   const workers = blocks
     .filter((block) => block.id !== "plan")
     .map((block) => ({
-      agent: block.agentId || fallbackAgentId,
+      agent: block.agentId,
       task: block.instruction.trim() || block.title || block.id,
       action: block.action,
       tool: block.tool,
@@ -437,10 +436,10 @@ function buildRunPlanJson(args: {
       })),
       workers,
       aggregation: {
-        agent:
-          typeof existing.aggregation.agent === "string" && existing.aggregation.agent
-            ? existing.aggregation.agent
-            : fallbackAgentId,
+	        agent:
+	          typeof existing.aggregation.agent === "string" && existing.aggregation.agent
+	            ? existing.aggregation.agent
+	            : leader?.id ?? "",
         method:
           typeof existing.aggregation.method === "string" && existing.aggregation.method
             ? existing.aggregation.method
@@ -576,20 +575,11 @@ export function TaskBlueprintEditor({
     ),
     outputPolicyJson: normalizeJson(
       blueprint.outputPolicyJson,
-      JSON.stringify({ publishers: [{ type: "dashboard" }] }, null, 2),
+      JSON.stringify({ publishers: [] }, null, 2),
     ),
-    dashboardPolicyJson: normalizeJson(
-      blueprint.dashboardPolicyJson,
-      JSON.stringify({ groupBy: ["business_team", "category", "trigger_type"] }, null, 2),
-    ),
-    executionPolicyJson: normalizeJson(
-      blueprint.executionPolicyJson,
-      JSON.stringify({ timeoutMinutes: 30, retry: 1 }, null, 2),
-    ),
-    archivePolicyJson: normalizeJson(
-      blueprint.archivePolicyJson,
-      JSON.stringify({ enabled: true }, null, 2),
-    ),
+    dashboardPolicyJson: normalizeJson(blueprint.dashboardPolicyJson, "{}"),
+    executionPolicyJson: normalizeJson(blueprint.executionPolicyJson, "{}"),
+    archivePolicyJson: normalizeJson(blueprint.archivePolicyJson, "{}"),
   });
 
   const selectedTeam = useMemo(
@@ -623,7 +613,7 @@ export function TaskBlueprintEditor({
       return;
     }
 
-    const providerAdapterId = form.providerAdapterId.trim() || options.providerAdapters[0]?.id || "agentworld-runtime-adapter";
+	    const providerAdapterId = form.providerAdapterId.trim();
 
     if (form.triggerType === "cron" && !form.triggerExpression.trim()) {
       setIsSaving(false);
@@ -735,7 +725,7 @@ export function TaskBlueprintEditor({
     const payload = {
       id: blueprintId,
       name: form.name,
-      category: form.category.trim() || "general_task",
+      category: form.category.trim(),
       visibility: form.visibility,
       ownerBusinessTeamId: form.ownerBusinessTeamId,
       teamId: form.teamId,
@@ -797,7 +787,7 @@ export function TaskBlueprintEditor({
           <Input
             value={form.id}
             onChange={(event) => setForm({ ...form, id: slugifyTaskKey(event.target.value) })}
-            placeholder="daily_security_review"
+            placeholder="ui.common.unconfigured"
             disabled={Boolean(blueprint.id)}
           />
         </FieldGroup>
@@ -805,7 +795,7 @@ export function TaskBlueprintEditor({
           <Input
             value={form.category}
             onChange={(event) => setForm({ ...form, category: event.target.value })}
-            placeholder="security_review"
+            placeholder="ui.common.unconfigured"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.c26f30fd79b">

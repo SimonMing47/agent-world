@@ -46,23 +46,22 @@ function eventContractLabel(value: unknown) {
   return text === "provider_event_v1" ? "agent_event_v1" : text;
 }
 
-function defaultBinding(snapshot: ReturnType<typeof getSettingsSnapshot>) {
-  const provider = snapshot.providers[0] ?? null;
+function defaultBinding() {
   return {
     id: "",
-    tenantSpaceId: snapshot.tenantSpaces[0]?.id ?? "",
+    tenantSpaceId: "",
     businessTeamId: null,
-    adapterDefinitionId: snapshot.providerAdapters[0]?.id ?? "agentworld-runtime-adapter",
+    adapterDefinitionId: "",
     name: "",
     runtimeKind: "agentworld",
-    baseUrl: "embedded://agentworld/default",
-    command: "embedded",
-    workspaceRoot: ".",
-    defaultProviderProfileId: provider?.id ?? null,
-    apiKeyRef: provider?.apiKeyRef ?? "",
+    baseUrl: "",
+    command: "",
+    workspaceRoot: "",
+    defaultProviderProfileId: null,
+    apiKeyRef: "",
     configJson: JSON.stringify(
       {
-        defaultModel: provider?.defaultModel ?? "",
+        defaultModel: "",
         approvalMode: "ask",
         eventContract: "agent_event_v1",
         env: {},
@@ -126,7 +125,7 @@ export default function RuntimeBindingsPage() {
                     providerOptions={providerOptions}
                     adapterOptions={adapterOptions}
                     businessTeamOptions={businessTeamOptions}
-                    binding={defaultBinding(snapshot)}
+                    binding={defaultBinding()}
                   />
                 </DialogBody>
               </DialogContent>

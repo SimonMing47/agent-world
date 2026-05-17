@@ -71,11 +71,11 @@ export default function ServiceCatalogPage() {
                 <DialogBody>
                   <ServiceCatalogForm
                     agentTeams={agentTeamOptions}
-                    listing={{
-                      id: "",
-                      teamId: agentTeams[0]?.id ?? "",
-                      resumeJson: JSON.stringify({ successRate: 0.95, avgLatencyMs: 60000, avgCostUsd: 1 }, null, 2),
-                      recruitmentMode: "request",
+	                    listing={{
+	                      id: "",
+	                      teamId: "",
+	                      resumeJson: "{}",
+	                      recruitmentMode: "",
                       tagsJson: "[]",
                       status: "active",
                     }}
