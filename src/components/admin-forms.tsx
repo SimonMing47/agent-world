@@ -444,6 +444,20 @@ export function CodebaseForm({
         </FieldGroup>
         <FieldGroup label="代码平台"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
         <FieldGroup label="默认分支"><Input value={form.defaultBranch} onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })} /></FieldGroup>
+        <FieldGroup label="可见性">
+          <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
+            <option value="private">私有</option>
+            <option value="team">团队</option>
+            <option value="global">全局</option>
+          </Select>
+        </FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+            <option value="archived">归档</option>
+          </Select>
+        </FieldGroup>
         <FieldGroup label="仓库地址" className="md:col-span-2"><Input value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} /></FieldGroup>
         <FieldGroup label="描述" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
       </div>
@@ -500,6 +514,13 @@ export function CodebaseTokenForm({
         <FieldGroup label="操作者"><Input value={form.operatorName} onChange={(event) => setForm({ ...form, operatorName: event.target.value })} /></FieldGroup>
         <FieldGroup label="角色"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
         <FieldGroup label="Token 引用"><Input value={form.tokenRef} onChange={(event) => setForm({ ...form, tokenRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+            <option value="expired">过期</option>
+          </Select>
+        </FieldGroup>
         <FieldGroup label="权限" className="md:col-span-2"><Textarea value={form.permissions} onChange={(event) => setForm({ ...form, permissions: event.target.value })} /></FieldGroup>
       </div>
       <FormActions label="保存操作者 Token" isSaving={isSaving} message={message} onSave={save} />
@@ -555,6 +576,13 @@ export function TeamMemberForm({
         </FieldGroup>
         <FieldGroup label="角色"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
         <FieldGroup label="岗位"><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">在职/启用</option>
+            <option value="inactive">停用</option>
+            <option value="pending">待确认</option>
+          </Select>
+        </FieldGroup>
       </div>
       <FormActions label="保存成员" isSaving={isSaving} message={message} onSave={save} />
     </div>
@@ -648,10 +676,23 @@ export function PermissionGrantForm({
       <div className="grid gap-3 md:grid-cols-2">
         <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="成员"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">团队角色</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="主体类型">
+          <Select value={form.principalType} onChange={(event) => setForm({ ...form, principalType: event.target.value })}>
+            <option value="member">成员</option>
+            <option value="role">角色</option>
+            <option value="team">团队</option>
+          </Select>
+        </FieldGroup>
         <FieldGroup label="角色 Key"><Input value={form.roleKey} onChange={(event) => setForm({ ...form, roleKey: event.target.value })} /></FieldGroup>
         <FieldGroup label="资源类型"><Input value={form.resourceType} onChange={(event) => setForm({ ...form, resourceType: event.target.value })} /></FieldGroup>
         <FieldGroup label="资源范围"><Input value={form.resourceScope} onChange={(event) => setForm({ ...form, resourceScope: event.target.value })} /></FieldGroup>
         <FieldGroup label="效果"><Select value={form.effect} onChange={(event) => setForm({ ...form, effect: event.target.value })}><option value="allow">允许</option><option value="deny">拒绝</option><option value="ask">需审批</option></Select></FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+          </Select>
+        </FieldGroup>
         <FieldGroup label="动作" className="md:col-span-2"><Textarea value={form.actions} onChange={(event) => setForm({ ...form, actions: event.target.value })} /></FieldGroup>
       </div>
       <FormActions label="保存权限" isSaving={isSaving} message={message} onSave={save} />
@@ -702,6 +743,12 @@ export function AssetGrantForm({
         <FieldGroup label="成员"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">团队级资产</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="资产类型"><Select value={form.assetType} onChange={(event) => setForm({ ...form, assetType: event.target.value })}><option value="skill">Skill</option><option value="knowledge_space">知识库</option><option value="codebase">Codebase</option><option value="connector">Connector</option><option value="agent_team">Agent Team</option></Select></FieldGroup>
         <FieldGroup label="资产 ID"><Input value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+          </Select>
+        </FieldGroup>
         <FieldGroup label="资产名称" className="md:col-span-2"><Input value={form.assetName} onChange={(event) => setForm({ ...form, assetName: event.target.value })} /></FieldGroup>
         <FieldGroup label="权限 JSON" className="md:col-span-2"><Textarea value={form.permissionJson} onChange={(event) => setForm({ ...form, permissionJson: event.target.value })} /></FieldGroup>
       </div>
@@ -710,3 +757,334 @@ export function AssetGrantForm({
   );
 }
 
+export function TenantSpaceForm({
+  tenantSpace,
+  executionPolicies,
+}: {
+  tenantSpace: {
+    id: string;
+    slug: string;
+    name: string;
+    ownerUserId: string;
+    status: string;
+    quotaLimitJson: string;
+    modelWhitelistJson: string;
+    globalGuardrailsJson: string;
+    defaultExecutionPolicyId: string | null;
+  };
+  executionPolicies: Option[];
+}) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    ...tenantSpace,
+    defaultExecutionPolicyId: tenantSpace.defaultExecutionPolicyId ?? "",
+    quotaLimitJson: normalizeJson(tenantSpace.quotaLimitJson, "{}"),
+    modelWhitelistJson: normalizeJson(tenantSpace.modelWhitelistJson, "[]"),
+    globalGuardrailsJson: normalizeJson(tenantSpace.globalGuardrailsJson, "{}"),
+  });
+  async function save() {
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      JSON.parse(form.quotaLimitJson);
+      JSON.parse(form.modelWhitelistJson);
+      JSON.parse(form.globalGuardrailsJson);
+      await submitJson("/api/tenant-spaces", {
+        ...form,
+        id: form.id || crypto.randomUUID(),
+        defaultExecutionPolicyId: form.defaultExecutionPolicyId || null,
+      });
+      setMessage("已保存");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FieldGroup label="租户名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
+        <FieldGroup label="Owner"><Input value={form.ownerUserId} onChange={(event) => setForm({ ...form, ownerUserId: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
+        <FieldGroup label="默认执行策略" className="md:col-span-2">
+          <Select value={form.defaultExecutionPolicyId} onChange={(event) => setForm({ ...form, defaultExecutionPolicyId: event.target.value })}>
+            <option value="">不绑定</option>
+            {executionPolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.name}</option>)}
+          </Select>
+        </FieldGroup>
+        <FieldGroup label="配额 JSON"><Textarea value={form.quotaLimitJson} onChange={(event) => setForm({ ...form, quotaLimitJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="模型白名单 JSON"><Textarea value={form.modelWhitelistJson} onChange={(event) => setForm({ ...form, modelWhitelistJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="全局 Guardrails JSON" className="md:col-span-2"><Textarea value={form.globalGuardrailsJson} onChange={(event) => setForm({ ...form, globalGuardrailsJson: event.target.value })} /></FieldGroup>
+      </div>
+      <FormActions label="保存租户空间" isSaving={isSaving} message={message} onSave={save} />
+    </div>
+  );
+}
+
+export function BusinessTeamForm({
+  team,
+  tenantSpaces,
+}: {
+  team: {
+    id: string;
+    tenantSpaceId: string;
+    slug: string;
+    name: string;
+    ownerUserId: string;
+    status: string;
+    balance: number;
+    creditLimit: number;
+    privateToolRefsJson: string;
+    privateMemoryNamespace: string;
+    policyJson: string;
+  };
+  tenantSpaces: Option[];
+}) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    ...team,
+    balance: String(team.balance ?? 0),
+    creditLimit: String(team.creditLimit ?? 0),
+    privateToolRefsJson: normalizeJson(team.privateToolRefsJson, "[]"),
+    policyJson: normalizeJson(team.policyJson, "{}"),
+  });
+  async function save() {
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      JSON.parse(form.privateToolRefsJson);
+      JSON.parse(form.policyJson);
+      await submitJson("/api/business-teams", {
+        ...form,
+        id: form.id || crypto.randomUUID(),
+        balance: Number(form.balance || 0),
+        creditLimit: Number(form.creditLimit || 0),
+      });
+      setMessage("已保存");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FieldGroup label="团队名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
+        <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="Owner"><Input value={form.ownerUserId} onChange={(event) => setForm({ ...form, ownerUserId: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态">
+          <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <option value="active">启用</option>
+            <option value="disabled">停用</option>
+            <option value="archived">归档</option>
+          </Select>
+        </FieldGroup>
+        <FieldGroup label="余额"><Input value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></FieldGroup>
+        <FieldGroup label="信用额度"><Input value={form.creditLimit} onChange={(event) => setForm({ ...form, creditLimit: event.target.value })} /></FieldGroup>
+        <FieldGroup label="私有记忆命名空间" className="md:col-span-2"><Input value={form.privateMemoryNamespace} onChange={(event) => setForm({ ...form, privateMemoryNamespace: event.target.value })} /></FieldGroup>
+        <FieldGroup label="私有工具引用 JSON"><Textarea value={form.privateToolRefsJson} onChange={(event) => setForm({ ...form, privateToolRefsJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="团队策略 JSON"><Textarea value={form.policyJson} onChange={(event) => setForm({ ...form, policyJson: event.target.value })} /></FieldGroup>
+      </div>
+      <FormActions label="保存业务团队" isSaving={isSaving} message={message} onSave={save} />
+    </div>
+  );
+}
+
+export function ExecutionPolicyForm({
+  policy,
+  tenantSpaces,
+  businessTeams,
+  agentTeams,
+}: {
+  policy: {
+    id: string;
+    tenantSpaceId: string | null;
+    businessTeamId: string | null;
+    teamId: string | null;
+    name: string;
+    systemInstruction: string;
+    toolPolicyJson: string;
+    approvalPolicyJson: string;
+    budgetPolicyJson: string;
+    outputPolicyJson: string;
+    securityPolicyJson: string;
+  };
+  tenantSpaces: Option[];
+  businessTeams: Option[];
+  agentTeams: Option[];
+}) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    ...policy,
+    tenantSpaceId: policy.tenantSpaceId ?? "",
+    businessTeamId: policy.businessTeamId ?? "",
+    teamId: policy.teamId ?? "",
+    toolPolicyJson: normalizeJson(policy.toolPolicyJson, "{}"),
+    approvalPolicyJson: normalizeJson(policy.approvalPolicyJson, "{}"),
+    budgetPolicyJson: normalizeJson(policy.budgetPolicyJson, "{}"),
+    outputPolicyJson: normalizeJson(policy.outputPolicyJson, "{}"),
+    securityPolicyJson: normalizeJson(policy.securityPolicyJson, "{}"),
+  });
+  async function save() {
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      JSON.parse(form.toolPolicyJson);
+      JSON.parse(form.approvalPolicyJson);
+      JSON.parse(form.budgetPolicyJson);
+      JSON.parse(form.outputPolicyJson);
+      JSON.parse(form.securityPolicyJson);
+      await submitJson("/api/execution-policies", {
+        ...form,
+        id: form.id || crypto.randomUUID(),
+        tenantSpaceId: form.tenantSpaceId || null,
+        businessTeamId: form.businessTeamId || null,
+        teamId: form.teamId || null,
+      });
+      setMessage("已保存");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FieldGroup label="策略名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}><option value="">全局</option>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}><option value="">不限定</option>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="Agent Team"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">不限定</option>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="系统约束说明" className="md:col-span-2"><Textarea value={form.systemInstruction} onChange={(event) => setForm({ ...form, systemInstruction: event.target.value })} /></FieldGroup>
+        <FieldGroup label="工具策略 JSON"><Textarea value={form.toolPolicyJson} onChange={(event) => setForm({ ...form, toolPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="审批策略 JSON"><Textarea value={form.approvalPolicyJson} onChange={(event) => setForm({ ...form, approvalPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="预算策略 JSON"><Textarea value={form.budgetPolicyJson} onChange={(event) => setForm({ ...form, budgetPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="输出策略 JSON"><Textarea value={form.outputPolicyJson} onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="安全策略 JSON" className="md:col-span-2"><Textarea value={form.securityPolicyJson} onChange={(event) => setForm({ ...form, securityPolicyJson: event.target.value })} /></FieldGroup>
+      </div>
+      <FormActions label="保存执行策略" isSaving={isSaving} message={message} onSave={save} />
+    </div>
+  );
+}
+
+export function ServiceCatalogForm({
+  listing,
+  agentTeams,
+}: {
+  listing: {
+    id: string;
+    teamId: string;
+    resumeJson: string;
+    recruitmentMode: string;
+    tagsJson: string;
+    status: string;
+  };
+  agentTeams: Option[];
+}) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...listing, resumeJson: normalizeJson(listing.resumeJson, "{}"), tags: jsonToLines(listing.tagsJson) });
+  async function save() {
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      JSON.parse(form.resumeJson);
+      await submitJson("/api/service-catalog", {
+        ...form,
+        id: form.id || crypto.randomUUID(),
+        tagsJson: linesToJson(form.tags),
+      });
+      setMessage("已保存");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FieldGroup label="Agent Team"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="招募模式"><Select value={form.recruitmentMode} onChange={(event) => setForm({ ...form, recruitmentMode: event.target.value })}><option value="manual">手动授权</option><option value="request">申请使用</option><option value="open">开放使用</option></Select></FieldGroup>
+        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
+        <FieldGroup label="标签"><Textarea value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></FieldGroup>
+        <FieldGroup label="服务履历 JSON" className="md:col-span-2"><Textarea value={form.resumeJson} onChange={(event) => setForm({ ...form, resumeJson: event.target.value })} /></FieldGroup>
+      </div>
+      <FormActions label="保存服务目录" isSaving={isSaving} message={message} onSave={save} />
+    </div>
+  );
+}
+
+export function AccessGrantForm({
+  grant,
+  agentTeams,
+  businessTeams,
+}: {
+  grant: {
+    id: string;
+    providerTeamId: string;
+    consumerBusinessTeamId: string;
+    pricingModelJson: string;
+    slaJson: string;
+    accessScopeJson: string;
+    serviceAccountRef: string;
+    status: string;
+  };
+  agentTeams: Option[];
+  businessTeams: Option[];
+}) {
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    ...grant,
+    pricingModelJson: normalizeJson(grant.pricingModelJson, "{}"),
+    slaJson: normalizeJson(grant.slaJson, "{}"),
+    accessScopeJson: normalizeJson(grant.accessScopeJson, "{}"),
+  });
+  async function save() {
+    setIsSaving(true);
+    setMessage(null);
+    try {
+      JSON.parse(form.pricingModelJson);
+      JSON.parse(form.slaJson);
+      JSON.parse(form.accessScopeJson);
+      await submitJson("/api/access-grants", { ...form, id: form.id || crypto.randomUUID() });
+      setMessage("已保存");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FieldGroup label="服务 Agent Team"><Select value={form.providerTeamId} onChange={(event) => setForm({ ...form, providerTeamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="消费业务团队"><Select value={form.consumerBusinessTeamId} onChange={(event) => setForm({ ...form, consumerBusinessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="服务账号引用"><Input value={form.serviceAccountRef} onChange={(event) => setForm({ ...form, serviceAccountRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
+        <FieldGroup label="定价 JSON"><Textarea value={form.pricingModelJson} onChange={(event) => setForm({ ...form, pricingModelJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="SLA JSON"><Textarea value={form.slaJson} onChange={(event) => setForm({ ...form, slaJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="访问范围 JSON" className="md:col-span-2"><Textarea value={form.accessScopeJson} onChange={(event) => setForm({ ...form, accessScopeJson: event.target.value })} /></FieldGroup>
+      </div>
+      <FormActions label="保存跨团队授权" isSaving={isSaving} message={message} onSave={save} />
+    </div>
+  );
+}

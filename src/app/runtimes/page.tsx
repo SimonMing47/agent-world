@@ -1,4 +1,5 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { ProviderProfileForm } from "@/components/provider-profile-form";
 import { Badge } from "@/components/ui/badge";
@@ -229,6 +230,7 @@ export default function AiProvidersPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/provider-profiles" id={provider.id} confirmText={`确认删除 AI Provider「${provider.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

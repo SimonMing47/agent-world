@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listTeamAssetGrants, upsertTeamAssetGrant } from "@/server/governance-core";
+import { deleteManagedResource, listTeamAssetGrants, upsertTeamAssetGrant } from "@/server/governance-core";
 
 export const dynamic = "force-dynamic";
 
@@ -19,3 +19,8 @@ export async function PATCH(request: Request) {
   return NextResponse.json({ ok: true, grant });
 }
 
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string };
+  deleteManagedResource({ type: "team-asset", id: body.id });
+  return NextResponse.json({ ok: true });
+}

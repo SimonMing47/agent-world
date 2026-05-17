@@ -1,5 +1,6 @@
 import { PencilLine, Plus, Upload } from "lucide-react";
 import { TeamMemberForm, TeamMemberImportForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,13 +110,16 @@ export default function TeamMembersPage() {
                     <DataTableCell>{member.source}</DataTableCell>
                     <DataTableCell><Badge variant={member.status === "active" ? "success" : "neutral"}>{member.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
-                      <Dialog>
-                        <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
-                        <DialogContent className="w-[min(94vw,760px)]">
-                          <DialogHeader><DialogTitle>编辑成员</DialogTitle><DialogDescription>{member.name}</DialogDescription></DialogHeader>
-                          <DialogBody><TeamMemberForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} member={member} /></DialogBody>
-                        </DialogContent>
-                      </Dialog>
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogContent className="w-[min(94vw,760px)]">
+                            <DialogHeader><DialogTitle>编辑成员</DialogTitle><DialogDescription>{member.name}</DialogDescription></DialogHeader>
+                            <DialogBody><TeamMemberForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} member={member} /></DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/team-members" id={member.id} confirmText={`确认删除成员「${member.name}」？`} />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );
@@ -127,4 +131,3 @@ export default function TeamMembersPage() {
     </div>
   );
 }
-

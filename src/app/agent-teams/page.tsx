@@ -1,5 +1,6 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { AgentTeamForm } from "@/components/agent-team-form";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -433,6 +434,7 @@ export default function AgentTeamsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/agent-teams" id={team.id} confirmText={`确认删除 Agent Team「${team.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

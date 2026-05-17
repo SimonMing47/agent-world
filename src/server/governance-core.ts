@@ -3,13 +3,18 @@ import {
   execute,
   queryAll,
   queryOne,
+  type AccessGrant,
+  type BusinessTeam,
   type CodebaseOperatorToken,
   type CodebaseProfile,
   type ConnectorProfile,
+  type ExecutionPolicy,
   type McpServerProfile,
+  type ServiceCatalogListing,
   type TeamAssetGrant,
   type TeamMember,
   type TeamPermissionGrant,
+  type TenantSpace,
 } from "@/server/db";
 
 function nowIso() {
@@ -28,7 +33,108 @@ function normalizeJson(value: unknown, fallback: unknown) {
 }
 
 export function listTeamMembers() {
-  return queryAll<TeamMember>("SELECT * FROM team_members ORDER BY business_team_id ASC, name ASC");
+  return queryAll<TeamMember>(
+    "SELECT * FROM team_members WHERE status <> 'deleted' ORDER BY business_team_id ASC, name ASC",
+  );
+}
+
+export function upsertTenantSpace(input: Partial<TenantSpace> & Pick<TenantSpace, "name" | "slug" | "ownerUserId">) {
+  const id = input.id || randomUUID();
+  const current = queryOne<TenantSpace>("SELECT * FROM tenant_spaces WHERE id = ?", id);
+  execute(
+    "INSERT OR REPLACE INTO tenant_spaces (id, slug, name, owner_user_id, status, quota_limit_json, model_whitelist_json, global_guardrails_json, default_execution_policy_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    id,
+    input.slug,
+    input.name,
+    input.ownerUserId,
+    input.status ?? current?.status ?? "active",
+    normalizeJson(input.quotaLimitJson ?? current?.quotaLimitJson, {}),
+    normalizeJson(input.modelWhitelistJson ?? current?.modelWhitelistJson, []),
+    normalizeJson(input.globalGuardrailsJson ?? current?.globalGuardrailsJson, {}),
+    input.defaultExecutionPolicyId ?? current?.defaultExecutionPolicyId ?? null,
+    current?.createdAt ?? nowIso(),
+  );
+  return queryOne<TenantSpace>("SELECT * FROM tenant_spaces WHERE id = ?", id);
+}
+
+export function upsertBusinessTeam(input: Partial<BusinessTeam> & Pick<BusinessTeam, "tenantSpaceId" | "name" | "slug">) {
+  const id = input.id || randomUUID();
+  const current = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", id);
+  execute(
+    "INSERT OR REPLACE INTO business_teams (id, tenant_space_id, slug, name, owner_user_id, status, balance, credit_limit, private_tool_refs_json, private_memory_namespace, policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    id,
+    input.tenantSpaceId,
+    input.slug,
+    input.name,
+    input.ownerUserId ?? current?.ownerUserId ?? "console",
+    input.status ?? current?.status ?? "active",
+    input.balance ?? current?.balance ?? 0,
+    input.creditLimit ?? current?.creditLimit ?? 1000,
+    normalizeJson(input.privateToolRefsJson ?? current?.privateToolRefsJson, []),
+    input.privateMemoryNamespace ?? current?.privateMemoryNamespace ?? `viking://teams/${input.slug}/`,
+    normalizeJson(input.policyJson ?? current?.policyJson, {}),
+    current?.createdAt ?? nowIso(),
+  );
+  return queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", id);
+}
+
+export function upsertExecutionPolicy(input: Partial<ExecutionPolicy> & Pick<ExecutionPolicy, "name">) {
+  const id = input.id || randomUUID();
+  const current = queryOne<ExecutionPolicy>("SELECT * FROM execution_policies WHERE id = ?", id);
+  execute(
+    "INSERT OR REPLACE INTO execution_policies (id, tenant_space_id, business_team_id, team_id, name, system_instruction, tool_policy_json, approval_policy_json, budget_policy_json, output_policy_json, security_policy_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    id,
+    input.tenantSpaceId ?? current?.tenantSpaceId ?? null,
+    input.businessTeamId ?? current?.businessTeamId ?? null,
+    input.teamId ?? current?.teamId ?? null,
+    input.name,
+    input.systemInstruction ?? current?.systemInstruction ?? "",
+    normalizeJson(input.toolPolicyJson ?? current?.toolPolicyJson, { allow: [], deny: [] }),
+    normalizeJson(input.approvalPolicyJson ?? current?.approvalPolicyJson, { mode: "ask" }),
+    normalizeJson(input.budgetPolicyJson ?? current?.budgetPolicyJson, { maxRuntimeMinutes: 30, maxSteps: 20, maxToolCalls: 50 }),
+    normalizeJson(input.outputPolicyJson ?? current?.outputPolicyJson, {}),
+    normalizeJson(input.securityPolicyJson ?? current?.securityPolicyJson, {}),
+    current?.createdAt ?? nowIso(),
+  );
+  return queryOne<ExecutionPolicy>("SELECT * FROM execution_policies WHERE id = ?", id);
+}
+
+export function upsertServiceCatalogListing(
+  input: Partial<ServiceCatalogListing> & Pick<ServiceCatalogListing, "teamId" | "recruitmentMode">,
+) {
+  const id = input.id || randomUUID();
+  const current = queryOne<ServiceCatalogListing>("SELECT * FROM service_catalog_listings WHERE id = ?", id);
+  execute(
+    "INSERT OR REPLACE INTO service_catalog_listings (id, team_id, resume_json, recruitment_mode, tags_json, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    id,
+    input.teamId,
+    normalizeJson(input.resumeJson ?? current?.resumeJson, { successRate: 0, avgLatencyMs: 0, avgCostUsd: 0 }),
+    input.recruitmentMode,
+    normalizeJson(input.tagsJson ?? current?.tagsJson, []),
+    input.status ?? current?.status ?? "active",
+    current?.createdAt ?? nowIso(),
+  );
+  return queryOne<ServiceCatalogListing>("SELECT * FROM service_catalog_listings WHERE id = ?", id);
+}
+
+export function upsertAccessGrant(
+  input: Partial<AccessGrant> & Pick<AccessGrant, "providerTeamId" | "consumerBusinessTeamId" | "serviceAccountRef">,
+) {
+  const id = input.id || randomUUID();
+  const current = queryOne<AccessGrant>("SELECT * FROM access_grants WHERE id = ?", id);
+  execute(
+    "INSERT OR REPLACE INTO access_grants (id, provider_team_id, consumer_business_team_id, pricing_model_json, sla_json, access_scope_json, service_account_ref, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    id,
+    input.providerTeamId,
+    input.consumerBusinessTeamId,
+    normalizeJson(input.pricingModelJson ?? current?.pricingModelJson, { baseUsd: 0, tokenMultiplier: 1 }),
+    normalizeJson(input.slaJson ?? current?.slaJson, { responseSeconds: 60, successRateFloor: 0.95 }),
+    normalizeJson(input.accessScopeJson ?? current?.accessScopeJson, {}),
+    input.serviceAccountRef,
+    input.status ?? current?.status ?? "active",
+    current?.createdAt ?? nowIso(),
+  );
+  return queryOne<AccessGrant>("SELECT * FROM access_grants WHERE id = ?", id);
 }
 
 export function upsertTeamMember(input: Partial<TeamMember> & Pick<TeamMember, "tenantSpaceId" | "businessTeamId" | "name">) {
@@ -138,7 +244,7 @@ export function upsertTeamAssetGrant(
 }
 
 export function listMcpServers() {
-  return queryAll<McpServerProfile>("SELECT * FROM mcp_servers ORDER BY status ASC, name ASC");
+  return queryAll<McpServerProfile>("SELECT * FROM mcp_servers WHERE status <> 'deleted' ORDER BY status ASC, name ASC");
 }
 
 export function upsertMcpServer(input: Partial<McpServerProfile> & Pick<McpServerProfile, "name" | "transport">) {
@@ -164,7 +270,9 @@ export function upsertMcpServer(input: Partial<McpServerProfile> & Pick<McpServe
 }
 
 export function listConnectors() {
-  return queryAll<ConnectorProfile>("SELECT * FROM connector_profiles ORDER BY connector_type ASC, name ASC");
+  return queryAll<ConnectorProfile>(
+    "SELECT * FROM connector_profiles WHERE status <> 'deleted' ORDER BY connector_type ASC, name ASC",
+  );
 }
 
 export function upsertConnector(input: Partial<ConnectorProfile> & Pick<ConnectorProfile, "name" | "connectorType" | "provider">) {
@@ -189,17 +297,19 @@ export function upsertConnector(input: Partial<ConnectorProfile> & Pick<Connecto
 }
 
 export function listCodebases() {
-  return queryAll<CodebaseProfile>("SELECT * FROM codebase_profiles ORDER BY business_team_id ASC, name ASC");
+  return queryAll<CodebaseProfile>(
+    "SELECT * FROM codebase_profiles WHERE status <> 'deleted' ORDER BY business_team_id ASC, name ASC",
+  );
 }
 
 export function listCodebaseOperatorTokens(codebaseId?: string) {
   return codebaseId
     ? queryAll<CodebaseOperatorToken>(
-        "SELECT * FROM codebase_operator_tokens WHERE codebase_id = ? ORDER BY operator_name ASC",
+        "SELECT * FROM codebase_operator_tokens WHERE codebase_id = ? AND status <> 'deleted' ORDER BY operator_name ASC",
         codebaseId,
       )
     : queryAll<CodebaseOperatorToken>(
-        "SELECT * FROM codebase_operator_tokens ORDER BY codebase_id ASC, operator_name ASC",
+        "SELECT * FROM codebase_operator_tokens WHERE status <> 'deleted' ORDER BY codebase_id ASC, operator_name ASC",
       );
 }
 
@@ -245,3 +355,63 @@ export function upsertCodebaseOperatorToken(
   return queryOne<CodebaseOperatorToken>("SELECT * FROM codebase_operator_tokens WHERE id = ?", id);
 }
 
+export function deleteManagedResource(input: { type: string; id: string }) {
+  switch (input.type) {
+    case "tenant-space":
+      execute("UPDATE tenant_spaces SET status = 'deleted' WHERE id = ?", input.id);
+      break;
+    case "business-team":
+      execute("UPDATE business_teams SET status = 'deleted' WHERE id = ?", input.id);
+      break;
+    case "team-member":
+      execute("DELETE FROM team_members WHERE id = ?", input.id);
+      break;
+    case "team-permission":
+      execute("DELETE FROM team_permission_grants WHERE id = ?", input.id);
+      break;
+    case "team-asset":
+      execute("DELETE FROM team_asset_grants WHERE id = ?", input.id);
+      break;
+    case "mcp-server":
+      execute("UPDATE mcp_servers SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    case "connector":
+      execute("UPDATE connector_profiles SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    case "codebase":
+      execute("UPDATE codebase_profiles SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    case "codebase-token":
+      execute("UPDATE codebase_operator_tokens SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    case "skill":
+      execute("DELETE FROM code_review_skills WHERE id = ?", input.id);
+      break;
+    case "provider-profile":
+      execute("DELETE FROM provider_profiles WHERE id = ?", input.id);
+      break;
+    case "execution-policy":
+      execute("DELETE FROM execution_policies WHERE id = ?", input.id);
+      break;
+    case "service-catalog":
+      execute("UPDATE service_catalog_listings SET status = 'deleted' WHERE id = ?", input.id);
+      break;
+    case "access-grant":
+      execute("UPDATE access_grants SET status = 'deleted' WHERE id = ?", input.id);
+      break;
+    case "agent-definition":
+      execute("UPDATE agent_definitions SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    case "agent-team":
+      execute("DELETE FROM agent_team_members WHERE team_id = ?", input.id);
+      execute("DELETE FROM agent_team_shares WHERE agent_team_id = ?", input.id);
+      execute("DELETE FROM agent_teams WHERE id = ?", input.id);
+      break;
+    case "task-blueprint":
+      execute("UPDATE task_blueprints SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
+      break;
+    default:
+      throw new Error(`不支持删除的资源类型: ${input.type}`);
+  }
+  return { ok: true };
+}

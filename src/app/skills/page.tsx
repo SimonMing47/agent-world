@@ -1,5 +1,6 @@
 import { Eye, PencilLine, Plus, RefreshCcw } from "lucide-react";
 import { SkillForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,6 +181,7 @@ export default function SkillsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
+                        <DeleteResourceButton endpoint="/api/skills" id={skill.id} confirmText={`确认删除 Skill「${skill.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
@@ -192,4 +194,3 @@ export default function SkillsPage() {
     </div>
   );
 }
-

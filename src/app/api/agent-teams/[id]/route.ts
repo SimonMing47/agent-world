@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deleteManagedResource } from "@/server/governance-core";
 import { getAgentTeam, upsertAgentTeam } from "@/server/queries";
 
 export const dynamic = "force-dynamic";
@@ -33,4 +34,13 @@ export async function PATCH(
       { status: 400 },
     );
   }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  deleteManagedResource({ type: "agent-team", id });
+  return NextResponse.json({ ok: true });
 }

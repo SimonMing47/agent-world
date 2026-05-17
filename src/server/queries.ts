@@ -77,11 +77,11 @@ import {
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
 
 export function listTenantSpaces() {
-  return queryAll<TenantSpace>("SELECT * FROM tenant_spaces ORDER BY name ASC");
+  return queryAll<TenantSpace>("SELECT * FROM tenant_spaces WHERE status <> 'deleted' ORDER BY name ASC");
 }
 
 export function listBusinessTeams() {
-  return queryAll<BusinessTeam>("SELECT * FROM business_teams ORDER BY name ASC");
+  return queryAll<BusinessTeam>("SELECT * FROM business_teams WHERE status <> 'deleted' ORDER BY name ASC");
 }
 
 export function listExecutionPolicies() {
@@ -119,6 +119,7 @@ export function listAgents() {
         agent_team_members.created_at
       FROM agent_team_members
       JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
+      WHERE agent_definitions.status <> 'deleted'
       ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
     `,
   );
@@ -185,7 +186,8 @@ export function listAgentTeamMemberProfiles(teamId?: string) {
         agent_definitions.permission_policy_json
       FROM agent_team_members
       JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
-      ${teamId ? "WHERE agent_team_members.team_id = ?" : ""}
+      WHERE agent_definitions.status <> 'deleted'
+      ${teamId ? "AND agent_team_members.team_id = ?" : ""}
       ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
     `,
     ...(teamId ? [teamId] : []),
@@ -194,7 +196,7 @@ export function listAgentTeamMemberProfiles(teamId?: string) {
 
 export function listAgentDefinitions() {
   return queryAll<AgentDefinition>(
-    "SELECT * FROM agent_definitions ORDER BY updated_at DESC, name ASC",
+    "SELECT * FROM agent_definitions WHERE status <> 'deleted' ORDER BY updated_at DESC, name ASC",
   );
 }
 
@@ -432,11 +434,13 @@ export function listRuntimeEndpoints() {
 }
 
 export function listAccessGrants() {
-  return queryAll<AccessGrant>("SELECT * FROM access_grants ORDER BY created_at DESC");
+  return queryAll<AccessGrant>("SELECT * FROM access_grants WHERE status <> 'deleted' ORDER BY created_at DESC");
 }
 
 export function listServiceCatalogListings() {
-  return queryAll<ServiceCatalogListing>("SELECT * FROM service_catalog_listings ORDER BY created_at DESC");
+  return queryAll<ServiceCatalogListing>(
+    "SELECT * FROM service_catalog_listings WHERE status <> 'deleted' ORDER BY created_at DESC",
+  );
 }
 
 export function listScheduleTemplates() {
@@ -516,7 +520,7 @@ export function listTaskTemplates() {
 }
 
 export function listTaskBlueprints() {
-  return queryAll<TaskBlueprint>("SELECT * FROM task_blueprints ORDER BY category ASC, name ASC");
+  return queryAll<TaskBlueprint>("SELECT * FROM task_blueprints WHERE status <> 'deleted' ORDER BY category ASC, name ASC");
 }
 
 export function listTaskRuns() {
