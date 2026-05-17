@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
-import { translateSourceType, translateStatus } from "@/lib/presentation";
+import { translateSeverity, translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime, formatPercent } from "@/lib/utils";
 import { getDashboardSnapshot, listFindings } from "@/server/queries";
 
@@ -68,7 +68,7 @@ export default function FindingsPage() {
       <PageHeader
         eyebrow="风险发现"
         title="Finding 治理"
-        description="统一治理代码检视、安全检视和其他任务产出的标准化 Finding，支持误报、忽略、修复和发布状态跟踪。"
+        description="维护 Finding 的严重度、状态、证据和处置结果。"
         badges={[
           { label: `${findings.length} 条 Finding`, variant: "accent" },
           { label: `${snapshot.findingDashboard.open} 条待处理`, variant: "warning" },
@@ -90,7 +90,7 @@ export default function FindingsPage() {
           <PanelHeader
             eyebrow="目录"
             title="Finding 列表"
-            description="按任务、团队、严重度和状态跟踪每条问题输出。"
+            description="按任务、团队、严重度和状态查看问题。"
           />
           <PanelBody className="p-0">
             <DataTable>
@@ -132,7 +132,7 @@ export default function FindingsPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <Badge variant={severityVariant(finding.severity)}>
-                          {finding.severity} · {finding.category}
+                          {translateSeverity(finding.severity)} · {finding.category}
                         </Badge>
                         <div className="mt-2 text-xs text-[var(--ink-muted)]">置信度 {formatPercent(finding.confidence)}</div>
                       </DataTableCell>
@@ -161,7 +161,7 @@ export default function FindingsPage() {
                                     { label: "任务运行", value: finding.taskRunId },
                                     { label: "来源 Agent", value: finding.sourceAgent },
                                     { label: "类别", value: finding.category },
-                                    { label: "严重度", value: finding.severity },
+                                    { label: "严重度", value: translateSeverity(finding.severity) },
                                     { label: "状态", value: translateStatus(finding.status) },
                                     { label: "置信度", value: formatPercent(finding.confidence) },
                                     { label: "指纹", value: finding.fingerprint },
@@ -203,13 +203,13 @@ export default function FindingsPage() {
 
         <div className="space-y-4">
           <Panel>
-            <PanelHeader eyebrow="严重度" title="严重度分布" description="用于看板聚合和团队风险排序。" />
+            <PanelHeader eyebrow="严重度" title="严重度分布" description="按风险等级统计。" />
             <PanelBody className="space-y-3">
               {snapshot.findingDashboard.bySeverity.map((item) => (
                 <div key={item.severity} className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-[var(--ink-muted)]" />
-                    <span className="text-sm font-medium text-[var(--ink)]">{item.severity}</span>
+                    <span className="text-sm font-medium text-[var(--ink)]">{translateSeverity(item.severity)}</span>
                   </div>
                   <Badge variant={severityVariant(item.severity)}>{item.count}</Badge>
                 </div>
@@ -218,7 +218,7 @@ export default function FindingsPage() {
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="业务团队" title="团队分布" description="按业务团队聚合待治理问题。" />
+            <PanelHeader eyebrow="业务团队" title="团队分布" description="按团队统计问题。" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>

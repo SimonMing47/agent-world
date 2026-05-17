@@ -45,7 +45,7 @@ export default function ExecutionPolicyPage() {
       <PageHeader
         eyebrow="执行策略"
         title="执行策略"
-        description="统一配置工具许可、人工门禁、预算和输出安全策略，支持增删查改。"
+        description="维护工具许可、人工门禁、预算和输出策略。"
         badges={[{ label: `${executionPolicies.length} 条执行策略`, variant: "accent" }]}
       />
 
@@ -53,7 +53,7 @@ export default function ExecutionPolicyPage() {
         <PanelHeader
           eyebrow="目录"
           title="执行策略目录"
-          description="策略可作用于全局、租户、业务团队或 Agent 团队。"
+          description="查看作用域、审批模式、预算和状态。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增策略</Button></DialogTrigger>

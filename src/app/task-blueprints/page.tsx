@@ -117,8 +117,8 @@ export default function TaskBlueprintsPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="任务治理"
-        title="任务定义中心"
-        description="定义任务与 Agent 团队、执行环境和触发方式的绑定关系。底层仍使用 Task Blueprint 内核，但界面上直接围绕任务配置展开。"
+        title="任务定义"
+        description="维护任务、触发方式、执行环境和编排块。"
         badges={[
           { label: `${snapshot.blueprints.length} 个任务定义`, variant: "accent" },
           { label: "团队视角治理", variant: "neutral" },
@@ -154,7 +154,7 @@ export default function TaskBlueprintsPage() {
         <PanelHeader
           eyebrow="目录"
           title="任务定义目录"
-          description="在这里定义任务、关联 Agent 团队、绑定执行环境，并配置触发方式。"
+          description="查看团队、触发方式、环境和状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeInteractionConsole } from "@/components/runtime-interaction-console";
+import { translateHumanIntervention, translateSessionMode, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { buildAgentHarnessExecutionProfile } from "@/server/agent-harness-core";
 import { getRuntimeSessionDetail } from "@/server/runtime-session-core";
@@ -8,6 +9,7 @@ import { getRuntimeSessionDetail } from "@/server/runtime-session-core";
 function statusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
   if (status === "running") return "accent";
   if (status === "error") return "danger";
+  if (status === "idle") return "neutral";
   return "success";
 }
 
@@ -32,10 +34,10 @@ export default async function RuntimeInteractionDetailPage({
       <PageHeader
         eyebrow="会话详情"
         title={detail.session.title}
-        description="真实模型交互、Agent 团队协作和人工介入都在这里展开。"
+        description="查看消息、事件、工具调用和人工介入记录。"
         badges={[
-          { label: detail.session.mode, variant: "neutral" },
-          { label: detail.session.status, variant: statusVariant(detail.session.status) },
+          { label: translateSessionMode(detail.session.mode), variant: "neutral" },
+          { label: translateStatus(detail.session.status), variant: statusVariant(detail.session.status) },
           { label: detail.session.model, variant: "accent" },
         ]}
       />
@@ -101,7 +103,9 @@ export default async function RuntimeInteractionDetailPage({
           },
           {
             label: "人工介入",
-            value: harnessProfile?.humanIntervention ?? detail.runtimeDescriptor?.humanIntervention ?? "manual",
+            value: translateHumanIntervention(
+              harnessProfile?.humanIntervention ?? detail.runtimeDescriptor?.humanIntervention ?? "manual",
+            ),
             detail: detail.session.createdBy,
           },
           {

@@ -134,7 +134,7 @@ export default function AgentTeamsPage() {
       <PageHeader
         eyebrow="执行团队"
         title="Agent 团队目录"
-        description="从 Agent 目录中组装调度团队，配置团队结构、工作流、成员职责以及业务团队的可见性和使用权限。"
+        description="维护 Leader、成员、工作流和业务团队共享权限。"
         badges={[
           { label: `${teams.length} 个 Agent 团队`, variant: "accent" },
           { label: `${members.length} 个成员编排`, variant: "neutral" },
@@ -170,7 +170,7 @@ export default function AgentTeamsPage() {
         <PanelHeader
           eyebrow="目录"
           title="Agent 团队目录"
-          description="已定义的团队以表格管理；查看和编辑通过弹窗完成。"
+          description="查看团队结构、共享范围和运行状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

@@ -17,6 +17,7 @@ const labels = {
     fixed: "已修复",
     healthy: "健康",
     ignored: "已忽略",
+    idle: "空闲",
     offline: "离线",
     paused: "已暂停",
     pending: "待处理",
@@ -81,6 +82,23 @@ const labels = {
     langgraph: "LangGraph",
     mastra: "Mastra",
     agentworld: "内置运行底座",
+  },
+  sessionMode: {
+    agent_team: "Agent 团队",
+    single_agent: "单 Agent",
+  },
+  humanIntervention: {
+    manual: "人工输入",
+    steer: "可引导",
+    approval: "审批介入",
+    disabled: "不介入",
+  },
+  severity: {
+    critical: "严重",
+    high: "高危",
+    medium: "中危",
+    low: "低危",
+    info: "提示",
   },
   foldGroup: {
     Analysis: "分析思考",
@@ -159,6 +177,18 @@ export function translateSourceType(value: string) {
 
 export function translateRuntimeKind(value: string) {
   return translate(labels.runtimeKind, value);
+}
+
+export function translateSessionMode(value: string) {
+  return translate(labels.sessionMode, value);
+}
+
+export function translateHumanIntervention(value: string) {
+  return translate(labels.humanIntervention, value);
+}
+
+export function translateSeverity(value: string) {
+  return translate(labels.severity, value);
 }
 
 export function translateFoldGroup(value: string) {

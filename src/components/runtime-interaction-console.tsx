@@ -6,10 +6,10 @@ import {
   Bot,
   ChevronDown,
   ChevronUp,
+  Activity,
   MessageSquareMore,
   SendHorizontal,
   UserRound,
-  WandSparkles,
   Wrench,
 } from "lucide-react";
 import {
@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
+import { translateSessionMode, translateStatus } from "@/lib/presentation";
 import { cn, formatDateTime, initials } from "@/lib/utils";
 
 type RuntimeInteractionConsoleProps = {
@@ -386,14 +387,14 @@ function ParticipantAvatar({
   return (
     <div
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-2xl border border-white/60",
+        "flex h-10 w-10 items-center justify-center rounded-lg border border-white/60",
         tone.avatar,
         tone.avatarText,
         active && tone.ring,
       )}
     >
       {participant.kind === "agent" && label ? (
-        <span className="text-xs font-semibold uppercase tracking-[0.08em]">{label}</span>
+        <span className="text-xs font-semibold">{label}</span>
       ) : participant.kind === "human" ? (
         <UserRound className="h-4 w-4" />
       ) : participant.kind === "tool" ? (
@@ -424,10 +425,10 @@ function BubbleMeta({
       <span className={cn("font-medium", inverted ? "text-white" : "text-[var(--ink)]")}>
         {message.actorName}
       </span>
-      {participant.isLeader ? <Badge variant="accent">Leader</Badge> : null}
-      {message.role === "toolResult" ? <Badge variant="warning">Tool</Badge> : null}
+      {participant.isLeader ? <Badge variant="accent">负责人</Badge> : null}
+      {message.role === "toolResult" ? <Badge variant="warning">工具</Badge> : null}
       {message.role === "assistant" ? <Badge variant="neutral">Agent</Badge> : null}
-      {message.role === "user" ? <Badge variant="neutral">Human</Badge> : null}
+      {message.role === "user" ? <Badge variant="neutral">人工</Badge> : null}
       <span>{formatDateTime(message.createdAt)}</span>
     </div>
   );
@@ -580,11 +581,11 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         description="让对话、协作和执行状态待在同一个工作台里。"
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={status === "running" ? "accent" : status === "error" ? "danger" : "success"}>
-              {status}
+            <Badge variant={status === "running" ? "accent" : status === "error" ? "danger" : "neutral"}>
+              {translateStatus(status)}
             </Badge>
             <Badge variant="neutral">
-              {props.sessionMode === "agent_team" ? "Agent 团队" : "单 Agent"}
+              {translateSessionMode(props.sessionMode)}
             </Badge>
             {activeActors.length > 1 ? <Badge variant="accent">{activeActors.length} 路并行</Badge> : null}
           </div>
@@ -611,7 +612,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               <div
                 key={participant.id}
                 className={cn(
-                  "min-w-[188px] rounded-2xl border px-3 py-3",
+                  "min-w-[176px] rounded-lg border px-3 py-3",
                   tone.shell,
                   isActive && "bg-[var(--surface)]",
                 )}
@@ -621,7 +622,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="truncate text-sm font-semibold text-[var(--ink)]">{participant.name}</div>
-                      {participant.isLeader ? <Badge variant="accent">Leader</Badge> : null}
+                      {participant.isLeader ? <Badge variant="accent">负责人</Badge> : null}
                     </div>
                     <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">{participant.role}</div>
                     <div className="mt-3 flex items-center gap-2">
@@ -651,7 +652,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
           <div
             ref={scrollerRef}
             aria-label="会话消息"
-            className="relative min-h-[520px] max-h-[calc(100vh-25rem)] scroll-smooth overflow-auto overscroll-contain rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
+            className="relative min-h-[520px] max-h-[calc(100vh-25rem)] scroll-smooth overflow-auto overscroll-contain rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
             onScroll={handleMessageScroll}
             tabIndex={0}
           >
@@ -707,7 +708,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                           {redactSecrets(messageText(message.content))}
                         </div>
                         {message.role === "assistant" && thinkingText(message.content) ? (
-                          <details className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+                          <details className="mt-3 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
                             <summary className="cursor-pointer text-xs font-medium text-[var(--ink-muted)]">
                               推理摘要
                             </summary>
@@ -728,7 +729,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                           </div>
                         ) : null}
                         {message.role === "toolResult" && message.content.details ? (
-                          <details className="mt-3 rounded-2xl border border-[#f0d9b5] bg-white/80 p-3">
+                          <details className="mt-3 rounded-lg border border-[#f0d9b5] bg-white/80 p-3">
                             <summary className="cursor-pointer text-xs font-medium text-[var(--ink-muted)]">
                               工具细节
                             </summary>
@@ -743,6 +744,17 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   </div>
                 );
               })}
+
+              {orderedMessages.length === 0 ? (
+                <div className="flex min-h-[340px] items-center justify-center px-4 text-center">
+                  <div>
+                    <div className="text-sm font-semibold text-[var(--ink)]">暂无会话消息</div>
+                    <div className="mt-2 max-w-[28rem] text-sm leading-6 text-[var(--ink-muted)]">
+                      发送人工消息或触发任务后，Agent、工具和人工介入记录会按时间顺序显示在这里。
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {activeActors.length > 0 ? (
                 <div className="space-y-3">
@@ -787,7 +799,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
           </div>
 
           <form
-            className="rounded-2xl border border-[var(--line)] bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+            className="rounded-lg border border-[var(--line)] bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
             onSubmit={(event) => {
               event.preventDefault();
               void submitMessage();
@@ -823,7 +835,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               <span>{draft.trim().length} 字</span>
             </div>
             {sendError ? (
-              <div className="mt-2 rounded-xl border border-[var(--danger)]/20 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)]">
+              <div className="mt-2 rounded-lg border border-[var(--danger)]/20 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)]">
                 {sendError}
               </div>
             ) : null}
@@ -839,7 +851,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 size="sm"
                 onClick={() => setInspectorTab("activity")}
               >
-                <WandSparkles className="h-4 w-4" />
+                <Activity className="h-4 w-4" />
                 活动
               </Button>
               <Button
@@ -879,7 +891,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                     {actorActivities.map((actor) => (
                       <div
                         key={actor.name}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
+                        className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
@@ -901,7 +913,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                     {visibleEvents.map((event) => (
                       <div
                         key={event.id}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
+                        className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <Badge variant="neutral">{event.eventType}</Badge>
@@ -925,9 +937,9 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                     {props.compactFacts.map((fact) => (
                       <div
                         key={`${fact.label}:${fact.value}`}
-                        className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
+                        className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-3"
                       >
-                        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+                        <div className="text-xs font-medium text-[var(--ink-muted)]">
                           {fact.label}
                         </div>
                         <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{fact.value}</div>

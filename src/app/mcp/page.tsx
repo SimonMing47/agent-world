@@ -45,7 +45,7 @@ export default function McpPage() {
       <PageHeader
         eyebrow="MCP"
         title="MCP 管理"
-        description="按成熟 MCP 配置方式管理 server、transport、鉴权引用、工具白名单和健康状态，供运行约束在任务执行时挂载。"
+        description="维护 MCP Server、传输方式、鉴权引用和工具白名单。"
         badges={[
           { label: `${servers.length} 个 Server`, variant: "accent" },
           { label: `${servers.filter((server) => server.status === "active").length} 个启用`, variant: "success" },
@@ -56,7 +56,7 @@ export default function McpPage() {
         <PanelHeader
           eyebrow="服务目录"
           title="MCP Server 目录"
-          description="stdio / HTTP / SSE 统一进入配置表，工具白名单明确可审计。"
+          description="查看传输协议、工具白名单和健康状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

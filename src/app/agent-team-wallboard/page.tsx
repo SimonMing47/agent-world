@@ -22,12 +22,12 @@ export default function AgentTeamWallboardPage() {
       <PageHeader
         eyebrow="总览"
         title="Agent 团队看板"
-        description="Agent 团队是完成复杂任务的调度单元，由多个 Agent、编排策略和运行约束组成。"
+        description="查看 Agent 团队的成员规模、任务量和运行表现。"
         badges={[{ label: `${snapshot.teamSummaries.length} 个 Agent 团队`, variant: "accent" }]}
       />
 
       <Panel>
-        <PanelHeader eyebrow="执行团队" title="Agent 团队调度概览" description="从调度单元视角观察任务数量、成员规模和运行表现。" />
+        <PanelHeader eyebrow="执行团队" title="Agent 团队概览" description="按团队查看任务和成员数据。" />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>

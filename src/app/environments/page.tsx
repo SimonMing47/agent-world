@@ -55,7 +55,7 @@ export default function EnvironmentsPage() {
       <PageHeader
         eyebrow="执行环境"
         title="执行环境管理"
-        description="执行环境是任务运行对象，配置代码仓、执行人、私钥引用、运行路径、沙箱和记忆依赖。"
+        description="维护代码仓、执行人、密钥引用、运行路径和记忆依赖。"
         badges={[
           { label: `${environments.length} 个执行环境`, variant: "accent" },
           { label: `启用 ${environments.filter((environment) => environment.status === "active").length}`, variant: "success" },
@@ -75,7 +75,7 @@ export default function EnvironmentsPage() {
         <PanelHeader
           eyebrow="目录"
           title="执行环境目录"
-          description="环境配置必须可新增、查看、编辑和删除；PRIVATE_KEY 只保存 Secret 引用，不保存明文。"
+          description="查看仓库、分支、工作目录和 Secret 引用。"
           action={
             <Dialog>
               <DialogTrigger asChild>

@@ -31,7 +31,7 @@ export default function TaskRunsPage() {
       <PageHeader
         eyebrow="任务运行"
         title="任务运行中心"
-        description="集中查看运行实例、当前状态、触发来源和所属团队，快速进入单次任务的执行空间。"
+        description="查看运行实例、状态、触发来源和所属团队。"
         badges={[
           { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
           { label: `${activeCount} 个活跃运行`, variant: "neutral" },
@@ -68,7 +68,7 @@ export default function TaskRunsPage() {
           <PanelHeader
             eyebrow="运行列表"
             title="全部运行实例"
-            description="按蓝图、业务团队、来源和状态浏览每次执行。"
+            description="按蓝图、团队、来源和状态查看执行。"
           />
           <PanelBody className="p-0">
             <DataTable>
@@ -133,7 +133,7 @@ export default function TaskRunsPage() {
             <PanelHeader
               eyebrow="按来源"
               title="来源分布"
-              description="帮助值班时快速判断负载从哪里来。"
+              description="按触发来源统计运行。"
             />
             <PanelBody className="p-0">
               <DataTable>
@@ -163,7 +163,7 @@ export default function TaskRunsPage() {
             <PanelHeader
               eyebrow="关注列表"
               title="最近关注"
-              description="优先打开这些实例查看轨迹与人工干预情况。"
+              description="需要优先查看的运行实例。"
             />
             <PanelBody className="p-0">
               <DataTable>

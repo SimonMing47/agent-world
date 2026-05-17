@@ -46,7 +46,7 @@ export default function TeamPermissionsPage() {
       <PageHeader
         eyebrow="团队治理"
         title="团队成员权限"
-        description="配置团队成员或团队角色对 AgentWorld 资源的操作权限，支持 allow、ask、deny 三类效果。"
+        description="维护成员和角色对系统资源的操作权限。"
         badges={[
           { label: `${grants.length} 条权限`, variant: "accent" },
           { label: `${grants.filter((grant) => grant.effect === "deny").length} 条拒绝`, variant: "warning" },
@@ -57,7 +57,7 @@ export default function TeamPermissionsPage() {
         <PanelHeader
           eyebrow="权限规则"
           title="权限规则"
-          description="权限显式落库，供 Agent、任务和资产治理共同引用。"
+          description="查看主体、资源、范围和策略效果。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增权限</Button></DialogTrigger>

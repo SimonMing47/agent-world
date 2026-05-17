@@ -126,7 +126,7 @@ function nodeOptions() {
 function nextLaunch() {
   const standaloneServer = path.join(root, ".next", "standalone", "server.js");
   if (mode === "start" && fs.existsSync(standaloneServer)) {
-    ensureStandaloneServerChunks();
+    ensureStandaloneAssets();
     return {
       command: process.execPath,
       args: [standaloneServer],
@@ -139,13 +139,26 @@ function nextLaunch() {
   };
 }
 
-function ensureStandaloneServerChunks() {
-  const source = path.join(root, ".next", "server", "chunks");
-  const target = path.join(root, ".next", "standalone", ".next", "server", "chunks");
+function copyIfExists(source, target) {
   if (!fs.existsSync(source)) return;
 
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.cpSync(source, target, { recursive: true, force: true });
+}
+
+function ensureStandaloneAssets() {
+  copyIfExists(
+    path.join(root, ".next", "server", "chunks"),
+    path.join(root, ".next", "standalone", ".next", "server", "chunks"),
+  );
+  copyIfExists(
+    path.join(root, ".next", "static"),
+    path.join(root, ".next", "standalone", ".next", "static"),
+  );
+  copyIfExists(
+    path.join(root, "public"),
+    path.join(root, ".next", "standalone", "public"),
+  );
 }
 
 const openVikingChild = await startOpenVikingIfNeeded();
@@ -154,6 +167,7 @@ const nextChild = spawn(launch.command, launch.args, {
   cwd: root,
   env: {
     ...process.env,
+    AGENTWORLD_DATA_DIR: process.env.AGENTWORLD_DATA_DIR ?? path.join(root, "data"),
     NODE_OPTIONS: nodeOptions(),
   },
   stdio: "inherit",

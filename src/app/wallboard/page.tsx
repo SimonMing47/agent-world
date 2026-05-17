@@ -1,5 +1,5 @@
 import { formatDateTime } from "@/lib/utils";
-import { localizeDemoCopy, translateSourceType, translateStatus, translateWorkflowType } from "@/lib/presentation";
+import { localizeDemoCopy, translateSeverity, translateSourceType, translateStatus, translateWorkflowType } from "@/lib/presentation";
 import { getWallboardSnapshot } from "@/server/queries";
 
 export default function WallboardPage() {
@@ -9,7 +9,7 @@ export default function WallboardPage() {
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <section className="space-y-4">
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             活跃任务
           </div>
           <div className="mt-4 space-y-3">
@@ -22,7 +22,7 @@ export default function WallboardPage() {
                   <div className="text-base font-semibold text-[var(--ink)]">
                     {taskRun.sourceRef ?? taskRun.sourceType}
                   </div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                  <div className="text-xs font-medium text-[var(--ink-muted)]">
                     {translateStatus(taskRun.status)}
                   </div>
                 </div>
@@ -35,7 +35,7 @@ export default function WallboardPage() {
         </div>
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             模型服务健康度
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -46,7 +46,7 @@ export default function WallboardPage() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">{runtime.name}</div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                  <div className="text-xs font-medium text-[var(--ink-muted)]">
                     {translateStatus(runtime.healthStatus)}
                   </div>
                 </div>
@@ -59,7 +59,7 @@ export default function WallboardPage() {
         </div>
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             任务类别
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
@@ -74,13 +74,13 @@ export default function WallboardPage() {
         </div>
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             Finding 聚合
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-5">
             {snapshot.findingDashboard.bySeverity.map((item) => (
               <div key={item.severity} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
-                <div className="text-sm uppercase text-[var(--ink-muted)]">{item.severity}</div>
+                <div className="text-sm text-[var(--ink-muted)]">{translateSeverity(item.severity)}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.count}</div>
               </div>
             ))}
@@ -90,7 +90,7 @@ export default function WallboardPage() {
 
       <section className="space-y-4">
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             核心 Agent 团队
           </div>
           <div className="mt-4 space-y-3">
@@ -109,7 +109,7 @@ export default function WallboardPage() {
         </div>
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             活跃代码仓
           </div>
           <div className="mt-4 space-y-3">
@@ -128,7 +128,7 @@ export default function WallboardPage() {
         </div>
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
             活跃开发者
           </div>
           <div className="mt-4 space-y-3">

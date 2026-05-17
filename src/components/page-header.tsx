@@ -18,15 +18,15 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("space-y-3", className)}>
+    <header className={cn("space-y-2", className)}>
       {eyebrow ? (
-        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+        <div className="text-xs font-medium text-[var(--ink-muted)]">
           {eyebrow}
         </div>
       ) : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="text-2xl font-semibold tracking-normal text-[var(--ink)] sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-normal text-[var(--ink)]">
             {title}
           </h1>
           {description ? <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{description}</p> : null}

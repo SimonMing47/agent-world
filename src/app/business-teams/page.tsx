@@ -37,7 +37,7 @@ export default function BusinessTeamsPage() {
       <PageHeader
         eyebrow="团队治理"
         title="组织结构定义"
-        description="业务团队是人、资产、权限和任务归属的核心对象，支持新增、查看、编辑和删除。"
+        description="维护业务团队结构、负责人、预算和状态。"
         badges={[
           { label: `${businessTeams.length} 个业务团队`, variant: "accent" },
           { label: `${taskBlueprints.length} 个任务定义`, variant: "neutral" },
@@ -48,7 +48,7 @@ export default function BusinessTeamsPage() {
         <PanelHeader
           eyebrow="组织结构"
           title="业务团队目录"
-          description="团队和智能体团队是两个不同概念：团队与人和资产相关；智能体团队是任务调度单元。"
+          description="查看团队归属、预算和治理策略。"
           action={
             <Dialog>
               <DialogTrigger asChild>

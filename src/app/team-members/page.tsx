@@ -36,7 +36,7 @@ export default function TeamMembersPage() {
       <PageHeader
         eyebrow="团队治理"
         title="团队成员管理"
-        description="录入成员姓名、工号、邮箱、归属团队和角色，支持从 Excel 复制表格后批量导入。"
+        description="维护成员、工号、邮箱、团队和角色，支持表格导入。"
         badges={[
           { label: `${members.length} 个成员`, variant: "accent" },
           { label: `${businessTeams.length} 个团队`, variant: "neutral" },
@@ -47,7 +47,7 @@ export default function TeamMembersPage() {
         <PanelHeader
           eyebrow="成员"
           title="成员目录"
-          description="团队是 AgentWorld 的业务治理中心，成员和权限都从这里进入。"
+          description="查看成员归属、角色和状态。"
           action={
             <div className="flex gap-2">
               <Dialog>

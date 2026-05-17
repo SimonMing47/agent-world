@@ -48,7 +48,7 @@ export default function CodebasesPage() {
       <PageHeader
         eyebrow="代码仓"
         title="Codebase 管理"
-        description="统一录入代码仓地址、归属团队和多个操作者 token，任务执行时只引用受控的 Codebase 和 Token。"
+        description="维护代码仓地址、归属团队和操作者 Token。"
         badges={[
           { label: `${codebases.length} 个代码仓`, variant: "accent" },
           { label: `${tokens.length} 个操作者 Token`, variant: "neutral" },
@@ -68,7 +68,7 @@ export default function CodebasesPage() {
         <PanelHeader
           eyebrow="仓库目录"
           title="代码仓目录"
-          description="代码仓作为团队资产被任务蓝图、执行环境和插件引用。"
+          description="查看仓库地址、团队、默认分支和 Token 数量。"
           action={
             <div className="flex gap-2">
               <Dialog>

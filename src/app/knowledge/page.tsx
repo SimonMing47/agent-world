@@ -71,7 +71,7 @@ export default async function KnowledgePage() {
       <PageHeader
         eyebrow="知识库"
         title="知识管理"
-        description="基于 OpenViking 的团队级、项目级、Agent 团队级知识空间，任务运行时会按权限解析并加载。"
+        description="维护团队、项目和 Agent 团队可访问的知识空间。"
         badges={[
           { label: snapshot.health.ok ? "OpenViking 已连接" : "OpenViking 未连接", variant: snapshot.health.ok ? "success" : "warning" },
           { label: `${spaces.length} 个知识空间`, variant: "accent" },
@@ -124,7 +124,7 @@ export default async function KnowledgePage() {
         <PanelHeader
           eyebrow="知识空间"
           title="团队知识体系"
-          description="每个空间映射到稳定的 viking:// URI，可绑定业务团队、项目、Agent 团队或任务蓝图。"
+          description="查看 URI、归属、访问范围和同步状态。"
         />
         <DataTable>
           <DataTableHeader>
@@ -212,7 +212,7 @@ export default async function KnowledgePage() {
           <PanelHeader
             eyebrow="Skill 目录"
             title="Skill 注册表"
-            description="Skill 内容同步到 OpenViking，Agent 团队通过知识空间或蓝图 memoryPolicy 获取。"
+            description="查看 Skill 的空间、版本和适用范围。"
           />
           <DataTable>
             <DataTableHeader>
@@ -241,7 +241,7 @@ export default async function KnowledgePage() {
           <PanelHeader
             eyebrow="最近知识"
             title="最近知识条目"
-            description="任务上下文、Skill、人工反馈和归档结果都会进入这里。"
+            description="最近写入的上下文、反馈和归档结果。"
             action={
               <KnowledgeEntryForm
                 spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}

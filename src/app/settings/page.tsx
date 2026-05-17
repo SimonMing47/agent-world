@@ -117,7 +117,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="系统配置"
         title="系统配置"
-        description="左侧只放高频治理入口；执行配置、执行环境、Webhook、租户、策略和服务目录等长尾系统项在这里统一进入。"
+        description="集中管理低频系统入口和运行配置。"
         badges={[
           { label: `${snapshot.providers.length} 个模型服务`, variant: "accent" },
           { label: `${snapshot.environments.length} 个执行环境`, variant: "neutral" },
@@ -138,7 +138,7 @@ export default function SettingsPage() {
           <PanelHeader
             eyebrow="系统模块"
             title={group}
-            description={group === "常用基础配置" ? "这些模块也保留在侧边栏，便于日常治理。" : "这些模块不占用侧边栏，用于系统运行和长尾配置治理。"}
+            description={group === "常用基础配置" ? "高频配置入口。" : "运行、租户、策略和授权入口。"}
           />
           <PanelBody className="p-0">
             <DataTable>

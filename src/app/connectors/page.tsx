@@ -45,7 +45,7 @@ export default function ConnectorsPage() {
       <PageHeader
         eyebrow="连接器"
         title="Connector 管理"
-        description="IM、邮件、Web Push 和企业通知通道统一作为 Connector 配置，任务输出和人工审批都通过这些通道发布。"
+        description="维护 IM、邮件、Web Push 和外部通知通道。"
         badges={[
           { label: `${connectors.length} 个 Connector`, variant: "accent" },
           { label: `${connectors.filter((connector) => connector.status === "active").length} 个启用`, variant: "success" },
@@ -56,7 +56,7 @@ export default function ConnectorsPage() {
         <PanelHeader
           eyebrow="目录"
           title="Connector 目录"
-          description="连接器只保存配置和 Secret 引用，具体实现通过插件扩展。"
+          description="查看类型、插件、密钥引用和健康状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>

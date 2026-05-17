@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
             <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[var(--canvas)]/94 backdrop-blur">
-              <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+              <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="lg:hidden">
@@ -87,7 +87,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-[var(--ink)]">{currentNav.label}</div>
-                  <div className="truncate text-xs text-[var(--ink-muted)]">{currentNav.description}</div>
                 </div>
               </div>
             </header>

@@ -61,7 +61,7 @@ export default function AgentsPage() {
       <PageHeader
         eyebrow="Agent 管理"
         title="Agent 目录"
-        description="定义个人 Agent、共享到业务团队，并配置默认系统提示词、运行约束和可用性验证。"
+        description="维护 Agent 定义、共享范围、模型服务和验证状态。"
         badges={[
           { label: `${definitions.length} 个 Agent`, variant: "accent" },
           { label: `${definitions.filter((item) => item.validationStatus === "passed").length} 个已验证`, variant: "neutral" },
@@ -97,7 +97,7 @@ export default function AgentsPage() {
         <PanelHeader
           eyebrow="目录"
           title="Agent 目录"
-          description="按归属、共享、模型服务和验证状态管理可调度单元。"
+          description="按归属、共享、模型服务和验证状态管理。"
           action={
             <Dialog>
               <DialogTrigger asChild>

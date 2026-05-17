@@ -10,21 +10,21 @@ export function SummaryStrip({
   gridClassName?: string;
 }) {
   return (
-    <section className={cn("overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)]", className)}>
+    <section className={cn("overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]", className)}>
       <div className={cn("grid", gridClassName)}>
         {items.map((item, index) => (
           <div
             key={`${item.label}-${index}`}
             className={cn(
-              "px-5 py-4",
+              "px-5 py-3.5",
               index !== items.length - 1 && "border-b border-[var(--line)] sm:border-b-0 xl:border-r",
             )}
           >
-            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            <div className="text-xs font-medium text-[var(--ink-muted)]">
               {item.label}
             </div>
-            <div className="mt-2 text-2xl font-semibold text-[var(--ink)] sm:text-3xl">{item.value}</div>
-            {item.detail ? <div className="mt-2 text-sm text-[var(--ink-muted)]">{item.detail}</div> : null}
+            <div className="mt-2 text-2xl font-semibold text-[var(--ink)]">{item.value}</div>
+            {item.detail ? <div className="mt-1.5 text-sm text-[var(--ink-muted)]">{item.detail}</div> : null}
           </div>
         ))}
       </div>

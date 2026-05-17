@@ -30,7 +30,7 @@ export function SidebarNav({
         <div className="flex items-center justify-between border-b border-[var(--sidebar-line)] px-4 pb-4 pt-5">
           <div className={cn("min-w-0", collapsed && "sr-only")}>
             <div className="text-base font-semibold tracking-[0.01em] text-[var(--sidebar-ink)]">AgentWorld</div>
-            <div className="mt-1 text-xs font-medium text-[var(--sidebar-ink-softer)]">任务平台控制台</div>
+            <div className="mt-1 text-xs font-medium text-[var(--sidebar-ink-softer)]">控制台</div>
           </div>
           {onToggleCollapse ? (
             <Button
@@ -51,7 +51,7 @@ export function SidebarNav({
           {navigationGroups.map((group) => (
             <div key={group.title} className="space-y-2">
               {!collapsed ? (
-                <div className="sidebar-section-title px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                <div className="sidebar-section-title px-3 pb-1 text-xs font-semibold">
                   {group.title}
                 </div>
               ) : null}
@@ -68,7 +68,7 @@ export function SidebarNav({
                     data-active={isActive ? "true" : "false"}
                     onClick={onItemClick}
                     className={cn(
-                      "sidebar-nav-link group flex min-h-[42px] items-center gap-3 rounded-xl border px-3 py-2 transition-all",
+                      "sidebar-nav-link group flex min-h-[42px] items-center gap-3 rounded-lg border px-3 py-2 transition-all",
                       collapsed && "justify-center px-0",
                       isActive
                         ? "border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"

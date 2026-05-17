@@ -62,7 +62,7 @@ export default function AiProvidersPage() {
       <PageHeader
         eyebrow="模型服务"
         title="模型服务配置"
-        description="维护模型网关、Base URL、API Key 引用、默认模型和能力参数。运行接口由系统内置，页面只暴露可治理的模型服务。"
+        description="维护模型网关、密钥引用、默认模型和能力参数。"
         badges={[
           { label: `${snapshot.providers.length} 个接口`, variant: "accent" },
           { label: `启用 ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },
@@ -98,7 +98,7 @@ export default function AiProvidersPage() {
         <PanelHeader
           eyebrow="服务目录"
           title="模型服务目录"
-          description="已配置内容进入表格陈列，新增、查看、编辑均通过弹窗完成。"
+          description="查看接口风格、默认模型、能力和状态。"
           action={
             <Dialog>
               <DialogTrigger asChild>
