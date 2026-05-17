@@ -1,4 +1,5 @@
 import { type TaskBlueprint, type WebhookEndpoint } from "@/server/db";
+import { resolveSecretRef, resolveWebhookParser } from "@/server/plugin-sdk-core";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -144,4 +145,42 @@ export function buildWebhookTaskInput(pathKey: string, payload: unknown, request
       ]) ?? null,
     raw_payload: payload,
   };
+}
+
+function parseBlueprintTrigger(blueprint: TaskBlueprint) {
+  return parseRecord(blueprint.triggerJson);
+}
+
+export async function buildWebhookTaskInputForBlueprint(args: {
+  pathKey: string;
+  payload: unknown;
+  request: Request;
+  blueprint: TaskBlueprint;
+}) {
+  const trigger = parseBlueprintTrigger(args.blueprint);
+  const parserRef =
+    (typeof trigger.webhookParserRef === "string" ? trigger.webhookParserRef : null) ??
+    (typeof trigger.connector === "string" ? trigger.connector : null);
+  const parser = resolveWebhookParser(parserRef);
+
+  if (!parser) {
+    return buildWebhookTaskInput(args.pathKey, args.payload, args.request);
+  }
+
+  await parser.verify?.({
+    request: args.request,
+    payload: args.payload,
+    configuration: trigger,
+    resolveSecretRef: async (ref: string) => resolveSecretRef(ref),
+  });
+
+  const parsed = await parser.parse({
+    pathKey: args.pathKey,
+    request: args.request,
+    payload: args.payload,
+    configuration: trigger,
+  });
+
+  const idempotencyKey = parser.buildIdempotencyKey?.(parsed);
+  return idempotencyKey ? { ...parsed, plugin_idempotency_key: idempotencyKey } : parsed;
 }

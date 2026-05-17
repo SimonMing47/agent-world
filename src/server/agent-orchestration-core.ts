@@ -3,15 +3,20 @@ import { type Agent, type AgentTeam } from "@/server/db";
 export type AgentTeamRunPlanWorker = {
   agent: string;
   task: string;
+  action?: string;
+  tool?: string;
 };
 
 export type AgentTeamRunPlan = {
   strategy: string;
   leader: string;
   workers: AgentTeamRunPlanWorker[];
+  defaultWorkerTool?: string;
   aggregation?: {
     agent: string;
     method: string;
+    action?: string;
+    tool?: string;
   };
   conflictResolution?: {
     method: string;
@@ -27,6 +32,8 @@ function parseRunPlan(value: string): AgentTeamRunPlan | null {
       strategy: parsed.strategy,
       leader: parsed.leader,
       workers: Array.isArray(parsed.workers) ? parsed.workers : [],
+      defaultWorkerTool:
+        typeof parsed.defaultWorkerTool === "string" ? parsed.defaultWorkerTool : undefined,
       aggregation: parsed.aggregation,
       conflictResolution: parsed.conflictResolution,
       splitStrategy: parsed.splitStrategy,
@@ -78,6 +85,8 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
   const leaderExists = agents.some((agent) => agent.id === parsed.leader);
   const leaderAgentId = leaderExists ? parsed.leader : agents[0]?.id;
   if (!leaderAgentId) return [];
+  const defaultWorkerTool =
+    parsed.defaultWorkerTool ?? (parsed.splitStrategy === "by_repository" ? "repo.clone.read" : "repo.diff.read");
 
   const workerNodes = parsed.workers
     .filter((worker) => agents.some((agent) => agent.id === worker.agent))
@@ -86,8 +95,8 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
       agentId: worker.agent,
       dependsOn: ["plan"],
       input: {
-        action: "execute",
-        tool: "repo.diff.read",
+        action: worker.action ?? "execute",
+        tool: worker.tool ?? defaultWorkerTool,
         assignment: worker.task,
       },
     }));
@@ -114,8 +123,8 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
       agentId: aggregateAgentId,
       dependsOn: workerNodes.map((node) => node.nodeKey),
       input: {
-        action: "publish",
-        tool: "finding.aggregate",
+        action: parsed.aggregation?.action ?? "publish",
+        tool: parsed.aggregation?.tool ?? "finding.aggregate",
         method: parsed.aggregation?.method ?? "deduplicate_rank_and_publish",
       },
     },

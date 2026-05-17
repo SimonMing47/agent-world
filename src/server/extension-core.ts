@@ -17,6 +17,7 @@ import {
   type PluginLifecycle,
   type PluginManifest,
 } from "@/server/plugin-core";
+import { listOfficialPluginManifests } from "@/server/plugin-sdk-core";
 
 type ExtensionEnvironmentInput = {
   id: string;
@@ -96,12 +97,27 @@ type ExtensionTaskBlueprintInput = {
   archivePolicy?: Record<string, unknown>;
 };
 
+type ExtensionWebhookInput = {
+  id?: string;
+  businessTeamSlug?: string;
+  businessTeamId?: string;
+  teamSlug?: string;
+  teamId?: string;
+  name: string;
+  pathKey: string;
+  method?: string;
+  requestSchema?: Record<string, unknown>;
+  secretHint?: string;
+  isEnabled?: boolean;
+};
+
 export type AgentWorldExtensionBundle = {
   id?: string;
   name?: string;
   source?: string;
   plugins?: PluginManifest[];
   environments?: ExtensionEnvironmentInput[];
+  webhooks?: ExtensionWebhookInput[];
   taskTemplates?: ExtensionTaskTemplateInput[];
   taskBlueprints?: ExtensionTaskBlueprintInput[];
   scheduleTemplates?: ExtensionScheduleTemplateInput[];
@@ -168,6 +184,7 @@ export function listAllPluginManifests() {
   const importedIds = new Set(imported.map((plugin) => plugin.id));
   return [
     ...listBuiltinPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
+    ...listOfficialPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
     ...imported,
   ];
 }
@@ -185,6 +202,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   const createdAt = nowIso();
   const importedPlugins: string[] = [];
   const importedEnvironments: string[] = [];
+  const importedWebhooks: string[] = [];
   const importedTaskTemplates: string[] = [];
   const importedTaskBlueprints: string[] = [];
   const importedScheduleTemplates: string[] = [];
@@ -233,6 +251,25 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     importedEnvironments.push(environment.id);
   }
 
+  for (const webhook of bundle.webhooks ?? []) {
+    const businessTeamId = resolveBusinessTeamId(webhook);
+    const teamId = resolveTeamId(webhook);
+    const webhookId = webhook.id ?? `webhook:${webhook.pathKey}`;
+    execute(
+      "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      webhookId,
+      businessTeamId,
+      teamId,
+      webhook.name,
+      webhook.pathKey,
+      webhook.method ?? "POST",
+      JSON.stringify(webhook.requestSchema ?? {}),
+      webhook.secretHint ?? "",
+      webhook.isEnabled === false ? 0 : 1,
+    );
+    importedWebhooks.push(webhookId);
+  }
+
   for (const taskTemplate of bundle.taskTemplates ?? []) {
     const teamId = resolveTeamId(taskTemplate);
     execute(
@@ -272,7 +309,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       ownerBusinessTeamId,
       teamId,
       blueprint.environmentId ?? null,
-      blueprint.providerAdapterId ?? "opencode-provider",
+      blueprint.providerAdapterId ?? "pi-runtime-adapter",
       blueprint.version ?? 1,
       blueprint.status ?? "active",
       JSON.stringify(blueprint.trigger),
@@ -291,6 +328,27 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       createdAt,
     );
     importedTaskBlueprints.push(blueprint.id);
+
+    if (
+      blueprint.trigger.type === "webhook" &&
+      typeof blueprint.trigger.webhookPathKey === "string" &&
+      !importedWebhooks.includes(`webhook:${blueprint.trigger.webhookPathKey}`)
+    ) {
+      const webhookId = `webhook:${blueprint.trigger.webhookPathKey}`;
+      execute(
+        "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        webhookId,
+        ownerBusinessTeamId,
+        teamId,
+        `${blueprint.name} Webhook`,
+        blueprint.trigger.webhookPathKey,
+        "POST",
+        JSON.stringify(blueprint.inputSchema ?? {}),
+        typeof blueprint.trigger.webhookSecretRef === "string" ? blueprint.trigger.webhookSecretRef : "",
+        1,
+      );
+      importedWebhooks.push(webhookId);
+    }
   }
 
   for (const template of bundle.scheduleTemplates ?? []) {
@@ -316,6 +374,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     source,
     importedPlugins,
     importedEnvironments,
+    importedWebhooks,
     importedTaskTemplates,
     importedTaskBlueprints,
     importedScheduleTemplates,
@@ -412,18 +471,18 @@ export function resolveWebhookTaskConfiguration(teamId: string, pathKey?: string
 
 export function buildExtensionImportExample() {
   return {
-    id: "enterprise-git-review",
-    source: "enterprise-git-plugin",
+    id: "codehub-review",
+    source: "official.codehub",
     plugins: [
       {
-        id: "enterprise.repo.git",
-        name: "Enterprise Git Connector",
+        id: "official.codehub",
+        name: "CodeHub Connector",
         version: "1.0.0",
         capability: "code_repo",
         lifecycle: "declared",
         mountPoint: "execution-environment",
-        configSchema: "{ baseUrl, privateKeyRef, diffApiPath, commentApiPath }",
-        requiredSecretRefs: ["secret:enterprise-git-private-key", "secret:enterprise-git-token"],
+        configSchema: "{ baseUrl, tokenRef, webhookSecretRef }",
+        requiredSecretRefs: ["env:CODEHUB_TOKEN", "env:CODEHUB_WEBHOOK_SECRET"],
         permissions: ["repo:read", "repo:mr:comment"],
         healthCheck: "connector self-check",
         extensionOnly: true,
@@ -431,19 +490,20 @@ export function buildExtensionImportExample() {
     ],
     taskBlueprints: [
       {
-        id: "enterprise_mr_review",
-        name: "企业 Git MR 代码检视",
+        id: "codehub_mr_review",
+        name: "CodeHub MR 代码检视",
         category: "code_review",
         visibility: "team",
         ownerBusinessTeamSlug: "release-team",
         teamSlug: "pr-vanguard",
-        environmentId: "env-enterprise-mr-review",
-        providerAdapterId: "opencode-provider",
+        environmentId: "env-codehub-mr-review",
+        providerAdapterId: "pi-runtime-adapter",
         trigger: {
           type: "webhook",
-          connector: "enterprise.repo.git",
+          connector: "official.codehub",
+          webhookParserRef: "official.codehub.webhook.merge_request",
           event: "merge_request.updated",
-          webhookPathKey: "enterprise-mr",
+          webhookPathKey: "codehub-mr",
           idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
         },
         inputSchema: { type: "object", required: ["repo_id", "mr_id", "diff_ref"] },
@@ -451,7 +511,7 @@ export function buildExtensionImportExample() {
           type: "repository_workspace",
           repoBinding: "${repo_id}",
           checkoutMode: "diff_context",
-          privateKeyBinding: "enterprise_repo_executor_key",
+          privateKeyBinding: "codehub_repo_executor_key",
         },
         agentTeamRunPlan: {
           strategy: "leader_worker_parallel",
@@ -472,14 +532,19 @@ export function buildExtensionImportExample() {
         permissionPolicy: {
           defaultMode: "ask",
           rules: [
-            { effect: "allow", resource: "tool.git.diff.read", scope: "repository" },
+            { effect: "allow", resource: "tool.repo.diff.read", scope: "repository" },
+            { effect: "allow", resource: "tool.repo.context.read", scope: "current_merge_request" },
+            { effect: "allow", resource: "tool.memory.retrieve", scope: "declared_spaces" },
+            { effect: "allow", resource: "tool.finding.create", scope: "task_run" },
+            { effect: "allow", resource: "tool.finding.aggregate", scope: "task_run" },
             { effect: "allow", resource: "tool.mr.comment.write", scope: "current_merge_request" },
+            { effect: "deny", resource: "tool.repo.force_push", scope: "*" },
             { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
           ],
         },
         outputPolicy: {
           publishers: [
-            { type: "merge_request_comment", pluginId: "enterprise.repo.git" },
+            { type: "merge_request_comment", pluginId: "official.codehub" },
             { type: "dashboard" },
           ],
         },
@@ -492,55 +557,68 @@ export function buildExtensionImportExample() {
     ],
     environments: [
       {
-        id: "env-enterprise-mr-review",
+        id: "env-codehub-mr-review",
         businessTeamSlug: "release-team",
-        name: "企业 Git MR 检视环境",
-        repositoryProvider: "enterprise-git",
+        name: "CodeHub MR 检视环境",
+        repositoryProvider: "codehub",
         repositoryName: "group/project",
-        repositoryUrl: "ssh://git.example.com/group/project.git",
+        repositoryUrl: "ssh://codehub.example.com/group/project.git",
         defaultBranch: "main",
         executorRef: "svc-release-reviewer",
-        privateKeyRef: "secret:release-team/enterprise-git-private-key",
+        privateKeyRef: "secret:release-team/codehub-private-key",
         workingDirectory: ".",
         sandboxProfile: { isolation: "future-sandbox", network: "egress-controlled" },
         memoryLayerRefs: ["repository/code-review", "global/code-review", "security"],
         visibility: "team",
       },
     ],
+    webhooks: [
+      {
+        id: "webhook:codehub-mr",
+        businessTeamSlug: "release-team",
+        teamSlug: "pr-vanguard",
+        name: "CodeHub MR Webhook",
+        pathKey: "codehub-mr",
+        method: "POST",
+        requestSchema: { type: "object" },
+        secretHint: "env:CODEHUB_WEBHOOK_SECRET",
+        isEnabled: true,
+      },
+    ],
     taskTemplates: [
       {
-        id: "task-template-enterprise-mr-review",
+        id: "task-template-codehub-mr-review",
         teamSlug: "pr-vanguard",
-        name: "企业 Git MR 分层检视",
+        name: "CodeHub MR 分层检视",
         caseKey: "shield",
-        pluginId: "enterprise.repo.git",
-        environmentId: "env-enterprise-mr-review",
+        pluginId: "official.codehub",
+        environmentId: "env-codehub-mr-review",
         plannerMode: "rule",
-        summary: "企业 Git MR 通过导入模板进入神盾计划检视团队。",
+        summary: "CodeHub MR 通过导入模板进入神盾计划检视团队。",
         inputSchema: { type: "object", required: ["repository", "changeRequest", "diff"] },
         defaultInput: { taskCategory: "code_review" },
         memoryLayers: ["repository/code-review", "global/code-review", "security"],
         outputTargets: ["mr_comment", "task_trace", "knowledge_archive"],
-        webhookParserRef: "enterprise.repo.git.webhookParser",
+        webhookParserRef: "official.codehub.webhook.merge_request",
         visibility: "team",
       },
     ],
     scheduleTemplates: [
       {
-        id: `template-enterprise-mr-review-${randomUUID().slice(0, 8)}`,
+        id: `template-codehub-mr-review-${randomUUID().slice(0, 8)}`,
         businessTeamSlug: "release-team",
         teamSlug: "pr-vanguard",
-        name: "企业 Git MR webhook 检视",
+        name: "CodeHub MR webhook 检视",
         scheduleKind: "event",
         cadence: "Webhook: MR diff",
         inputPayload: {
           caseKey: "shield",
-          taskTemplateId: "task-template-enterprise-mr-review",
+          taskTemplateId: "task-template-codehub-mr-review",
           taskCategory: "code_review",
-          webhookPathKey: "enterprise-mr",
-          environmentId: "env-enterprise-mr-review",
+          webhookPathKey: "codehub-mr",
+          environmentId: "env-codehub-mr-review",
           memoryLayers: ["repository/code-review", "global/code-review", "security"],
-          repositoryPlugin: "enterprise.repo.git",
+          repositoryPlugin: "official.codehub",
           output: ["mr_comment", "task_trace", "knowledge_archive"],
         },
       },

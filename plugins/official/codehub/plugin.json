@@ -1,0 +1,47 @@
+{
+  "apiVersion": "agentworld.io/v1",
+  "kind": "AgentWorldPlugin",
+  "metadata": {
+    "id": "official.codehub",
+    "name": "CodeHub Connector",
+    "version": "1.0.0",
+    "description": "Repository connector, webhook parser, publisher and tool bundle for CodeHub API v4."
+  },
+  "spec": {
+    "runtime": {
+      "type": "node",
+      "entry": "src/server/plugins/official/codehub.ts"
+    },
+    "permissions": {
+      "requested": [
+        "repo.read",
+        "repo.mr.comment",
+        "webhook.receive",
+        "secret.use"
+      ]
+    },
+    "contributions": {
+      "repositoryConnectors": [
+        { "id": "official.codehub.repository" }
+      ],
+      "webhookParsers": [
+        { "id": "official.codehub.webhook.merge_request" }
+      ],
+      "outputPublishers": [
+        { "id": "official.codehub.publisher.merge_request_review" }
+      ],
+      "toolBundles": [
+        { "id": "official.codehub.tool_bundle" }
+      ]
+    },
+    "configSchema": {
+      "type": "object",
+      "properties": {
+        "baseUrl": { "type": "string" },
+        "tokenRef": { "type": "string" },
+        "webhookSecretRef": { "type": "string" }
+      },
+      "required": ["baseUrl", "tokenRef"]
+    }
+  }
+}

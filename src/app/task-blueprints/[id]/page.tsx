@@ -131,9 +131,9 @@ export default async function TaskBlueprintDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Blueprint Detail"
+        eyebrow="Task Detail"
         title={detail.blueprint.name}
-        description="从同一工作台维护蓝图配置、提交调试输入、预览权限和追踪最近运行。"
+        description="从同一工作台维护任务定义、提交调试输入、预览权限和追踪最近运行。"
         badges={[
           { label: translateStatus(detail.blueprint.status), variant: statusVariant(detail.blueprint.status) },
           { label: translateVisibility(detail.blueprint.visibility), variant: "neutral" },
@@ -157,7 +157,7 @@ export default async function TaskBlueprintDetailPage({
             <PanelHeader
               eyebrow="Summary"
               title="蓝图定义"
-              description="稳定字段用定义列表展示，避免在详情页里继续堆叠小卡片。"
+              description="稳定字段用定义列表展示，围绕任务、Team、环境和触发方式组织。"
             />
             <PanelBody>
               <DefinitionList

@@ -27,6 +27,17 @@ type ProviderProfileFormProps = {
   onSaved?: () => void;
 };
 
+function parseConfig(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 function normalizeJson(value: string, fallback: string) {
   try {
     return JSON.stringify(JSON.parse(value), null, 2);
@@ -53,6 +64,7 @@ export function ProviderProfileForm({
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const parsedConfig = parseConfig(provider.configJson);
   const [form, setForm] = useState({
     id: provider.id,
     tenantSpaceId: provider.tenantSpaceId,
@@ -62,6 +74,21 @@ export function ProviderProfileForm({
     defaultModel: provider.defaultModel,
     modelList: normalizeModelList(provider.modelsJson),
     apiKeyRef: provider.apiKeyRef,
+    piApi: typeof parsedConfig.piApi === "string" ? parsedConfig.piApi : "",
+    supportsResponsesApi: Boolean(parsedConfig.supportsResponsesApi ?? true),
+    supportsChatCompletions: Boolean(parsedConfig.supportsChatCompletions ?? true),
+    contextWindow:
+      typeof parsedConfig.contextWindow === "number" ? String(parsedConfig.contextWindow) : "",
+    maxTokens: typeof parsedConfig.maxTokens === "number" ? String(parsedConfig.maxTokens) : "",
+    reasoning: Boolean(parsedConfig.reasoning ?? true),
+    headersJson: normalizeJson(
+      JSON.stringify(
+        parsedConfig.headers && typeof parsedConfig.headers === "object" && !Array.isArray(parsedConfig.headers)
+          ? parsedConfig.headers
+          : {},
+      ),
+      "{}",
+    ),
     configJson: normalizeJson(provider.configJson, "{}"),
     isEnabled: provider.isEnabled === 1,
   });
@@ -72,6 +99,7 @@ export function ProviderProfileForm({
 
     try {
       JSON.parse(form.configJson);
+      JSON.parse(form.headersJson);
     } catch {
       setIsSaving(false);
       setMessage("JSON 格式不正确");
@@ -89,6 +117,17 @@ export function ProviderProfileForm({
       return;
     }
 
+    const nextConfig = {
+      ...parseConfig(form.configJson),
+      piApi: form.piApi || undefined,
+      supportsResponsesApi: form.supportsResponsesApi,
+      supportsChatCompletions: form.supportsChatCompletions,
+      contextWindow: form.contextWindow ? Number(form.contextWindow) : undefined,
+      maxTokens: form.maxTokens ? Number(form.maxTokens) : undefined,
+      reasoning: form.reasoning,
+      headers: JSON.parse(form.headersJson) as Record<string, unknown>,
+    };
+
     const response = await fetch("/api/provider-profiles", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -101,7 +140,7 @@ export function ProviderProfileForm({
         defaultModel: form.defaultModel,
         modelsJson: JSON.stringify(models, null, 2),
         apiKeyRef: form.apiKeyRef,
-        configJson: form.configJson,
+        configJson: JSON.stringify(nextConfig, null, 2),
         isEnabled: form.isEnabled ? 1 : 0,
       }),
     });
@@ -146,7 +185,10 @@ export function ProviderProfileForm({
               onChange={(event) => setForm({ ...form, apiStyle: event.target.value })}
             >
               {[
-                ["openai", "OpenAI / Responses"],
+                ["openai", "OpenAI / Auto"],
+                ["openai-compatible", "OpenAI Compatible"],
+                ["openai-responses", "OpenAI Responses"],
+                ["openai-completions", "OpenAI Chat / Completions"],
                 ["anthropic", "Anthropic"],
                 ["azure-openai", "Azure OpenAI"],
                 ["openrouter", "OpenRouter"],
@@ -164,6 +206,18 @@ export function ProviderProfileForm({
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
               placeholder="https://api.openai.com/v1"
             />
+          </FieldGroup>
+          <FieldGroup label="Pi 协议">
+            <Select
+              value={form.piApi}
+              onChange={(event) => setForm({ ...form, piApi: event.target.value })}
+            >
+              <option value="">跟随 API 风格自动判断</option>
+              <option value="openai-responses">openai-responses</option>
+              <option value="openai-completions">openai-completions</option>
+              <option value="azure-openai-responses">azure-openai-responses</option>
+              <option value="anthropic-messages">anthropic-messages</option>
+            </Select>
           </FieldGroup>
           <FieldGroup label="默认模型">
             <Input
@@ -190,15 +244,68 @@ export function ProviderProfileForm({
               placeholder={"gpt-5.4\ngpt-5.4-mini"}
             />
           </FieldGroup>
+          <FieldGroup label="上下文窗口">
+            <Input
+              value={form.contextWindow}
+              onChange={(event) => setForm({ ...form, contextWindow: event.target.value })}
+              placeholder="128000"
+            />
+          </FieldGroup>
+          <FieldGroup label="最大输出 Tokens">
+            <Input
+              value={form.maxTokens}
+              onChange={(event) => setForm({ ...form, maxTokens: event.target.value })}
+              placeholder="16384"
+            />
+          </FieldGroup>
           <FieldGroup
-            label="附加配置"
-            hint="保留给协议能力开关与供应商特殊参数。"
+            label="附加 Headers"
+            hint="给 OpenAI Compatible / 企业网关追加自定义请求头。"
+            className="md:col-span-2"
+          >
+            <Textarea
+              value={form.headersJson}
+              onChange={(event) => setForm({ ...form, headersJson: event.target.value })}
+              placeholder='{"x-tenant-id":"security-platform"}'
+            />
+          </FieldGroup>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--ink-muted)] md:col-span-2">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.supportsResponsesApi}
+                onChange={(event) => setForm({ ...form, supportsResponsesApi: event.target.checked })}
+              />
+              Responses API
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.supportsChatCompletions}
+                onChange={(event) =>
+                  setForm({ ...form, supportsChatCompletions: event.target.checked })
+                }
+              />
+              Chat / Completions
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.reasoning}
+                onChange={(event) => setForm({ ...form, reasoning: event.target.checked })}
+              />
+              Reasoning
+            </label>
+          </div>
+          <FieldGroup
+            label="扩展配置覆盖"
+            hint="保留给供应商私有能力或暂未结构化的附加参数。"
             className="md:col-span-2"
           >
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"supportsResponsesApi": true}'
+              placeholder='{"compat":{"reasoning_field":"thinking"}}'
             />
           </FieldGroup>
         </div>

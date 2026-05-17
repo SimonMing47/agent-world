@@ -13,7 +13,7 @@ export default function RuntimesPage() {
       <PageHeader
         eyebrow="Runtimes"
         title="执行运行时"
-        description="探测 OpenCode runtime，刷新能力目录，并观察每个运行时的健康状态与并发占用。"
+        description="校验 Pi Runtime Adapter 与外部模型接口的真实可用性，并观察每个运行时的健康状态。"
         badges={[
           { label: `${snapshot.runtimes.length} 个运行时`, variant: "accent" },
         ]}
