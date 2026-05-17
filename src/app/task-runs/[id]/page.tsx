@@ -422,7 +422,12 @@ export default async function TaskRunDetailPage({
                 <div className="space-y-3">
                   {detail.kernel.agentTeamRunPlan.workers.map((worker) => (
                     <div key={`${worker.agent}-${worker.task}`} className="border-b border-[var(--line)] pb-3 last:border-b-0 last:pb-0">
-                      <div className="text-sm font-medium text-[var(--ink)]">{worker.agentName}</div>
+                      <div className="text-sm font-medium text-[var(--ink)]">
+                        {worker.title ?? worker.agentName}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--ink-soft)]">
+                        {worker.blockType ?? "agent"} · {worker.tool ?? "agent.execute"} · {worker.agentName}
+                      </div>
                       <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{worker.task}</div>
                     </div>
                   ))}

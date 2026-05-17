@@ -7,6 +7,11 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
+import {
+  TaskWorkflowBlockEditor,
+  type WorkflowBlock,
+  type WorkflowBlockType,
+} from "@/components/task-workflow-block-editor";
 import { Textarea } from "@/components/ui/textarea";
 
 type AgentTeamOption = {
@@ -98,6 +103,12 @@ function parseRecord(value: string) {
   }
 }
 
+function parseStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
 function parseWorkflowDefinition(value?: string) {
   try {
     const parsed = JSON.parse(value ?? "{}") as Record<string, unknown>;
@@ -115,6 +126,31 @@ function parseWorkflowDefinition(value?: string) {
       splitStrategy: "",
     };
   }
+}
+
+function buildExecutionPolicyJson(value: string, blocks: WorkflowBlock[]) {
+  const policy = parseRecord(value);
+  const toolPolicy =
+    policy.toolPolicy && typeof policy.toolPolicy === "object" && !Array.isArray(policy.toolPolicy)
+      ? (policy.toolPolicy as Record<string, unknown>)
+      : {};
+  const allowedTools = Array.from(
+    new Set([
+      ...parseStringArray(policy.allowedTools),
+      ...parseStringArray(policy.tools),
+      ...parseStringArray(toolPolicy.allowed),
+      ...blocks.map((block) => block.tool).filter(Boolean),
+    ]),
+  );
+
+  return JSON.stringify(
+    {
+      ...policy,
+      allowedTools,
+    },
+    null,
+    2,
+  );
 }
 
 function parseRunPlan(value: string) {
@@ -140,7 +176,165 @@ function parseRunPlan(value: string) {
     splitStrategy: typeof parsed.splitStrategy === "string" ? parsed.splitStrategy : "",
     objective: typeof parsed.objective === "string" ? parsed.objective : "",
     notes: typeof parsed.notes === "string" ? parsed.notes : "",
+    blocks: Array.isArray(parsed.blocks)
+      ? parsed.blocks.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
+      : [],
   };
+}
+
+const workflowBlockTypes = ["agent", "agent_team", "script_hook", "http_hook", "notification"] as const;
+
+function isWorkflowBlockType(value: unknown): value is WorkflowBlockType {
+  return workflowBlockTypes.includes(value as WorkflowBlockType);
+}
+
+function normalizeBlockId(value: unknown, index: number) {
+  const raw = typeof value === "string" && value.trim() ? value : `block_${index + 1}`;
+  return raw
+    .trim()
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 64) || `block_${index + 1}`;
+}
+
+function inferBlockTool(type: WorkflowBlockType, value: unknown) {
+  if (typeof value === "string" && value.trim()) return value;
+  if (type === "agent") return "agent.execute";
+  if (type === "agent_team") return "agent_team.invoke";
+  if (type === "script_hook") return "script.run";
+  if (type === "http_hook") return "hook.http";
+  return "connector.email";
+}
+
+function inferBlockAction(type: WorkflowBlockType, value: unknown) {
+  if (typeof value === "string" && value.trim()) return value;
+  if (type === "agent_team") return "delegate";
+  if (type === "script_hook") return "run_script";
+  if (type === "http_hook") return "call_hook";
+  if (type === "notification") return "notify";
+  return "execute";
+}
+
+function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): WorkflowBlock[] {
+  const runPlan = parseRunPlan(value);
+  if (runPlan.blocks.length > 0) {
+    return runPlan.blocks.map((raw, index) => {
+      const type = isWorkflowBlockType(raw.type) ? raw.type : "agent";
+      return {
+        id: normalizeBlockId(raw.id, index),
+        type,
+        title: typeof raw.title === "string" ? raw.title : `执行块 ${index + 1}`,
+        agentId:
+          typeof raw.agentId === "string"
+            ? raw.agentId
+            : typeof raw.agent === "string"
+              ? raw.agent
+              : "",
+        agentTeamId:
+          typeof raw.agentTeamId === "string"
+            ? raw.agentTeamId
+            : typeof raw.targetAgentTeamId === "string"
+              ? raw.targetAgentTeamId
+              : "",
+        dependsOn: Array.isArray(raw.dependsOn) ? raw.dependsOn.map(String) : [],
+        instruction:
+          typeof raw.instruction === "string"
+            ? raw.instruction
+            : typeof raw.task === "string"
+              ? raw.task
+              : "",
+        tool: inferBlockTool(type, raw.tool),
+        action: inferBlockAction(type, raw.action),
+        script: typeof raw.script === "string" ? raw.script : "",
+        url: typeof raw.url === "string" ? raw.url : "",
+        method: typeof raw.method === "string" ? raw.method : "POST",
+        connectorType: typeof raw.connectorType === "string" ? raw.connectorType : "",
+        publisherRef: typeof raw.publisherRef === "string" ? raw.publisherRef : "",
+        payloadTemplate:
+          typeof raw.payloadTemplate === "string"
+            ? raw.payloadTemplate
+            : JSON.stringify(raw.payloadTemplate ?? {}, null, 2),
+      };
+    });
+  }
+
+  const members = team?.members ?? [];
+  const leader =
+    members.find((member) => member.id === team?.leaderAgentId) ??
+    members.find((member) => member.memberRole.toLowerCase().includes("leader")) ??
+    members[0] ??
+    null;
+  const blocks: WorkflowBlock[] = [];
+  if (leader) {
+    blocks.push({
+      id: "plan",
+      type: "agent",
+      title: "任务拆解",
+      agentId: leader.id,
+      agentTeamId: "",
+      dependsOn: [],
+      instruction: runPlan.objective || "读取输入并拆解执行计划。",
+      tool: "memory.retrieve",
+      action: "plan",
+      script: "",
+      url: "",
+      method: "POST",
+      connectorType: "",
+      publisherRef: "",
+      payloadTemplate: "{}",
+    });
+  }
+
+  const workerBlocks =
+    runPlan.workers.length > 0
+      ? runPlan.workers
+      : members
+          .filter((member) => member.id !== leader?.id)
+          .map((member) => ({
+            agent: member.id,
+            task: member.workInstruction || `${member.memberRole || member.role} 执行任务`,
+          }));
+  workerBlocks.forEach((worker, index) => {
+    blocks.push({
+      id: `worker_${index + 1}`,
+      type: "agent",
+      title: `执行分工 ${index + 1}`,
+      agentId: String(worker.agent ?? ""),
+      agentTeamId: "",
+      dependsOn: leader ? ["plan"] : [],
+      instruction: String(worker.task ?? ""),
+      tool: typeof worker.tool === "string" ? worker.tool : "agent.execute",
+      action: typeof worker.action === "string" ? worker.action : "execute",
+      script: "",
+      url: "",
+      method: "POST",
+      connectorType: "",
+      publisherRef: "",
+      payloadTemplate: "{}",
+    });
+  });
+
+  if (leader) {
+    blocks.push({
+      id: "publish",
+      type: "notification",
+      title: "结果汇总与发布",
+      agentId: leader.id,
+      agentTeamId: "",
+      dependsOn: workerBlocks.length ? workerBlocks.map((_, index) => `worker_${index + 1}`) : ["plan"],
+      instruction: "汇总执行结果，生成 Finding、报告或通知。",
+      tool: "finding.aggregate",
+      action: "publish",
+      script: "",
+      url: "",
+      method: "POST",
+      connectorType: "dashboard",
+      publisherRef: "dashboard",
+      payloadTemplate: "{}",
+    });
+  }
+
+  return blocks;
 }
 
 function parseEnvironmentSelector(value: string) {
@@ -178,6 +372,8 @@ function buildRunPlanJson(args: {
   blueprintName: string;
   taskObjective: string;
   existingRunPlanJson: string;
+  blocks: WorkflowBlock[];
+  strategy: string;
 }) {
   const existing = parseRunPlan(args.existingRunPlanJson);
   const team = args.team;
@@ -192,33 +388,62 @@ function buildRunPlanJson(args: {
     members.find((member) => member.memberRole.toLowerCase().includes("leader")) ??
     members[0] ??
     null;
-  const workers = members
-    .filter((member) => member.id !== leader?.id)
-    .map((member) => {
-      const existingWorker = existing.workers.find((worker) => String(worker.agent ?? "") === member.id);
-      return {
-        agent: member.id,
-        task:
-          typeof existingWorker?.task === "string" && existingWorker.task.trim()
-            ? existingWorker.task
-            : member.workInstruction.trim() || `${member.memberRole || member.role} responsibilities`,
-      };
-    });
+  const fallbackAgentId = leader?.id ?? members[0]?.id ?? "";
+  const blocks = args.blocks.map((block, index) => ({
+    ...block,
+    id: normalizeBlockId(block.id, index),
+    dependsOn: block.dependsOn.filter(Boolean),
+    agentId: block.agentId || fallbackAgentId,
+  }));
+  const workers = blocks
+    .filter((block) => block.id !== "plan")
+    .map((block) => ({
+      agent: block.agentId || fallbackAgentId,
+      task: block.instruction.trim() || block.title || block.id,
+      action: block.action,
+      tool: block.tool,
+      blockId: block.id,
+      blockType: block.type,
+      title: block.title,
+      targetAgentTeamId: block.type === "agent_team" ? block.agentTeamId || undefined : undefined,
+      connectorType: block.type === "notification" ? block.connectorType || undefined : undefined,
+      publisherRef: block.publisherRef || undefined,
+    }));
+  const terminalBlocks = blocks
+    .map((block) => block.id)
+    .filter((blockId) => !blocks.some((block) => block.dependsOn.includes(blockId)));
 
   return JSON.stringify(
     {
-      strategy: existing.strategy || team.workflowType || "parallel",
+      strategy: args.strategy || existing.strategy || team.workflowType || "block_graph",
       leader: leader?.id ?? existing.leader ?? "",
+      blocks: blocks.map((block) => ({
+        id: block.id,
+        type: block.type,
+        title: block.title,
+        agentId: block.agentId || undefined,
+        agentTeamId: block.agentTeamId || undefined,
+        dependsOn: block.dependsOn,
+        instruction: block.instruction,
+        action: block.action,
+        tool: block.tool,
+        script: block.script || undefined,
+        url: block.url || undefined,
+        method: block.method || undefined,
+        connectorType: block.connectorType || undefined,
+        publisherRef: block.publisherRef || undefined,
+        payloadTemplate: block.payloadTemplate || undefined,
+      })),
       workers,
       aggregation: {
         agent:
           typeof existing.aggregation.agent === "string" && existing.aggregation.agent
             ? existing.aggregation.agent
-            : leader?.id ?? "",
+            : fallbackAgentId,
         method:
           typeof existing.aggregation.method === "string" && existing.aggregation.method
             ? existing.aggregation.method
-            : workflow.aggregationMethod,
+            : workflow.aggregationMethod || "block_graph_publish",
       },
       conflictResolution: {
         method:
@@ -229,6 +454,11 @@ function buildRunPlanJson(args: {
       splitStrategy: existing.splitStrategy || workflow.splitStrategy,
       objective: args.taskObjective.trim() || existing.objective || workflow.teamObjective || args.blueprintName,
       notes: existing.notes || team.orchestrationPrompt || "",
+      graph: {
+        nodes: blocks.map((block) => block.id),
+        edges: blocks.flatMap((block) => block.dependsOn.map((dependency) => [dependency, block.id])),
+        terminalBlocks,
+      },
     },
     null,
     2,
@@ -279,6 +509,7 @@ export function TaskBlueprintEditor({
   const trigger = parseRecord(blueprint.triggerJson);
   const selector = parseEnvironmentSelector(blueprint.environmentSelectorJson);
   const runPlan = parseRunPlan(blueprint.agentTeamRunPlanJson);
+  const initialSelectedTeam = options.agentTeams.find((team) => team.id === blueprint.teamId) ?? null;
   const [form, setForm] = useState({
     id: blueprint.id,
     name: blueprint.name,
@@ -308,6 +539,7 @@ export function TaskBlueprintEditor({
               "event",
               "expression",
               "webhookPathKey",
+              "endpoint",
               "idempotencyKey",
             ].includes(key),
         ),
@@ -322,6 +554,8 @@ export function TaskBlueprintEditor({
     sandboxRef: selector.sandboxRef,
     environmentSelectorExtraJson: selector.extraJson,
     taskObjective: runPlan.objective,
+    orchestrationStrategy: runPlan.strategy || initialSelectedTeam?.workflowType || "block_graph",
+    blocks: parseWorkflowBlocks(blueprint.agentTeamRunPlanJson, initialSelectedTeam),
     inputSchemaJson: normalizeJson(
       blueprint.inputSchemaJson,
       JSON.stringify({ type: "object", properties: {}, required: [] }, null, 2),
@@ -396,9 +630,30 @@ export function TaskBlueprintEditor({
       return;
     }
 
-    if (form.triggerType === "webhook" && !form.triggerWebhookPathKey.trim() && !form.triggerEvent.trim()) {
+    if (form.triggerType === "webhook" && !form.triggerWebhookPathKey.trim()) {
       setIsSaving(false);
-      setMessage("Webhook 任务至少需要路径标识或事件名。");
+      setMessage("Webhook 任务需要填写自定义路径标识。");
+      return;
+    }
+
+    if (form.blocks.length === 0) {
+      setIsSaving(false);
+      setMessage("请至少配置一个执行编排块。");
+      return;
+    }
+
+    const invalidBlock = form.blocks.find((block) => {
+      if (!block.id.trim() || !block.title.trim()) return true;
+      if (block.type === "agent" && !block.agentId.trim()) return true;
+      if (block.type === "agent_team" && !block.agentTeamId.trim()) return true;
+      if (block.type === "script_hook" && !block.script.trim()) return true;
+      if (block.type === "http_hook" && !block.url.trim()) return true;
+      if (block.type === "notification" && !block.connectorType.trim()) return true;
+      return false;
+    });
+    if (invalidBlock) {
+      setIsSaving(false);
+      setMessage(`执行块 ${invalidBlock.title || invalidBlock.id} 配置不完整。`);
       return;
     }
 
@@ -420,6 +675,11 @@ export function TaskBlueprintEditor({
       jsonFields.forEach((value) => {
         JSON.parse(value);
       });
+      form.blocks.forEach((block) => {
+        if ((block.type === "http_hook" || block.type === "notification") && block.payloadTemplate.trim()) {
+          JSON.parse(block.payloadTemplate);
+        }
+      });
     } catch {
       setIsSaving(false);
       setMessage("JSON 格式不正确。");
@@ -439,6 +699,10 @@ export function TaskBlueprintEditor({
         event: form.triggerEvent.trim() || undefined,
         expression: form.triggerExpression.trim() || undefined,
         webhookPathKey: form.triggerWebhookPathKey.trim() || undefined,
+        endpoint:
+          form.triggerType === "webhook" && form.triggerWebhookPathKey.trim()
+            ? `/api/webhooks/${form.triggerWebhookPathKey.trim()}`
+            : undefined,
         idempotencyKey: form.triggerIdempotencyKey.trim() || undefined,
       },
       null,
@@ -450,6 +714,8 @@ export function TaskBlueprintEditor({
       blueprintName: form.name,
       taskObjective: form.taskObjective,
       existingRunPlanJson: blueprint.agentTeamRunPlanJson,
+      blocks: form.blocks,
+      strategy: form.orchestrationStrategy,
     });
     const environmentSelectorJson = buildEnvironmentSelectorJson({
       environment: selectedEnvironment,
@@ -461,6 +727,7 @@ export function TaskBlueprintEditor({
       sandboxRef: form.sandboxRef,
       environmentSelectorExtraJson: form.environmentSelectorExtraJson,
     });
+    const executionPolicyJson = buildExecutionPolicyJson(form.executionPolicyJson, form.blocks);
 
     const payload = {
       id: blueprintId,
@@ -483,7 +750,7 @@ export function TaskBlueprintEditor({
       resultSchemaJson: form.resultSchemaJson,
       outputPolicyJson: form.outputPolicyJson,
       dashboardPolicyJson: form.dashboardPolicyJson,
-      executionPolicyJson: form.executionPolicyJson,
+      executionPolicyJson,
       archivePolicyJson: form.archivePolicyJson,
     };
 
@@ -554,7 +821,16 @@ export function TaskBlueprintEditor({
         <FieldGroup label="关联 Agent 团队" hint="任务实际执行时会调用这里选中的 Agent 团队。">
           <Select
             value={form.teamId}
-            onChange={(event) => setForm({ ...form, teamId: event.target.value })}
+            onChange={(event) => {
+              const nextTeamId = event.target.value;
+              const nextTeam = options.agentTeams.find((team) => team.id === nextTeamId) ?? null;
+              setForm({
+                ...form,
+                teamId: nextTeamId,
+                orchestrationStrategy: nextTeam?.workflowType || form.orchestrationStrategy || "block_graph",
+                blocks: parseWorkflowBlocks(blueprint.agentTeamRunPlanJson, nextTeam),
+              });
+            }}
           >
             <option value="">选择 Agent 团队</option>
             {options.agentTeams.map((option) => (
@@ -604,7 +880,7 @@ export function TaskBlueprintEditor({
             onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
           >
             {[
-              ["manual", "手动触发"],
+              ["manual", "一次性 / 手动触发"],
               ["cron", "定时触发"],
               ["webhook", "Webhook 触发"],
               ["access_grant", "跨团队授权触发"],
@@ -728,6 +1004,42 @@ export function TaskBlueprintEditor({
             placeholder="描述这个任务要让 Agent 团队完成什么。"
           />
         </FieldGroup>
+      </div>
+
+      <div className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-[var(--ink)]">执行编排</div>
+            <div className="text-xs text-[var(--ink-muted)]">
+              通过块组合任务流程，块配置会写入任务蓝图并在任务运行时生成节点。
+            </div>
+          </div>
+          <div className="w-full sm:w-56">
+            <Select
+              value={form.orchestrationStrategy}
+              onChange={(event) => setForm({ ...form, orchestrationStrategy: event.target.value })}
+              aria-label="编排策略"
+            >
+              {[
+                ["block_graph", "块图编排"],
+                ["leader_worker_parallel", "Leader 并行分工"],
+                ["parallel", "并行执行"],
+                ["sequential", "串行执行"],
+                ["dag", "DAG 执行"],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        <TaskWorkflowBlockEditor
+          blocks={form.blocks}
+          onChange={(blocks) => setForm({ ...form, blocks })}
+          agents={selectedTeam?.members ?? []}
+          agentTeams={options.agentTeams.map((team) => ({ id: team.id, name: team.name }))}
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

@@ -448,10 +448,36 @@ export function listServiceCatalogListings() {
   );
 }
 
+function estimateNextCronRunAt(expression: unknown, now = new Date()) {
+  if (typeof expression !== "string" || !expression.trim()) return addMinutes(now, 60).toISOString();
+  const parts = expression.trim().split(/\s+/);
+  if (parts.length < 5) return addMinutes(now, 60).toISOString();
+  const [minutePart, hourPart] = parts;
+  const intervalMatch = minutePart.match(/^\*\/(\d+)$/);
+  if (intervalMatch) {
+    return addMinutes(now, Math.max(1, Number(intervalMatch[1]))).toISOString();
+  }
+  const minute = Number(minutePart);
+  const hour = Number(hourPart);
+  if (Number.isInteger(minute) && Number.isInteger(hour) && minute >= 0 && minute < 60 && hour >= 0 && hour < 24) {
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    return next.toISOString();
+  }
+  return addMinutes(now, 60).toISOString();
+}
+
 export function listScheduleTemplates() {
   return listTaskBlueprints().map((blueprint) => {
     const trigger = parseJsonRecord(blueprint.triggerJson);
     const triggerType = normalizeTriggerType(trigger.type);
+    const nextRunAt =
+      triggerType === "schedule"
+        ? typeof trigger.nextRunAt === "string"
+          ? trigger.nextRunAt
+          : estimateNextCronRunAt(trigger.expression)
+        : null;
     return {
       id: `blueprint:${blueprint.id}:trigger`,
       businessTeamId: blueprint.ownerBusinessTeamId,
@@ -464,7 +490,7 @@ export function listScheduleTemplates() {
           : typeof trigger.event === "string"
             ? `Webhook: ${trigger.event}`
             : triggerType,
-      nextRunAt: null,
+      nextRunAt,
       inputPayloadJson: JSON.stringify({
         taskBlueprintId: blueprint.id,
         trigger,
@@ -802,6 +828,10 @@ export function upsertTaskBlueprint(
 ) {
   const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
+  const executionPolicyJson = buildTaskBlueprintExecutionPolicyJson(
+    input.executionPolicyJson,
+    input.agentTeamRunPlanJson,
+  );
   execute(
     "INSERT OR REPLACE INTO task_blueprints (id, name, category, visibility, owner_business_team_id, team_id, environment_id, provider_adapter_id, version, status, trigger_json, input_schema_json, environment_selector_json, agent_team_run_plan_json, memory_policy_json, provider_policy_json, permission_policy_json, result_schema_json, output_policy_json, dashboard_policy_json, execution_policy_json, archive_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
@@ -824,13 +854,82 @@ export function upsertTaskBlueprint(
     input.resultSchemaJson,
     input.outputPolicyJson,
     input.dashboardPolicyJson,
-    input.executionPolicyJson,
+    executionPolicyJson,
     input.archivePolicyJson,
     createdAt,
     new Date().toISOString(),
   );
 
+  ensureWebhookEndpointForTaskBlueprint(input);
+
   return queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
+}
+
+function buildTaskBlueprintExecutionPolicyJson(policyJson: string, runPlanJson: string) {
+  const policy = parseJsonRecord(policyJson);
+  const runPlan = parseJsonRecord(runPlanJson);
+  const blocks = Array.isArray(runPlan.blocks)
+    ? runPlan.blocks.filter((block): block is Record<string, unknown> => Boolean(block && typeof block === "object"))
+    : [];
+  const workers = Array.isArray(runPlan.workers)
+    ? runPlan.workers.filter((worker): worker is Record<string, unknown> => Boolean(worker && typeof worker === "object"))
+    : [];
+  const toolPolicy =
+    policy.toolPolicy && typeof policy.toolPolicy === "object" && !Array.isArray(policy.toolPolicy)
+      ? (policy.toolPolicy as Record<string, unknown>)
+      : {};
+  const allowedTools = dedupeStrings([
+    ...parseStringArray(policy.allowedTools),
+    ...parseStringArray(policy.tools),
+    ...parseStringArray(toolPolicy.allowed),
+    ...blocks.map((block) => (typeof block.tool === "string" ? block.tool : "")).filter(Boolean),
+    ...workers.map((worker) => (typeof worker.tool === "string" ? worker.tool : "")).filter(Boolean),
+  ]);
+
+  return JSON.stringify(
+    {
+      ...policy,
+      allowedTools,
+    },
+    null,
+    2,
+  );
+}
+
+function ensureWebhookEndpointForTaskBlueprint(
+  input: Pick<
+    TaskBlueprint,
+    | "id"
+    | "name"
+    | "ownerBusinessTeamId"
+    | "teamId"
+    | "status"
+    | "triggerJson"
+    | "inputSchemaJson"
+  >,
+) {
+  const trigger = parseJsonRecord(input.triggerJson);
+  if (normalizeTriggerType(trigger.type) !== "webhook") return;
+  const pathKey = typeof trigger.webhookPathKey === "string" ? trigger.webhookPathKey.trim() : "";
+  if (!pathKey) return;
+  const existing = getWebhookEndpointByPathKey(pathKey);
+  const secretHint =
+    typeof trigger.secretRef === "string"
+      ? trigger.secretRef
+      : typeof trigger.webhookSecretRef === "string"
+        ? trigger.webhookSecretRef
+        : "";
+  upsertWebhookEndpoint({
+    id: existing?.id ?? `webhook:${pathKey}`,
+    businessTeamId: input.ownerBusinessTeamId,
+    teamId: input.teamId,
+    name: `${input.name} Webhook`,
+    pathKey,
+    method: "POST",
+    requestSchemaJson: input.inputSchemaJson,
+    secretHint,
+    isEnabled: input.status === "archived" ? 0 : 1,
+  });
 }
 
 export function getTaskBlueprintPermissionPreview(blueprintId: string) {
@@ -1837,6 +1936,79 @@ export function submitTaskRunFromBlueprint(args: {
   });
 }
 
+function matchCronPart(part: string, value: number) {
+  if (part === "*") return true;
+  if (part.startsWith("*/")) {
+    const interval = Number(part.slice(2));
+    return Number.isInteger(interval) && interval > 0 && value % interval === 0;
+  }
+  return part
+    .split(",")
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item))
+    .includes(value);
+}
+
+function isCronBlueprintDue(expression: unknown, now = new Date()) {
+  if (typeof expression !== "string" || !expression.trim()) return false;
+  const [minutePart, hourPart, dayOfMonthPart, monthPart, dayOfWeekPart] = expression.trim().split(/\s+/);
+  if (!minutePart || !hourPart || !dayOfMonthPart || !monthPart || !dayOfWeekPart) return false;
+  return (
+    matchCronPart(minutePart, now.getMinutes()) &&
+    matchCronPart(hourPart, now.getHours()) &&
+    matchCronPart(dayOfMonthPart, now.getDate()) &&
+    matchCronPart(monthPart, now.getMonth() + 1) &&
+    matchCronPart(dayOfWeekPart, now.getDay())
+  );
+}
+
+export function submitDueTaskBlueprintSchedules(args: {
+  now?: string;
+  requestedBy?: string;
+  inputPayload?: Record<string, unknown>;
+} = {}) {
+  const now = args.now ? new Date(args.now) : new Date();
+  const results = listTaskBlueprints()
+    .filter((blueprint) => blueprint.status === "active")
+    .filter((blueprint) => {
+      const trigger = parseJsonRecord(blueprint.triggerJson);
+      return normalizeTriggerType(trigger.type) === "schedule" && isCronBlueprintDue(trigger.expression, now);
+    })
+    .map((blueprint) => {
+      try {
+        const detail = submitTaskRunFromBlueprint({
+          blueprintId: blueprint.id,
+          requestedBy: args.requestedBy ?? "scheduler",
+          sourceRef: `cron:${now.toISOString().slice(0, 16)}`,
+          priority: 72,
+          inputPayload: {
+            scheduler_now: now.toISOString(),
+            ...args.inputPayload,
+          },
+        });
+        return {
+          ok: true,
+          blueprintId: blueprint.id,
+          taskRunId: detail?.taskRun.id ?? null,
+          status: detail?.taskRun.status ?? "created",
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          blueprintId: blueprint.id,
+          error: error instanceof Error ? error.message : "submit failed",
+        };
+      }
+    });
+
+  return {
+    ok: results.every((result) => result.ok),
+    now: now.toISOString(),
+    submittedCount: results.filter((result) => result.ok).length,
+    results,
+  };
+}
+
 export async function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
   if (!taskRun) throw new Error("任务不存在。");
@@ -1893,7 +2065,21 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     content: `节点 ${runnable.nodeKey} 开始执行，发起人：${requestedBy}。`,
   });
 
-  const nodeInput = JSON.parse(runnable.inputJson) as { action?: string; tool?: string };
+  const nodeInput = JSON.parse(runnable.inputJson) as {
+    action?: string;
+    tool?: string;
+    assignment?: string;
+    blockId?: string;
+    blockType?: string;
+    title?: string;
+    targetAgentTeamId?: string;
+    script?: string;
+    url?: string;
+    method?: string;
+    connectorType?: string;
+    publisherRef?: string;
+    payloadTemplate?: string;
+  };
   const simulatedDurationMs = Number(
     (nodeInput as { simulatedDurationMs?: unknown }).simulatedDurationMs ?? 0,
   );
@@ -2018,6 +2204,70 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
         ? "OpenViking 当前不可用，任务保留本地知识上下文快照并继续执行。"
         : "OpenViking 知识空间已按 Agent 团队可见性完成读取。",
       metadata: retrieval,
+    });
+  }
+
+  const blockType = typeof nodeInput.blockType === "string" ? nodeInput.blockType : "";
+  if (blockType === "agent_team") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "agent_team_delegated",
+      foldGroup: "Execution",
+      title: "Agent 团队块已调度",
+      content: `节点 ${runnable.nodeKey} 将任务委托给 Agent 团队 ${nodeInput.targetAgentTeamId ?? "未指定团队"}。`,
+      metadata: {
+        targetAgentTeamId: nodeInput.targetAgentTeamId ?? null,
+        assignment: nodeInput.assignment ?? null,
+      },
+    });
+  }
+  if (blockType === "script_hook") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "command_executed",
+      foldGroup: "Execution",
+      title: "脚本 Hook 已执行",
+      content: nodeInput.script ? `脚本命令：${nodeInput.script}` : "脚本 Hook 已完成。",
+      metadata: {
+        script: nodeInput.script ?? null,
+        assignment: nodeInput.assignment ?? null,
+      },
+    });
+  }
+  if (blockType === "http_hook") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "tool_call_finished",
+      foldGroup: "Execution",
+      title: "HTTP Hook 已调用",
+      content: `${nodeInput.method ?? "POST"} ${nodeInput.url ?? "未配置 URL"}`,
+      metadata: {
+        url: nodeInput.url ?? null,
+        method: nodeInput.method ?? "POST",
+        payloadTemplate: nodeInput.payloadTemplate ?? null,
+      },
+    });
+  }
+  if (blockType === "notification") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "output_published",
+      foldGroup: "Synthesis",
+      title: "通知 Hook 已生成",
+      content: `通知通道：${nodeInput.connectorType ?? "未指定"}，发布器：${nodeInput.publisherRef ?? "默认发布器"}。`,
+      metadata: {
+        connectorType: nodeInput.connectorType ?? null,
+        publisherRef: nodeInput.publisherRef ?? null,
+        payloadTemplate: nodeInput.payloadTemplate ?? null,
+      },
     });
   }
 

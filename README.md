@@ -41,10 +41,11 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Agent 定义验证与优化：可直接调用当前模型服务优化 Agent 提示词和职责描述，并在保存前做真实模型验证，查看输出、推理摘要和工具调用结果；验证会按 Agent 自身的运行约束执行。
 - 交互工作台：`/interactions`、`/interactions/:id`，用于真实模型对话、Agent 团队会话、推理摘要 / tool call 轨迹和人工介入；它保留为 human-in-the-loop 验证面，不再承担任务内核建模职责。单 Agent 会话可直接选择 Agent 定义并继承默认系统提示词与运行约束。
 - 任务定义中心：`/task-blueprints`、`/task-blueprints/:id`，支持把任务与 Agent 团队、执行环境和触发方式绑定起来，并保留 Task Blueprint 内核的高级策略能力。
+- 块式任务编排：任务蓝图编辑器支持通过界面添加 Agent 执行、Agent 团队执行、脚本 Hook、HTTP Hook、通知 Hook 等执行块；块的依赖、工具、动作、脚本、URL、通知通道和 Payload 模板都会落库到 `agent_team_run_plan_json`，实例化后生成 TaskRunNode 和事件流。
 - Finding 治理：`/findings`，支持对代码检视、安全检视和其他任务产出的标准化 Finding 做误报、忽略、修复、发布状态跟踪，并可编辑证据、建议和分类。
 - 团队治理：`/business-teams`、`/team-members`、`/team-permissions`、`/team-assets`，支持组织结构、成员、权限和团队资产治理；团队成员支持从 Excel 复制粘贴批量导入。
 - 基础配置：`/runtimes`、`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token；系统配置页继续提供执行环境、Webhook 和模型执行配置等长尾入口。
-- 任务蓝图 API：`GET /api/task-blueprints`、`GET /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`GET /api/task-blueprints/:id/permission-preview`。
+- 任务蓝图 API：`GET /api/task-blueprints`、`POST /api/task-blueprints`、`PATCH /api/task-blueprints/:id`、`DELETE /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`POST /api/task-blueprints/scheduler/tick`、`GET /api/task-blueprints/:id/permission-preview`。
 - 任务模板和定时模板只作为兼容视图存在，主读取路径由 `task_blueprints` 派生，避免 `task_templates` / `schedule_templates` 形成第二套任务模型。
 - 插件清单和扩展包导入 API：`GET/POST /api/plugins/manifests`，支持导入插件、执行环境、Webhook endpoint、任务蓝图和兼容模板；`plugins/official/*` 目录用于承载主干自带的官方插件包。
 - 任务提交与执行 API：`POST /api/task-runs/submit`、`POST /api/task-runs/:id/tick`、`POST /api/task-runs/:id/resume`。
@@ -55,7 +56,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Agent 定义 API：`GET /api/agent-definitions`、`POST /api/agent-definitions`、`PATCH /api/agent-definitions`、`POST /api/agent-definitions/optimize`、`POST /api/agent-definitions/test`。
 - 基础配置 API：`/api/provider-profiles`、`/api/provider-runtime-bindings`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/environments`、`/api/webhooks`、`/api/knowledge/spaces`、`/api/knowledge/entries`，均按资源方式支持查询、新增、编辑和删除。
 - 团队治理 API：`/api/tenant-spaces`、`/api/business-teams`、`/api/team-members`、`/api/team-permissions`、`/api/team-assets`、`/api/execution-policies`、`/api/service-catalog`、`/api/access-grants`，均按资源方式支持查询、新增、编辑和删除。
-- Webhook 入口：`POST /api/webhooks/:pathKey`。
+- Webhook 入口：`GET /api/webhooks/:pathKey`、`POST /api/webhooks/:pathKey`。保存 Webhook 类型任务蓝图时会按 `trigger.webhookPathKey` 自动创建或更新对应 endpoint，外部系统可以直接调用自定义路径调入任务。
 - OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/entries`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
 
 ## 配置资源治理原则
