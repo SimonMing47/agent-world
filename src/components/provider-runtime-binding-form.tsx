@@ -54,7 +54,6 @@ export function ProviderRuntimeBindingForm({
   binding,
   title,
   providerOptions,
-  adapterOptions,
   businessTeamOptions,
   embedded = false,
   onSaved,
@@ -182,35 +181,11 @@ export function ProviderRuntimeBindingForm({
               placeholder="默认执行配置"
             />
           </FieldGroup>
-          <FieldGroup label="执行底座">
-            <Select
-              value={form.adapterDefinitionId}
-              onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
-            >
-              {adapterOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </Select>
-          </FieldGroup>
-          <FieldGroup label="运行协议">
-            <Select
-              value={form.runtimeKind}
-              onChange={(event) => setForm({ ...form, runtimeKind: event.target.value })}
-            >
-              {["pi", "hermes", "langgraph", "mastra", "custom"].map((kind) => (
-                <option key={kind} value={kind}>
-                  {kind}
-                </option>
-              ))}
-            </Select>
-          </FieldGroup>
           <FieldGroup label="服务地址">
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-              placeholder="embedded://pi/default"
+              placeholder="embedded://agentworld/default"
             />
           </FieldGroup>
           <FieldGroup label="启动命令">
@@ -286,7 +261,7 @@ export function ProviderRuntimeBindingForm({
           </FieldGroup>
           <FieldGroup
             label="附加配置"
-            hint="保留给执行底座的额外参数。"
+            hint="保留给系统内置执行接口的额外参数。"
             className="md:col-span-2"
           >
             <Textarea
@@ -318,7 +293,7 @@ export function ProviderRuntimeBindingForm({
       <Panel>
       <PanelHeader
         title={title}
-        description="执行协议、默认接口与环境变量映射。"
+        description="默认模型接口、执行参数、密钥引用与环境变量映射。"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

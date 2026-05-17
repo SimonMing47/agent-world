@@ -36,8 +36,8 @@ export type PluginExtensionPoint = {
 export function listBuiltinPluginManifests(): PluginManifest[] {
   return [
     {
-      id: "builtin.provider.pi-runtime",
-      name: "Pi Runtime Provider",
+      id: "builtin.provider.agentworld-runtime",
+      name: "AgentWorld Runtime Provider",
       version: "1.0.0",
       capability: "provider",
       lifecycle: "configured",

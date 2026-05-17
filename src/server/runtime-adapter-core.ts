@@ -208,7 +208,7 @@ function flattenThinkingText(message: AssistantMessage | null) {
 
 class PiRuntimeAdapter implements AgentRuntimeInterface {
   id = "pi-runtime-adapter";
-  label = "Pi Runtime Adapter";
+  label = "AgentWorld Runtime Adapter";
   private readonly sessionStreams = new Map<string, SessionStreamState>();
 
   private getSessionState(sessionId: string) {
@@ -303,7 +303,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         note:
           response.stopReason === "error"
             ? response.errorMessage ?? "Provider 返回错误。"
-            : `Pi embedded runtime 已通过 ${descriptor.providerLabel} 完成真实对话校验。`,
+            : `系统内置运行接口已通过 ${descriptor.providerLabel} 完成真实对话校验。`,
       } satisfies DiscoveredRuntime;
     } catch (error) {
       return {
@@ -312,7 +312,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         agents: buildAgentCatalog(args.binding, args.agentCatalog),
         providers: [args.provider.name],
         latencyMs: null,
-        note: error instanceof Error ? error.message : "Pi runtime 校验失败",
+        note: error instanceof Error ? error.message : "运行接口校验失败",
       } satisfies DiscoveredRuntime;
     }
   }

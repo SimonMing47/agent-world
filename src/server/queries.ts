@@ -429,6 +429,11 @@ export function listProviderRuntimeBindings() {
   );
 }
 
+export function deleteProviderRuntimeBinding(id: string) {
+  execute("DELETE FROM provider_runtime_bindings WHERE id = ?", id);
+  return { ok: true };
+}
+
 export function listRuntimeEndpoints() {
   return queryAll<RuntimeEndpoint>("SELECT * FROM runtime_endpoints ORDER BY name ASC");
 }
@@ -553,8 +558,13 @@ export function listDevelopers() {
 
 export function listExecutionEnvironments() {
   return queryAll<ExecutionEnvironment>(
-    "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
+    "SELECT * FROM execution_environments WHERE status <> 'deleted' ORDER BY status ASC, name ASC",
   );
+}
+
+export function deleteExecutionEnvironment(id: string) {
+  execute("UPDATE execution_environments SET status = 'deleted' WHERE id = ?", id);
+  return { ok: true };
 }
 
 export function getTaskBlueprintEditorOptions() {
@@ -873,6 +883,11 @@ export function upsertExecutionEnvironment(
 
 export function listWebhooks() {
   return queryAll<WebhookEndpoint>("SELECT * FROM webhook_endpoints ORDER BY name ASC");
+}
+
+export function deleteWebhookEndpoint(id: string) {
+  execute("DELETE FROM webhook_endpoints WHERE id = ?", id);
+  return { ok: true };
 }
 
 export function getWebhookEndpointByPathKey(pathKey: string) {

@@ -145,7 +145,7 @@ export function buildRuntimeDescriptor(
     adapterDefinitionId: binding.adapterDefinitionId,
     runtimeKind: binding.runtimeKind,
     executionMode: bindingConfig.executionMode ?? "embedded",
-    eventContract: bindingConfig.eventContract ?? "pi_agent_event_v1",
+    eventContract: bindingConfig.eventContract ?? "provider_event_v1",
     approvalMode: bindingConfig.approvalMode ?? "allow",
     humanIntervention: bindingConfig.humanIntervention ?? "steer",
     defaultModel: provider ? resolveProviderModelId(provider, binding) : bindingConfig.defaultModel ?? "",
