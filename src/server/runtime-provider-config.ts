@@ -5,7 +5,7 @@ import {
 } from "@/server/db";
 
 export type ProviderProfileConfig = {
-  piApi?: string;
+  modelApi?: string;
   contextWindow?: number;
   maxTokens?: number;
   reasoning?: boolean;
@@ -70,7 +70,7 @@ export function maskSecretRef(secretRef: string) {
 
 export function resolveProviderApi(provider: ProviderProfile) {
   const config = resolveProviderConfig(provider);
-  if (config.piApi) return config.piApi;
+  if (config.modelApi) return config.modelApi;
 
   switch (provider.apiStyle) {
     case "openai-responses":

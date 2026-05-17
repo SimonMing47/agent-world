@@ -39,7 +39,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Agent 目录：`/agents`，支持按默认系统提示词定义 Agent，配置默认模型服务、模型、工具、记忆范围，并附带运行约束，包括审批模式、推理强度、人工介入、允许 / 禁止工具、仓库权限、记忆权限和密钥权限。
 - Agent 团队目录：`/agent-teams`，支持从 Agent 目录选择成员、指定 Leader、定义团队结构与工作流、设置团队目标 / 编排提示词，并把 Agent 团队共享给不同业务团队，分别授予查看、执行或编辑权限。
 - Agent 定义验证与优化：可直接调用当前模型服务优化 Agent 提示词和职责描述，并在保存前做真实模型验证，查看输出、推理摘要和工具调用结果；验证会按 Agent 自身的运行约束执行。
-- 交互工作台：`/interactions`、`/interactions/:id`，用于真实模型对话、Agent 团队会话、推理摘要 / tool call 轨迹和人工介入；它保留为 human-in-the-loop 验证面，不再承担任务内核建模职责。单 Agent 会话可直接选择 Agent 定义并继承默认系统提示词与运行约束。
+- 交互工作台：`/interactions`、`/interactions/:id`，用于真实模型对话、Agent 团队会话、推理摘要 / tool call 轨迹和人工介入；它保留为 human-in-the-loop 验证面，不再承担任务内核建模职责。单 Agent 会话可直接选择 Agent 定义并继承默认系统提示词与运行约束，会话目录支持打开和删除，运行中的会话会被后端保护避免误删。
 - 任务定义中心：`/task-blueprints`、`/task-blueprints/:id`，支持把任务与 Agent 团队、执行环境和触发方式绑定起来，并保留 Task Blueprint 内核的高级策略能力。
 - 块式任务编排：任务蓝图编辑器支持通过界面添加 Agent 执行、Agent 团队执行、脚本 Hook、HTTP Hook、通知 Hook 等执行块；块的依赖、工具、动作、脚本、URL、通知通道和 Payload 模板都会落库到 `agent_team_run_plan_json`，实例化后生成 TaskRunNode 和事件流。
 - Finding 治理：`/findings`，支持对代码检视、安全检视和其他任务产出的标准化 Finding 做误报、忽略、修复、发布状态跟踪，并可编辑证据、建议和分类。

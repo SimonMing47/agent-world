@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eye, Plus } from "lucide-react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { RuntimeSessionCreateForm } from "@/components/runtime-session-create-form";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -152,12 +153,19 @@ export default function RuntimeInteractionsPage() {
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(session.updatedAt)}</DataTableCell>
                     <DataTableCell align="right">
-                      <Link href={`/interactions/${session.id}`}>
-                        <Button size="sm" variant="ghost">
-                          <Eye className="h-4 w-4" />
-                          打开
-                        </Button>
-                      </Link>
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/interactions/${session.id}`}>
+                          <Button size="sm" variant="ghost">
+                            <Eye className="h-4 w-4" />
+                            打开
+                          </Button>
+                        </Link>
+                        <DeleteResourceButton
+                          endpoint={`/api/runtime-sessions/${session.id}`}
+                          id={session.id}
+                          confirmText={`确认删除会话「${session.title}」？`}
+                        />
+                      </div>
                     </DataTableCell>
                   </DataTableRow>
                 );

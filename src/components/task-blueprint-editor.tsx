@@ -622,7 +622,7 @@ export function TaskBlueprintEditor({
       return;
     }
 
-    const providerAdapterId = form.providerAdapterId.trim() || options.providerAdapters[0]?.id || "pi-runtime-adapter";
+    const providerAdapterId = form.providerAdapterId.trim() || options.providerAdapters[0]?.id || "agentworld-runtime-adapter";
 
     if (form.triggerType === "cron" && !form.triggerExpression.trim()) {
       setIsSaving(false);

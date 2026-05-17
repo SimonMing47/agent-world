@@ -309,7 +309,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       ownerBusinessTeamId,
       teamId,
       blueprint.environmentId ?? null,
-      blueprint.providerAdapterId ?? "pi-runtime-adapter",
+      blueprint.providerAdapterId ?? "agentworld-runtime-adapter",
       blueprint.version ?? 1,
       blueprint.status ?? "active",
       JSON.stringify(blueprint.trigger),
@@ -497,7 +497,7 @@ export function buildExtensionImportExample() {
         ownerBusinessTeamSlug: "release-team",
         teamSlug: "pr-vanguard",
         environmentId: "env-codehub-mr-review",
-        providerAdapterId: "pi-runtime-adapter",
+        providerAdapterId: "agentworld-runtime-adapter",
         trigger: {
           type: "webhook",
           connector: "official.codehub",

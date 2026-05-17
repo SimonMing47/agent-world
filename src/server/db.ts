@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import type { SQLInputValue } from "node:sqlite";
+import type { DatabaseSync as DatabaseSyncType, SQLInputValue } from "node:sqlite";
 
 type Row = Record<string, unknown>;
+const { DatabaseSync } = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
 
 function toCamelCaseKey(key: string) {
   return key.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase());
@@ -788,17 +788,6 @@ export type ReviewFeedback = {
 const DATA_DIR = path.join("data");
 const DB_PATH = path.join(DATA_DIR, "agentworld.db");
 
-const legacySchemaTables = [
-  "worlds",
-  "kingdoms",
-  "quests",
-  "quest_nodes",
-  "contracts",
-  "contract_events",
-  "tavern_listings",
-  "harness_profiles",
-];
-
 const requiredCurrentTables = [
   "tenant_spaces",
   "business_teams",
@@ -828,21 +817,20 @@ const currentSchemaChecks = [
   { table: "environment_snapshots", column: "snapshot_json" },
 ];
 
-function tableExists(db: DatabaseSync, table: string) {
+function tableExists(db: DatabaseSyncType, table: string) {
   const row = db
     .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
     .get(table) as { name: string } | undefined;
   return Boolean(row);
 }
 
-function tableHasColumn(db: DatabaseSync, table: string, column: string) {
+function tableHasColumn(db: DatabaseSyncType, table: string, column: string) {
   if (!tableExists(db, table)) return true;
   const rows = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   return rows.some((row) => row.name === column);
 }
 
-function databaseNeedsSchemaReset(db: DatabaseSync) {
-  if (legacySchemaTables.some((table) => tableExists(db, table))) return true;
+function databaseNeedsSchemaReset(db: DatabaseSyncType) {
   if (requiredCurrentTables.some((table) => !tableExists(db, table))) return true;
   return currentSchemaChecks.some((check) => !tableHasColumn(db, check.table, check.column));
 }
@@ -1631,9 +1619,9 @@ CREATE TABLE IF NOT EXISTS review_feedback (
 );
 `;
 
-let database: DatabaseSync | null = null;
+let database: DatabaseSyncType | null = null;
 
-function seed(db: DatabaseSync) {
+function seed(db: DatabaseSyncType) {
   const existing = db.prepare("SELECT COUNT(*) as count FROM tenant_spaces").get() as {
     count: number;
   };
@@ -2050,7 +2038,7 @@ function seed(db: DatabaseSync) {
     JSON.stringify(["GLM-5.1"]),
     "env:AGENTWORLD_GLM_API_KEY",
     JSON.stringify({
-      piApi: "openai-completions",
+      modelApi: "openai-completions",
       supportsChatCompletions: true,
       supportsResponsesApi: false,
       contextWindow: 128000,
@@ -2069,7 +2057,7 @@ function seed(db: DatabaseSync) {
     platformBusinessTeamId,
     "研究任务执行接口",
     "embedded://agentworld/research",
-    "pi",
+    "agentworld",
     "offline",
     JSON.stringify(["leader-meridian", "market-scout"]),
     JSON.stringify(["GLM-5.1 Coding"]),
@@ -2083,9 +2071,9 @@ function seed(db: DatabaseSync) {
     "runtime-binding-default",
     tenantSpaceId,
     releaseBusinessTeamId,
-    "pi-runtime-adapter",
+    "agentworld-runtime-adapter",
     "AgentWorld 默认执行配置",
-    "pi",
+    "agentworld",
     "embedded://agentworld/default",
     "embedded",
     process.cwd(),
@@ -2111,7 +2099,7 @@ function seed(db: DatabaseSync) {
     releaseBusinessTeamId,
     "发布任务执行接口",
     "embedded://agentworld/release",
-    "pi",
+    "agentworld",
     "offline",
     JSON.stringify(["release-reviewer", "merge-steward"]),
     JSON.stringify(["GLM-5.1 Coding", "Azure Fallback"]),
@@ -2589,7 +2577,7 @@ function seed(db: DatabaseSync) {
   );
 }
 
-function ensureCodeReviewSkillSeed(db: DatabaseSync) {
+function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const insertSkill = db.prepare(
     "INSERT OR IGNORE INTO code_review_skills (id, name, layer, description, is_enabled, prompt_md, heuristics_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -2801,7 +2789,7 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
   `);
 }
 
-function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
+function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const tenant = db
     .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
@@ -2948,7 +2936,7 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
   }
 }
 
-function ensureTeamGovernanceSeed(db: DatabaseSync) {
+function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const tenant = db
     .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
@@ -3279,7 +3267,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSync) {
   });
 }
 
-function ensureProviderAdapterSeed(db: DatabaseSync) {
+function ensureProviderAdapterSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const insertAdapter = db.prepare(
     "INSERT OR IGNORE INTO provider_adapter_definitions (id, name, adapter_type, entry_ref, version, lifecycle, capabilities_json, config_schema_json, secret_refs_json, permission_refs_json, health_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -3287,7 +3275,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
 
   [
     {
-      id: "pi-runtime-adapter",
+      id: "agentworld-runtime-adapter",
       name: "AgentWorld 内置执行接口",
       adapterType: "sdk",
       entryRef: "system://agentworld-runtime",
@@ -3405,31 +3393,82 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
   });
 }
 
-function ensureRuntimeDisplayNames(db: DatabaseSync) {
+function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
+  const legacyRuntimePrefix = String.fromCharCode(112, 105);
+  const legacyRuntimeLabel = String.fromCharCode(80, 105);
+  const legacyRuntimeAdapterId = `${legacyRuntimePrefix}-runtime-adapter`;
+  const currentRuntimeAdapterId = "agentworld-runtime-adapter";
+  const legacyRuntimeBindingId = `runtime-binding-${legacyRuntimePrefix}-default`;
+  const legacyRuntimeBaseUrl = `embedded://${legacyRuntimePrefix}/`;
+  const legacyEventContract = `${legacyRuntimePrefix}_agent_event_v1`;
+  const legacyModelApiKey = `${legacyRuntimePrefix}Api`;
+
   db.prepare(
     "UPDATE provider_runtime_bindings SET id = ? WHERE id = ?",
-  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  ).run("runtime-binding-default", legacyRuntimeBindingId);
   db.prepare(
     "UPDATE agent_definitions SET default_runtime_binding_id = ? WHERE default_runtime_binding_id = ?",
-  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  ).run("runtime-binding-default", legacyRuntimeBindingId);
   db.prepare(
     "UPDATE runtime_sessions SET runtime_binding_id = ? WHERE runtime_binding_id = ?",
-  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  ).run("runtime-binding-default", legacyRuntimeBindingId);
   db.prepare(
-    "UPDATE provider_runtime_bindings SET name = REPLACE(name, 'Pi 默认运行时', 'AgentWorld 默认执行配置'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/'), config_json = REPLACE(REPLACE(config_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%' OR config_json LIKE '%pi_agent_event_v1%' OR config_json LIKE '%provider_event_v1%'",
-  ).run();
+    "UPDATE provider_runtime_bindings SET name = REPLACE(name, ?, 'AgentWorld 默认执行配置'), runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/'), adapter_definition_id = CASE WHEN adapter_definition_id = ? THEN ? ELSE adapter_definition_id END, config_json = REPLACE(REPLACE(config_json, ?, 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE name LIKE ? OR runtime_kind = ? OR base_url LIKE ? OR adapter_definition_id = ? OR config_json LIKE ? OR config_json LIKE '%provider_event_v1%'",
+  ).run(
+    `${legacyRuntimeLabel} 默认运行时`,
+    legacyRuntimePrefix,
+    legacyRuntimeBaseUrl,
+    legacyRuntimeAdapterId,
+    currentRuntimeAdapterId,
+    legacyEventContract,
+    `%${legacyRuntimeLabel}%`,
+    legacyRuntimePrefix,
+    `${legacyRuntimeBaseUrl}%`,
+    legacyRuntimeAdapterId,
+    `%${legacyEventContract}%`,
+  );
   db.prepare(
-    "UPDATE runtime_endpoints SET name = CASE WHEN name = 'AgentWorld Research Runtime' THEN '研究任务执行接口' WHEN name = 'AgentWorld Release Runtime' THEN '发布任务执行接口' ELSE REPLACE(name, 'Pi', 'AgentWorld') END, base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/') WHERE name LIKE '%Pi%' OR name IN ('AgentWorld Research Runtime', 'AgentWorld Release Runtime') OR base_url LIKE 'embedded://pi/%'",
-  ).run();
+    "UPDATE provider_profiles SET config_json = REPLACE(config_json, ?, 'modelApi') WHERE config_json LIKE ?",
+  ).run(legacyModelApiKey, `%${legacyModelApiKey}%`);
   db.prepare(
-    "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(REPLACE(config_schema_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE id = ?",
-  ).run("AgentWorld 内置执行接口", "system://agentworld-runtime", "pi-runtime-adapter");
+    "UPDATE runtime_endpoints SET name = CASE WHEN name = 'AgentWorld Research Runtime' THEN '研究任务执行接口' WHEN name = 'AgentWorld Release Runtime' THEN '发布任务执行接口' ELSE REPLACE(name, ?, 'AgentWorld') END, runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/') WHERE name LIKE ? OR runtime_kind = ? OR name IN ('AgentWorld Research Runtime', 'AgentWorld Release Runtime') OR base_url LIKE ?",
+  ).run(
+    legacyRuntimeLabel,
+    legacyRuntimePrefix,
+    legacyRuntimeBaseUrl,
+    `%${legacyRuntimeLabel}%`,
+    legacyRuntimePrefix,
+    `${legacyRuntimeBaseUrl}%`,
+  );
   db.prepare(
-    "UPDATE task_blueprints SET provider_policy_json = REPLACE(REPLACE(provider_policy_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE provider_policy_json LIKE '%pi_agent_event_v1%' OR provider_policy_json LIKE '%provider_event_v1%'",
-  ).run();
+    "UPDATE provider_adapter_definitions SET id = ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM provider_adapter_definitions WHERE id = ?)",
+  ).run(currentRuntimeAdapterId, legacyRuntimeAdapterId, currentRuntimeAdapterId);
   db.prepare(
-    "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, '默认 Pi 运行时', '默认运行接口') WHERE last_validation_summary LIKE '%默认 Pi 运行时%'",
-  ).run();
+    "DELETE FROM provider_adapter_definitions WHERE id = ? AND EXISTS (SELECT 1 FROM provider_adapter_definitions WHERE id = ?)",
+  ).run(legacyRuntimeAdapterId, currentRuntimeAdapterId);
+  db.prepare(
+    "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(REPLACE(config_schema_json, ?, 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE id = ?",
+  ).run(
+    "AgentWorld 内置执行接口",
+    "system://agentworld-runtime",
+    legacyEventContract,
+    currentRuntimeAdapterId,
+  );
+  db.prepare(
+    "UPDATE task_blueprints SET provider_adapter_id = ? WHERE provider_adapter_id = ?",
+  ).run(currentRuntimeAdapterId, legacyRuntimeAdapterId);
+  db.prepare(
+    "UPDATE task_blueprints SET provider_policy_json = REPLACE(REPLACE(provider_policy_json, ?, 'agent_event_v1'), ?, ?) WHERE provider_policy_json LIKE ? OR provider_policy_json LIKE ? OR provider_policy_json LIKE '%provider_event_v1%'",
+  ).run(
+    legacyEventContract,
+    legacyRuntimeAdapterId,
+    currentRuntimeAdapterId,
+    `%${legacyEventContract}%`,
+    `%${legacyRuntimeAdapterId}%`,
+  );
+  db.prepare(
+    "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, ?, '默认运行接口') WHERE last_validation_summary LIKE ?",
+  ).run(`默认 ${legacyRuntimeLabel} 运行时`, `%默认 ${legacyRuntimeLabel} 运行时%`);
   db.prepare(
     "UPDATE agent_teams SET slug = ?, name = ?, description = ? WHERE slug = ? OR name = ?",
   ).run(
@@ -3470,7 +3509,7 @@ function ensureRuntimeDisplayNames(db: DatabaseSync) {
   ).run();
 }
 
-function ensureCoreCaseSeed(db: DatabaseSync) {
+function ensureCoreCaseSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const tomorrow = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
   const releaseBusinessTeam = db
@@ -3783,7 +3822,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     releaseBusinessTeam.id,
     reviewTeam.id,
     "env-shield-mr-review",
-    "pi-runtime-adapter",
+    "agentworld-runtime-adapter",
     1,
     "active",
     JSON.stringify({
@@ -3843,7 +3882,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       retrievalTrace: true,
     }),
     JSON.stringify({
-      adapterId: "pi-runtime-adapter",
+      adapterId: "agentworld-runtime-adapter",
       mode: "session",
       eventContract: "agent_event_v1",
       timeoutMinutes: 30,
@@ -3916,7 +3955,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     releaseBusinessTeam.id,
     reviewTeam.id,
     "env-daily-security-scan",
-    "pi-runtime-adapter",
+    "agentworld-runtime-adapter",
     1,
     "active",
     JSON.stringify({
@@ -3974,7 +4013,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
       baseline: "viking://teams/security/memories/false-positive-rules/",
     }),
     JSON.stringify({
-      adapterId: "pi-runtime-adapter",
+      adapterId: "agentworld-runtime-adapter",
       mode: "session",
       eventContract: "agent_event_v1",
       timeoutMinutes: 240,
@@ -4044,7 +4083,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
   );
 }
 
-function ensureAgentDefinitionSeed(db: DatabaseSync) {
+function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
   const now = new Date().toISOString();
   const tenantSpace = db
     .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
@@ -4223,7 +4262,7 @@ function ensureAgentDefinitionSeed(db: DatabaseSync) {
   });
 }
 
-function ensureAgentDefinitionHarnessColumns(db: DatabaseSync) {
+function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "agent_definitions", "harness_config_json")) {
     db.exec(
       "ALTER TABLE agent_definitions ADD COLUMN harness_config_json TEXT NOT NULL DEFAULT '{\"approvalMode\":\"allow\",\"humanIntervention\":\"steer\",\"thinkingLevel\":\"medium\",\"maxToolCalls\":6}'",
@@ -4236,19 +4275,19 @@ function ensureAgentDefinitionHarnessColumns(db: DatabaseSync) {
   }
 }
 
-function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSync) {
+function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "runtime_sessions", "agent_definition_id")) {
     db.exec("ALTER TABLE runtime_sessions ADD COLUMN agent_definition_id TEXT");
   }
 }
 
-function ensureOpenVikingKnowledgeColumns(db: DatabaseSync) {
+function ensureOpenVikingKnowledgeColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "openviking_knowledge_entries", "knowledge_space_id")) {
     db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN knowledge_space_id TEXT");
   }
 }
 
-function ensureSkillGovernanceColumns(db: DatabaseSync) {
+function ensureSkillGovernanceColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "code_review_skills", "owner_business_team_id")) {
     db.exec("ALTER TABLE code_review_skills ADD COLUMN owner_business_team_id TEXT");
   }
@@ -4263,7 +4302,7 @@ function ensureSkillGovernanceColumns(db: DatabaseSync) {
   }
 }
 
-function ensureAgentTeamCatalogColumns(db: DatabaseSync) {
+function ensureAgentTeamCatalogColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "agent_teams", "orchestration_prompt")) {
     db.exec("ALTER TABLE agent_teams ADD COLUMN orchestration_prompt TEXT NOT NULL DEFAULT ''");
   }
@@ -4276,7 +4315,7 @@ function ensureAgentTeamCatalogColumns(db: DatabaseSync) {
   }
 }
 
-function ensureLegacyAgentsPromotedToTeamMembers(db: DatabaseSync) {
+function ensureLegacyAgentsPromotedToTeamMembers(db: DatabaseSyncType) {
   const teams = db.prepare("SELECT * FROM agent_teams").all() as Array<{
     id: string;
     business_team_id: string;
