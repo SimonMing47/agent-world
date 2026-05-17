@@ -54,13 +54,13 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - 基础配置 API：`/api/provider-profiles`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/knowledge/spaces`，均按资源方式支持查询、新增、编辑和删除。
 - 团队治理 API：`/api/tenant-spaces`、`/api/business-teams`、`/api/team-members`、`/api/team-permissions`、`/api/team-assets`、`/api/execution-policies`、`/api/service-catalog`、`/api/access-grants`，均按资源方式支持查询、新增、编辑和删除。
 - Webhook 入口：`POST /api/webhooks/:pathKey`。
-- OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
+- OpenViking 记忆接口：`/api/knowledge/layers`、`/api/knowledge/spaces`、`/api/knowledge/entries`、`/api/knowledge/context`、`/api/knowledge/read`、`/api/knowledge/skills`。
 
 ## 配置资源治理原则
 
 控制台中出现的配置对象都必须是可持久化资源，不能把页面当作架构说明书或静态示例。当前后台页面统一采用“表格列表 + 详情弹窗 + 新增 / 编辑弹窗 + 删除动作”的形态，配置写入 SQLite，任务运行时再从数据库读取：
 
-- 基础配置：AI Provider、Skill、MCP Server、Connector、Codebase、Codebase 操作者 Token、知识空间。
+- 基础配置：AI Provider、Skill、MCP Server、Connector、Codebase、Codebase 操作者 Token、知识空间、知识条目。
 - 团队治理：租户空间、业务团队、团队成员、团队权限、团队资产、执行策略、服务目录、跨团队授权。
 - 智能体治理：Agent 定义、Agent Team 定义、Agent Team 成员与共享关系。
 - 任务治理：Task Blueprint、触发方式、执行环境、权限策略、记忆策略和输出策略。
@@ -206,6 +206,12 @@ API：
 ```text
 GET  /api/knowledge/spaces
 POST /api/knowledge/spaces
+PATCH /api/knowledge/spaces
+DELETE /api/knowledge/spaces
+GET  /api/knowledge/entries
+POST /api/knowledge/entries
+PATCH /api/knowledge/entries
+DELETE /api/knowledge/entries
 GET  /api/knowledge/context?teamId=...&blueprintId=...
 GET  /api/knowledge/layers
 GET  /api/knowledge/read?uri=...&level=L0|L1|L2

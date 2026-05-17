@@ -26,6 +26,18 @@ type KnowledgeInput = {
   skillId?: string | null;
 };
 
+type KnowledgeEntryInput = {
+  id?: string;
+  knowledgeSpaceId?: string | null;
+  layer: string;
+  scopeKey: string;
+  title: string;
+  contentMd: string;
+  metadataJson?: string;
+  sourceType: "review_context" | "review_finding" | "review_feedback" | "skill" | "manual";
+  skillId?: string | null;
+};
+
 type RemoteSyncResult = {
   status: string;
   error: string | null;
@@ -234,6 +246,82 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
     syncStatus: syncResult.status,
     syncError: syncResult.error,
   };
+}
+
+function parseMetadataJson(value: string | undefined) {
+  if (!value) return {};
+  const parsed = JSON.parse(value) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("metadataJson must be a JSON object");
+  }
+  return parsed as Record<string, unknown>;
+}
+
+export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
+  const existing = input.id
+    ? queryOne<OpenVikingKnowledgeEntry>("SELECT * FROM openviking_knowledge_entries WHERE id = ?", input.id)
+    : null;
+  const id = input.id || randomUUID();
+  const createdAt = existing?.createdAt ?? new Date().toISOString();
+  const knowledgeSpace = getKnowledgeSpace(input.knowledgeSpaceId);
+  const vikingUri = buildVikingUri(input.layer, input.scopeKey, id, input.knowledgeSpaceId);
+  const filePath = shadowFilePath(input.layer, input.scopeKey, id);
+  const metadata = {
+    ...parseMetadataJson(input.metadataJson),
+    vikingUri,
+    layer: input.layer,
+    scopeKey: input.scopeKey,
+    sourceType: input.sourceType,
+    knowledgeSpaceId: knowledgeSpace?.id ?? null,
+    knowledgeSpaceName: knowledgeSpace?.name ?? null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, input.contentMd, "utf8");
+  const syncResult = await syncRemote(vikingUri, input.contentMd);
+
+  if (existing) {
+    execute(
+      "UPDATE openviking_knowledge_entries SET knowledge_space_id = ?, layer = ?, scope_key = ?, skill_id = ?, viking_uri = ?, title = ?, content_md = ?, metadata_json = ?, source_type = ?, sync_status = ?, sync_error = ? WHERE id = ?",
+      knowledgeSpace?.id ?? null,
+      input.layer,
+      input.scopeKey,
+      input.skillId ?? null,
+      vikingUri,
+      input.title,
+      input.contentMd,
+      JSON.stringify(metadata),
+      input.sourceType,
+      syncResult.status,
+      syncResult.error,
+      id,
+    );
+  } else {
+    execute(
+      "INSERT INTO openviking_knowledge_entries (id, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title, content_md, metadata_json, source_type, sync_status, sync_error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      id,
+      knowledgeSpace?.id ?? null,
+      input.layer,
+      input.scopeKey,
+      input.skillId ?? null,
+      vikingUri,
+      input.title,
+      input.contentMd,
+      JSON.stringify(metadata),
+      input.sourceType,
+      syncResult.status,
+      syncResult.error,
+      createdAt,
+    );
+  }
+
+  return queryOne<OpenVikingKnowledgeEntry>("SELECT * FROM openviking_knowledge_entries WHERE id = ?", id);
+}
+
+export function deleteKnowledgeEntry(id: string) {
+  execute("DELETE FROM openviking_knowledge_entries WHERE id = ?", id);
+  return { ok: true };
 }
 
 export function listKnowledgeLayers() {
