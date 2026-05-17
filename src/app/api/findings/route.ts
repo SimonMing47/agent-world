@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDashboardSnapshot, listFindings } from "@/server/queries";
 import { deleteFinding, updateFinding, upsertFinding } from "@/server/finding-core";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, finding });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Finding 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveFindingFailed") },
       { status: 400 },
     );
   }
@@ -33,7 +34,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, finding });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "更新 Finding 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.updateFindingFailed") },
       { status: 400 },
     );
   }

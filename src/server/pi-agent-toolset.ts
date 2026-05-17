@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type TextContent } from "@earendil-works/pi-ai";
+import { uiText } from "@/lib/language-pack";
 
 const execFileAsync = promisify(execFile);
 
@@ -46,18 +47,18 @@ export function buildReadOnlyWorkspaceTools(
   const deniedToolNames = new Set(policy.deniedToolNames ?? []);
   const blockedMessage =
     approvalMode === "deny"
-      ? "当前运行时已阻断所有工具调用。"
-      : "当前运行时要求人工确认工具调用，请先补充明确指令。";
+      ? uiText("ui.generated.c5c42d9c8cb")
+      : uiText("ui.generated.cf7631103d5");
 
   const guardTool = (toolName: string) => {
     if (approvalMode !== "allow") {
       return blockedMessage;
     }
     if (deniedToolNames.has(toolName)) {
-      return `Tool ${toolName} 已被 Agent Harness 阻断。`;
+      return uiText("ui.server.tools.harnessBlocked", undefined, { toolName });
     }
     if (allowedToolNames && !allowedToolNames.has(toolName)) {
-      return `Tool ${toolName} 不在 Agent Harness 允许列表中。`;
+      return uiText("ui.server.tools.harnessNotAllowed", undefined, { toolName });
     }
     return null;
   };

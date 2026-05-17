@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync as DatabaseSyncType, SQLInputValue } from "node:sqlite";
+import { uiText } from "@/lib/language-pack";
 
 type Row = Record<string, unknown>;
 const { DatabaseSync } = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
@@ -1747,8 +1748,8 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     null,
     "platform-team",
-    "平台工程团队",
-    "负责平台底座、运行稳定性、模型服务和团队级治理能力。",
+    uiText("ui.generated.c6acd66d836"),
+    uiText("ui.generated.c727e1fe203"),
     "ming",
     "active",
     1820,
@@ -1763,8 +1764,8 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     platformBusinessTeamId,
     "release-team",
-    "发布工程团队",
-    "负责发布自动化、代码检视、安全检视和跨团队交付流程。",
+    uiText("ui.generated.c643f0715bf"),
+    uiText("ui.generated.cf149b7553e"),
     "sophia",
     "active",
     910,
@@ -1780,7 +1781,7 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     null,
     null,
-    "租户基线运行约束",
+    uiText("ui.generated.c38c67ccc73"),
     "Always produce structured operational output. Explain plan changes. Escalate risky actions.",
     JSON.stringify({
       allowed: ["search_web", "read_repo", "openai_chat", "pi_runtime"],
@@ -1798,7 +1799,7 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     platformBusinessTeamId,
     null,
-    "平台只读运行约束",
+    uiText("ui.generated.ced8c1832b2"),
     "Prefer read-only investigation. Any production-changing action must wait for a human gate.",
     JSON.stringify({
       allowed: ["search_web", "read_repo", "incident_index", "openai_chat"],
@@ -1816,7 +1817,7 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     releaseBusinessTeamId,
     null,
-    "发布回写运行约束",
+    uiText("ui.generated.c85e62dc08b"),
     "Review repository intent carefully. Never merge or write without explicit approval.",
     JSON.stringify({
       allowed: ["read_repo", "github_pr", "ci_read", "openai_chat"],
@@ -1834,8 +1835,8 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     null,
     null,
-    "服务目录只读运行约束",
-    "服务目录调用默认只读；只有跨团队授权明确放开时才允许更高风险动作。",
+    uiText("ui.generated.c064f325fbc"),
+    uiText("ui.generated.c68b5446136"),
     JSON.stringify({
       allowed: ["openai_chat", "search_web", "read_repo"],
       blocked: ["write_repo", "shell_exec"],
@@ -1892,8 +1893,8 @@ function seed(db: DatabaseSyncType) {
     reviewTeamId,
     releaseBusinessTeamId,
     "code-review-team",
-    "代码检视执行团队",
-    "负责 MR 代码检视、发布风险识别和回写前审批控制。",
+    uiText("ui.generated.c55cc5fe01b"),
+    uiText("ui.generated.c047e3e807a"),
     null,
     "parallel",
     JSON.stringify({ type: "object", required: ["repository", "pullRequest"] }),
@@ -2079,7 +2080,7 @@ function seed(db: DatabaseSyncType) {
     randomUUID(),
     tenantSpaceId,
     platformBusinessTeamId,
-    "研究任务执行接口",
+    uiText("ui.generated.cf161455343"),
     "embedded://agentworld/research",
     "agentworld",
     "offline",
@@ -2096,7 +2097,7 @@ function seed(db: DatabaseSyncType) {
     tenantSpaceId,
     releaseBusinessTeamId,
     "agentworld-runtime-adapter",
-    "AgentWorld 默认执行配置",
+    uiText("ui.generated.c5034c77943"),
     "agentworld",
     "embedded://agentworld/default",
     "embedded",
@@ -2121,7 +2122,7 @@ function seed(db: DatabaseSyncType) {
     randomUUID(),
     tenantSpaceId,
     releaseBusinessTeamId,
-    "发布任务执行接口",
+    uiText("ui.generated.c3453ada64c"),
     "embedded://agentworld/release",
     "agentworld",
     "offline",
@@ -2448,7 +2449,7 @@ function seed(db: DatabaseSyncType) {
     "open",
     iso(-1000 * 60 * 58),
     null,
-    JSON.stringify({ team: "代码检视执行团队" }),
+    JSON.stringify({ team: uiText("ui.generated.c55cc5fe01b") }),
   );
   insertSpan.run(
     randomUUID(),
@@ -2471,8 +2472,8 @@ function seed(db: DatabaseSyncType) {
       1,
       "planning",
       "Planning",
-      "任务已接收",
-      "调度器时间片已生成任务，并选择 Incident Observatory 团队接手。",
+      uiText("ui.generated.ce3f163cb29"),
+      uiText("ui.generated.c52dc8671d0"),
       iso(-1000 * 60 * 34),
     ],
     [
@@ -2504,8 +2505,8 @@ function seed(db: DatabaseSyncType) {
       1,
       "planning",
       "Planning",
-      "Webhook 任务已创建",
-      "GitHub PR webhook 已先转成受治理任务，之后才允许进入代码仓动作。",
+      uiText("ui.generated.c230e6a1ed3"),
+      uiText("ui.generated.c805a12140f"),
       iso(-1000 * 60 * 58),
     ],
     [
@@ -2527,7 +2528,7 @@ function seed(db: DatabaseSyncType) {
       "approval_required",
       "Human Actions",
       "Write-back blocked",
-      "Merge Steward 已准备好代码仓回写步骤，但发布回写运行约束要求先获得人工批准。",
+      uiText("ui.generated.c045ea76de0"),
       iso(-1000 * 60 * 48),
     ],
     [
@@ -2613,82 +2614,82 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
   [
     {
       key: "repository/code-review",
-      name: "代码仓 MR 上下文",
+      name: uiText("ui.generated.c02e62f8d23"),
       scope: "resources",
       uri: "viking://resources/agentworld/code-review/repositories",
       parent: "viking://resources/agentworld/code-review",
       order: 10,
-      description: "保存 MR 标题、作者、分支、文件列表、diff 获取方式和检视上下文。",
+      description: uiText("ui.generated.c8d9d3b269f"),
       retention: { keepDays: 180, promoteWhenFeedbackCorrect: true },
     },
     {
       key: "global/code-review",
-      name: "全局检视经验",
+      name: uiText("ui.generated.c4eb03f625c"),
       scope: "resources",
       uri: "viking://resources/agentworld/code-review/global",
       parent: "viking://resources/agentworld/code-review",
       order: 20,
-      description: "保存 MR 结构、变更范围、依赖变化等跨仓库通用经验。",
+      description: uiText("ui.generated.c4d81a296a9"),
       retention: { keepDays: 365, promoteWhenFeedbackCorrect: true },
     },
     {
       key: "security",
-      name: "安全检视技能知识",
+      name: uiText("ui.generated.c0d113cefd2"),
       scope: "agent",
       uri: "viking://agent/skills/agentworld/code-review/security",
       parent: "viking://agent/skills/agentworld/code-review",
       order: 30,
-      description: "保存命令执行、动态执行、密钥、token、鉴权边界等安全检视知识。",
+      description: uiText("ui.generated.c03f69cb7ba"),
       retention: { keepDays: 365, requireEvidence: true },
     },
     {
       key: "quality/test",
-      name: "测试影响技能知识",
+      name: uiText("ui.generated.c50e61a00a5"),
       scope: "agent",
       uri: "viking://agent/skills/agentworld/code-review/quality-test",
       parent: "viking://agent/skills/agentworld/code-review",
       order: 40,
-      description: "保存源码变化、测试缺口、验证说明等质量检视知识。",
+      description: uiText("ui.generated.cce8eb099b8"),
       retention: { keepDays: 365, requireEvidence: true },
     },
     {
       key: "data-interface",
-      name: "数据与接口知识",
+      name: uiText("ui.generated.c2466fdf43c"),
       scope: "agent",
       uri: "viking://agent/skills/agentworld/code-review/data-api",
       parent: "viking://agent/skills/agentworld/code-review",
       order: 50,
-      description: "保存数据库、API、Webhook、schema 兼容性和回滚知识。",
+      description: uiText("ui.generated.cd0d8a495a9"),
       retention: { keepDays: 365, requireEvidence: true },
     },
     {
       key: "feedback/correct",
-      name: "正确反馈记忆",
+      name: uiText("ui.generated.c237b6c911f"),
       scope: "user",
       uri: "viking://user/memories/agentworld/code-review/feedback/correct",
       parent: "viking://user/memories/agentworld/code-review/feedback",
       order: 60,
-      description: "保存用户确认正确的检视意见，用于增强后续检视上下文。",
+      description: uiText("ui.generated.c6a79cec67d"),
       retention: { keepDays: 540, promoteToSkill: true },
     },
     {
       key: "feedback/incorrect",
-      name: "误报反馈记忆",
+      name: uiText("ui.generated.c020796bfc5"),
       scope: "user",
       uri: "viking://user/memories/agentworld/code-review/feedback/incorrect",
       parent: "viking://user/memories/agentworld/code-review/feedback",
       order: 70,
-      description: "保存用户确认不正确的检视意见，用于降低同类误报。",
+      description: uiText("ui.generated.ce8019888b9"),
       retention: { keepDays: 540, suppressSimilarFinding: true },
     },
     {
       key: "feedback/unclear",
-      name: "解释不足反馈记忆",
+      name: uiText("ui.generated.ce0e6ce0d35"),
       scope: "user",
       uri: "viking://user/memories/agentworld/code-review/feedback/unclear",
       parent: "viking://user/memories/agentworld/code-review/feedback",
       order: 80,
-      description: "保存用户认为解释不清楚的检视意见，用于改进评论表达。",
+      description: uiText("ui.generated.c733d7c6230"),
       retention: { keepDays: 270, improveExplanation: true },
     },
   ].forEach((layer) => {
@@ -2711,11 +2712,11 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
   [
     {
       id: "mr-structure",
-      name: "MR 结构检视",
+      name: uiText("ui.generated.c57a8652b82"),
       layer: "global/code-review",
-      description: "先判断 MR 是否足够小、范围是否清楚、是否有明显的依赖或锁文件风险。",
+      description: uiText("ui.generated.c76ff7fb690"),
       promptMd:
-        "你是代码检视的第一层守门员。只关注 MR 的范围、变更形状、是否容易回滚、是否需要拆分，不做没有证据的推断。",
+        uiText("ui.generated.cf21b7af908"),
       heuristics: {
         maxChangedFiles: 20,
         largeDiffLineThreshold: 800,
@@ -2724,11 +2725,11 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
     },
     {
       id: "security-sensitive",
-      name: "安全敏感检视",
+      name: uiText("ui.generated.c2683b9541f"),
       layer: "security",
-      description: "扫描密钥、命令执行、动态代码执行、鉴权绕过等高风险信号。",
+      description: uiText("ui.generated.c03dbc02010"),
       promptMd:
-        "你是安全检视员。优先指出可以被利用或会泄露权限的风险，每条意见都必须能在 diff 中找到证据。",
+        uiText("ui.generated.c971391d0f8"),
       heuristics: {
         riskyPatterns: [
           "eval(",
@@ -2746,11 +2747,11 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
     },
     {
       id: "test-impact",
-      name: "测试影响检视",
+      name: uiText("ui.generated.c7ac39ccb6d"),
       layer: "quality/test",
-      description: "判断业务或接口变更是否缺少测试、快照或验证入口。",
+      description: uiText("ui.generated.c957b7974f2"),
       promptMd:
-        "你是测试策略检视员。关注变更有没有对应测试，不要求机械覆盖率，但要能解释缺失测试会带来什么风险。",
+        uiText("ui.generated.cde6c1bef52"),
       heuristics: {
         sourcePatterns: ["/src/", ".ts", ".tsx"],
         testPatterns: [".test.", ".spec.", "__tests__", "/tests/"],
@@ -2758,11 +2759,11 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
     },
     {
       id: "data-interface",
-      name: "数据与接口检视",
+      name: uiText("ui.generated.c4611d7e309"),
       layer: "data-interface",
-      description: "检查数据库、API 入参出参、Webhook 协议、回调地址等是否有兼容性说明。",
+      description: uiText("ui.generated.cdf0c79061b"),
       promptMd:
-        "你是数据与接口检视员。只在看到数据库结构、API route、schema、webhook 或序列化格式变化时给意见。",
+        uiText("ui.generated.cab775123b4"),
       heuristics: {
         interfacePatterns: [
           "CREATE TABLE",
@@ -2789,28 +2790,37 @@ function ensureCodeReviewSkillSeed(db: DatabaseSyncType) {
     );
   });
 
-  db.exec(`
-    UPDATE code_review_skills
-    SET tags_json = '["代码检视","MR","结构"]',
-        visibility = 'global',
-        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/global/mr-structure')
-    WHERE id = 'mr-structure';
-    UPDATE code_review_skills
-    SET tags_json = '["安全","高危","证据"]',
-        visibility = 'team',
-        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/security/security-sensitive')
-    WHERE id = 'security-sensitive';
-    UPDATE code_review_skills
-    SET tags_json = '["测试","质量","回归"]',
-        visibility = 'team',
-        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/quality-test/test-impact')
-    WHERE id = 'test-impact';
-    UPDATE code_review_skills
-    SET tags_json = '["接口","数据","兼容性"]',
-        visibility = 'team',
-        viking_uri = COALESCE(viking_uri, 'viking://agent/skills/agentworld/code-review/data-api/data-interface')
-    WHERE id = 'data-interface';
-  `);
+  const updateSkillTags = db.prepare(
+    "UPDATE code_review_skills SET tags_json = ?, visibility = ?, viking_uri = COALESCE(viking_uri, ?) WHERE id = ?",
+  );
+  [
+    {
+      id: "mr-structure",
+      tags: [uiText("ui.server.db.tags.codeReview"), "MR", uiText("ui.server.db.tags.structure")],
+      visibility: "global",
+      uri: "viking://agent/skills/agentworld/code-review/global/mr-structure",
+    },
+    {
+      id: "security-sensitive",
+      tags: [uiText("ui.server.db.tags.security"), uiText("ui.server.db.tags.highRisk"), uiText("ui.server.db.tags.evidence")],
+      visibility: "team",
+      uri: "viking://agent/skills/agentworld/code-review/security/security-sensitive",
+    },
+    {
+      id: "test-impact",
+      tags: [uiText("ui.server.db.tags.test"), uiText("ui.server.db.tags.quality"), uiText("ui.server.db.tags.regression")],
+      visibility: "team",
+      uri: "viking://agent/skills/agentworld/code-review/quality-test/test-impact",
+    },
+    {
+      id: "data-interface",
+      tags: [uiText("ui.server.db.tags.interface"), uiText("ui.server.db.tags.data"), uiText("ui.server.db.tags.compatibility")],
+      visibility: "team",
+      uri: "viking://agent/skills/agentworld/code-review/data-api/data-interface",
+    },
+  ].forEach((skill) => {
+    updateSkillTags.run(JSON.stringify(skill.tags), skill.visibility, skill.uri, skill.id);
+  });
 }
 
 function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
@@ -2847,10 +2857,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: null,
       projectKey: null,
       slug: "global-code-review",
-      name: "全局代码检视知识",
+      name: uiText("ui.generated.c0e3705e635"),
       spaceType: "global",
       vikingUri: "viking://resources/agentworld/global/code-review",
-      description: "全局通用代码检视规范、跨团队经验和可复用检视样例。",
+      description: uiText("ui.generated.c03a755c541"),
       visibility: "global",
       retention: { keepDays: 540, promoteToSkill: true },
       bindings: [],
@@ -2861,10 +2871,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: null,
       projectKey: null,
       slug: "release-team-code-review",
-      name: "发布工程团队代码检视知识",
+      name: uiText("ui.generated.cd61a278d9f"),
       spaceType: "team",
       vikingUri: "viking://resources/agentworld/teams/release-team/code-review",
-      description: "发布工程团队的代码规范、历史检视偏好、误报基线和团队约束。",
+      description: uiText("ui.generated.c09cfab3a8c"),
       visibility: "team",
       retention: { keepDays: 365, requireTeamReview: true },
       bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 20 }] : [],
@@ -2875,10 +2885,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: null,
       projectKey: "demo/platform",
       slug: "release-demo-platform-project",
-      name: "demo/platform 项目知识",
+      name: uiText("ui.generated.c4a5989ad93"),
       spaceType: "project",
       vikingUri: "viking://resources/agentworld/teams/release-team/projects/demo-platform",
-      description: "demo/platform 项目架构、仓库风险画像、接口约束和历史检视结论。",
+      description: uiText("ui.generated.c7d90a25461"),
       visibility: "team",
       retention: { keepDays: 365, archiveFindings: true },
       bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 30 }] : [],
@@ -2889,10 +2899,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: reviewAgentTeam?.id ?? null,
       projectKey: null,
       slug: "code-review-team-skills",
-      name: "代码检视执行团队 Skill 空间",
+      name: uiText("ui.generated.c0e793ec6cd"),
       spaceType: "agent_team",
       vikingUri: "viking://agent/skills/agentworld/teams/release-team/agent-teams/code-review-team",
-      description: "代码检视执行团队使用的分层检视方法、输出模板和发布策略。",
+      description: uiText("ui.generated.c9a8b9e13a2"),
       visibility: "team",
       retention: { keepDays: 540, versionedSkill: true },
       bindings: reviewAgentTeam ? [{ targetType: "agent_team", targetId: reviewAgentTeam.id, accessLevel: "read", loadOrder: 10 }] : [],
@@ -2903,10 +2913,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: reviewAgentTeam?.id ?? null,
       projectKey: null,
       slug: "release-security-review",
-      name: "发布工程团队安全检视知识",
+      name: uiText("ui.generated.cf700b22b8b"),
       spaceType: "team",
       vikingUri: "viking://agent/skills/agentworld/teams/release-team/security-review",
-      description: "安全基线、依赖风险、密钥泄露、敏感 API 和误报抑制规则。",
+      description: uiText("ui.generated.c2e901af862"),
       visibility: "team",
       retention: { keepDays: 540, suppressFalsePositive: true },
       bindings: reviewAgentTeam ? [{ targetType: "agent_team", targetId: reviewAgentTeam.id, accessLevel: "read", loadOrder: 15 }] : [],
@@ -2917,10 +2927,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSyncType) {
       agentTeamId: researchAgentTeam?.id ?? null,
       projectKey: null,
       slug: "platform-research",
-      name: "平台工程团队研究知识",
+      name: uiText("ui.generated.c8a0429350c"),
       spaceType: "team",
       vikingUri: "viking://resources/agentworld/teams/platform-team/research",
-      description: "平台团队沉淀的研究资料、决策依据和跨团队可读结论。",
+      description: uiText("ui.generated.c097da33242"),
       visibility: "team",
       retention: { keepDays: 365, publishDigest: true },
       bindings: researchAgentTeam ? [{ targetType: "agent_team", targetId: researchAgentTeam.id, accessLevel: "read", loadOrder: 20 }] : [],
@@ -3004,7 +3014,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       name: "Ming",
       email: "ming@example.com",
       role: "owner",
-      title: "平台负责人",
+      title: uiText("ui.generated.ccd2a63fbf0"),
     },
     {
       id: "member-platform-ava",
@@ -3013,7 +3023,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       name: "Ava",
       email: "ava@example.com",
       role: "admin",
-      title: "Agent 治理",
+      title: uiText("ui.generated.ca02ed35325"),
     },
     {
       id: "member-release-sophia",
@@ -3022,7 +3032,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       name: "Sophia",
       email: "sophia@example.com",
       role: "owner",
-      title: "发布负责人",
+      title: uiText("ui.generated.cdcafea57d8"),
     },
     {
       id: "member-release-chen",
@@ -3031,7 +3041,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       name: "Chen",
       email: "chen@example.com",
       role: "operator",
-      title: "代码检视运营",
+      title: uiText("ui.generated.c96b3d5be30"),
     },
   ];
 
@@ -3181,7 +3191,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       provider: "codehub",
       url: "ssh://codehub.example.com/agentworld/agentworld.git",
       branch: "main",
-      description: "AgentWorld 主仓，供代码检视与安全检视任务使用。",
+      description: uiText("ui.generated.c67fa94cbff"),
     },
     {
       id: "codebase-platform-core",
@@ -3190,7 +3200,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       provider: "git",
       url: "ssh://git.example.com/platform/core.git",
       branch: "main",
-      description: "平台团队核心服务仓库。",
+      description: uiText("ui.generated.c009320d5ca"),
     },
   ].forEach((codebase) => {
     insertCodebase.run(
@@ -3254,7 +3264,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       memberId: "member-release-chen",
       type: "skill",
       assetId: "security-sensitive",
-      assetName: "安全敏感检视",
+      assetName: uiText("ui.generated.c2683b9541f"),
       permissions: { use: true, edit: false, publish: false },
     },
     {
@@ -3272,7 +3282,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSyncType) {
       memberId: "member-platform-ava",
       type: "knowledge_space",
       assetId: "ks-platform-research",
-      assetName: "平台工程团队研究知识",
+      assetName: uiText("ui.generated.c8a0429350c"),
       permissions: { read: true, write: true, curate: true },
     },
   ].forEach((asset) => {
@@ -3300,7 +3310,7 @@ function ensureProviderAdapterSeed(db: DatabaseSyncType) {
   [
     {
       id: "agentworld-runtime-adapter",
-      name: "AgentWorld 内置执行接口",
+      name: uiText("ui.generated.c1d9b27a203"),
       adapterType: "sdk",
       entryRef: "system://agentworld-runtime",
       lifecycle: "configured",
@@ -3328,7 +3338,7 @@ function ensureProviderAdapterSeed(db: DatabaseSyncType) {
     },
     {
       id: "hermes-runtime-adapter",
-      name: "Hermes 执行接口",
+      name: uiText("ui.generated.c2fc6e522d3"),
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/hermes",
       lifecycle: "declared",
@@ -3346,7 +3356,7 @@ function ensureProviderAdapterSeed(db: DatabaseSyncType) {
     },
     {
       id: "langgraph-runtime-adapter",
-      name: "LangGraph 执行接口",
+      name: uiText("ui.generated.cd21fa9e40d"),
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/langgraph",
       lifecycle: "declared",
@@ -3364,7 +3374,7 @@ function ensureProviderAdapterSeed(db: DatabaseSyncType) {
     },
     {
       id: "mastra-runtime-adapter",
-      name: "Mastra 执行接口",
+      name: uiText("ui.generated.cec0e7b50ca"),
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/mastra",
       lifecycle: "declared",
@@ -3382,7 +3392,7 @@ function ensureProviderAdapterSeed(db: DatabaseSyncType) {
     },
     {
       id: "custom-runtime-adapter",
-      name: "自定义执行接口",
+      name: uiText("ui.generated.cf4ab356612"),
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/custom",
       lifecycle: "declared",
@@ -3437,9 +3447,10 @@ function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
     "UPDATE runtime_sessions SET runtime_binding_id = ? WHERE runtime_binding_id = ?",
   ).run("runtime-binding-default", legacyRuntimeBindingId);
   db.prepare(
-    "UPDATE provider_runtime_bindings SET name = REPLACE(name, ?, 'AgentWorld 默认执行配置'), runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/'), adapter_definition_id = CASE WHEN adapter_definition_id = ? THEN ? ELSE adapter_definition_id END, config_json = REPLACE(REPLACE(config_json, ?, 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE name LIKE ? OR runtime_kind = ? OR base_url LIKE ? OR adapter_definition_id = ? OR config_json LIKE ? OR config_json LIKE '%provider_event_v1%'",
+    "UPDATE provider_runtime_bindings SET name = REPLACE(name, ?, ?), runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/'), adapter_definition_id = CASE WHEN adapter_definition_id = ? THEN ? ELSE adapter_definition_id END, config_json = REPLACE(REPLACE(config_json, ?, 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE name LIKE ? OR runtime_kind = ? OR base_url LIKE ? OR adapter_definition_id = ? OR config_json LIKE ? OR config_json LIKE '%provider_event_v1%'",
   ).run(
-    `${legacyRuntimeLabel} 默认运行时`,
+    uiText("ui.server.db.defaultRuntimeName", undefined, { runtimeLabel: legacyRuntimeLabel }),
+    uiText("ui.server.db.defaultRuntimeConfigName"),
     legacyRuntimePrefix,
     legacyRuntimeBaseUrl,
     legacyRuntimeAdapterId,
@@ -3455,8 +3466,10 @@ function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
     "UPDATE provider_profiles SET config_json = REPLACE(config_json, ?, 'modelApi') WHERE config_json LIKE ?",
   ).run(legacyModelApiKey, `%${legacyModelApiKey}%`);
   db.prepare(
-    "UPDATE runtime_endpoints SET name = CASE WHEN name = 'AgentWorld Research Runtime' THEN '研究任务执行接口' WHEN name = 'AgentWorld Release Runtime' THEN '发布任务执行接口' ELSE REPLACE(name, ?, 'AgentWorld') END, runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/') WHERE name LIKE ? OR runtime_kind = ? OR name IN ('AgentWorld Research Runtime', 'AgentWorld Release Runtime') OR base_url LIKE ?",
+    "UPDATE runtime_endpoints SET name = CASE WHEN name = 'AgentWorld Research Runtime' THEN ? WHEN name = 'AgentWorld Release Runtime' THEN ? ELSE REPLACE(name, ?, 'AgentWorld') END, runtime_kind = CASE WHEN runtime_kind = ? THEN 'agentworld' ELSE runtime_kind END, base_url = REPLACE(base_url, ?, 'embedded://agentworld/') WHERE name LIKE ? OR runtime_kind = ? OR name IN ('AgentWorld Research Runtime', 'AgentWorld Release Runtime') OR base_url LIKE ?",
   ).run(
+    uiText("ui.server.db.runtimeResearchName"),
+    uiText("ui.server.db.runtimeReleaseName"),
     legacyRuntimeLabel,
     legacyRuntimePrefix,
     legacyRuntimeBaseUrl,
@@ -3473,7 +3486,7 @@ function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
   db.prepare(
     "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(REPLACE(config_schema_json, ?, 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE id = ?",
   ).run(
-    "AgentWorld 内置执行接口",
+    uiText("ui.generated.c1d9b27a203"),
     "system://agentworld-runtime",
     legacyEventContract,
     currentRuntimeAdapterId,
@@ -3491,34 +3504,38 @@ function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
     `%${legacyRuntimeAdapterId}%`,
   );
   db.prepare(
-    "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, ?, '默认运行接口') WHERE last_validation_summary LIKE ?",
-  ).run(`默认 ${legacyRuntimeLabel} 运行时`, `%默认 ${legacyRuntimeLabel} 运行时%`);
+    "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, ?, ?) WHERE last_validation_summary LIKE ?",
+  ).run(
+    uiText("ui.server.db.defaultRuntimeNameWithPrefix", undefined, { runtimeLabel: legacyRuntimeLabel }),
+    uiText("ui.server.db.defaultRuntimeInterface"),
+    `%${uiText("ui.server.db.defaultRuntimeNameWithPrefix", undefined, { runtimeLabel: legacyRuntimeLabel })}%`,
+  );
   db.prepare(
     "UPDATE agent_teams SET slug = ?, name = ?, description = ? WHERE slug = ? OR name = ?",
   ).run(
     "code-review-team",
-    "代码检视执行团队",
-    "负责 MR 代码检视、发布风险识别和回写前审批控制。",
+    uiText("ui.generated.c55cc5fe01b"),
+    uiText("ui.generated.c047e3e807a"),
     "pr-vanguard",
     "PR Vanguard",
   );
   db.prepare(
-    "UPDATE business_teams SET name = CASE WHEN name = 'Platform Team' THEN '平台工程团队' WHEN name = 'Release Team' THEN '发布工程团队' ELSE name END WHERE name IN ('Platform Team', 'Release Team')",
+    uiText("ui.generated.c091d0c4e62"),
   ).run();
   db.prepare(
-    "UPDATE knowledge_spaces SET name = REPLACE(REPLACE(name, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队'), description = REPLACE(REPLACE(description, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队') WHERE name LIKE '%Release Team%' OR name LIKE '%Platform Team%' OR description LIKE '%Release Team%' OR description LIKE '%Platform Team%'",
+    uiText("ui.generated.c403d1a83d0"),
   ).run();
   db.prepare(
-    "UPDATE team_asset_grants SET asset_name = REPLACE(REPLACE(asset_name, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队') WHERE asset_name LIKE '%Release Team%' OR asset_name LIKE '%Platform Team%'",
+    uiText("ui.generated.c1dd0f584a9"),
   ).run();
   db.prepare(
     "UPDATE knowledge_spaces SET id = ?, slug = ?, name = ?, viking_uri = ?, description = ? WHERE id = ? OR slug = ?",
   ).run(
     "ks-code-review-team-skills",
     "code-review-team-skills",
-    "代码检视执行团队 Skill 空间",
+    uiText("ui.generated.c0e793ec6cd"),
     "viking://agent/skills/agentworld/teams/release-team/agent-teams/code-review-team",
-    "代码检视执行团队使用的分层检视方法、输出模板和发布策略。",
+    uiText("ui.generated.c9a8b9e13a2"),
     "ks-pr-vanguard-skills",
     "pr-vanguard-skills",
   );
@@ -3526,10 +3543,10 @@ function ensureRuntimeDisplayNames(db: DatabaseSyncType) {
     "UPDATE knowledge_space_bindings SET knowledge_space_id = ? WHERE knowledge_space_id = ?",
   ).run("ks-code-review-team-skills", "ks-pr-vanguard-skills");
   db.prepare(
-    "UPDATE event_logs SET metadata_json = REPLACE(metadata_json, 'PR Vanguard', '代码检视执行团队') WHERE metadata_json LIKE '%PR Vanguard%'",
-  ).run();
+    "UPDATE event_logs SET metadata_json = REPLACE(metadata_json, 'PR Vanguard', ?) WHERE metadata_json LIKE '%PR Vanguard%'",
+  ).run(uiText("ui.server.db.codeReviewTeamName"));
   db.prepare(
-    "UPDATE trace_spans SET attributes_json = REPLACE(attributes_json, 'PR Vanguard', '代码检视执行团队') WHERE attributes_json LIKE '%PR Vanguard%'",
+    uiText("ui.generated.c29a5588816"),
   ).run();
 }
 
@@ -3576,7 +3593,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       slug: "shield-review-leader",
       name: "Shield Review Leader",
       role: "leader",
-      prompt: "拆解 MR 检视任务，协调并行检视 Agent，合并 Finding 并控制输出质量。",
+      prompt: uiText("ui.generated.cf8a106b292"),
       tools: ["repo.diff.read", "memory.retrieve", "finding.aggregate", "mr.comment.write"],
     },
     {
@@ -3584,7 +3601,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       slug: "code-quality-reviewer",
       name: "Code Quality Reviewer",
       role: "reviewer",
-      prompt: "检查代码质量、可维护性、边界条件和兼容性风险。",
+      prompt: uiText("ui.generated.c6d9448b8cd"),
       tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
     },
     {
@@ -3592,7 +3609,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       slug: "security-reviewer",
       name: "Security Reviewer",
       role: "reviewer",
-      prompt: "检查注入、越权、敏感信息、危险调用和依赖安全风险。",
+      prompt: uiText("ui.generated.cd9b9e94f8b"),
       tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
     },
     {
@@ -3600,7 +3617,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       slug: "test-reviewer",
       name: "Test Reviewer",
       role: "reviewer",
-      prompt: "检查测试覆盖、回归风险和验证路径是否充分。",
+      prompt: uiText("ui.generated.ce0235fa0c0"),
       tools: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
     },
     {
@@ -3608,7 +3625,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       slug: "report-writer",
       name: "Report Writer",
       role: "publisher",
-      prompt: "把 Finding 汇总成 MR 评论、邮件报告和看板可读摘要。",
+      prompt: uiText("ui.generated.ccfab43fae8"),
       tools: ["finding.read", "mr.comment.write", "email.send", "artifact.write"],
     },
   ].forEach((agent) => {
@@ -3634,7 +3651,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
   insertEnvironment.run(
     "env-shield-mr-review",
     releaseBusinessTeam.id,
-    "神盾计划 MR 检视环境",
+    uiText("ui.generated.c8628716d8e"),
     "github",
     "agentworld",
     "git@github.com:SimonMing47/agentworld.git",
@@ -3651,7 +3668,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
   insertEnvironment.run(
     "env-daily-security-scan",
     releaseBusinessTeam.id,
-    "每日全量安全检视环境",
+    uiText("ui.generated.c2ee27b3fef"),
     "github",
     "release-team/*",
     "git@github.com:SimonMing47/*.git",
@@ -3668,7 +3685,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
   insertEnvironmentTemplate.run(
     "environment-template-repository-diff",
     releaseBusinessTeam.id,
-    "代码仓 Diff 工作区模板",
+    uiText("ui.generated.ca93733f59b"),
     "repository_workspace",
     JSON.stringify({
       repoBinding: "${repo_id}",
@@ -3698,7 +3715,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
   insertEnvironmentTemplate.run(
     "environment-template-repository-full-scan",
     releaseBusinessTeam.id,
-    "代码仓全量扫描工作区模板",
+    uiText("ui.generated.c5d7e9b497c"),
     "repository_workspace",
     JSON.stringify({
       repoScope: "all_authorized_repositories",
@@ -3726,13 +3743,13 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
 
   insertTaskTemplate.run(
     "task-template-shield-mr-review",
-    "神盾计划 MR 分层检视",
+    uiText("ui.generated.c22b4423a9b"),
     "shield",
     "builtin.repo.git",
     reviewTeam.id,
     "env-shield-mr-review",
     "rule",
-    "根据导入的任务模板将 MR webhook 转为可观测任务，并绑定分层检视记忆。",
+    uiText("ui.generated.cb1eaac2125"),
     JSON.stringify({ type: "object", required: ["repository", "changeRequest", "diff"] }),
     JSON.stringify({
       taskCategory: "code_review",
@@ -3749,7 +3766,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
     "template-shield-mr-review",
     releaseBusinessTeam.id,
     reviewTeam.id,
-    "神盾计划 MR webhook 检视",
+    uiText("ui.generated.c946229e90c"),
     "event",
     "Webhook: MR diff",
     null,
@@ -3781,13 +3798,13 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
   );
   insertTaskTemplate.run(
     "task-template-daily-security-review",
-    "每日全量安全检视",
+    uiText("ui.generated.cdf91fbd5c1"),
     "security-daily",
     "builtin.notify.email",
     reviewTeam.id,
     "env-daily-security-scan",
     "leader_agent",
-    "按仓库集合执行全量安全检视，生成风险报告并通过通知插件发送。",
+    uiText("ui.generated.c096edd5f5c"),
     JSON.stringify({ type: "object", required: ["repositorySelector"] }),
     JSON.stringify({
       taskCategory: "security_review",
@@ -3805,7 +3822,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
     "template-daily-security-review",
     releaseBusinessTeam.id,
     reviewTeam.id,
-    "每日全量安全检视",
+    uiText("ui.generated.cdf91fbd5c1"),
     "cron",
     "Every day at 02:00",
     tomorrow,
@@ -3840,7 +3857,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
 
   insertTaskBlueprint.run(
     "shield_mr_review",
-    "神盾计划 MR 代码检视",
+    uiText("ui.generated.c490710f150"),
     "code_review",
     "global",
     releaseBusinessTeam.id,
@@ -3882,15 +3899,15 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       workers: [
         {
           agent: "agent-code-quality-reviewer",
-          task: "检查代码质量、可维护性、边界条件和兼容性。",
+          task: uiText("ui.generated.c76c5419729"),
         },
         {
           agent: "agent-security-reviewer",
-          task: "检查注入、越权、敏感信息、危险调用和依赖风险。",
+          task: uiText("ui.generated.c98c173cfe7"),
         },
         {
           agent: "agent-test-reviewer",
-          task: "检查测试覆盖、回归风险和验证路径。",
+          task: uiText("ui.generated.c4156cb196a"),
         },
       ],
       aggregation: {
@@ -3973,7 +3990,7 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
 
   insertTaskBlueprint.run(
     "daily_security_review",
-    "每日全量安全检视",
+    uiText("ui.generated.cdf91fbd5c1"),
     "security_review",
     "global",
     releaseBusinessTeam.id,
@@ -4012,15 +4029,15 @@ function ensureCoreCaseSeed(db: DatabaseSyncType) {
       workers: [
         {
           agent: "agent-security-reviewer",
-          task: "按仓库扫描敏感信息、危险调用、鉴权风险和依赖风险。",
+          task: uiText("ui.generated.cd7042571f0"),
         },
         {
           agent: "agent-code-quality-reviewer",
-          task: "识别架构风险、长期可维护性风险和高风险调用链。",
+          task: uiText("ui.generated.c6945a62b43"),
         },
         {
           agent: "agent-report-writer",
-          task: "汇总日报、邮件和看板摘要。",
+          task: uiText("ui.generated.c4df972f054"),
         },
       ],
       aggregation: {
@@ -4143,9 +4160,9 @@ function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
       slug: "shield-review-leader",
       name: "Shield Review Leader",
       role: "leader",
-      description: "负责拆解 MR 检视任务、协调协作 Agent、汇总 Finding 并控制输出质量。",
+      description: uiText("ui.generated.c3c315685d0"),
       systemPrompt:
-        "你是团队代码检视 Leader。你需要先拆解任务，再组织协作 Agent 并行检视，最后基于证据去重、归类、分级并给出适合提交到代码平台的结论。",
+        uiText("ui.generated.c381d190fcd"),
       model: "GLM-5.1",
       toolBindings: ["repo.diff.read", "memory.retrieve", "finding.aggregate", "mr.comment.write"],
       memoryScope: "team_shared",
@@ -4153,7 +4170,7 @@ function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
       visibility: "team",
       status: "ready",
       validationStatus: "passed",
-      lastValidationSummary: "已通过默认运行接口完成定义校验。",
+      lastValidationSummary: uiText("ui.generated.c50b156c989"),
       harnessConfig: { approvalMode: "allow", humanIntervention: "steer", thinkingLevel: "high", maxToolCalls: 10 },
       permissionPolicy: {
         repositoryAccess: "read_only",
@@ -4172,9 +4189,9 @@ function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
       slug: "security-reviewer",
       name: "Security Reviewer",
       role: "reviewer",
-      description: "聚焦注入、越权、敏感信息和危险调用的安全检视 Agent。",
+      description: uiText("ui.generated.c43d10bcb2a"),
       systemPrompt:
-        "你是安全检视 Agent。请优先识别注入、越权、敏感信息暴露、依赖风险和危险调用，并基于代码证据给出可执行的修复建议。",
+        uiText("ui.generated.c583084e798"),
       model: "GLM-5.1",
       toolBindings: ["repo.diff.read", "repo.context.read", "memory.retrieve", "finding.create"],
       memoryScope: "team_shared",
@@ -4201,9 +4218,9 @@ function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
       slug: "report-writer",
       name: "Report Writer",
       role: "publisher",
-      description: "把检视结果整理为 MR 评论、邮件报告和看板摘要。",
+      description: uiText("ui.generated.c5ca72f2eaa"),
       systemPrompt:
-        "你是结果发布 Agent。请把多来源 Finding 汇总为结构清晰、适合代码平台评论或邮件发送的可执行输出，避免重复和空泛表述。",
+        uiText("ui.generated.caecb8f2986"),
       model: "GLM-5.1",
       toolBindings: ["finding.read", "mr.comment.write", "email.send", "artifact.write"],
       memoryScope: "team_shared",
@@ -4230,9 +4247,9 @@ function ensureAgentDefinitionSeed(db: DatabaseSyncType) {
       slug: "personal-analysis-assistant",
       name: "Personal Analysis Assistant",
       role: "analyst",
-      description: "用于个人分析和方案整理的私有 Agent。",
+      description: uiText("ui.generated.cc830d079e1"),
       systemPrompt:
-        "你是个人分析 Agent。请先归纳目标，再识别关键约束，最后给出分步骤建议，并明确风险与待确认项。",
+        uiText("ui.generated.c7a0be4d01e"),
       model: "GLM-5.1",
       toolBindings: ["search_repo", "read_file", "list_dir"],
       memoryScope: "private",
@@ -4318,9 +4335,9 @@ function ensureBusinessTeamHierarchyColumns(db: DatabaseSyncType) {
       .run(platformTeam.id, releaseTeam.id);
   }
   db.prepare("UPDATE business_teams SET description = ? WHERE slug = ? AND COALESCE(description, '') = ''")
-    .run("负责平台底座、运行稳定性、模型服务和团队级治理能力。", "platform-team");
+    .run(uiText("ui.generated.c727e1fe203"), "platform-team");
   db.prepare("UPDATE business_teams SET description = ? WHERE slug = ? AND COALESCE(description, '') = ''")
-    .run("负责发布自动化、代码检视、安全检视和跨团队交付流程。", "release-team");
+    .run(uiText("ui.generated.cf149b7553e"), "release-team");
 }
 
 function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSyncType) {
@@ -4439,7 +4456,7 @@ function ensureLegacyAgentsPromotedToTeamMembers(db: DatabaseSyncType) {
         slug,
         agent.name,
         agent.role,
-        `由历史 Team 成员提升为可编排 Agent 定义。来源团队：${team.name}。`,
+        uiText("ui.server.db.legacyAgentDescription", undefined, { teamName: team.name }),
         agent.persona_prompt,
         agent.model,
         glmProvider?.id ?? null,

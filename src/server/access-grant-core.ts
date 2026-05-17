@@ -1,4 +1,5 @@
 import { type AccessGrant } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export function buildAccessGrantSummary(accessGrant: AccessGrant) {
   const pricing = JSON.parse(accessGrant.pricingModelJson) as {
@@ -45,7 +46,7 @@ export function evaluateAccessGrantAccess(args: {
   if (!args.isCrossBusinessTeamCall) {
     return {
       allowed: true,
-      reason: "同业务团队调用，无需跨团队授权。",
+      reason: uiText("ui.generated.cce1d28ac02"),
       violation: null,
     } satisfies AccessGrantDecision;
   }
@@ -53,7 +54,7 @@ export function evaluateAccessGrantAccess(args: {
   if (!args.accessGrant) {
     return {
       allowed: false,
-      reason: "跨业务团队调用缺少跨团队授权。",
+      reason: uiText("ui.generated.c5bb755df3c"),
       violation: "missing_access_grant",
     } satisfies AccessGrantDecision;
   }
@@ -61,7 +62,7 @@ export function evaluateAccessGrantAccess(args: {
   if (args.accessGrant.status !== "active") {
     return {
       allowed: false,
-      reason: `跨团队授权状态为 ${args.accessGrant.status}，不可执行跨团队动作。`,
+      reason: uiText("ui.server.accessGrant.statusBlocked", undefined, { status: args.accessGrant.status }),
       violation: "inactive_access_grant",
     } satisfies AccessGrantDecision;
   }
@@ -76,7 +77,7 @@ export function evaluateAccessGrantAccess(args: {
   if (actionScope.length > 0 && !actionScope.includes(args.action)) {
     return {
       allowed: false,
-      reason: `动作 ${args.action} 不在跨团队授权动作范围中。`,
+      reason: uiText("ui.server.accessGrant.actionOutOfScope", undefined, { action: args.action }),
       violation: "action_not_allowed",
     } satisfies AccessGrantDecision;
   }
@@ -84,14 +85,14 @@ export function evaluateAccessGrantAccess(args: {
   if (toolScope.length > 0 && !toolScope.includes(args.tool)) {
     return {
       allowed: false,
-      reason: `工具 ${args.tool} 不在跨团队授权工具范围中。`,
+      reason: uiText("ui.server.accessGrant.toolOutOfScope", undefined, { tool: args.tool }),
       violation: "tool_not_allowed",
     } satisfies AccessGrantDecision;
   }
 
   return {
     allowed: true,
-    reason: "跨团队授权范围校验通过。",
+    reason: uiText("ui.generated.ceac61f9ed6"),
     violation: null,
   } satisfies AccessGrantDecision;
 }

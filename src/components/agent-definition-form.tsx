@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { uiText } from "@/lib/language-pack";
 
 type AgentDefinitionFormProps = {
   definition: {
@@ -129,8 +130,8 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [optimizationGoal, setOptimizationGoal] = useState("让这个 Agent 的职责边界更清楚，并提升默认系统提示词与运行约束的一致性。");
-  const [testPrompt, setTestPrompt] = useState("请用 3 条要点介绍你的职责边界，并给出一个你会如何处理问题的示例。");
+  const [optimizationGoal, setOptimizationGoal] = useState(uiText("ui.common.optimizationGoalDefault"));
+  const [testPrompt, setTestPrompt] = useState(uiText("ui.common.agentTestPromptDefault"));
   const [testResult, setTestResult] = useState<null | {
     status: string;
     outputText: string;
@@ -329,11 +330,11 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     setIsSaving(false);
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
-      setMessage(payload.error ?? "保存失败");
+      setMessage(payload.error ?? "ui.generated.c40525a7328");
       return;
     }
 
-    setMessage("已保存 Agent");
+    setMessage("ui.generated.cab1a00ce4f");
     onSaved();
   }
 
@@ -367,7 +368,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     };
 
     if (!response.ok || !payload.result) {
-      setMessage(payload.error ?? "优化失败");
+      setMessage(payload.error ?? "ui.generated.cd7578f63b2");
       return;
     }
 
@@ -383,7 +384,9 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     if (suggestion.testPrompt) {
       setTestPrompt(suggestion.testPrompt);
     }
-    setMessage(`已应用优化建议${suggestion.notes.length ? `：${suggestion.notes.join("；")}` : ""}`);
+    setMessage(uiText("ui.common.optimizationApplied", undefined, {
+      notes: suggestion.notes.length ? `: ${suggestion.notes.join("; ")}` : "",
+    }));
   }
 
   async function testDefinition() {
@@ -418,9 +421,9 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       setForm((current) => ({
         ...current,
         validationStatus: "failed",
-        lastValidationSummary: payload.error ?? "测试失败",
+        lastValidationSummary: payload.error ?? "ui.generated.c4184cd88d1",
       }));
-      setMessage(payload.error ?? "验证失败");
+      setMessage(payload.error ?? "ui.generated.c31231e79d7");
       return;
     }
 
@@ -449,7 +452,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       }),
     );
     setTestResult(payload.result);
-    setMessage("定义验证已完成");
+    setMessage("ui.generated.c267bb66d3a");
   }
 
   function onSaved() {
@@ -460,7 +463,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
   const content = (
     <div className={props.embedded ? "space-y-5" : "space-y-6"}>
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="Agent 名称">
+        <FieldGroup label="ui.generated.c77666602cc">
           <Input
             value={form.name}
             onChange={(event) =>
@@ -480,14 +483,14 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             placeholder="security-reviewer"
           />
         </FieldGroup>
-        <FieldGroup label="角色">
+        <FieldGroup label="ui.generated.c6b26695e4d">
           <Input
             value={form.role}
             onChange={(event) => setForm({ ...form, role: event.target.value })}
             placeholder="reviewer"
           />
         </FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select
             value={form.status}
             onChange={(event) => setForm({ ...form, status: event.target.value })}
@@ -499,12 +502,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="归属业务团队">
+        <FieldGroup label="ui.generated.c26f30fd79b">
           <Select
             value={form.ownerBusinessTeamId}
             onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
           >
-            <option value="">未指定</option>
+            <option value="">ui.generated.c8c577dc72c</option>
             {props.businessTeamOptions.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
@@ -512,7 +515,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="可见性">
+        <FieldGroup label="ui.generated.c747b74cec9">
           <Select
             value={form.visibility}
             onChange={(event) => setForm({ ...form, visibility: event.target.value })}
@@ -524,7 +527,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="默认模型服务">
+        <FieldGroup label="ui.generated.cbff226d7bb">
           <Select
             value={form.defaultProviderProfileId}
             onChange={(event) => {
@@ -536,7 +539,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               });
             }}
           >
-            <option value="">请选择</option>
+            <option value="">ui.generated.c382f4b5559</option>
             {props.providerOptions.map((provider) => (
               <option key={provider.id} value={provider.id}>
                 {provider.name}
@@ -544,12 +547,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="默认执行配置">
+        <FieldGroup label="ui.generated.c53215c3826">
           <Select
             value={form.defaultRuntimeBindingId}
             onChange={(event) => setForm({ ...form, defaultRuntimeBindingId: event.target.value })}
           >
-            <option value="">请选择</option>
+            <option value="">ui.generated.c382f4b5559</option>
             {props.runtimeBindingOptions.map((binding) => (
               <option key={binding.id} value={binding.id}>
                 {binding.name}
@@ -557,14 +560,14 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="模型">
+        <FieldGroup label="ui.generated.c98fd0cbd9c">
           <Input
             value={form.model}
             onChange={(event) => setForm({ ...form, model: event.target.value })}
             placeholder={providerHint?.defaultModel ?? "GLM-5.1"}
           />
         </FieldGroup>
-        <FieldGroup label="记忆范围">
+        <FieldGroup label="ui.generated.cb303d0833d">
           <Select
             value={form.memoryScope}
             onChange={(event) => setForm({ ...form, memoryScope: event.target.value })}
@@ -576,29 +579,29 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="定义说明" className="md:col-span-2">
+        <FieldGroup label="ui.generated.ce5d671f7b9" className="md:col-span-2">
           <Textarea
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
-            placeholder="这个 Agent 负责解决什么问题，边界是什么。"
+            placeholder="ui.generated.c3931148d02"
           />
         </FieldGroup>
-        <FieldGroup label="默认系统提示词" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c1842230316" className="md:col-span-2">
           <Textarea
             className="min-h-40"
             value={form.systemPrompt}
             onChange={(event) => setForm({ ...form, systemPrompt: event.target.value })}
-            placeholder="用默认系统提示词定义这个 Agent 的职责、约束、输入输出风格与安全边界。"
+            placeholder="ui.generated.c2434d8b524"
           />
         </FieldGroup>
-        <FieldGroup label="工具集" hint="每行一个工具引用。" className="md:col-span-2">
+        <FieldGroup label="ui.generated.ca9bb8be05e" hint="ui.generated.cdda0bc2a23" className="md:col-span-2">
           <Textarea
             value={form.toolBindingsText}
             onChange={(event) => setForm({ ...form, toolBindingsText: event.target.value })}
             placeholder={"repo.diff.read\nmemory.retrieve\nfinding.create"}
           />
         </FieldGroup>
-        <FieldGroup label="标签" hint="每行一个标签。" className="md:col-span-2">
+        <FieldGroup label="ui.generated.cae0a7afece" hint="ui.generated.cb0a3fe2b3f" className="md:col-span-2">
           <Textarea
             value={form.tagsText}
             onChange={(event) => setForm({ ...form, tagsText: event.target.value })}
@@ -609,12 +612,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="策略"
-          title="运行约束"
-          description="把默认审批模式、权限边界和人工介入方式绑定到这个 Agent。"
+          eyebrow="ui.generated.cf3c49831c6"
+          title="ui.generated.c9b167bacc3"
+          description="ui.generated.cf5a9a45fff"
         />
         <PanelBody className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="审批模式">
+          <FieldGroup label="ui.generated.c1072712e57">
             <Select
               value={form.harnessApprovalMode}
               onChange={(event) => setForm({ ...form, harnessApprovalMode: event.target.value })}
@@ -626,7 +629,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="推理强度">
+          <FieldGroup label="ui.generated.c66778fdee4">
             <Select
               value={form.harnessThinkingLevel}
               onChange={(event) => setForm({ ...form, harnessThinkingLevel: event.target.value })}
@@ -638,7 +641,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="人工介入">
+          <FieldGroup label="ui.generated.c8d8f100fb8">
             <Select
               value={form.harnessHumanIntervention}
               onChange={(event) => setForm({ ...form, harnessHumanIntervention: event.target.value })}
@@ -650,7 +653,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="最大工具调用数">
+          <FieldGroup label="ui.generated.c1d5b5d429d">
             <Input
               type="number"
               min="0"
@@ -659,7 +662,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               onChange={(event) => setForm({ ...form, harnessMaxToolCalls: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="仓库权限">
+          <FieldGroup label="ui.generated.cbd88dd3a1e">
             <Select
               value={form.permissionRepositoryAccess}
               onChange={(event) => setForm({ ...form, permissionRepositoryAccess: event.target.value })}
@@ -671,7 +674,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="记忆权限">
+          <FieldGroup label="ui.generated.ca3ecb68a4c">
             <Select
               value={form.permissionMemoryAccess}
               onChange={(event) => setForm({ ...form, permissionMemoryAccess: event.target.value })}
@@ -683,7 +686,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="密钥权限">
+          <FieldGroup label="ui.generated.cfd93ad7cdf">
             <Select
               value={form.permissionSecretAccess}
               onChange={(event) => setForm({ ...form, permissionSecretAccess: event.target.value })}
@@ -696,14 +699,14 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             </Select>
           </FieldGroup>
           <div />
-          <FieldGroup label="允许工具" hint="写真实工具名，每行一个。" className="md:col-span-2">
+          <FieldGroup label="ui.generated.cae64ad83d4" hint="ui.generated.c1ddb62084f" className="md:col-span-2">
             <Textarea
               value={form.allowedToolNamesText}
               onChange={(event) => setForm({ ...form, allowedToolNamesText: event.target.value })}
               placeholder={"search_repo\nread_file\nlist_dir"}
             />
           </FieldGroup>
-          <FieldGroup label="禁止工具" hint="每行一个；会覆盖允许列表。" className="md:col-span-2">
+          <FieldGroup label="ui.generated.c35a905110b" hint="ui.generated.ca1312208ca" className="md:col-span-2">
             <Textarea
               value={form.deniedToolNamesText}
               onChange={(event) => setForm({ ...form, deniedToolNamesText: event.target.value })}
@@ -714,7 +717,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       </Panel>
 
       <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
-        <div className="text-sm font-medium text-[var(--ink)]">共享到业务团队</div>
+        <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c21a61d9642</div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {props.businessTeamOptions.map((team) => (
             <label key={team.id} className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">
@@ -740,16 +743,16 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
             <SlidersHorizontal className="h-4 w-4" />
-            辅助优化定义
+            ui.generated.c7fe8188a1b
           </div>
           <div className="mt-3 space-y-3">
             <Textarea
               value={optimizationGoal}
               onChange={(event) => setOptimizationGoal(event.target.value)}
-              placeholder="希望重点优化什么。"
+              placeholder="ui.generated.c6a7c4e0826"
             />
             <Button type="button" variant="secondary" onClick={optimize} disabled={isOptimizing}>
-              {isOptimizing ? "优化中" : "使用当前模型服务优化"}
+              {isOptimizing ? "ui.generated.c074e1e7d25" : "ui.generated.c9a7c14740d"}
             </Button>
           </div>
         </div>
@@ -757,16 +760,16 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
             <TestTube2 className="h-4 w-4" />
-            验证定义可用性
+            ui.generated.cb59b0fa8a4
           </div>
           <div className="mt-3 space-y-3">
             <Textarea
               value={testPrompt}
               onChange={(event) => setTestPrompt(event.target.value)}
-              placeholder="输入一段验证任务，检查这个 Agent 的输出质量。"
+              placeholder="ui.generated.ce719796d6b"
             />
             <Button type="button" variant="secondary" onClick={testDefinition} disabled={isTesting}>
-              {isTesting ? "验证中" : "验证定义"}
+              {isTesting ? "ui.generated.c07ca93228c" : "ui.generated.c2b74726a9b"}
             </Button>
           </div>
         </div>
@@ -775,18 +778,18 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       {testResult ? (
         <div className="space-y-4 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-4">
           <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--ink-muted)]">
-            <span>验证状态: {testResult.status}</span>
-            <span>响应模型: {testResult.responseModel}</span>
+            <span>ui.generated.c0ede206b03 {testResult.status}</span>
+            <span>ui.generated.c85acf18054 {testResult.responseModel}</span>
           </div>
           <div>
-            <div className="text-sm font-medium text-[var(--ink)]">输出</div>
+            <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cded698ae1e</div>
             <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--ink)]">
-              {testResult.outputText || "无输出"}
+              {testResult.outputText || "ui.generated.c0be3645864"}
             </pre>
           </div>
           {testResult.thinkingText ? (
             <div>
-              <div className="text-sm font-medium text-[var(--ink)]">推理摘要</div>
+              <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cf6145bc4ca</div>
               <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--ink-muted)]">
                 {testResult.thinkingText}
               </pre>
@@ -794,7 +797,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
           ) : null}
           {testResult.toolResults.length ? (
             <div>
-              <div className="text-sm font-medium text-[var(--ink)]">工具调用结果</div>
+              <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c04e28723c6</div>
               <div className="mt-2 space-y-2">
                 {testResult.toolResults.map((toolResult, index) => (
                   <div key={`${toolResult.toolName}-${index}`} className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
@@ -802,7 +805,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                       {toolResult.toolName} · {toolResult.isError ? "error" : "ok"}
                     </div>
                     <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs leading-5 text-[var(--ink-muted)]">
-                      {toolResult.text || "无文本结果"}
+                      {toolResult.text || "ui.generated.c9f616ee16e"}
                     </pre>
                   </div>
                 ))}
@@ -814,7 +817,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "保存中" : "保存 Agent"}
+          {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c9ddfa65322"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
@@ -827,7 +830,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
   return (
     <Panel>
-      <PanelHeader title={props.title} description="管理 Agent 名称、默认系统提示词、运行约束、共享范围、优化和验证。" />
+      <PanelHeader title={props.title} description="ui.generated.cbe84522358" />
       <PanelBody>{content}</PanelBody>
     </Panel>
   );

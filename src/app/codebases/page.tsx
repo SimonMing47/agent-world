@@ -46,42 +46,42 @@ export default function CodebasesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="代码仓"
-        title="Codebase 管理"
-        description="维护代码仓地址、归属团队和操作者 Token。"
+        eyebrow="ui.generated.c6aa9ff908e"
+        title="ui.generated.c30a4255f18"
+        description="ui.generated.c7b9962aaa9"
         badges={[
-          { label: `${codebases.length} 个代码仓`, variant: "accent" },
-          { label: `${tokens.length} 个操作者 Token`, variant: "neutral" },
+          { label: <>{codebases.length} ui.common.count.codebases</>, variant: "accent" },
+          { label: <>{tokens.length} ui.common.count.operatorTokens</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "代码仓", value: codebases.length, detail: "按团队归属治理" },
-          { label: "操作者 Token", value: tokens.length, detail: "只保存 Secret 引用" },
-          { label: "代码平台", value: new Set(codebases.map((item) => item.provider)).size, detail: "Git / CodeHub / GitLab 等" },
-          { label: "启用仓库", value: codebases.filter((item) => item.status === "active").length, detail: "可被任务选择" },
+          { label: "ui.generated.c6aa9ff908e", value: codebases.length, detail: "ui.generated.ce7d7e6fb44" },
+          { label: "ui.generated.ceb6a4c1fc5", value: tokens.length, detail: "ui.generated.c304f9507d7" },
+          { label: "ui.generated.ceb737abfde", value: new Set(codebases.map((item) => item.provider)).size, detail: "ui.generated.ced3a8ff513" },
+          { label: "ui.generated.c18841769e8", value: codebases.filter((item) => item.status === "active").length, detail: "ui.generated.c420e2e48b1" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="仓库目录"
-          title="代码仓目录"
-          description="查看仓库地址、团队、默认分支和 Token 数量。"
+          eyebrow="ui.generated.c5a809b4959"
+          title="ui.generated.c00c6af449a"
+          description="ui.generated.cf1dd78a117"
           action={
             <div className="flex gap-2">
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增 Codebase</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.cb9ce6e9e28</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,860px)]">
-                  <DialogHeader><DialogTitle>新增 Codebase</DialogTitle><DialogDescription>录入代码仓地址和团队归属。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.cb9ce6e9e28</DialogTitle><DialogDescription>ui.generated.c2885f37214</DialogDescription></DialogHeader>
                   <DialogBody>
                     <CodebaseForm
                       businessTeams={teamOptions}
                       codebase={{
                         id: "",
                         businessTeamId: businessTeams[0]?.id ?? "",
-                        name: "新增代码仓",
+                        name: "",
                         provider: "git",
                         repositoryUrl: "",
                         defaultBranch: "main",
@@ -94,16 +94,16 @@ export default function CodebasesPage() {
                 </DialogContent>
               </Dialog>
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="ghost"><KeyRound className="h-4 w-4" />新增 Token</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="ghost"><KeyRound className="h-4 w-4" />ui.generated.cacba33e6e9</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,760px)]">
-                  <DialogHeader><DialogTitle>新增操作者 Token</DialogTitle><DialogDescription>Token 只保存引用，不保存明文。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.c9e88be3a04</DialogTitle><DialogDescription>ui.generated.c3fe1856f77</DialogDescription></DialogHeader>
                   <DialogBody>
                     <CodebaseTokenForm
                       codebases={codebaseOptions}
                       token={{
                         id: "",
                         codebaseId: codebases[0]?.id ?? "",
-                        operatorName: "新增操作者",
+                        operatorName: "",
                         tokenRef: "secret:",
                         role: "readonly",
                         permissionJson: "[]",
@@ -121,11 +121,11 @@ export default function CodebasesPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Codebase</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>平台 / 分支</DataTableHead>
-                <DataTableHead>操作者</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>ui.generated.c7875541d2a</DataTableHead>
+                <DataTableHead>ui.generated.cffb50d3878</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -138,30 +138,30 @@ export default function CodebasesPage() {
                       <div className="font-semibold text-[var(--ink)]">{codebase.name}</div>
                       <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">{codebase.repositoryUrl}</div>
                     </DataTableCell>
-                    <DataTableCell>{team?.name ?? "未知团队"}</DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.c718c1c03d6"}</DataTableCell>
                     <DataTableCell>{codebase.provider} / {codebase.defaultBranch}</DataTableCell>
                     <DataTableCell>{codebaseTokens.length}</DataTableCell>
                     <DataTableCell><Badge variant={codebase.status === "active" ? "success" : "neutral"}>{codebase.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{codebase.name}</DialogTitle><DialogDescription>代码仓和操作者权限。</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>{codebase.name}</DialogTitle><DialogDescription>ui.generated.ce30ec19b62</DialogDescription></DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
                                   { label: "ID", value: codebase.id },
-                                  { label: "团队", value: team?.name ?? "未知团队" },
-                                  { label: "平台", value: codebase.provider },
-                                  { label: "地址", value: codebase.repositoryUrl },
-                                  { label: "默认分支", value: codebase.defaultBranch },
-                                  { label: "可见性", value: codebase.visibility },
-                                  { label: "描述", value: codebase.description || "无" },
+                                  { label: "ui.generated.c21d7042ff0", value: team?.name ?? "ui.generated.c718c1c03d6" },
+                                  { label: "ui.generated.ce4b9d69486", value: codebase.provider },
+                                  { label: "ui.generated.c67d2d7970f", value: codebase.repositoryUrl },
+                                  { label: "ui.generated.cdc900d83b2", value: codebase.defaultBranch },
+                                  { label: "ui.generated.c747b74cec9", value: codebase.visibility },
+                                  { label: "ui.generated.c412f54dc38", value: codebase.description || "ui.generated.c72077749f7" },
                                 ]}
                               />
                               <DataTable>
-                                <DataTableHeader><DataTableRow><DataTableHead>操作者</DataTableHead><DataTableHead>角色</DataTableHead><DataTableHead>权限</DataTableHead><DataTableHead align="right">操作</DataTableHead></DataTableRow></DataTableHeader>
+                                <DataTableHeader><DataTableRow><DataTableHead>ui.generated.cffb50d3878</DataTableHead><DataTableHead>ui.generated.c6b26695e4d</DataTableHead><DataTableHead>ui.generated.c560165a6d7</DataTableHead><DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead></DataTableRow></DataTableHeader>
                                 <DataTableBody>
                                   {codebaseTokens.map((token) => (
                                     <DataTableRow key={token.id}>
@@ -171,13 +171,13 @@ export default function CodebasesPage() {
                                       <DataTableCell align="right">
                                         <div className="flex justify-end gap-2">
                                           <Dialog>
-                                            <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                                            <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                                             <DialogContent className="w-[min(94vw,760px)]">
-                                              <DialogHeader><DialogTitle>编辑操作者 Token</DialogTitle><DialogDescription>{token.operatorName}</DialogDescription></DialogHeader>
+                                              <DialogHeader><DialogTitle>ui.generated.c30f0f85786</DialogTitle><DialogDescription>{token.operatorName}</DialogDescription></DialogHeader>
                                               <DialogBody><CodebaseTokenForm codebases={codebaseOptions} token={token} /></DialogBody>
                                             </DialogContent>
                                           </Dialog>
-                                          <DeleteResourceButton endpoint="/api/codebases" id={token.id} body={{ entity: "token" }} confirmText={`确认删除操作者 Token「${token.operatorName}」？`} />
+                                          <DeleteResourceButton endpoint="/api/codebases" id={token.id} body={{ entity: "token" }} confirmParams={{ resource: "ui.common.resources.operatorToken", name: token.operatorName }} />
                                         </div>
                                       </DataTableCell>
                                     </DataTableRow>
@@ -188,13 +188,13 @@ export default function CodebasesPage() {
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
-                            <DialogHeader><DialogTitle>编辑 Codebase</DialogTitle><DialogDescription>{codebase.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.cf29f4e82c3</DialogTitle><DialogDescription>{codebase.name}</DialogDescription></DialogHeader>
                             <DialogBody><CodebaseForm businessTeams={teamOptions} codebase={codebase} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/codebases" id={codebase.id} confirmText={`确认删除 Codebase「${codebase.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/codebases" id={codebase.id} confirmParams={{ resource: "ui.common.resources.codebase", name: codebase.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

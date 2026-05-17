@@ -43,34 +43,34 @@ export default function ConnectorsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="连接器"
-        title="Connector 管理"
-        description="维护 IM、邮件、Web Push 和外部通知通道。"
+        eyebrow="ui.generated.cc2dd028659"
+        title="ui.generated.c2e8b3a3fbd"
+        description="ui.generated.c2ba69224c6"
         badges={[
-          { label: `${connectors.length} 个 Connector`, variant: "accent" },
-          { label: `${connectors.filter((connector) => connector.status === "active").length} 个启用`, variant: "success" },
+          { label: <>{connectors.length} ui.common.count.connectors</>, variant: "accent" },
+          { label: <>{connectors.filter((connector) => connector.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="Connector 目录"
-          description="查看类型、插件、密钥引用和健康状态。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cba5246c3e5"
+          description="ui.generated.c296bebb476"
           action={
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增 Connector</Button>
+                <Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.ce6767a1907</Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,860px)]">
-                <DialogHeader><DialogTitle>新增 Connector</DialogTitle><DialogDescription>配置通知或输出通道。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>ui.generated.ce6767a1907</DialogTitle><DialogDescription>ui.generated.c72fe56be98</DialogDescription></DialogHeader>
                 <DialogBody>
                   <ConnectorForm
                     businessTeams={teamOptions}
                     connector={{
                       id: "",
                       businessTeamId: null,
-                      name: "新增 Connector",
+                      name: "",
                       connectorType: "email",
                       provider: "smtp",
                       endpoint: "",
@@ -89,11 +89,11 @@ export default function ConnectorsPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Connector</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>类型 / 服务方</DataTableHead>
-                <DataTableHead>能力</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>ui.generated.c8f1217bb00</DataTableHead>
+                <DataTableHead>ui.generated.ceb9d53ce7f</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -104,41 +104,41 @@ export default function ConnectorsPage() {
                   <DataTableRow key={connector.id}>
                     <DataTableCell className="min-w-[260px]">
                       <div className="font-semibold text-[var(--ink)]">{connector.name}</div>
-                      <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">{connector.endpoint || "未配置 Endpoint"}</div>
+                      <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">{connector.endpoint || "ui.generated.c1b1046c19e"}</div>
                     </DataTableCell>
-                    <DataTableCell>{team?.name ?? "全局"}</DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.ca5644f4bbf"}</DataTableCell>
                     <DataTableCell>{connector.connectorType} / {connector.provider}</DataTableCell>
-                    <DataTableCell>{capabilities.slice(0, 3).join(", ") || "未配置"}</DataTableCell>
+                    <DataTableCell>{capabilities.slice(0, 3).join(", ") || "ui.generated.c63595e95b7"}</DataTableCell>
                     <DataTableCell><Badge variant={connector.status === "active" ? "success" : "neutral"}>{connector.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{connector.name}</DialogTitle><DialogDescription>Connector 明细。</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>{connector.name}</DialogTitle><DialogDescription>ui.generated.ca5ac75c844</DialogDescription></DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 items={[
                                   { label: "ID", value: connector.id },
-                                  { label: "团队", value: team?.name ?? "全局" },
-                                  { label: "类型", value: connector.connectorType },
-                                  { label: "服务方", value: connector.provider },
-                                  { label: "Endpoint", value: connector.endpoint || "无" },
-                                  { label: "Secret Ref", value: connector.secretRef || "无" },
-                                  { label: "能力", value: capabilities.join(", ") || "无" },
+                                  { label: "ui.generated.c21d7042ff0", value: team?.name ?? "ui.generated.ca5644f4bbf" },
+                                  { label: "ui.generated.ce4e46c7235", value: connector.connectorType },
+                                  { label: "ui.generated.c6a7069fb0c", value: connector.provider },
+                                  { label: "Endpoint", value: connector.endpoint || "ui.generated.c72077749f7" },
+                                  { label: "Secret Ref", value: connector.secretRef || "ui.generated.c72077749f7" },
+                                  { label: "ui.generated.ceb9d53ce7f", value: capabilities.join(", ") || "ui.generated.c72077749f7" },
                                 ]}
                               />
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
-                            <DialogHeader><DialogTitle>编辑 Connector</DialogTitle><DialogDescription>{connector.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.ce796a05817</DialogTitle><DialogDescription>{connector.name}</DialogDescription></DialogHeader>
                             <DialogBody><ConnectorForm businessTeams={teamOptions} connector={connector} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/connectors" id={connector.id} confirmText={`确认删除 Connector「${connector.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/connectors" id={connector.id} confirmParams={{ resource: "ui.common.resources.connector", name: connector.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

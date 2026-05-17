@@ -36,7 +36,7 @@ export function SidebarNav({
             </div>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-[var(--sidebar-ink)]">{text("terminology.productName", "AgentWorld")}</div>
-              <div className="mt-0.5 text-xs font-medium text-[var(--sidebar-ink-softer)]">{text("控制台")}</div>
+              <div className="mt-0.5 text-xs font-medium text-[var(--sidebar-ink-softer)]">{text("ui.generated.c5bd086d22a")}</div>
             </div>
           </div>
           {onToggleCollapse ? (

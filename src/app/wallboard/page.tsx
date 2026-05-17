@@ -10,7 +10,7 @@ export default function WallboardPage() {
       <section className="space-y-4">
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            活跃任务
+            ui.generated.c56a2fa282b
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.activeTaskRuns.map((taskRun) => (
@@ -27,7 +27,7 @@ export default function WallboardPage() {
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  提交人 {taskRun.requestedBy} · {formatDateTime(taskRun.createdAt)}
+                  ui.generated.c3c75f3646a {taskRun.requestedBy} · {formatDateTime(taskRun.createdAt)}
                 </div>
               </div>
             ))}
@@ -36,7 +36,7 @@ export default function WallboardPage() {
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            模型服务健康度
+            ui.generated.cd4c11371e2
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {snapshot.runtimes.map((runtime) => (
@@ -51,7 +51,7 @@ export default function WallboardPage() {
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {runtime.activeRunCount} 个活跃运行 / {runtime.concurrencyLimit} 个槽位
+                  {runtime.activeRunCount} ui.generated.c0e8d5d0351 {runtime.concurrencyLimit} ui.generated.c0188a1d615
                 </div>
               </div>
             ))}
@@ -60,14 +60,14 @@ export default function WallboardPage() {
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            任务类别
+            ui.generated.c3c943b28b2
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
               <div key={item.sourceType} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
                 <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.taskRunCount}</div>
-                <div className="mt-1 text-xs text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
+                <div className="mt-1 text-xs text-[var(--ink-muted)]">ui.generated.c8c0daf7f81 {item.activeCount}</div>
               </div>
             ))}
           </div>
@@ -75,7 +75,7 @@ export default function WallboardPage() {
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            Finding 聚合
+            ui.generated.ce1eb870c31
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-5">
             {snapshot.findingDashboard.bySeverity.map((item) => (
@@ -91,7 +91,7 @@ export default function WallboardPage() {
       <section className="space-y-4">
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            核心 Agent 团队
+            ui.generated.cc8fd36b938
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topTeams.map((team) => (
@@ -101,7 +101,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{team.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {translateWorkflowType(team.workflowType)} · {team.agentCount} 个 Agent · 成功率目标 {Math.round(team.successRateTarget * 100)}%
+                  {translateWorkflowType(team.workflowType)} · {team.agentCount} ui.generated.ce2481c87f2 {Math.round(team.successRateTarget * 100)}%
                 </div>
               </div>
             ))}
@@ -110,7 +110,7 @@ export default function WallboardPage() {
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            活跃代码仓
+            ui.generated.cacce24c07a
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topRepositories.map((repository) => (
@@ -120,7 +120,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{repository.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {repository.provider} · {repository.branch} · 最近 {repository.lastTaskRunCount} 个任务
+                  {repository.provider} · {repository.branch} ui.generated.c89fa5ee6d9 {repository.lastTaskRunCount} ui.generated.cc5680a85b1
                 </div>
               </div>
             ))}
@@ -129,7 +129,7 @@ export default function WallboardPage() {
 
         <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
           <div className="text-xs font-medium text-[var(--ink-muted)]">
-            活跃开发者
+            ui.generated.c52ad88f273
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topDevelopers.map((developer) => (
@@ -139,7 +139,7 @@ export default function WallboardPage() {
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{developer.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {localizeDemoCopy(developer.focus)} · 最近活跃于 {formatDateTime(developer.lastActiveAt)}
+                  {localizeDemoCopy(developer.focus)} ui.generated.c2f29355d6e {formatDateTime(developer.lastActiveAt)}
                 </div>
               </div>
             ))}

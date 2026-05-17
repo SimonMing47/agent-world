@@ -44,22 +44,22 @@ export default function AccessGrantsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="跨团队授权"
-        title="跨团队授权"
-        description="维护服务方团队与消费方团队之间的授权。"
-        badges={[{ label: `${accessGrants.length} 条授权`, variant: "accent" }]}
+        eyebrow="ui.generated.c2c4520c3e3"
+        title="ui.generated.c2c4520c3e3"
+        description="ui.generated.cf13f0d7c89"
+        badges={[{ label: <>{accessGrants.length} ui.common.count.accessGrants</>, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="授权目录"
-          description="查看授权双方、价格、SLA 和服务账号。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cfaf03eb6b4"
+          description="ui.generated.cf3f92ce184"
           action={
             <Dialog>
-              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增授权</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.cf31d0722b7</Button></DialogTrigger>
               <DialogContent className="w-[min(94vw,820px)]">
-                <DialogHeader><DialogTitle>新增跨团队授权</DialogTitle><DialogDescription>配置服务方、消费方和访问边界。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>ui.generated.caf04158d81</DialogTitle><DialogDescription>ui.generated.c464f898bb9</DialogDescription></DialogHeader>
                 <DialogBody>
                   <AccessGrantForm
                     agentTeams={agentTeamOptions}
@@ -84,13 +84,13 @@ export default function AccessGrantsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>服务方</DataTableHead>
-                <DataTableHead>消费方</DataTableHead>
-                <DataTableHead>服务账号</DataTableHead>
-                <DataTableHead>价格</DataTableHead>
+                <DataTableHead>ui.generated.c6a7069fb0c</DataTableHead>
+                <DataTableHead>ui.generated.cfa32a6feeb</DataTableHead>
+                <DataTableHead>ui.generated.c65596a6283</DataTableHead>
+                <DataTableHead>ui.generated.cb70c2d28a1</DataTableHead>
                 <DataTableHead>SLA</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -110,20 +110,20 @@ export default function AccessGrantsPage() {
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{providerTeam?.name ?? "授权"}</DialogTitle><DialogDescription>跨团队授权明细。</DialogDescription></DialogHeader>
-                            <DialogBody><DefinitionList items={[{ label: "授权 ID", value: grant.id }, { label: "定价", value: grant.pricingModelJson }, { label: "SLA", value: grant.slaJson }, { label: "访问范围", value: grant.accessScopeJson }]} /></DialogBody>
+                            <DialogHeader><DialogTitle>{providerTeam?.name ?? "ui.generated.c3a6e607f0c"}</DialogTitle><DialogDescription>ui.generated.cd6ada860cf</DialogDescription></DialogHeader>
+                            <DialogBody><DefinitionList items={[{ label: "ui.generated.c1af8d01a5d", value: grant.id }, { label: "ui.generated.cbbfed2f2c3", value: grant.pricingModelJson }, { label: "SLA", value: grant.slaJson }, { label: "ui.generated.c241d8ef92f", value: grant.accessScopeJson }]} /></DialogBody>
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,820px)]">
-                            <DialogHeader><DialogTitle>编辑跨团队授权</DialogTitle><DialogDescription>{grant.serviceAccountRef}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.c5cfc7f9695</DialogTitle><DialogDescription>{grant.serviceAccountRef}</DialogDescription></DialogHeader>
                             <DialogBody><AccessGrantForm agentTeams={agentTeamOptions} businessTeams={businessTeamOptions} grant={grant} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/access-grants" id={grant.id} confirmText="确认删除该跨团队授权？" />
+                        <DeleteResourceButton endpoint="/api/access-grants" id={grant.id} confirmText="ui.generated.cdd6ac8cd3f" />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

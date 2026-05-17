@@ -34,7 +34,7 @@ export function SheetContent({
               {text("terminology.productName", "AgentWorld")}
             </Dialog.Title>
             <Dialog.Description className="mt-1 text-xs text-[var(--sidebar-muted)]">
-              {text("任务平台控制台")}
+              {text("ui.generated.c8027d9d7d0")}
             </Dialog.Description>
           </div>
           <Dialog.Close className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--sidebar-muted)] transition-colors hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)]">

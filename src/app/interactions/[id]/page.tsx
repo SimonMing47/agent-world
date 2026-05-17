@@ -32,9 +32,9 @@ export default async function RuntimeInteractionDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="会话详情"
+        eyebrow="ui.generated.c5446baecd9"
         title={detail.session.title}
-        description="查看消息、事件、工具调用和人工介入记录。"
+        description="ui.generated.c9ae641eb8d"
         badges={[
           { label: translateSessionMode(detail.session.mode), variant: "neutral" },
           { label: translateStatus(detail.session.status), variant: statusVariant(detail.session.status) },
@@ -72,46 +72,46 @@ export default async function RuntimeInteractionDetailPage({
           {
             id: "human-operator",
             name: "Operator",
-            role: "人工协作",
+            role: "ui.common.humanCollaboration",
             kind: "human" as const,
           },
         ]}
         compactFacts={[
           {
-            label: "执行配置",
-            value: detail.runtimeBinding?.name ?? "未绑定",
+            label: "ui.generated.c8e175e7aa9",
+            value: detail.runtimeBinding?.name ?? "ui.generated.c3bf179d8d0",
             detail: detail.runtimeDescriptor?.executionMode ?? "unknown",
           },
           {
-            label: "模型服务",
-            value: detail.providerProfile?.name ?? "未绑定",
+            label: "ui.generated.cbc56f948bb",
+            value: detail.providerProfile?.name ?? "ui.generated.c3bf179d8d0",
             detail: detail.session.model,
           },
           {
-            label: "Agent 定义",
-            value: detail.agentDefinition?.name ?? "无",
+            label: "ui.generated.c2bca55a7ed",
+            value: detail.agentDefinition?.name ?? "ui.generated.c72077749f7",
             detail: harnessProfile
               ? `${harnessProfile.approvalMode} · ${harnessProfile.thinkingLevel}`
-              : "未绑定默认画像",
+              : "ui.generated.c7ff55ad2c8",
           },
           {
-            label: "Agent 团队",
-            value: detail.agentTeam?.name ?? "无",
+            label: "ui.generated.c70f970c1fc",
+            value: detail.agentTeam?.name ?? "ui.generated.c72077749f7",
             detail: detail.agentTeam
-              ? `${detail.agents.length} 个成员`
-              : "单 Agent 会话",
+              ? <>{detail.agents.length} ui.common.count.members</>
+              : "ui.generated.c8aa0dfdca3",
           },
           {
-            label: "人工介入",
+            label: "ui.generated.c8d8f100fb8",
             value: translateHumanIntervention(
               harnessProfile?.humanIntervention ?? detail.runtimeDescriptor?.humanIntervention ?? "manual",
             ),
             detail: detail.session.createdBy,
           },
           {
-            label: "更新时间",
+            label: "ui.generated.c093dea88c9",
             value: formatDateTime(detail.session.updatedAt),
-            detail: `创建于 ${formatDateTime(detail.session.createdAt)}`,
+            detail: <>ui.common.createdAtPrefix {formatDateTime(detail.session.createdAt)}</>,
           },
         ]}
       />

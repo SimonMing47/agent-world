@@ -8,6 +8,7 @@ import {
   buildRuntimeDescriptor,
   resolveProviderApiKey,
 } from "@/server/runtime-provider-config";
+import { uiText } from "@/lib/language-pack";
 
 export type DiscoveredRuntime = {
   baseUrl: string;
@@ -208,7 +209,7 @@ function flattenThinkingText(message: AssistantMessage | null) {
 
 class PiRuntimeAdapter implements AgentRuntimeInterface {
   id = "agentworld-runtime-adapter";
-  label = "AgentWorld 内置执行接口";
+  label = uiText("ui.generated.c1d9b27a203");
   private readonly sessionStreams = new Map<string, SessionStreamState>();
 
   private getSessionState(sessionId: string) {
@@ -258,7 +259,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         agents: buildAgentCatalog(args.binding, args.agentCatalog),
         providers: [],
         latencyMs: null,
-        note: "未绑定模型接口，无法校验运行时。",
+        note: uiText("ui.generated.c414726f7c6"),
       } satisfies DiscoveredRuntime;
     }
 
@@ -270,7 +271,9 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         agents: buildAgentCatalog(args.binding, args.agentCatalog),
         providers: [args.provider.name],
         latencyMs: null,
-        note: `缺少 API Key：${descriptor.apiKeyRefMasked || "未配置 secret ref"}`,
+        note: uiText("ui.server.runtime.missingApiKey", undefined, {
+          apiKey: descriptor.apiKeyRefMasked || uiText("ui.generated.c4e91eb1410"),
+        }),
       } satisfies DiscoveredRuntime;
     }
 
@@ -302,8 +305,8 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         latencyMs: Date.now() - start,
         note:
           response.stopReason === "error"
-            ? response.errorMessage ?? "模型服务返回错误。"
-            : `系统内置运行接口已通过 ${descriptor.providerLabel} 完成真实对话校验。`,
+            ? response.errorMessage ?? uiText("ui.generated.c41b4ba383f")
+            : uiText("ui.server.runtime.healthPassed", undefined, { providerLabel: descriptor.providerLabel }),
       } satisfies DiscoveredRuntime;
     } catch (error) {
       return {
@@ -312,7 +315,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         agents: buildAgentCatalog(args.binding, args.agentCatalog),
         providers: [args.provider.name],
         latencyMs: null,
-        note: error instanceof Error ? error.message : "运行接口校验失败",
+        note: error instanceof Error ? error.message : uiText("ui.generated.c4f7727a744"),
       } satisfies DiscoveredRuntime;
     }
   }

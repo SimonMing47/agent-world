@@ -7,6 +7,7 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { uiText } from "@/lib/language-pack";
 
 type Option = { id: string; name: string };
 
@@ -52,7 +53,7 @@ function FormActions({
   return (
     <div className="mt-4 flex items-center justify-between gap-3">
       <Button type="button" onClick={onSave} disabled={isSaving}>
-        {isSaving ? "保存中" : label}
+        {isSaving ? "ui.generated.ca032e8fdda" : label}
       </Button>
       {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
     </div>
@@ -66,7 +67,7 @@ async function submitJson(endpoint: string, body: unknown) {
     body: JSON.stringify(body),
   });
   const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-  if (!response.ok || result.ok === false) throw new Error(result.error ?? "保存失败");
+  if (!response.ok || result.ok === false) throw new Error(result.error ?? "ui.generated.c40525a7328");
   return result;
 }
 
@@ -117,10 +118,10 @@ export function SkillForm({
         tags: form.tags.split(/\n|,|，/).map((item) => item.trim()).filter(Boolean),
         isEnabled: form.isEnabled ? 1 : 0,
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -149,9 +150,9 @@ export function SkillForm({
           heuristicsJson: suggestion.heuristicsJson ?? form.heuristicsJson,
         });
       }
-      setMessage("已生成优化建议");
+      setMessage("ui.generated.ccbbffcf693");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "优化失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.cd7578f63b2");
     } finally {
       setIsOptimizing(false);
     }
@@ -159,17 +160,17 @@ export function SkillForm({
 
   async function sync() {
     if (!form.id) {
-      setMessage("请先保存 Skill");
+      setMessage("ui.generated.c7715e3536b");
       return;
     }
     setIsSaving(true);
     setMessage(null);
     try {
       await submitJson("/api/skills/sync", { skillId: form.id });
-      setMessage("已同步到 OpenViking");
+      setMessage("ui.generated.cfd6a496394");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "同步失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.ca8f14c99a0");
     } finally {
       setIsSaving(false);
     }
@@ -178,15 +179,15 @@ export function SkillForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="Skill 名称">
+        <FieldGroup label="ui.generated.c1984544cf8">
           <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="归属团队">
+        <FieldGroup label="ui.generated.c53d4919c45">
           <Select
             value={form.ownerBusinessTeamId}
             onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
           >
-            <option value="">全局</option>
+            <option value="">ui.generated.ca5644f4bbf</option>
             {businessTeams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
@@ -194,53 +195,53 @@ export function SkillForm({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="知识层">
+        <FieldGroup label="ui.generated.c986ff01617">
           <Input value={form.layer} onChange={(event) => setForm({ ...form, layer: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="可见性">
+        <FieldGroup label="ui.generated.c747b74cec9">
           <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
-            <option value="private">个人</option>
-            <option value="team">团队</option>
-            <option value="global">全局</option>
+            <option value="private">ui.generated.c2d7c0c32a3</option>
+            <option value="team">ui.generated.c21d7042ff0</option>
+            <option value="global">ui.generated.ca5644f4bbf</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="描述" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c412f54dc38" className="md:col-span-2">
           <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="标签" hint="每行一个标签，运行时可以按标签选择 Skill。">
+        <FieldGroup label="ui.generated.cae0a7afece" hint="ui.generated.c2f80fdc2c6">
           <Textarea value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="启用状态">
+        <FieldGroup label="ui.generated.c5691b3791b">
           <label className="flex h-10 items-center gap-2 text-sm text-[var(--ink-muted)]">
             <input
               type="checkbox"
               checked={form.isEnabled}
               onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
             />
-            运行时可用
+            ui.generated.c0e122f82e5
           </label>
         </FieldGroup>
-        <FieldGroup label="Skill 内容" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c7a70cc4e2d" className="md:col-span-2">
           <Textarea
             className="min-h-40"
             value={form.promptMd}
             onChange={(event) => setForm({ ...form, promptMd: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="结构化启发式" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c3b4e3017cb" className="md:col-span-2">
           <Textarea value={form.heuristicsJson} onChange={(event) => setForm({ ...form, heuristicsJson: event.target.value })} />
         </FieldGroup>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={save} disabled={isSaving}>
-            {isSaving ? "保存中" : "保存 Skill"}
+            {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c45707941fb"}
           </Button>
           <Button type="button" variant="secondary" onClick={optimize} disabled={isOptimizing}>
-            {isOptimizing ? "优化中" : "优化润色"}
+            {isOptimizing ? "ui.generated.c074e1e7d25" : "ui.generated.c351a1bc3e3"}
           </Button>
           <Button type="button" variant="ghost" onClick={sync} disabled={isSaving}>
-            同步 OpenViking
+            ui.generated.cee34092def
           </Button>
         </div>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
@@ -284,10 +285,10 @@ export function McpServerForm({
         businessTeamId: form.businessTeamId || null,
         toolAllowlistJson: linesToJson(form.tools),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -295,32 +296,32 @@ export function McpServerForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="归属团队">
+        <FieldGroup label="ui.generated.c1be7ae4fc2"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c53d4919c45">
           <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
-            <option value="">全局</option>
+            <option value="">ui.generated.ca5644f4bbf</option>
             {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="传输方式">
+        <FieldGroup label="ui.generated.ce659fd134c">
           <Select value={form.transport} onChange={(event) => setForm({ ...form, transport: event.target.value })}>
             <option value="stdio">stdio</option>
             <option value="http">HTTP</option>
             <option value="sse">SSE</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="命令" className="md:col-span-2"><Input value={form.command} onChange={(event) => setForm({ ...form, command: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cb114b91547" className="md:col-span-2"><Input value={form.command} onChange={(event) => setForm({ ...form, command: event.target.value })} /></FieldGroup>
         <FieldGroup label="URL" className="md:col-span-2"><Input value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} /></FieldGroup>
-        <FieldGroup label="鉴权引用"><Input value={form.authRef} onChange={(event) => setForm({ ...form, authRef: event.target.value })} /></FieldGroup>
-        <FieldGroup label="工具白名单"><Textarea value={form.tools} onChange={(event) => setForm({ ...form, tools: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c944d3e201b"><Input value={form.authRef} onChange={(event) => setForm({ ...form, authRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c36efe9a19f"><Textarea value={form.tools} onChange={(event) => setForm({ ...form, tools: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存 MCP" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cbc054c1b83" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -356,10 +357,10 @@ export function ConnectorForm({
         businessTeamId: form.businessTeamId || null,
         capabilitiesJson: linesToJson(form.capabilities),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -367,34 +368,34 @@ export function ConnectorForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="归属团队">
+        <FieldGroup label="ui.generated.c1be7ae4fc2"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c53d4919c45">
           <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
-            <option value="">全局</option>
+            <option value="">ui.generated.ca5644f4bbf</option>
             {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="类型">
+        <FieldGroup label="ui.generated.ce4e46c7235">
           <Select value={form.connectorType} onChange={(event) => setForm({ ...form, connectorType: event.target.value })}>
             <option value="im">IM</option>
-            <option value="email">邮件</option>
+            <option value="email">ui.generated.c1c8e464184</option>
             <option value="web_push">Web Push</option>
             <option value="webhook">Webhook</option>
-            <option value="custom">自定义</option>
+            <option value="custom">ui.generated.cc493338e8c</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="供应商"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c703c9eb0f0"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
         <FieldGroup label="Endpoint" className="md:col-span-2"><Input value={form.endpoint} onChange={(event) => setForm({ ...form, endpoint: event.target.value })} /></FieldGroup>
-        <FieldGroup label="Secret 引用"><Input value={form.secretRef} onChange={(event) => setForm({ ...form, secretRef: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c439768fdec"><Input value={form.secretRef} onChange={(event) => setForm({ ...form, secretRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="能力" className="md:col-span-2"><Textarea value={form.capabilities} onChange={(event) => setForm({ ...form, capabilities: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.ceb9d53ce7f" className="md:col-span-2"><Textarea value={form.capabilities} onChange={(event) => setForm({ ...form, capabilities: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存 Connector" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.ccb93c134bb" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -425,10 +426,10 @@ export function CodebaseForm({
     setMessage(null);
     try {
       await submitJson("/api/codebases", { ...form, id: form.id || crypto.randomUUID() });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -436,32 +437,32 @@ export function CodebaseForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="仓库名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="归属团队">
+        <FieldGroup label="ui.generated.c6f55a5a54c"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c53d4919c45">
           <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
             {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="代码平台"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
-        <FieldGroup label="默认分支"><Input value={form.defaultBranch} onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })} /></FieldGroup>
-        <FieldGroup label="可见性">
+        <FieldGroup label="ui.generated.ceb737abfde"><Input value={form.provider} onChange={(event) => setForm({ ...form, provider: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cdc900d83b2"><Input value={form.defaultBranch} onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c747b74cec9">
           <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
-            <option value="private">私有</option>
-            <option value="team">团队</option>
-            <option value="global">全局</option>
+            <option value="private">ui.generated.c6858674b88</option>
+            <option value="team">ui.generated.c21d7042ff0</option>
+            <option value="global">ui.generated.ca5644f4bbf</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
-            <option value="archived">归档</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
+            <option value="archived">ui.generated.cddfde75bec</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="仓库地址" className="md:col-span-2"><Input value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} /></FieldGroup>
-        <FieldGroup label="描述" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c6b470c4670" className="md:col-span-2"><Input value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c412f54dc38" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存 Codebase" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.c3cb3ecb4a4" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -495,10 +496,10 @@ export function CodebaseTokenForm({
         id: form.id || crypto.randomUUID(),
         permissionJson: linesToJson(form.permissions),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -506,24 +507,24 @@ export function CodebaseTokenForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="代码仓">
+        <FieldGroup label="ui.generated.c6aa9ff908e">
           <Select value={form.codebaseId} onChange={(event) => setForm({ ...form, codebaseId: event.target.value })}>
             {codebases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="操作者"><Input value={form.operatorName} onChange={(event) => setForm({ ...form, operatorName: event.target.value })} /></FieldGroup>
-        <FieldGroup label="角色"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
-        <FieldGroup label="Token 引用"><Input value={form.tokenRef} onChange={(event) => setForm({ ...form, tokenRef: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.cffb50d3878"><Input value={form.operatorName} onChange={(event) => setForm({ ...form, operatorName: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c6b26695e4d"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c090926193c"><Input value={form.tokenRef} onChange={(event) => setForm({ ...form, tokenRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
-            <option value="expired">过期</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
+            <option value="expired">ui.generated.c7cf7bfff3c</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="权限" className="md:col-span-2"><Textarea value={form.permissions} onChange={(event) => setForm({ ...form, permissions: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c560165a6d7" className="md:col-span-2"><Textarea value={form.permissions} onChange={(event) => setForm({ ...form, permissions: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存操作者 Token" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.c6bd4e6602d" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -555,10 +556,10 @@ export function TeamMemberForm({
     setMessage(null);
     try {
       await submitJson("/api/team-members", { ...form, id: form.id || crypto.randomUUID(), tenantSpaceId });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -566,25 +567,25 @@ export function TeamMemberForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="姓名"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="工号"><Input value={form.employeeNo} onChange={(event) => setForm({ ...form, employeeNo: event.target.value })} /></FieldGroup>
-        <FieldGroup label="邮箱"><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></FieldGroup>
-        <FieldGroup label="归属团队">
+        <FieldGroup label="ui.generated.cbe4c2616b1"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c29f4c9b495"><Input value={form.employeeNo} onChange={(event) => setForm({ ...form, employeeNo: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c9ed627bcf6"><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c53d4919c45">
           <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
             {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="角色"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
-        <FieldGroup label="岗位"><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c6b26695e4d"><Input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cf0f3e908c2"><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">在职/启用</option>
-            <option value="inactive">停用</option>
-            <option value="pending">待确认</option>
+            <option value="active">ui.generated.c88381ac4ff</option>
+            <option value="inactive">ui.generated.cd989e55188</option>
+            <option value="pending">ui.generated.c27b5842c97</option>
           </Select>
         </FieldGroup>
       </div>
-      <FormActions label="保存成员" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cea5fba9051" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -600,31 +601,31 @@ export function TeamMemberImportForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [businessTeamId, setBusinessTeamId] = useState(businessTeams[0]?.id ?? "");
-  const [rows, setRows] = useState("工号\t姓名\t邮箱\t角色\t岗位");
+  const [rows, setRows] = useState(uiText("ui.common.excelMemberImportHeader"));
   async function save() {
     setIsSaving(true);
     setMessage(null);
     try {
       await submitJson("/api/team-members", { mode: "import", tenantSpaceId, businessTeamId, rows });
-      setMessage("已导入");
+      setMessage("ui.generated.c5c5b7cfb12");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "导入失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.ca01a8d5393");
     } finally {
       setIsSaving(false);
     }
   }
   return (
     <div className="space-y-4">
-      <FieldGroup label="归属团队">
+      <FieldGroup label="ui.generated.c53d4919c45">
         <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
           {businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
         </Select>
       </FieldGroup>
-      <FieldGroup label="Excel 内容" hint="从 Excel 复制工号、姓名、邮箱、角色、岗位五列后粘贴。">
+      <FieldGroup label="ui.generated.c7671abe767" hint="ui.generated.c26c89f0fd8">
         <Textarea className="min-h-48" value={rows} onChange={(event) => setRows(event.target.value)} />
       </FieldGroup>
-      <FormActions label="导入成员" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.c7ae9acb5ad" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -663,10 +664,10 @@ export function PermissionGrantForm({
         memberId: form.memberId || null,
         actionsJson: linesToJson(form.actions),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -674,28 +675,28 @@ export function PermissionGrantForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="成员"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">团队角色</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="主体类型">
+        <FieldGroup label="ui.generated.c2b90028ff3"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.cc1ee9f0190"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">ui.generated.cf39bcb6746</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c32e32cd3d0">
           <Select value={form.principalType} onChange={(event) => setForm({ ...form, principalType: event.target.value })}>
-            <option value="member">成员</option>
-            <option value="role">角色</option>
-            <option value="team">团队</option>
+            <option value="member">ui.generated.cc1ee9f0190</option>
+            <option value="role">ui.generated.c6b26695e4d</option>
+            <option value="team">ui.generated.c21d7042ff0</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="角色 Key"><Input value={form.roleKey} onChange={(event) => setForm({ ...form, roleKey: event.target.value })} /></FieldGroup>
-        <FieldGroup label="资源类型"><Input value={form.resourceType} onChange={(event) => setForm({ ...form, resourceType: event.target.value })} /></FieldGroup>
-        <FieldGroup label="资源范围"><Input value={form.resourceScope} onChange={(event) => setForm({ ...form, resourceScope: event.target.value })} /></FieldGroup>
-        <FieldGroup label="效果"><Select value={form.effect} onChange={(event) => setForm({ ...form, effect: event.target.value })}><option value="allow">允许</option><option value="deny">拒绝</option><option value="ask">需审批</option></Select></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c1e9c8e9515"><Input value={form.roleKey} onChange={(event) => setForm({ ...form, roleKey: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cc6464f4f4d"><Input value={form.resourceType} onChange={(event) => setForm({ ...form, resourceType: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c160e006ae4"><Input value={form.resourceScope} onChange={(event) => setForm({ ...form, resourceScope: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c151ddd4f1f"><Select value={form.effect} onChange={(event) => setForm({ ...form, effect: event.target.value })}><option value="allow">ui.generated.c4c0c0aed67</option><option value="deny">ui.generated.c03e210a66d</option><option value="ask">ui.generated.cd00dc39af5</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="动作" className="md:col-span-2"><Textarea value={form.actions} onChange={(event) => setForm({ ...form, actions: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cd9d9827827" className="md:col-span-2"><Textarea value={form.actions} onChange={(event) => setForm({ ...form, actions: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存权限" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cd5355d17be" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -728,10 +729,10 @@ export function AssetGrantForm({
     try {
       JSON.parse(form.permissionJson);
       await submitJson("/api/team-assets", { ...form, id: form.id || crypto.randomUUID(), memberId: form.memberId || null });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -739,20 +740,20 @@ export function AssetGrantForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="成员"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">团队级资产</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="资产类型"><Select value={form.assetType} onChange={(event) => setForm({ ...form, assetType: event.target.value })}><option value="skill">Skill</option><option value="knowledge_space">知识库</option><option value="codebase">Codebase</option><option value="connector">Connector</option><option value="agent_team">Agent 团队</option></Select></FieldGroup>
-        <FieldGroup label="资产 ID"><Input value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c2b90028ff3"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.cc1ee9f0190"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">ui.generated.c697e6f3e85</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c74e3df5bd8"><Select value={form.assetType} onChange={(event) => setForm({ ...form, assetType: event.target.value })}><option value="skill">Skill</option><option value="knowledge_space">ui.generated.c1dda51f9e3</option><option value="codebase">Codebase</option><option value="connector">Connector</option><option value="agent_team">ui.generated.c70f970c1fc</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.c9e5ee1cb24"><Input value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="资产名称" className="md:col-span-2"><Input value={form.assetName} onChange={(event) => setForm({ ...form, assetName: event.target.value })} /></FieldGroup>
-        <FieldGroup label="权限 JSON" className="md:col-span-2"><Textarea value={form.permissionJson} onChange={(event) => setForm({ ...form, permissionJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cf016adbb92" className="md:col-span-2"><Input value={form.assetName} onChange={(event) => setForm({ ...form, assetName: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cf2417f0eb3" className="md:col-span-2"><Textarea value={form.permissionJson} onChange={(event) => setForm({ ...form, permissionJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存资产授权" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cd51168e3f6" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -796,10 +797,10 @@ export function TenantSpaceForm({
         id: form.id || crypto.randomUUID(),
         defaultExecutionPolicyId: form.defaultExecutionPolicyId || null,
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -807,21 +808,21 @@ export function TenantSpaceForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="租户名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c42a8d2274f"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
         <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
         <FieldGroup label="Owner"><Input value={form.ownerUserId} onChange={(event) => setForm({ ...form, ownerUserId: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
-        <FieldGroup label="默认执行策略" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c62e951a692"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">ui.generated.cd4e9ca3dd4</option><option value="disabled">ui.generated.cd989e55188</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.c4364c1156f" className="md:col-span-2">
           <Select value={form.defaultExecutionPolicyId} onChange={(event) => setForm({ ...form, defaultExecutionPolicyId: event.target.value })}>
-            <option value="">不绑定</option>
+            <option value="">ui.generated.c9a0ee40403</option>
             {executionPolicies.map((policy) => <option key={policy.id} value={policy.id}>{policy.name}</option>)}
           </Select>
         </FieldGroup>
-        <FieldGroup label="配额 JSON"><Textarea value={form.quotaLimitJson} onChange={(event) => setForm({ ...form, quotaLimitJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="模型白名单 JSON"><Textarea value={form.modelWhitelistJson} onChange={(event) => setForm({ ...form, modelWhitelistJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="全局 Guardrails JSON" className="md:col-span-2"><Textarea value={form.globalGuardrailsJson} onChange={(event) => setForm({ ...form, globalGuardrailsJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cda59cca989"><Textarea value={form.quotaLimitJson} onChange={(event) => setForm({ ...form, quotaLimitJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c2526b70376"><Textarea value={form.modelWhitelistJson} onChange={(event) => setForm({ ...form, modelWhitelistJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c8b349a38f6" className="md:col-span-2"><Textarea value={form.globalGuardrailsJson} onChange={(event) => setForm({ ...form, globalGuardrailsJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存租户空间" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.c8f995d2817" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -873,10 +874,10 @@ export function BusinessTeamForm({
         balance: Number(form.balance || 0),
         creditLimit: Number(form.creditLimit || 0),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -884,33 +885,33 @@ export function BusinessTeamForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="团队名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cb2629c388f"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
         <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></FieldGroup>
-        <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="上级团队">
+        <FieldGroup label="ui.generated.c3db35d2741"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c8febffdb94">
           <Select value={form.parentBusinessTeamId} onChange={(event) => setForm({ ...form, parentBusinessTeamId: event.target.value })}>
-            <option value="">无上级团队</option>
+            <option value="">ui.generated.c7c6b663c4c</option>
             {businessTeams
               .filter((item) => item.id !== form.id)
               .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </Select>
         </FieldGroup>
         <FieldGroup label="Owner"><Input value={form.ownerUserId} onChange={(event) => setForm({ ...form, ownerUserId: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态">
+        <FieldGroup label="ui.generated.c62e951a692">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-            <option value="active">启用</option>
-            <option value="disabled">停用</option>
-            <option value="archived">归档</option>
+            <option value="active">ui.generated.cd4e9ca3dd4</option>
+            <option value="disabled">ui.generated.cd989e55188</option>
+            <option value="archived">ui.generated.cddfde75bec</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="余额"><Input value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></FieldGroup>
-        <FieldGroup label="信用额度"><Input value={form.creditLimit} onChange={(event) => setForm({ ...form, creditLimit: event.target.value })} /></FieldGroup>
-        <FieldGroup label="团队说明" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
-        <FieldGroup label="私有记忆命名空间" className="md:col-span-2"><Input value={form.privateMemoryNamespace} onChange={(event) => setForm({ ...form, privateMemoryNamespace: event.target.value })} /></FieldGroup>
-        <FieldGroup label="私有工具引用 JSON"><Textarea value={form.privateToolRefsJson} onChange={(event) => setForm({ ...form, privateToolRefsJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="团队策略 JSON"><Textarea value={form.policyJson} onChange={(event) => setForm({ ...form, policyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c51cc55073e"><Input value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c2a09e27c43"><Input value={form.creditLimit} onChange={(event) => setForm({ ...form, creditLimit: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c0ed5cf4445" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c93c1a133c7" className="md:col-span-2"><Input value={form.privateMemoryNamespace} onChange={(event) => setForm({ ...form, privateMemoryNamespace: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c1a867ec313"><Textarea value={form.privateToolRefsJson} onChange={(event) => setForm({ ...form, privateToolRefsJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c6ac41ead86"><Textarea value={form.policyJson} onChange={(event) => setForm({ ...form, policyJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存业务团队" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cf94598e5b8" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -968,10 +969,10 @@ export function ExecutionPolicyForm({
         businessTeamId: form.businessTeamId || null,
         teamId: form.teamId || null,
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -979,18 +980,18 @@ export function ExecutionPolicyForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="策略名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
-        <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}><option value="">全局</option>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}><option value="">不限定</option>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="Agent 团队"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">不限定</option>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="系统约束说明" className="md:col-span-2"><Textarea value={form.systemInstruction} onChange={(event) => setForm({ ...form, systemInstruction: event.target.value })} /></FieldGroup>
-        <FieldGroup label="工具策略 JSON"><Textarea value={form.toolPolicyJson} onChange={(event) => setForm({ ...form, toolPolicyJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="审批策略 JSON"><Textarea value={form.approvalPolicyJson} onChange={(event) => setForm({ ...form, approvalPolicyJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="预算策略 JSON"><Textarea value={form.budgetPolicyJson} onChange={(event) => setForm({ ...form, budgetPolicyJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="输出策略 JSON"><Textarea value={form.outputPolicyJson} onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="安全策略 JSON" className="md:col-span-2"><Textarea value={form.securityPolicyJson} onChange={(event) => setForm({ ...form, securityPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c235f7a86bb"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c3db35d2741"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}><option value="">ui.generated.ca5644f4bbf</option>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c2b90028ff3"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}><option value="">ui.generated.c59ec80dbec</option>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c70f970c1fc"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">ui.generated.c59ec80dbec</option>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c082e8e9ef2" className="md:col-span-2"><Textarea value={form.systemInstruction} onChange={(event) => setForm({ ...form, systemInstruction: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cc171d26b81"><Textarea value={form.toolPolicyJson} onChange={(event) => setForm({ ...form, toolPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.ca577223370"><Textarea value={form.approvalPolicyJson} onChange={(event) => setForm({ ...form, approvalPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c2e057b5aaa"><Textarea value={form.budgetPolicyJson} onChange={(event) => setForm({ ...form, budgetPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c7dff341b42"><Textarea value={form.outputPolicyJson} onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c68323b6052" className="md:col-span-2"><Textarea value={form.securityPolicyJson} onChange={(event) => setForm({ ...form, securityPolicyJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存执行策略" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.c11d036fd81" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -1023,10 +1024,10 @@ export function ServiceCatalogForm({
         id: form.id || crypto.randomUUID(),
         tagsJson: linesToJson(form.tags),
       });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -1034,13 +1035,13 @@ export function ServiceCatalogForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="Agent 团队"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="招募模式"><Select value={form.recruitmentMode} onChange={(event) => setForm({ ...form, recruitmentMode: event.target.value })}><option value="manual">手动授权</option><option value="request">申请使用</option><option value="open">开放使用</option></Select></FieldGroup>
-        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
-        <FieldGroup label="标签"><Textarea value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></FieldGroup>
-        <FieldGroup label="服务履历 JSON" className="md:col-span-2"><Textarea value={form.resumeJson} onChange={(event) => setForm({ ...form, resumeJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c70f970c1fc"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c9fe9e5c5bd"><Select value={form.recruitmentMode} onChange={(event) => setForm({ ...form, recruitmentMode: event.target.value })}><option value="manual">ui.generated.c34fd164246</option><option value="request">ui.generated.c85d8f44eb6</option><option value="open">ui.generated.c9b2526d552</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">ui.generated.cd4e9ca3dd4</option><option value="disabled">ui.generated.cd989e55188</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.cae0a7afece"><Textarea value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c0efe839cad" className="md:col-span-2"><Textarea value={form.resumeJson} onChange={(event) => setForm({ ...form, resumeJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存服务目录" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cf1ec27e499" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }
@@ -1080,10 +1081,10 @@ export function AccessGrantForm({
       JSON.parse(form.slaJson);
       JSON.parse(form.accessScopeJson);
       await submitJson("/api/access-grants", { ...form, id: form.id || crypto.randomUUID() });
-      setMessage("已保存");
+      setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      setMessage(error instanceof Error ? error.message : "ui.generated.c40525a7328");
     } finally {
       setIsSaving(false);
     }
@@ -1091,15 +1092,15 @@ export function AccessGrantForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="服务 Agent 团队"><Select value={form.providerTeamId} onChange={(event) => setForm({ ...form, providerTeamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="消费业务团队"><Select value={form.consumerBusinessTeamId} onChange={(event) => setForm({ ...form, consumerBusinessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="服务账号引用"><Input value={form.serviceAccountRef} onChange={(event) => setForm({ ...form, serviceAccountRef: event.target.value })} /></FieldGroup>
-        <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
-        <FieldGroup label="定价 JSON"><Textarea value={form.pricingModelJson} onChange={(event) => setForm({ ...form, pricingModelJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c64067bdcac"><Select value={form.providerTeamId} onChange={(event) => setForm({ ...form, providerTeamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c968fef31e7"><Select value={form.consumerBusinessTeamId} onChange={(event) => setForm({ ...form, consumerBusinessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="ui.generated.c88b8078075"><Input value={form.serviceAccountRef} onChange={(event) => setForm({ ...form, serviceAccountRef: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.c62e951a692"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">ui.generated.cd4e9ca3dd4</option><option value="disabled">ui.generated.cd989e55188</option></Select></FieldGroup>
+        <FieldGroup label="ui.generated.c101c7957bb"><Textarea value={form.pricingModelJson} onChange={(event) => setForm({ ...form, pricingModelJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="SLA JSON"><Textarea value={form.slaJson} onChange={(event) => setForm({ ...form, slaJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="访问范围 JSON" className="md:col-span-2"><Textarea value={form.accessScopeJson} onChange={(event) => setForm({ ...form, accessScopeJson: event.target.value })} /></FieldGroup>
+        <FieldGroup label="ui.generated.cdd5fc1f5fa" className="md:col-span-2"><Textarea value={form.accessScopeJson} onChange={(event) => setForm({ ...form, accessScopeJson: event.target.value })} /></FieldGroup>
       </div>
-      <FormActions label="保存跨团队授权" isSaving={isSaving} message={message} onSave={save} />
+      <FormActions label="ui.generated.cb4a9067dc0" isSaving={isSaving} message={message} onSave={save} />
     </div>
   );
 }

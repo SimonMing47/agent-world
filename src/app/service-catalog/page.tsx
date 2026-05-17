@@ -52,22 +52,22 @@ export default function ServiceCatalogPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="服务目录"
-        title="服务目录"
-        description="维护可跨团队使用的 Agent 团队服务。"
-        badges={[{ label: `${listings.length} 条目录记录`, variant: "accent" }]}
+        eyebrow="ui.generated.cab63588ee3"
+        title="ui.generated.cab63588ee3"
+        description="ui.generated.c7ca438661e"
+        badges={[{ label: <>{listings.length} ui.common.count.catalogRecords</>, variant: "accent" }]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="服务目录"
-          description="查看服务方、价格、SLA 和状态。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cab63588ee3"
+          description="ui.generated.cec26938704"
           action={
             <Dialog>
-              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增目录</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.cb8f0e2c5f3</Button></DialogTrigger>
               <DialogContent className="w-[min(94vw,820px)]">
-                <DialogHeader><DialogTitle>新增服务目录条目</DialogTitle><DialogDescription>选择 Agent 团队并配置招募模式和服务履历。</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>ui.generated.caf01eae3e6</DialogTitle><DialogDescription>ui.generated.c171f1a2d76</DialogDescription></DialogHeader>
                 <DialogBody>
                   <ServiceCatalogForm
                     agentTeams={agentTeamOptions}
@@ -89,13 +89,13 @@ export default function ServiceCatalogPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>Agent 团队</DataTableHead>
-                <DataTableHead>招募模式</DataTableHead>
-                <DataTableHead>成功率</DataTableHead>
-                <DataTableHead>平均耗时</DataTableHead>
-                <DataTableHead>标签</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c70f970c1fc</DataTableHead>
+                <DataTableHead>ui.generated.c9fe9e5c5bd</DataTableHead>
+                <DataTableHead>ui.generated.cdf9dc72f2d</DataTableHead>
+                <DataTableHead>ui.generated.c397236acf6</DataTableHead>
+                <DataTableHead>ui.generated.cae0a7afece</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -112,25 +112,25 @@ export default function ServiceCatalogPage() {
                     <DataTableCell>{translateRecruitmentMode(listing.recruitmentMode)}</DataTableCell>
                     <DataTableCell>{formatPercent(resume.successRate ?? 0)}</DataTableCell>
                     <DataTableCell>{Math.round((resume.avgLatencyMs ?? 0) / 1000)}s</DataTableCell>
-                    <DataTableCell>{tags.join(", ") || "未标注"}</DataTableCell>
+                    <DataTableCell>{tags.join(", ") || "ui.generated.c86f9195e25"}</DataTableCell>
                     <DataTableCell><Badge variant={listing.status === "active" ? "success" : "neutral"}>{listing.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
-                            <DialogHeader><DialogTitle>{team?.name ?? listing.teamId}</DialogTitle><DialogDescription>服务目录明细。</DialogDescription></DialogHeader>
-                            <DialogBody><DefinitionList items={[{ label: "目录 ID", value: listing.id }, { label: "履历 JSON", value: listing.resumeJson }, { label: "标签", value: tags.join(", ") || "无" }]} /></DialogBody>
+                            <DialogHeader><DialogTitle>{team?.name ?? listing.teamId}</DialogTitle><DialogDescription>ui.generated.c683dfcb178</DialogDescription></DialogHeader>
+                            <DialogBody><DefinitionList items={[{ label: "ui.generated.c3f46f7e4d5", value: listing.id }, { label: "ui.generated.c107b8b6db2", value: listing.resumeJson }, { label: "ui.generated.cae0a7afece", value: tags.join(", ") || "ui.generated.c72077749f7" }]} /></DialogBody>
                           </DialogContent>
                         </Dialog>
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,820px)]">
-                            <DialogHeader><DialogTitle>编辑服务目录</DialogTitle><DialogDescription>{team?.name ?? listing.teamId}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.cbaada53331</DialogTitle><DialogDescription>{team?.name ?? listing.teamId}</DialogDescription></DialogHeader>
                             <DialogBody><ServiceCatalogForm agentTeams={agentTeamOptions} listing={listing} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/service-catalog" id={listing.id} confirmText="确认删除该服务目录条目？" />
+                        <DeleteResourceButton endpoint="/api/service-catalog" id={listing.id} confirmKey="ui.common.confirm.deleteGeneric" confirmParams={{ resource: "ui.common.resources.serviceCatalogEntry" }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

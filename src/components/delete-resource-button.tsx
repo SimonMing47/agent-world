@@ -9,14 +9,18 @@ import { Button } from "@/components/ui/button";
 export function DeleteResourceButton({
   endpoint,
   id,
-  label = "删除",
+  label = "actions.delete",
   confirmText,
+  confirmKey = "ui.common.confirm.deleteNamed",
+  confirmParams,
   body,
 }: {
   endpoint: string;
   id: string;
   label?: string;
-  confirmText: string;
+  confirmText?: string;
+  confirmKey?: string;
+  confirmParams?: Record<string, string | number>;
   body?: Record<string, unknown>;
 }) {
   const router = useRouter();
@@ -24,7 +28,18 @@ export function DeleteResourceButton({
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function remove() {
-    if (!window.confirm(text(confirmText))) return;
+    const localizedParams = confirmParams
+      ? Object.fromEntries(
+        Object.entries(confirmParams).map(([key, value]) => [
+          key,
+          typeof value === "string" ? text(value) : value,
+        ]),
+      )
+      : undefined;
+    const confirmation = confirmText
+      ? text(confirmText)
+      : text(confirmKey, undefined, localizedParams);
+    if (!window.confirm(confirmation)) return;
     setIsDeleting(true);
     try {
       const response = await fetch(endpoint, {
@@ -33,10 +48,10 @@ export function DeleteResourceButton({
         body: JSON.stringify({ id, ...(body ?? {}) }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("删除失败"));
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("ui.generated.c72250c5922"));
       router.refresh();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : text("删除失败"));
+      window.alert(error instanceof Error ? error.message : text("ui.generated.c72250c5922"));
     } finally {
       setIsDeleting(false);
     }
@@ -45,7 +60,7 @@ export function DeleteResourceButton({
   return (
     <Button type="button" size="sm" variant="danger" onClick={remove} disabled={isDeleting}>
       <Trash2 className="h-4 w-4" />
-      {isDeleting ? text("删除中") : text(label)}
+      {isDeleting ? text("ui.generated.cba46be979d") : text(label)}
     </Button>
   );
 }

@@ -44,39 +44,39 @@ export default async function TeamMembersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="团队治理"
-        title="团队成员管理"
-        description="维护成员、工号、邮箱、团队和角色，支持表格导入。"
+        eyebrow="ui.generated.c41decbbd6e"
+        title="ui.generated.c9d03935192"
+        description="ui.generated.c1d8c135166"
         badges={[
-          { label: `${visibleMembers.length} 个成员`, variant: "accent" },
-          { label: `${businessTeams.length} 个团队`, variant: "neutral" },
+          { label: <>{visibleMembers.length} ui.common.count.members</>, variant: "accent" },
+          { label: <>{businessTeams.length} ui.common.count.teams</>, variant: "neutral" },
           ...(selectedTeam ? [{ label: selectedTeam.name, variant: "success" as const }] : []),
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "当前视角", value: selectedTeam?.name ?? "全部团队", detail: selectedTeam ? "来自组织树跳转" : "未限定业务团队" },
-          { label: "活跃成员", value: visibleMembers.filter((member) => member.status === "active").length, detail: "可参与团队任务" },
-          { label: "手工录入", value: visibleMembers.filter((member) => member.source === "manual").length, detail: "控制台维护" },
-          { label: "导入成员", value: visibleMembers.filter((member) => member.source === "excel_import").length, detail: "Excel 批量录入" },
+          { label: "ui.generated.c4ffbca2945", value: selectedTeam?.name ?? "ui.generated.cbd2c65c3b9", detail: selectedTeam ? "ui.generated.cbc11cb027d" : "ui.generated.c37efe8d964" },
+          { label: "ui.generated.c90e267d830", value: visibleMembers.filter((member) => member.status === "active").length, detail: "ui.generated.cca9f383284" },
+          { label: "ui.generated.c0cec5c3a05", value: visibleMembers.filter((member) => member.source === "manual").length, detail: "ui.generated.c7e6c422500" },
+          { label: "ui.generated.c7ae9acb5ad", value: visibleMembers.filter((member) => member.source === "excel_import").length, detail: "ui.generated.c1c82099998" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="成员"
-          title="成员目录"
-          description={selectedTeam ? `当前仅展示 ${selectedTeam.name} 的成员。` : "查看成员归属、角色和状态。"}
+          eyebrow="ui.generated.cc1ee9f0190"
+          title="ui.generated.cd841a634f8"
+          description={selectedTeam ? <>ui.common.detail.currentOnlyShows {selectedTeam.name} ui.common.detail.membersOnly</> : "ui.generated.c7a1e0c8398"}
           action={
             <div className="flex flex-wrap gap-2">
               {selectedTeam ? (
-                <Button asChild size="sm" variant="ghost"><Link href="/team-members">查看全部</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href="/team-members">ui.generated.ced2172fd78</Link></Button>
               ) : null}
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增成员</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.cb74c7e162f</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,760px)]">
-                  <DialogHeader><DialogTitle>新增团队成员</DialogTitle><DialogDescription>录入单个成员。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.ca0ea3f8562</DialogTitle><DialogDescription>ui.generated.c52ec0060ba</DialogDescription></DialogHeader>
                   <DialogBody>
                     <TeamMemberForm
                       tenantSpaceId={tenantSpaceId}
@@ -96,9 +96,9 @@ export default async function TeamMembersPage({
                 </DialogContent>
               </Dialog>
               <Dialog>
-                <DialogTrigger asChild><Button size="sm" variant="ghost"><Upload className="h-4 w-4" />Excel 导入</Button></DialogTrigger>
+                <DialogTrigger asChild><Button size="sm" variant="ghost"><Upload className="h-4 w-4" />ui.generated.cb7cf68c0cf</Button></DialogTrigger>
                 <DialogContent className="w-[min(94vw,760px)]">
-                  <DialogHeader><DialogTitle>Excel 导入成员</DialogTitle><DialogDescription>从 Excel 复制五列：工号、姓名、邮箱、角色、岗位。</DialogDescription></DialogHeader>
+                  <DialogHeader><DialogTitle>ui.generated.c336333de1b</DialogTitle><DialogDescription>ui.generated.cd8506c3d96</DialogDescription></DialogHeader>
                   <DialogBody><TeamMemberImportForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} /></DialogBody>
                 </DialogContent>
               </Dialog>
@@ -109,13 +109,13 @@ export default async function TeamMembersPage({
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>成员</DataTableHead>
-                <DataTableHead>工号</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>角色 / 岗位</DataTableHead>
-                <DataTableHead>来源</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.cc1ee9f0190</DataTableHead>
+                <DataTableHead>ui.generated.c29f4c9b495</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>ui.generated.c5a084d5f30</DataTableHead>
+                <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -125,23 +125,23 @@ export default async function TeamMembersPage({
                   <DataTableRow key={member.id}>
                     <DataTableCell>
                       <div className="font-semibold text-[var(--ink)]">{member.name}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member.email || "未配置邮箱"}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{member.email || "ui.generated.cd348381126"}</div>
                     </DataTableCell>
-                    <DataTableCell>{member.employeeNo || "未配置"}</DataTableCell>
-                    <DataTableCell>{team?.name ?? "未知团队"}</DataTableCell>
-                    <DataTableCell>{member.role} / {member.title || "未配置"}</DataTableCell>
+                    <DataTableCell>{member.employeeNo || "ui.generated.c63595e95b7"}</DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.c718c1c03d6"}</DataTableCell>
+                    <DataTableCell>{member.role} / {member.title || "ui.generated.c63595e95b7"}</DataTableCell>
                     <DataTableCell>{member.source}</DataTableCell>
                     <DataTableCell><Badge variant={member.status === "active" ? "success" : "neutral"}>{member.status}</Badge></DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
-                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button></DialogTrigger>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
                           <DialogContent className="w-[min(94vw,760px)]">
-                            <DialogHeader><DialogTitle>编辑成员</DialogTitle><DialogDescription>{member.name}</DialogDescription></DialogHeader>
+                            <DialogHeader><DialogTitle>ui.generated.cab5fcb9927</DialogTitle><DialogDescription>{member.name}</DialogDescription></DialogHeader>
                             <DialogBody><TeamMemberForm tenantSpaceId={tenantSpaceId} businessTeams={teamOptions} member={member} /></DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/team-members" id={member.id} confirmText={`确认删除成员「${member.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/team-members" id={member.id} confirmParams={{ resource: "ui.common.resources.member", name: member.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

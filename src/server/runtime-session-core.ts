@@ -27,6 +27,7 @@ import {
   type RuntimeAgentProfile,
   type RuntimeSessionEnvelope,
 } from "@/server/runtime-adapter-core";
+import { uiText } from "@/lib/language-pack";
 
 type StreamEnvelope =
   | { type: "session_status"; payload: Record<string, unknown> }
@@ -702,7 +703,7 @@ async function runRuntimeSessionPrompt(args: {
       const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", args.session.agentTeamId);
       const agents = listRuntimeTeamMembers(args.session.agentTeamId);
       if (!team || agents.length === 0) {
-        throw new Error("Agent Team 未配置完整，无法运行团队会话。");
+        throw new Error(uiText("ui.generated.cb8aa0e03c2"));
       }
       await runTeamSession({
         session: args.session,
@@ -766,7 +767,7 @@ export function createRuntimeSession(input: CreateRuntimeSessionInput) {
     input.tenantSpaceId,
   );
   if (!tenantSpace) {
-    throw new Error("租户空间不存在，无法创建运行时会话。");
+    throw new Error(uiText("ui.generated.cd7998553e4"));
   }
 
   const businessTeam = queryOne<BusinessTeam>(
@@ -774,7 +775,7 @@ export function createRuntimeSession(input: CreateRuntimeSessionInput) {
     input.businessTeamId,
   );
   if (!businessTeam) {
-    throw new Error("业务团队不存在，无法创建运行时会话。");
+    throw new Error(uiText("ui.generated.cca0af9a93a"));
   }
 
   const runtimeBinding = queryOne<ProviderRuntimeBinding>(
@@ -782,7 +783,7 @@ export function createRuntimeSession(input: CreateRuntimeSessionInput) {
     input.runtimeBindingId,
   );
   if (!runtimeBinding || runtimeBinding.isEnabled !== 1) {
-    throw new Error("运行时绑定不存在或未启用。");
+    throw new Error(uiText("ui.generated.cd275384619"));
   }
 
   const providerProfile = queryOne<ProviderProfile>(
@@ -790,19 +791,19 @@ export function createRuntimeSession(input: CreateRuntimeSessionInput) {
     input.providerProfileId,
   );
   if (!providerProfile || providerProfile.isEnabled !== 1) {
-    throw new Error("模型接口不存在或未启用。");
+    throw new Error(uiText("ui.generated.c435e544d80"));
   }
 
   if (input.mode === "agent_team") {
     if (!input.agentTeamId) {
-      throw new Error("Team 会话必须选择 Agent Team。");
+      throw new Error(uiText("ui.generated.c810abb8156"));
     }
     const agentTeam = queryOne<AgentTeam>(
       "SELECT * FROM agent_teams WHERE id = ?",
       input.agentTeamId,
     );
     if (!agentTeam) {
-      throw new Error("Agent Team 不存在，无法创建团队会话。");
+      throw new Error(uiText("ui.generated.c9863df0ccb"));
     }
   }
 
@@ -812,7 +813,7 @@ export function createRuntimeSession(input: CreateRuntimeSessionInput) {
       input.agentDefinitionId,
     );
     if (!definition) {
-      throw new Error("Agent 定义不存在，无法创建单 Agent 会话。");
+      throw new Error(uiText("ui.generated.c9bbc51d0b1"));
     }
   }
 
@@ -907,11 +908,11 @@ export function getRuntimeSessionDetail(sessionId: string) {
 export function deleteRuntimeSession(sessionId: string) {
   const session = getRuntimeSession(sessionId);
   if (!session) {
-    throw new Error("会话不存在。");
+    throw new Error(uiText("ui.generated.c1211c69ea1"));
   }
   const activeHandle = activeRuntimeHandles.get(sessionId);
   if (activeHandle?.isRunning || session.status === "running") {
-    throw new Error("会话正在运行，请等待执行完成后再删除。");
+    throw new Error(uiText("ui.generated.c959ab2c9b0"));
   }
 
   sessionSubscribers.delete(sessionId);
@@ -928,7 +929,7 @@ export async function submitRuntimeSessionMessage(args: {
   actorName?: string;
 }) {
   const session = getRuntimeSession(args.sessionId);
-  if (!session) throw new Error("会话不存在。");
+  if (!session) throw new Error(uiText("ui.generated.c1211c69ea1"));
 
   const runtimeBinding = queryOne<ProviderRuntimeBinding>(
     "SELECT * FROM provider_runtime_bindings WHERE id = ?",
@@ -940,7 +941,7 @@ export async function submitRuntimeSessionMessage(args: {
   );
 
   if (!runtimeBinding || !providerProfile) {
-    throw new Error("运行时或模型接口配置不完整。");
+    throw new Error(uiText("ui.generated.c32a50af4a6"));
   }
 
   const turnIndex = getNextTurnIndex(session.id);

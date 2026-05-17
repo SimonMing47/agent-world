@@ -11,6 +11,7 @@ import {
   type KnowledgeSpaceBinding,
   type OpenVikingKnowledgeEntry,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 const SHADOW_ROOT = path.join("data", "openviking-shadow");
 const DEFAULT_OPENVIKING_BASE_URL = "http://127.0.0.1:1933";
@@ -355,7 +356,7 @@ export function updateKnowledgeSkill(
   }>,
 ) {
   const current = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
-  if (!current) throw new Error("Skill 不存在。");
+  if (!current) throw new Error(uiText("ui.generated.cd4fe99088a"));
 
   execute(
     "UPDATE code_review_skills SET name = ?, layer = ?, description = ?, is_enabled = ?, prompt_md = ?, heuristics_json = ?, updated_at = ? WHERE id = ?",

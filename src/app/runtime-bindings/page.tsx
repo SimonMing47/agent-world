@@ -37,7 +37,7 @@ function parseConfig(value: string) {
   }
 }
 
-function stringField(value: unknown, fallback = "未配置") {
+function stringField(value: unknown, fallback = "ui.common.unconfigured") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
@@ -53,7 +53,7 @@ function defaultBinding(snapshot: ReturnType<typeof getSettingsSnapshot>) {
     tenantSpaceId: snapshot.tenantSpaces[0]?.id ?? "",
     businessTeamId: null,
     adapterDefinitionId: snapshot.providerAdapters[0]?.id ?? "agentworld-runtime-adapter",
-    name: "新增执行配置",
+    name: "",
     runtimeKind: "agentworld",
     baseUrl: "embedded://agentworld/default",
     command: "embedded",
@@ -83,46 +83,46 @@ export default function RuntimeBindingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="执行配置"
-        title="模型执行配置"
-        description="维护默认模型服务、密钥引用、执行参数和审批模式。"
+        eyebrow="ui.generated.c8e175e7aa9"
+        title="ui.generated.c94a82a5175"
+        description="ui.generated.c88de2a0e95"
         badges={[
-          { label: `${snapshot.providerRuntimeBindings.length} 个执行配置`, variant: "accent" },
-          { label: `启用 ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
+          { label: <>{snapshot.providerRuntimeBindings.length} ui.common.count.runtimeBindings</>, variant: "accent" },
+          { label: <>ui.common.enabled {snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}</>, variant: "success" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "执行配置", value: snapshot.providerRuntimeBindings.length, detail: "供 Agent 与任务引用" },
-          { label: "启用", value: snapshot.providerRuntimeBindings.filter((item) => item.isEnabled === 1).length, detail: "当前可选" },
-          { label: "模型服务", value: snapshot.providers.length, detail: "可治理服务" },
-          { label: "团队绑定", value: snapshot.providerRuntimeBindings.filter((item) => item.businessTeamId).length, detail: "团队专属配置" },
+          { label: "ui.generated.c8e175e7aa9", value: snapshot.providerRuntimeBindings.length, detail: "ui.generated.c3085c2ee04" },
+          { label: "ui.generated.cd4e9ca3dd4", value: snapshot.providerRuntimeBindings.filter((item) => item.isEnabled === 1).length, detail: "ui.generated.c275a6c1da0" },
+          { label: "ui.generated.cbc56f948bb", value: snapshot.providers.length, detail: "ui.generated.c1fce38c440" },
+          { label: "ui.generated.cf08c028338", value: snapshot.providerRuntimeBindings.filter((item) => item.businessTeamId).length, detail: "ui.generated.ccbe2181e31" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="配置目录"
-          title="执行配置目录"
-          description="查看团队、默认模型、工作区和审批配置。"
+          eyebrow="ui.generated.cf69030e339"
+          title="ui.generated.c547e66fd76"
+          description="ui.generated.c10067c4263"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增执行配置
+                  ui.generated.c189e8fb772
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>新增执行配置</DialogTitle>
-                  <DialogDescription>配置默认模型服务、服务地址、密钥引用、审批模式和附加参数。</DialogDescription>
+                  <DialogTitle>ui.generated.c189e8fb772</DialogTitle>
+                  <DialogDescription>ui.generated.cf3fd2c809a</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <ProviderRuntimeBindingForm
                     embedded
-                    title="新增执行配置"
+                    title="ui.generated.c189e8fb772"
                     providerOptions={providerOptions}
                     adapterOptions={adapterOptions}
                     businessTeamOptions={businessTeamOptions}
@@ -137,12 +137,12 @@ export default function RuntimeBindingsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>执行配置</DataTableHead>
-                <DataTableHead>归属业务团队</DataTableHead>
-                <DataTableHead>默认模型服务</DataTableHead>
-                <DataTableHead>服务地址</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c8e175e7aa9</DataTableHead>
+                <DataTableHead>ui.generated.c26f30fd79b</DataTableHead>
+                <DataTableHead>ui.generated.cbff226d7bb</DataTableHead>
+                <DataTableHead>ui.generated.c86e118291e</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -156,14 +156,14 @@ export default function RuntimeBindingsPage() {
                       <div className="font-semibold text-[var(--ink)]">{binding.name}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{binding.id}</div>
                     </DataTableCell>
-                    <DataTableCell>{businessTeam?.name ?? "全局默认"}</DataTableCell>
+                    <DataTableCell>{businessTeam?.name ?? "ui.generated.ce0523a661c"}</DataTableCell>
                     <DataTableCell>
-                      <div>{provider?.name ?? "未绑定"}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{stringField(config.defaultModel, provider?.defaultModel ?? "未配置")}</div>
+                      <div>{provider?.name ?? "ui.generated.c3bf179d8d0"}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{stringField(config.defaultModel, provider?.defaultModel ?? "ui.generated.c63595e95b7")}</div>
                     </DataTableCell>
-                    <DataTableCell className="max-w-[280px] truncate">{binding.baseUrl || "内置"}</DataTableCell>
+                    <DataTableCell className="max-w-[280px] truncate">{binding.baseUrl || "ui.generated.c09ceea7644"}</DataTableCell>
                     <DataTableCell>
-                      <Badge variant={binding.isEnabled === 1 ? "success" : "neutral"}>{binding.isEnabled === 1 ? "启用" : "停用"}</Badge>
+                      <Badge variant={binding.isEnabled === 1 ? "success" : "neutral"}>{binding.isEnabled === 1 ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188"}</Badge>
                     </DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
@@ -171,30 +171,30 @@ export default function RuntimeBindingsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,920px)]">
                             <DialogHeader>
                               <DialogTitle>{binding.name}</DialogTitle>
-                              <DialogDescription>模型执行配置明细。</DialogDescription>
+                              <DialogDescription>ui.generated.c31cb42e527</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 columnsClassName="sm:grid-cols-2"
                                 items={[
                                   { label: "ID", value: binding.id },
-                                  { label: "租户空间", value: binding.tenantSpaceId },
-                                  { label: "业务团队", value: businessTeam?.name ?? "全局默认" },
-                                  { label: "默认模型服务", value: provider?.name ?? "未绑定" },
-                                  { label: "默认模型", value: stringField(config.defaultModel, provider?.defaultModel ?? "未配置") },
-                                  { label: "API Key 引用", value: binding.apiKeyRef || provider?.apiKeyRef || "未配置" },
-                                  { label: "审批模式", value: stringField(config.approvalMode, "ask") },
-                                  { label: "事件协议", value: eventContractLabel(config.eventContract) },
-                                  { label: "服务地址", value: binding.baseUrl || "内置" },
-                                  { label: "启动命令", value: binding.command || "内置" },
-                                  { label: "工作目录", value: binding.workspaceRoot || "." },
-                                  { label: "附加配置", value: <pre className="whitespace-pre-wrap font-mono text-xs">{binding.configJson}</pre> },
+                                  { label: "ui.generated.c3db35d2741", value: binding.tenantSpaceId },
+                                  { label: "ui.generated.c2b90028ff3", value: businessTeam?.name ?? "ui.generated.ce0523a661c" },
+                                  { label: "ui.generated.cbff226d7bb", value: provider?.name ?? "ui.generated.c3bf179d8d0" },
+                                  { label: "ui.generated.cb5bff31cdd", value: stringField(config.defaultModel, provider?.defaultModel ?? "ui.generated.c63595e95b7") },
+                                  { label: "ui.generated.c10df5dca33", value: binding.apiKeyRef || provider?.apiKeyRef || "ui.generated.c63595e95b7" },
+                                  { label: "ui.generated.c1072712e57", value: stringField(config.approvalMode, "ask") },
+                                  { label: "ui.generated.cc07c5b925e", value: eventContractLabel(config.eventContract) },
+                                  { label: "ui.generated.c86e118291e", value: binding.baseUrl || "ui.generated.c09ceea7644" },
+                                  { label: "ui.generated.c1ea645dd58", value: binding.command || "ui.generated.c09ceea7644" },
+                                  { label: "ui.generated.c42dfc81f99", value: binding.workspaceRoot || "." },
+                                  { label: "ui.generated.cc066260025", value: <pre className="whitespace-pre-wrap font-mono text-xs">{binding.configJson}</pre> },
                                 ]}
                               />
                             </DialogBody>
@@ -204,18 +204,18 @@ export default function RuntimeBindingsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑执行配置</DialogTitle>
+                              <DialogTitle>ui.generated.ca14179b9ec</DialogTitle>
                               <DialogDescription>{binding.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <ProviderRuntimeBindingForm
                                 embedded
-                                title={`编辑 ${binding.name}`}
+                                title="ui.generated.ca14179b9c6"
                                 providerOptions={providerOptions}
                                 adapterOptions={adapterOptions}
                                 businessTeamOptions={businessTeamOptions}
@@ -227,7 +227,7 @@ export default function RuntimeBindingsPage() {
                         <DeleteResourceButton
                           endpoint="/api/provider-runtime-bindings"
                           id={binding.id}
-                          confirmText={`确认删除执行配置「${binding.name}」？`}
+                          confirmParams={{ resource: "ui.common.resources.runtimeBinding", name: binding.name }}
                         />
                       </div>
                     </DataTableCell>

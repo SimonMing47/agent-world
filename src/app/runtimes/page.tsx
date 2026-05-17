@@ -39,18 +39,18 @@ function visibleConfig(value: string) {
   try {
     const parsed = JSON.parse(value) as Record<string, unknown>;
     return {
-      contextWindow: parsed.contextWindow ?? "未配置",
-      maxTokens: parsed.maxTokens ?? "未配置",
-      reasoning: parsed.reasoning === false ? "关闭" : "开启",
+      contextWindow: parsed.contextWindow ?? "ui.generated.c63595e95b7",
+      maxTokens: parsed.maxTokens ?? "ui.generated.c63595e95b7",
+      reasoning: parsed.reasoning === false ? "ui.generated.c6c14bd7f6f" : "ui.generated.c256783b7d4",
       headers: parsed.headers && typeof parsed.headers === "object" ? Object.keys(parsed.headers).length : 0,
     };
   } catch {
-    return { contextWindow: "未配置", maxTokens: "未配置", reasoning: "未知", headers: 0 };
+    return { contextWindow: "ui.common.unconfigured", maxTokens: "ui.common.unconfigured", reasoning: "ui.common.unknown", headers: 0 };
   }
 }
 
 function EnabledBadge({ enabled }: { enabled: boolean | number }) {
-  return <Badge variant={enabled ? "success" : "neutral"}>{enabled ? "启用" : "停用"}</Badge>;
+  return <Badge variant={enabled ? "success" : "neutral"}>{enabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188"}</Badge>;
 }
 
 export default function AiProvidersPage() {
@@ -60,57 +60,57 @@ export default function AiProvidersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="模型服务"
-        title="模型服务配置"
-        description="维护模型网关、密钥引用、默认模型和能力参数。"
+        eyebrow="ui.generated.cbc56f948bb"
+        title="ui.generated.c9d17053058"
+        description="ui.generated.c79ccc10ac0"
         badges={[
-          { label: `${snapshot.providers.length} 个接口`, variant: "accent" },
-          { label: `启用 ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },
+          { label: <>{snapshot.providers.length} ui.common.count.interfaces</>, variant: "accent" },
+          { label: <>ui.common.enabled {snapshot.providers.filter((provider) => provider.isEnabled).length}</>, variant: "success" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "模型服务",
+            label: "ui.generated.cbc56f948bb",
             value: snapshot.providers.length,
-            detail: "OpenAI Compatible / Anthropic / Azure 等",
+            detail: "ui.generated.cc75203f125",
           },
           {
-            label: "启用服务",
+            label: "ui.generated.c5259359017",
             value: snapshot.providers.filter((provider) => provider.isEnabled).length,
-            detail: "可被 Agent 和任务调用",
+            detail: "ui.generated.c672435e94c",
           },
           {
-            label: "模型总数",
+            label: "ui.generated.c8c11ccde55",
             value: snapshot.providers.reduce((total, provider) => total + parseModels(provider.modelsJson).length, 0),
-            detail: "按接口配置去重前统计",
+            detail: "ui.generated.c47b7783e98",
           },
           {
-            label: "业务团队",
+            label: "ui.generated.c2b90028ff3",
             value: snapshot.businessTeams.length,
-            detail: "模型服务可被团队策略选择",
+            detail: "ui.generated.c242dd41d77",
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="服务目录"
-          title="模型服务目录"
-          description="查看接口风格、默认模型、能力和状态。"
+          eyebrow="ui.generated.cab63588ee3"
+          title="ui.generated.c872007130b"
+          description="ui.generated.cfcef883aee"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增模型服务
+                  ui.generated.ccaf3f1f123
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>新增模型服务</DialogTitle>
-                  <DialogDescription>配置模型网关、模型列表和密钥引用。</DialogDescription>
+                  <DialogTitle>ui.generated.ccaf3f1f123</DialogTitle>
+                  <DialogDescription>ui.generated.cb112cd2d2f</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <ProviderProfileForm
@@ -118,7 +118,7 @@ export default function AiProvidersPage() {
                     provider={{
                       id: "",
                       tenantSpaceId,
-                      name: "新增模型服务",
+                      name: "",
                       baseUrl: "https://api.openai.com/v1",
                       apiStyle: "openai-compatible",
                       defaultModel: "gpt-5.4",
@@ -136,7 +136,7 @@ export default function AiProvidersPage() {
                       ),
                       isEnabled: 1,
                     }}
-                    title="新增模型服务"
+                    title="ui.generated.ccaf3f1f123"
                   />
                 </DialogBody>
               </DialogContent>
@@ -147,13 +147,13 @@ export default function AiProvidersPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>模型服务</DataTableHead>
-                <DataTableHead>API 风格</DataTableHead>
-                <DataTableHead>默认模型</DataTableHead>
-                <DataTableHead>模型数</DataTableHead>
-                <DataTableHead>能力</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.cbc56f948bb</DataTableHead>
+                <DataTableHead>ui.generated.c269a00cd6b</DataTableHead>
+                <DataTableHead>ui.generated.cb5bff31cdd</DataTableHead>
+                <DataTableHead>ui.generated.cecde946b92</DataTableHead>
+                <DataTableHead>ui.generated.ceb9d53ce7f</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -170,7 +170,7 @@ export default function AiProvidersPage() {
                     <DataTableCell>{provider.defaultModel}</DataTableCell>
                     <DataTableCell>{models.length}</DataTableCell>
                     <DataTableCell>
-                      <div className="text-sm text-[var(--ink)]">推理能力 {config.reasoning}</div>
+                      <div className="text-sm text-[var(--ink)]">ui.generated.caa23f730d0 {config.reasoning}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">Headers {config.headers}</div>
                     </DataTableCell>
                     <DataTableCell>
@@ -182,25 +182,25 @@ export default function AiProvidersPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>{provider.name}</DialogTitle>
-                              <DialogDescription>模型服务明细。</DialogDescription>
+                              <DialogDescription>ui.generated.cc971194a05</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "服务 ID", value: provider.id },
-                                  { label: "API 风格", value: provider.apiStyle },
+                                  { label: "ui.generated.cde113b23ab", value: provider.id },
+                                  { label: "ui.generated.c269a00cd6b", value: provider.apiStyle },
                                   { label: "Base URL", value: provider.baseUrl },
-                                  { label: "默认模型", value: provider.defaultModel },
-                                  { label: "API Key 引用", value: provider.apiKeyRef },
-                                  { label: "上下文窗口", value: String(config.contextWindow) },
-                                  { label: "最大输出 Tokens", value: String(config.maxTokens) },
-                                  { label: "状态", value: provider.isEnabled ? "启用" : "停用" },
+                                  { label: "ui.generated.cb5bff31cdd", value: provider.defaultModel },
+                                  { label: "ui.generated.c10df5dca33", value: provider.apiKeyRef },
+                                  { label: "ui.generated.c9a1fbe0bb9", value: String(config.contextWindow) },
+                                  { label: "ui.generated.ca21133348e", value: String(config.maxTokens) },
+                                  { label: "ui.generated.c62e951a692", value: provider.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188" },
                                 ]}
                               />
                               <div className="flex flex-wrap gap-2">
@@ -217,12 +217,12 @@ export default function AiProvidersPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑模型服务</DialogTitle>
+                              <DialogTitle>ui.generated.c011ab1fecd</DialogTitle>
                               <DialogDescription>{provider.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
@@ -230,7 +230,7 @@ export default function AiProvidersPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/provider-profiles" id={provider.id} confirmText={`确认删除模型服务「${provider.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/provider-profiles" id={provider.id} confirmParams={{ resource: "ui.common.resources.providerProfile", name: provider.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

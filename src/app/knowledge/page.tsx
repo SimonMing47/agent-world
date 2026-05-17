@@ -28,27 +28,27 @@ import { getKnowledgeManagementSnapshot } from "@/server/openviking-core";
 import { listAgentTeams, listBusinessTeams } from "@/server/queries";
 
 function syncStatusLabel(status: string) {
-  if (status.startsWith("remote_")) return "已同步 OpenViking";
-  if (status === "local_shadow") return "本地影子库";
-  if (status === "remote_failed_local_shadow") return "远端失败，本地保留";
-  return "待处理";
+  if (status.startsWith("remote_")) return "ui.generated.c90c4dd94ff";
+  if (status === "local_shadow") return "ui.generated.c76fb7df6ca";
+  if (status === "remote_failed_local_shadow") return "ui.generated.c0a16be860e";
+  return "ui.generated.c59a9eb4e65";
 }
 
 function typeLabel(type: string) {
   const labels: Record<string, string> = {
-    global: "全局",
-    team: "团队",
-    project: "项目",
-    agent_team: "Agent 团队",
+    global: "ui.common.knowledgeType.global",
+    team: "ui.common.knowledgeType.team",
+    project: "ui.common.knowledgeType.project",
+    agent_team: "ui.common.knowledgeType.agentTeam",
   };
   return labels[type] ?? type;
 }
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    active: "启用",
-    paused: "停用",
-    archived: "归档",
+    active: "labels.status.active",
+    paused: "labels.status.paused",
+    archived: "labels.status.archived",
   };
   return labels[status] ?? status;
 }
@@ -69,12 +69,12 @@ export default async function KnowledgePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="知识库"
-        title="知识管理"
-        description="维护团队、项目和 Agent 团队可访问的知识空间。"
+        eyebrow="ui.generated.c1dda51f9e3"
+        title="ui.generated.c55187c9a79"
+        description="ui.generated.c002f982018"
         badges={[
-          { label: snapshot.health.ok ? "OpenViking 已连接" : "OpenViking 未连接", variant: snapshot.health.ok ? "success" : "warning" },
-          { label: `${spaces.length} 个知识空间`, variant: "accent" },
+          { label: snapshot.health.ok ? "ui.generated.c2fb717af8a" : "ui.generated.c7ee98bc9ac", variant: snapshot.health.ok ? "success" : "warning" },
+          { label: <>{spaces.length} ui.common.count.knowledgeSpaces</>, variant: "accent" },
         ]}
         action={
           <KnowledgeSpaceForm
@@ -92,50 +92,50 @@ export default async function KnowledgePage() {
               OpenViking
             </div>
             <div className="mt-2 text-sm text-[var(--ink-muted)]">Base URL: {snapshot.health.baseUrl}</div>
-            <div className="mt-1 text-sm text-[var(--ink-muted)]">进程: {snapshot.process.status}</div>
-            <div className="mt-1 text-sm text-[var(--ink-muted)]">状态: {snapshot.health.error ?? "healthy"}</div>
+            <div className="mt-1 text-sm text-[var(--ink-muted)]">ui.generated.c3790e079bc {snapshot.process.status}</div>
+            <div className="mt-1 text-sm text-[var(--ink-muted)]">ui.generated.cf4e22993c4 {snapshot.health.error ?? "healthy"}</div>
           </div>
           <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <Layers3 className="h-4 w-4" />
-              知识空间
+              ui.generated.c7d405cc6a6
             </div>
             <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{spaces.length}</div>
           </div>
           <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <Database className="h-4 w-4" />
-              知识条目
+              ui.generated.c8cacb5b9c6
             </div>
             <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.entries.length}</div>
           </div>
           <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
               <RefreshCcw className="h-4 w-4" />
-              远端树
+              ui.generated.cdf3feabe70
             </div>
             <div className="mt-2 text-3xl font-semibold text-[var(--ink)]">{snapshot.tree.length}</div>
-            <div className="mt-1 text-sm text-[var(--ink-muted)]">L0 筛选 / L1 目录 / L2 原文</div>
+            <div className="mt-1 text-sm text-[var(--ink-muted)]">ui.generated.c8cd084f41b</div>
           </div>
         </PanelBody>
       </Panel>
 
       <Panel>
         <PanelHeader
-          eyebrow="知识空间"
-          title="团队知识体系"
-          description="查看 URI、归属、访问范围和同步状态。"
+          eyebrow="ui.generated.c7d405cc6a6"
+          title="ui.generated.ce3ed1093be"
+          description="ui.generated.c5a21e9a932"
         />
         <DataTable>
           <DataTableHeader>
             <DataTableRow>
-              <DataTableHead>名称</DataTableHead>
-              <DataTableHead>类型</DataTableHead>
-              <DataTableHead>可见性</DataTableHead>
-              <DataTableHead>状态</DataTableHead>
-              <DataTableHead>绑定</DataTableHead>
+              <DataTableHead>ui.generated.c1be7ae4fc2</DataTableHead>
+              <DataTableHead>ui.generated.ce4e46c7235</DataTableHead>
+              <DataTableHead>ui.generated.c747b74cec9</DataTableHead>
+              <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+              <DataTableHead>ui.generated.c6aed7c48be</DataTableHead>
               <DataTableHead>OpenViking URI</DataTableHead>
-              <DataTableHead>操作</DataTableHead>
+              <DataTableHead>ui.generated.cf3ea6d345e</DataTableHead>
             </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
@@ -156,33 +156,33 @@ export default async function KnowledgePage() {
                       <DialogTrigger asChild>
                         <Button size="sm">
                           <Eye className="h-4 w-4" />
-                          详情
+                          ui.generated.c4f55ee1e68
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="w-[min(92vw,920px)]">
                         <DialogHeader>
                           <DialogTitle>{space.name}</DialogTitle>
-                          <DialogDescription>知识空间的团队归属、OpenViking 地址和运行时加载策略。</DialogDescription>
+                          <DialogDescription>ui.generated.cf310de54cd</DialogDescription>
                         </DialogHeader>
                         <DialogBody>
                           <DefinitionList
                             columnsClassName="sm:grid-cols-2"
                             items={[
                               { label: "ID", value: space.id },
-                              { label: "标识", value: space.slug },
-                              { label: "类型", value: typeLabel(space.spaceType) },
-                              { label: "状态", value: statusLabel(space.status) },
-                              { label: "业务团队", value: space.businessTeamId ?? "未绑定" },
-                              { label: "Agent 团队", value: space.agentTeamId ?? "未绑定" },
-                              { label: "项目 Key", value: space.projectKey ?? "未绑定" },
-                              { label: "可见性", value: space.visibility },
+                              { label: "ui.generated.c3537d5ef90", value: space.slug },
+                              { label: "ui.generated.ce4e46c7235", value: typeLabel(space.spaceType) },
+                              { label: "ui.generated.c62e951a692", value: statusLabel(space.status) },
+                              { label: "ui.generated.c2b90028ff3", value: space.businessTeamId ?? "ui.generated.c3bf179d8d0" },
+                              { label: "ui.generated.c70f970c1fc", value: space.agentTeamId ?? "ui.generated.c3bf179d8d0" },
+                              { label: "ui.generated.cc7e9d69ec3", value: space.projectKey ?? "ui.generated.c3bf179d8d0" },
+                              { label: "ui.generated.c747b74cec9", value: space.visibility },
                               { label: "OpenViking URI", value: <span className="break-all font-mono text-xs">{space.vikingUri}</span> },
                               {
-                                label: "保留策略",
+                                label: "ui.generated.c85f64b078a",
                                 value: <pre className="whitespace-pre-wrap break-all font-mono text-xs">{space.retentionPolicyJson}</pre>,
                               },
-                              { label: "描述", value: space.description || "未填写" },
-                              { label: "更新时间", value: space.updatedAt },
+                              { label: "ui.generated.c412f54dc38", value: space.description || "ui.generated.c287a1d1034" },
+                              { label: "ui.generated.c093dea88c9", value: space.updatedAt },
                             ]}
                           />
                         </DialogBody>
@@ -192,12 +192,12 @@ export default async function KnowledgePage() {
                       businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
                       agentTeams={agentTeams.map((team) => ({ id: team.id, businessTeamId: team.businessTeamId, name: team.name }))}
                       space={space}
-                      triggerLabel="编辑"
+                      triggerLabel="ui.generated.ca7f814c0a4"
                     />
                     <DeleteResourceButton
                       endpoint="/api/knowledge/spaces"
                       id={space.id}
-                      confirmText={`确认删除知识空间「${space.name}」？`}
+                      confirmParams={{ resource: "ui.common.resources.knowledgeSpace", name: space.name }}
                     />
                   </div>
                 </DataTableCell>
@@ -210,16 +210,16 @@ export default async function KnowledgePage() {
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Skill 目录"
-            title="Skill 注册表"
-            description="查看 Skill 的空间、版本和适用范围。"
+            eyebrow="ui.generated.ce4646dec8a"
+            title="ui.generated.c58f961e5b0"
+            description="ui.generated.cb4a0357968"
           />
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
                 <DataTableHead>Skill</DataTableHead>
-                <DataTableHead>层</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
+                <DataTableHead>ui.generated.c7895e237ab</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -230,7 +230,7 @@ export default async function KnowledgePage() {
                     <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{skill.description}</div>
                   </DataTableCell>
                   <DataTableCell>{skill.layer}</DataTableCell>
-                  <DataTableCell>{skill.isEnabled ? "启用" : "停用"}</DataTableCell>
+                  <DataTableCell>{skill.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188"}</DataTableCell>
                 </DataTableRow>
               ))}
             </DataTableBody>
@@ -239,23 +239,23 @@ export default async function KnowledgePage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="最近知识"
-            title="最近知识条目"
-            description="最近写入的上下文、反馈和归档结果。"
+            eyebrow="ui.generated.c181a01d0ff"
+            title="ui.generated.cc564c51011"
+            description="ui.generated.c4e810ba2c6"
             action={
               <KnowledgeEntryForm
                 spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}
-                triggerLabel="新增知识条目"
+                triggerLabel="ui.generated.c1880d5bbcc"
               />
             }
           />
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHead>条目</DataTableHead>
-                <DataTableHead>同步</DataTableHead>
+                <DataTableHead>ui.generated.c4e5f90ffeb</DataTableHead>
+                <DataTableHead>ui.generated.ce88ab5ba61</DataTableHead>
                 <DataTableHead>URI</DataTableHead>
-                <DataTableHead>操作</DataTableHead>
+                <DataTableHead>ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -273,27 +273,27 @@ export default async function KnowledgePage() {
                         <DialogTrigger asChild>
                           <Button size="sm" variant="ghost">
                             <Eye className="h-4 w-4" />
-                            查看
+                            ui.generated.cf7acefd2d4
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="w-[min(96vw,980px)]">
                           <DialogHeader>
                             <DialogTitle>{entry.title}</DialogTitle>
-                            <DialogDescription>知识条目的元数据、OpenViking 地址和 Markdown 内容。</DialogDescription>
+                            <DialogDescription>ui.generated.cc2bf8ea701</DialogDescription>
                           </DialogHeader>
                           <DialogBody className="space-y-5">
                             <DefinitionList
                               columnsClassName="sm:grid-cols-2"
                               items={[
                                 { label: "ID", value: entry.id },
-                                { label: "知识空间", value: entry.knowledgeSpaceId ?? "按知识层归档" },
-                                { label: "层", value: entry.layer },
+                                { label: "ui.generated.c7d405cc6a6", value: entry.knowledgeSpaceId ?? "ui.generated.c055d4cbe55" },
+                                { label: "ui.generated.c7895e237ab", value: entry.layer },
                                 { label: "Scope", value: entry.scopeKey },
-                                { label: "来源", value: entry.sourceType },
-                                { label: "同步", value: syncStatusLabel(entry.syncStatus) },
+                                { label: "ui.generated.cc63f79e636", value: entry.sourceType },
+                                { label: "ui.generated.ce88ab5ba61", value: syncStatusLabel(entry.syncStatus) },
                                 { label: "OpenViking URI", value: <span className="break-all font-mono text-xs">{entry.vikingUri}</span> },
                                 {
-                                  label: "元数据",
+                                  label: "ui.generated.cdb9e375556",
                                   value: <pre className="whitespace-pre-wrap break-all font-mono text-xs">{entry.metadataJson}</pre>,
                                 },
                               ]}
@@ -307,12 +307,12 @@ export default async function KnowledgePage() {
                       <KnowledgeEntryForm
                         spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}
                         entry={entry}
-                        triggerLabel="编辑"
+                        triggerLabel="ui.generated.ca7f814c0a4"
                       />
                       <DeleteResourceButton
                         endpoint="/api/knowledge/entries"
                         id={entry.id}
-                        confirmText={`确认删除知识条目「${entry.title}」？`}
+                        confirmParams={{ resource: "ui.common.resources.knowledgeEntry", name: entry.title }}
                       />
                     </div>
                   </DataTableCell>

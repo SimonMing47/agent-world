@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteManagedResource } from "@/server/governance-core";
 import { getTaskBlueprintsSnapshot, upsertTaskBlueprint } from "@/server/queries";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, blueprint });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存任务定义失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveTaskBlueprintFailed") },
       { status: 400 },
     );
   }
@@ -28,7 +29,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, blueprint });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存任务定义失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveTaskBlueprintFailed") },
       { status: 400 },
     );
   }

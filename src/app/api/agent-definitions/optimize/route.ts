@@ -3,6 +3,7 @@ import {
   optimizeAgentDefinitionDraft,
   type AgentDefinitionDraft,
 } from "@/server/agent-definition-core";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "优化 Agent 定义失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.optimizeAgentDefinitionFailed") },
       { status: 400 },
     );
   }

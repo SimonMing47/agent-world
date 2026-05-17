@@ -31,7 +31,7 @@ function defaultWebhook(businessTeamId: string, teamId: string) {
     id: "",
     businessTeamId,
     teamId,
-    name: "新增 Webhook",
+    name: "",
     pathKey: "new-webhook",
     method: "POST",
     requestSchemaJson: "{}",
@@ -51,45 +51,45 @@ export default function WebhooksPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Webhook"
-        title="Webhook 管理"
-        description="维护外部触发路径、签名提示、请求 Schema 和接收团队。"
+        title="ui.generated.cc6ce61d180"
+        description="ui.generated.c653f4aa1d1"
         badges={[
-          { label: `${webhooks.length} 个入口`, variant: "accent" },
-          { label: `启用 ${webhooks.filter((webhook) => webhook.isEnabled === 1).length}`, variant: "success" },
+          { label: <>{webhooks.length} ui.common.count.endpoints</>, variant: "accent" },
+          { label: <>ui.common.enabled {webhooks.filter((webhook) => webhook.isEnabled === 1).length}</>, variant: "success" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "Webhook", value: webhooks.length, detail: "外部系统触发任务" },
-          { label: "启用入口", value: webhooks.filter((item) => item.isEnabled === 1).length, detail: "可接收请求" },
-          { label: "业务团队", value: new Set(webhooks.map((item) => item.businessTeamId)).size, detail: "按团队归属" },
-          { label: "Agent 团队", value: new Set(webhooks.map((item) => item.teamId)).size, detail: "接收执行单元" },
+          { label: "Webhook", value: webhooks.length, detail: "ui.generated.cd81d2b06bf" },
+          { label: "ui.generated.c15b1b3fbcf", value: webhooks.filter((item) => item.isEnabled === 1).length, detail: "ui.generated.cbbe1b92023" },
+          { label: "ui.generated.c2b90028ff3", value: new Set(webhooks.map((item) => item.businessTeamId)).size, detail: "ui.generated.c4614561e47" },
+          { label: "ui.generated.c70f970c1fc", value: new Set(webhooks.map((item) => item.teamId)).size, detail: "ui.generated.cf8e90693d4" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="入口目录"
-          title="Webhook 入口目录"
-          description="查看路径、方法、插件、团队和启用状态。"
+          eyebrow="ui.generated.c43e9039cf5"
+          title="ui.generated.c876234656b"
+          description="ui.generated.cc28127e59e"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Webhook
+                  ui.generated.c78cb758aca
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,920px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Webhook</DialogTitle>
-                  <DialogDescription>配置外部系统触发任务时使用的路径、团队和请求 Schema。</DialogDescription>
+                  <DialogTitle>ui.generated.c78cb758aca</DialogTitle>
+                  <DialogDescription>ui.generated.cbb25284ce6</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <WebhookEndpointForm
                     embedded
-                    title="新增 Webhook"
+                    title="ui.generated.c78cb758aca"
                     businessTeamOptions={businessTeamOptions}
                     agentTeamOptions={agentTeamOptions}
                     webhook={defaultWebhook(businessTeams[0]?.id ?? "", agentTeams[0]?.id ?? "")}
@@ -104,11 +104,11 @@ export default function WebhooksPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Webhook</DataTableHead>
-                <DataTableHead>业务团队</DataTableHead>
-                <DataTableHead>Agent 团队</DataTableHead>
-                <DataTableHead>方法 / 路径</DataTableHead>
-                <DataTableHead>状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
+                <DataTableHead>ui.generated.c70f970c1fc</DataTableHead>
+                <DataTableHead>ui.generated.c16a2b88a52</DataTableHead>
+                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -121,14 +121,14 @@ export default function WebhooksPage() {
                       <div className="font-semibold text-[var(--ink)]">{webhook.name}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{webhook.id}</div>
                     </DataTableCell>
-                    <DataTableCell>{businessTeam?.name ?? "未绑定"}</DataTableCell>
-                    <DataTableCell>{agentTeam?.name ?? "未绑定"}</DataTableCell>
+                    <DataTableCell>{businessTeam?.name ?? "ui.generated.c3bf179d8d0"}</DataTableCell>
+                    <DataTableCell>{agentTeam?.name ?? "ui.generated.c3bf179d8d0"}</DataTableCell>
                     <DataTableCell>
                       <div>{webhook.method}</div>
                       <div className="mt-1 font-mono text-xs text-[var(--ink-muted)]">/api/webhooks/{webhook.pathKey}</div>
                     </DataTableCell>
                     <DataTableCell>
-                      <Badge variant={webhook.isEnabled === 1 ? "success" : "neutral"}>{webhook.isEnabled === 1 ? "启用" : "停用"}</Badge>
+                      <Badge variant={webhook.isEnabled === 1 ? "success" : "neutral"}>{webhook.isEnabled === 1 ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188"}</Badge>
                     </DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
@@ -136,26 +136,26 @@ export default function WebhooksPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,880px)]">
                             <DialogHeader>
                               <DialogTitle>{webhook.name}</DialogTitle>
-                              <DialogDescription>Webhook 入口配置明细。</DialogDescription>
+                              <DialogDescription>ui.generated.cdb9c982116</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <DefinitionList
                                 columnsClassName="sm:grid-cols-2"
                                 items={[
                                   { label: "ID", value: webhook.id },
-                                  { label: "业务团队", value: businessTeam?.name ?? "未绑定" },
-                                  { label: "Agent 团队", value: agentTeam?.name ?? "未绑定" },
-                                  { label: "HTTP 方法", value: webhook.method },
-                                  { label: "路径标识", value: webhook.pathKey },
-                                  { label: "调用路径", value: `/api/webhooks/${webhook.pathKey}` },
-                                  { label: "签名密钥引用", value: webhook.secretHint || "未配置" },
-                                  { label: "请求 Schema", value: <pre className="whitespace-pre-wrap font-mono text-xs">{webhook.requestSchemaJson}</pre> },
+                                  { label: "ui.generated.c2b90028ff3", value: businessTeam?.name ?? "ui.generated.c3bf179d8d0" },
+                                  { label: "ui.generated.c70f970c1fc", value: agentTeam?.name ?? "ui.generated.c3bf179d8d0" },
+                                  { label: "ui.generated.cb1d337493c", value: webhook.method },
+                                  { label: "ui.generated.c9614806f47", value: webhook.pathKey },
+                                  { label: "ui.generated.c75c9a7408e", value: `/api/webhooks/${webhook.pathKey}` },
+                                  { label: "ui.generated.cf7981046c3", value: webhook.secretHint || "ui.generated.c63595e95b7" },
+                                  { label: "ui.generated.c02aa35d407", value: <pre className="whitespace-pre-wrap font-mono text-xs">{webhook.requestSchemaJson}</pre> },
                                 ]}
                               />
                             </DialogBody>
@@ -165,18 +165,18 @@ export default function WebhooksPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,920px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 Webhook</DialogTitle>
+                              <DialogTitle>ui.generated.cd851bc608a</DialogTitle>
                               <DialogDescription>{webhook.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <WebhookEndpointForm
                                 embedded
-                                title={`编辑 ${webhook.name}`}
+                                title="ui.generated.cd851bc608a"
                                 businessTeamOptions={businessTeamOptions}
                                 agentTeamOptions={agentTeamOptions}
                                 webhook={webhook}
@@ -187,7 +187,7 @@ export default function WebhooksPage() {
                         <DeleteResourceButton
                           endpoint="/api/webhooks"
                           id={webhook.id}
-                          confirmText={`确认删除 Webhook「${webhook.name}」？`}
+                          confirmParams={{ resource: "ui.common.resources.webhook", name: webhook.name }}
                         />
                       </div>
                     </DataTableCell>

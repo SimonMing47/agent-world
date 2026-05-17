@@ -66,41 +66,41 @@ export default function FindingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="风险发现"
-        title="Finding 治理"
-        description="维护 Finding 的严重度、状态、证据和处置结果。"
+        eyebrow="ui.generated.c087f7742ab"
+        title="ui.generated.c3c2f7b1bc9"
+        description="ui.generated.ca3a3defa78"
         badges={[
-          { label: `${findings.length} 条 Finding`, variant: "accent" },
-          { label: `${snapshot.findingDashboard.open} 条待处理`, variant: "warning" },
+          { label: <>{findings.length} ui.common.count.findings</>, variant: "accent" },
+          { label: <>{snapshot.findingDashboard.open} ui.common.count.pendingFindings</>, variant: "warning" },
         ]}
         action={<FindingForm taskRuns={taskRunOptions} />}
       />
 
       <SummaryStrip
         items={[
-          { label: "总数", value: snapshot.findingDashboard.total, detail: "全局可见标准化产出" },
-          { label: "待处理", value: snapshot.findingDashboard.open, detail: "需要团队确认或修复" },
-          { label: "已修复", value: snapshot.findingDashboard.fixed, detail: "已完成闭环" },
-          { label: "误报 / 忽略", value: snapshot.findingDashboard.ignored, detail: "已完成治理标记" },
+          { label: "ui.generated.c367ff5ddd2", value: snapshot.findingDashboard.total, detail: "ui.generated.c9be6127f66" },
+          { label: "ui.generated.c59a9eb4e65", value: snapshot.findingDashboard.open, detail: "ui.generated.c5c87e784a7" },
+          { label: "ui.generated.c50138c31ac", value: snapshot.findingDashboard.fixed, detail: "ui.generated.c6f869a13c8" },
+          { label: "ui.generated.c00c1d44669", value: snapshot.findingDashboard.ignored, detail: "ui.generated.ce431fe3b99" },
         ]}
       />
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <Panel>
           <PanelHeader
-            eyebrow="目录"
-            title="Finding 列表"
-            description="按任务、团队、严重度和状态查看问题。"
+            eyebrow="ui.generated.c41e5243e2d"
+            title="ui.generated.c67338b8943"
+            description="ui.generated.c3ffa0f5496"
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
                   <DataTableHead>Finding</DataTableHead>
-                  <DataTableHead>任务 / 团队</DataTableHead>
-                  <DataTableHead>严重度</DataTableHead>
-                  <DataTableHead>状态</DataTableHead>
-                  <DataTableHead align="right">操作</DataTableHead>
+                  <DataTableHead>ui.generated.cc68f33b124</DataTableHead>
+                  <DataTableHead>ui.generated.c9272e8abe5</DataTableHead>
+                  <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                  <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
@@ -116,7 +116,7 @@ export default function FindingsPage() {
                         <div className="font-semibold text-[var(--ink)]">{finding.title}</div>
                         <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{finding.description}</div>
                         <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                          来源 {finding.sourceAgent} · {formatDateTime(finding.createdAt)}
+                          ui.generated.cc63f79e636 {finding.sourceAgent} · {formatDateTime(finding.createdAt)}
                         </div>
                       </DataTableCell>
                       <DataTableCell className="min-w-[220px]">
@@ -125,16 +125,16 @@ export default function FindingsPage() {
                             {taskRun.sourceRef ?? translateSourceType(taskRun.sourceType)}
                           </Link>
                         ) : (
-                          <span className="font-medium text-[var(--ink)]">未知任务</span>
+                          <span className="font-medium text-[var(--ink)]">ui.generated.cfbc9e2d0eb</span>
                         )}
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{businessTeam?.name ?? "未知业务团队"}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{agentTeam?.name ?? "未知 Agent 团队"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{businessTeam?.name ?? "ui.generated.c7ae513bf4d"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{agentTeam?.name ?? "ui.generated.c603903ef14"}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <Badge variant={severityVariant(finding.severity)}>
                           {translateSeverity(finding.severity)} · {finding.category}
                         </Badge>
-                        <div className="mt-2 text-xs text-[var(--ink-muted)]">置信度 {formatPercent(finding.confidence)}</div>
+                        <div className="mt-2 text-xs text-[var(--ink-muted)]">ui.generated.cb78c2dc2e2 {formatPercent(finding.confidence)}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <Badge variant={statusVariant(finding.status)}>{translateStatus(finding.status)}</Badge>
@@ -145,43 +145,43 @@ export default function FindingsPage() {
                             <DialogTrigger asChild>
                               <Button size="sm" variant="ghost">
                                 <Eye className="h-4 w-4" />
-                                查看
+                                ui.generated.cf7acefd2d4
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="w-[min(96vw,980px)]">
                               <DialogHeader>
                                 <DialogTitle>{finding.title}</DialogTitle>
-                                <DialogDescription>Finding 证据、建议、指纹和发布状态。</DialogDescription>
+                                <DialogDescription>ui.generated.c7a5eec95ff</DialogDescription>
                               </DialogHeader>
                               <DialogBody className="space-y-5">
                                 <DefinitionList
                                   columnsClassName="sm:grid-cols-2"
                                   items={[
                                     { label: "ID", value: finding.id },
-                                    { label: "任务运行", value: finding.taskRunId },
-                                    { label: "来源 Agent", value: finding.sourceAgent },
-                                    { label: "类别", value: finding.category },
-                                    { label: "严重度", value: translateSeverity(finding.severity) },
-                                    { label: "状态", value: translateStatus(finding.status) },
-                                    { label: "置信度", value: formatPercent(finding.confidence) },
-                                    { label: "指纹", value: finding.fingerprint },
-                                    { label: "文件", value: String(evidence.file_path ?? evidence.filePath ?? "未关联") },
-                                    { label: "行号", value: String(evidence.line_start ?? evidence.lineStart ?? "未关联") },
+                                    { label: "ui.generated.c0a4e01232c", value: finding.taskRunId },
+                                    { label: "ui.generated.cbcd2a00caf", value: finding.sourceAgent },
+                                    { label: "ui.generated.ced9f6d4d8e", value: finding.category },
+                                    { label: "ui.generated.c9272e8abe5", value: translateSeverity(finding.severity) },
+                                    { label: "ui.generated.c62e951a692", value: translateStatus(finding.status) },
+                                    { label: "ui.generated.cb78c2dc2e2", value: formatPercent(finding.confidence) },
+                                    { label: "ui.generated.c3852a0ca84", value: finding.fingerprint },
+                                    { label: "ui.generated.c49deaf7da2", value: String(evidence.file_path ?? evidence.filePath ?? "ui.generated.ced5e011db4") },
+                                    { label: "ui.generated.cf81e575f4c", value: String(evidence.line_start ?? evidence.lineStart ?? "ui.generated.ced5e011db4") },
                                   ]}
                                 />
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                                  <div className="text-sm font-semibold text-[var(--ink)]">描述</div>
+                                  <div className="text-sm font-semibold text-[var(--ink)]">ui.generated.c412f54dc38</div>
                                   <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{finding.description}</div>
                                 </div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-                                  <div className="text-sm font-semibold text-[var(--ink)]">建议</div>
-                                  <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{finding.recommendation || "未填写"}</div>
+                                  <div className="text-sm font-semibold text-[var(--ink)]">ui.generated.cc5134eb19c</div>
+                                  <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{finding.recommendation || "ui.generated.c287a1d1034"}</div>
                                 </div>
                               </DialogBody>
                             </DialogContent>
                           </Dialog>
-                          <FindingForm finding={finding} taskRuns={taskRunOptions} triggerLabel="编辑" />
-                          <DeleteResourceButton endpoint="/api/findings" id={finding.id} confirmText={`确认删除 Finding「${finding.title}」？`} />
+                          <FindingForm finding={finding} taskRuns={taskRunOptions} triggerLabel="ui.generated.ca7f814c0a4" />
+                          <DeleteResourceButton endpoint="/api/findings" id={finding.id} confirmParams={{ resource: "ui.common.resources.finding", name: finding.title }} />
                         </div>
                       </DataTableCell>
                     </DataTableRow>
@@ -189,7 +189,7 @@ export default function FindingsPage() {
                 })}
                 {findings.length === 0 ? (
                   <DataTableRow>
-                    <DataTableCell>暂无 Finding。</DataTableCell>
+                    <DataTableCell>ui.generated.c91598b8f0c</DataTableCell>
                     <DataTableCell>{" "}</DataTableCell>
                     <DataTableCell>{" "}</DataTableCell>
                     <DataTableCell>{" "}</DataTableCell>
@@ -203,7 +203,7 @@ export default function FindingsPage() {
 
         <div className="space-y-4">
           <Panel>
-            <PanelHeader eyebrow="严重度" title="严重度分布" description="按风险等级统计。" />
+            <PanelHeader eyebrow="ui.generated.c9272e8abe5" title="ui.generated.cb158049ba8" description="ui.generated.cd06fb4d9e4" />
             <PanelBody className="space-y-3">
               {snapshot.findingDashboard.bySeverity.map((item) => (
                 <div key={item.severity} className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2">
@@ -218,14 +218,14 @@ export default function FindingsPage() {
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="业务团队" title="团队分布" description="按团队统计问题。" />
+            <PanelHeader eyebrow="ui.generated.c2b90028ff3" title="ui.generated.c7468614ccd" description="ui.generated.ce0ec692321" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>团队</DataTableHead>
-                    <DataTableHead align="right">总数</DataTableHead>
-                    <DataTableHead align="right">高危</DataTableHead>
+                    <DataTableHead>ui.generated.c21d7042ff0</DataTableHead>
+                    <DataTableHead align="right">ui.generated.c367ff5ddd2</DataTableHead>
+                    <DataTableHead align="right">ui.generated.ce62ee8c03e</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>

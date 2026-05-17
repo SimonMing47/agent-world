@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteManagedResource } from "@/server/governance-core";
 import { getAgentTeam, upsertAgentTeam } from "@/server/queries";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function GET(
   const { id } = await params;
   const detail = getAgentTeam(id);
   if (!detail) {
-    return NextResponse.json({ ok: false, error: "Agent 团队不存在。" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: uiText("ui.api.errors.agentTeamNotFound") }, { status: 404 });
   }
   return NextResponse.json({ ok: true, detail });
 }
@@ -30,7 +31,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, detail });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Agent 团队失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveAgentTeamFailed") },
       { status: 400 },
     );
   }

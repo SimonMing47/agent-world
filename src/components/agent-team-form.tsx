@@ -160,19 +160,19 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
     if (!form.name.trim()) {
       setIsSaving(false);
-      setMessage("请先填写团队名称。");
+      setMessage("ui.generated.cc2302d1166");
       return;
     }
 
     if (!form.businessTeamId.trim()) {
       setIsSaving(false);
-      setMessage("请先选择归属业务团队。");
+      setMessage("ui.generated.ca5569f6d6d");
       return;
     }
 
     if (normalizedMembers.length === 0) {
       setIsSaving(false);
-      setMessage("至少需要选择一个 Agent 成员。");
+      setMessage("ui.generated.c18901ca49b");
       return;
     }
 
@@ -215,11 +215,11 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     setIsSaving(false);
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
-      setMessage(payload.error ?? "保存失败");
+      setMessage(payload.error ?? "ui.generated.c40525a7328");
       return;
     }
 
-    setMessage("已保存 Agent 团队");
+    setMessage("ui.generated.c9c83c5e80e");
     props.onSaved?.();
     router.refresh();
   }
@@ -227,7 +227,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
   const content = (
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="团队名称">
+        <FieldGroup label="ui.generated.cb2629c388f">
           <Input
             value={form.name}
             onChange={(event) =>
@@ -237,7 +237,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 slug: current.id ? current.slug : slugify(event.target.value),
               }))
             }
-            placeholder="安全检视团队"
+            placeholder="ui.generated.cc43cb4b09f"
           />
         </FieldGroup>
         <FieldGroup label="Slug">
@@ -247,7 +247,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             placeholder="security-review-team"
           />
         </FieldGroup>
-        <FieldGroup label="归属业务团队">
+        <FieldGroup label="ui.generated.c26f30fd79b">
           <Select
             value={form.businessTeamId}
             onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
@@ -259,7 +259,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="可见性">
+        <FieldGroup label="ui.generated.c747b74cec9">
           <Select
             value={form.visibility}
             onChange={(event) => setForm({ ...form, visibility: event.target.value })}
@@ -271,7 +271,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="工作流策略">
+        <FieldGroup label="ui.generated.c3ac4454d68">
           <Select
             value={form.workflowType}
             onChange={(event) => setForm({ ...form, workflowType: event.target.value })}
@@ -283,7 +283,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="团队结构">
+        <FieldGroup label="ui.generated.c16dc2c92c6">
           <Select
             value={form.teamStructure}
             onChange={(event) => setForm({ ...form, teamStructure: event.target.value })}
@@ -295,29 +295,29 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="团队说明" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c0ed5cf4445" className="md:col-span-2">
           <Textarea
             value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })}
-            placeholder="这个 Agent 团队面向什么业务目标。"
+            placeholder="ui.generated.c58b2e958d3"
           />
         </FieldGroup>
-        <FieldGroup label="编排提示词" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c3d23524681" className="md:col-span-2">
           <Textarea
             className="min-h-32"
             value={form.orchestrationPrompt}
             onChange={(event) => setForm({ ...form, orchestrationPrompt: event.target.value })}
-            placeholder="描述团队整体的协作原则、输出要求和工作边界。"
+            placeholder="ui.generated.c2b17dea6f7"
           />
         </FieldGroup>
-        <FieldGroup label="团队目标" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c6a361e464d" className="md:col-span-2">
           <Textarea
             value={form.teamObjective}
             onChange={(event) => setForm({ ...form, teamObjective: event.target.value })}
-            placeholder="例如：对 MR 做分层代码检视，并输出可回写评论。"
+            placeholder="ui.generated.c1bcb95bf58"
           />
         </FieldGroup>
-        <FieldGroup label="汇总方式">
+        <FieldGroup label="ui.generated.cbab38435a9">
           <Select
             value={form.aggregationMethod}
             onChange={(event) => setForm({ ...form, aggregationMethod: event.target.value })}
@@ -329,7 +329,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="冲突处理">
+        <FieldGroup label="ui.generated.c4aeeacc808">
           <Select
             value={form.conflictResolution}
             onChange={(event) => setForm({ ...form, conflictResolution: event.target.value })}
@@ -341,14 +341,14 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="拆分策略">
+        <FieldGroup label="ui.generated.c815a1c560d">
           <Input
             value={form.splitStrategy}
             onChange={(event) => setForm({ ...form, splitStrategy: event.target.value })}
             placeholder="by_repository / by_diff_chunk / custom"
           />
         </FieldGroup>
-        <FieldGroup label="并发数">
+        <FieldGroup label="ui.generated.cad9cc2683a">
           <Input
             type="number"
             min="1"
@@ -356,7 +356,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             onChange={(event) => setForm({ ...form, maxConcurrency: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="超时（分钟）">
+        <FieldGroup label="ui.generated.c7960aded1f">
           <Input
             type="number"
             min="1"
@@ -364,7 +364,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             onChange={(event) => setForm({ ...form, timeoutMinutes: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="成功率目标（%）">
+        <FieldGroup label="ui.generated.ceb47319da8">
           <Input
             type="number"
             min="1"
@@ -373,12 +373,12 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             onChange={(event) => setForm({ ...form, successRateThreshold: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="默认执行策略">
+        <FieldGroup label="ui.generated.c4364c1156f">
           <Select
             value={form.defaultExecutionPolicyId}
             onChange={(event) => setForm({ ...form, defaultExecutionPolicyId: event.target.value })}
           >
-            <option value="">未指定</option>
+            <option value="">ui.generated.c8c577dc72c</option>
             {props.executionPolicyOptions.map((policy) => (
               <option key={policy.id} value={policy.id}>
                 {policy.name}
@@ -390,9 +390,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="成员配置"
-          title="团队成员"
-          description="从 Agent 定义目录中选成员，并设置工作职责与 Leader。"
+          eyebrow="ui.generated.c42594317da"
+          title="ui.generated.c7de0251fdd"
+          description="ui.generated.c96599fef77"
           action={
             <Button
               type="button"
@@ -413,7 +413,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
               }
             >
               <Plus className="h-4 w-4" />
-              新增成员
+              ui.generated.cb74c7e162f
             </Button>
           }
         />
@@ -423,7 +423,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             return (
               <div key={member.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <FieldGroup label="Agent 定义">
+                  <FieldGroup label="ui.generated.c2bca55a7ed">
                     <Select
                       value={member.agentDefinitionId}
                       onChange={(event) =>
@@ -441,7 +441,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                         )
                       }
                     >
-                      <option value="">请选择</option>
+                      <option value="">ui.generated.c382f4b5559</option>
                       {props.agentDefinitionOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.name}
@@ -449,7 +449,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                       ))}
                     </Select>
                   </FieldGroup>
-                  <FieldGroup label="团队角色">
+                  <FieldGroup label="ui.generated.cf39bcb6746">
                     <Input
                       value={member.memberRole}
                       onChange={(event) =>
@@ -462,7 +462,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                       placeholder={definition?.role ?? "worker"}
                     />
                   </FieldGroup>
-                  <FieldGroup label="状态">
+                  <FieldGroup label="ui.generated.c62e951a692">
                     <Select
                       value={member.status}
                       onChange={(event) =>
@@ -488,10 +488,10 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                         checked={leaderMemberId === member.id}
                         onChange={() => setLeaderMemberId(member.id)}
                       />
-                      设为 Leader
+                      ui.generated.cf62d42c955
                     </label>
                   </FieldGroup>
-                  <FieldGroup label="成员工作说明" className="md:col-span-2 xl:col-span-3">
+                  <FieldGroup label="ui.generated.cb7ceae901b" className="md:col-span-2 xl:col-span-3">
                     <Textarea
                       value={member.workInstruction}
                       onChange={(event) =>
@@ -501,7 +501,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                           ),
                         )
                       }
-                      placeholder="描述这个 Agent 在团队中承担的具体职责和输出要求。"
+                      placeholder="ui.generated.c88df8fed67"
                     />
                   </FieldGroup>
                   <div className="flex items-end justify-end">
@@ -514,12 +514,12 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                       }
                     >
                       <Trash2 className="h-4 w-4" />
-                      删除
+                      ui.generated.c3755f56f2f
                     </Button>
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                  顺序 #{index + 1} · {definition?.name ?? "未选择 Agent"} · 基础角色 {definition?.role ?? "未定义"}
+                  ui.generated.c5ffa03ca83{index + 1} · {definition?.name ?? "ui.generated.c1a0b1e5949"} ui.generated.cc4d0e9b52b {definition?.role ?? "ui.generated.c47024abd2c"}
                 </div>
               </div>
             );
@@ -529,9 +529,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <Panel>
         <PanelHeader
-          eyebrow="共享范围"
-          title="可见性与使用权限"
-          description="把这个 Agent 团队共享给其他业务团队，并定义它们的访问级别。"
+          eyebrow="ui.generated.c39a22ecca5"
+          title="ui.generated.c7d5be2f876"
+          description="ui.generated.c72b0af85b2"
         />
         <PanelBody className="grid gap-3 md:grid-cols-2">
           {props.businessTeamOptions.map((team) => {
@@ -582,7 +582,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "保存中" : "保存 Agent 团队"}
+          {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.ceca82dbfa1"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>
@@ -595,7 +595,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
   return (
     <Panel>
-      <PanelHeader title={props.title} description="定义团队结构、工作流、成员分工和共享范围。" />
+      <PanelHeader title={props.title} description="ui.generated.c0ffc404f02" />
       <PanelBody>{content}</PanelBody>
     </Panel>
   );

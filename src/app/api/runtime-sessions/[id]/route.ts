@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteRuntimeSession, getRuntimeSessionDetail } from "@/server/runtime-session-core";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function GET(
   const resolved = await params;
   const detail = getRuntimeSessionDetail(resolved.id);
   if (!detail) {
-    return NextResponse.json({ error: "会话不存在。" }, { status: 404 });
+    return NextResponse.json({ error: uiText("ui.api.errors.sessionNotFound") }, { status: 404 });
   }
   return NextResponse.json({ detail });
 }
@@ -25,7 +26,7 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "删除运行时会话失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.deleteRuntimeSessionFailed") },
       { status: 400 },
     );
   }

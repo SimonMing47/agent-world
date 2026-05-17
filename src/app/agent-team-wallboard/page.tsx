@@ -20,25 +20,25 @@ export default function AgentTeamWallboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="总览"
-        title="Agent 团队看板"
-        description="查看 Agent 团队的成员规模、任务量和运行表现。"
-        badges={[{ label: `${snapshot.teamSummaries.length} 个 Agent 团队`, variant: "accent" }]}
+        eyebrow="ui.generated.cc122e1758c"
+        title="ui.generated.c0309379742"
+        description="ui.generated.c06c454a5b4"
+        badges={[{ label: <>{snapshot.teamSummaries.length} ui.common.count.agentTeams</>, variant: "accent" }]}
       />
 
       <Panel>
-        <PanelHeader eyebrow="执行团队" title="Agent 团队概览" description="按团队查看任务和成员数据。" />
+        <PanelHeader eyebrow="ui.generated.cd4f6dd33b7" title="ui.generated.c9ec68a11fb" description="ui.generated.c2c03ac5959" />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>Agent 团队</DataTableHead>
-                <DataTableHead>业务团队</DataTableHead>
-                <DataTableHead>成员</DataTableHead>
-                <DataTableHead>任务定义</DataTableHead>
-                <DataTableHead>运行实例</DataTableHead>
-                <DataTableHead>成功率门槛</DataTableHead>
-                <DataTableHead>可见性</DataTableHead>
+                <DataTableHead>ui.generated.c70f970c1fc</DataTableHead>
+                <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
+                <DataTableHead>ui.generated.cc1ee9f0190</DataTableHead>
+                <DataTableHead>ui.generated.c971c6e5190</DataTableHead>
+                <DataTableHead>ui.generated.c95ce6f5cb5</DataTableHead>
+                <DataTableHead>ui.generated.cdb3140b58c</DataTableHead>
+                <DataTableHead>ui.generated.c747b74cec9</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -53,7 +53,7 @@ export default function AgentTeamWallboardPage() {
                       <Link href="/agent-teams" className="font-semibold text-[var(--ink)] hover:underline">{team.name}</Link>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{team.workflowType}</div>
                     </DataTableCell>
-                    <DataTableCell>{businessTeam?.name ?? "未知团队"}</DataTableCell>
+                    <DataTableCell>{businessTeam?.name ?? "ui.generated.c718c1c03d6"}</DataTableCell>
                     <DataTableCell>{team.agentCount}</DataTableCell>
                     <DataTableCell>{blueprints.length}</DataTableCell>
                     <DataTableCell>{runs.length}</DataTableCell>

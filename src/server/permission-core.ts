@@ -1,3 +1,4 @@
+import { uiText } from "@/lib/language-pack";
 export type PermissionEffect = "allow" | "ask" | "deny";
 
 export type PermissionRule = {
@@ -55,7 +56,7 @@ export function evaluatePermissionPolicy(
       effect: policy.defaultMode,
       resource,
       scope: scope ?? "*",
-      reason: "未命中显式规则，使用默认模式。",
+      reason: uiText("ui.generated.c3f5ce03053"),
     } satisfies PermissionRule);
 
   return {
@@ -84,9 +85,9 @@ export function buildEffectivePermissionPreview(policyValue: string) {
       deny: sortedRules.filter((rule) => rule.effect === "deny").length,
     },
     riskNotes: [
-      "deny 优先于 ask，ask 优先于 allow。",
-      "Secret 明文读取不通过 Prompt 控制，必须由权限系统硬阻断。",
-      "输出通道按作用域授权，外部收件人和跨仓库写入默认进入 ask 或 deny。",
+      uiText("ui.generated.ce0458321c9"),
+      uiText("ui.generated.cbac90256be"),
+      uiText("ui.generated.c8e93c5c68e"),
     ],
   };
 }

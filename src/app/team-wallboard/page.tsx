@@ -18,23 +18,23 @@ export default function TeamWallboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="总览"
-        title="团队任务看板"
-        description="按业务团队查看任务、运行、Finding 和风险状态。"
-        badges={[{ label: `${snapshot.businessTeamSummaries.length} 个团队`, variant: "accent" }]}
+        eyebrow="ui.generated.cc122e1758c"
+        title="ui.generated.c40b17f7982"
+        description="ui.generated.c1305e9c72f"
+        badges={[{ label: <>{snapshot.businessTeamSummaries.length} ui.common.count.teams</>, variant: "accent" }]}
       />
 
       <Panel>
-        <PanelHeader eyebrow="团队任务" title="团队任务概览" description="按团队统计任务和运行数据。" />
+        <PanelHeader eyebrow="ui.generated.cc371224569" title="ui.generated.c633560b55a" description="ui.generated.cc19c3953d9" />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>业务团队</DataTableHead>
-                <DataTableHead>任务定义</DataTableHead>
-                <DataTableHead>运行实例</DataTableHead>
+                <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
+                <DataTableHead>ui.generated.c971c6e5190</DataTableHead>
+                <DataTableHead>ui.generated.c95ce6f5cb5</DataTableHead>
                 <DataTableHead>Finding</DataTableHead>
-                <DataTableHead>团队状态</DataTableHead>
+                <DataTableHead>ui.generated.c389af6fb71</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>

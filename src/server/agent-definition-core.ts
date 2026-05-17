@@ -19,6 +19,7 @@ import {
   buildPiModel,
   resolveProviderApiKey,
 } from "@/server/runtime-provider-config";
+import { uiText } from "@/lib/language-pack";
 
 export type AgentDefinitionDraft = {
   id?: string;
@@ -141,15 +142,15 @@ function resolveProviderAndRuntime(definition: AgentDefinitionDraft) {
     );
 
   if (!runtimeBinding) {
-    throw new Error("未找到可用的执行配置，请先配置模型执行配置。");
+    throw new Error(uiText("ui.generated.c368a833c53"));
   }
   if (!providerProfile) {
-    throw new Error("未找到可用的模型服务，请先配置模型服务。");
+    throw new Error(uiText("ui.generated.c3b8fb2bc14"));
   }
 
   const apiKey = resolveProviderApiKey(providerProfile, runtimeBinding);
   if (!apiKey) {
-    throw new Error("当前模型服务缺少 API Key 引用。");
+    throw new Error(uiText("ui.generated.c1e2d0bd2b6"));
   }
 
   return {
@@ -210,10 +211,10 @@ export async function optimizeAgentDefinitionDraft(args: {
         {
           role: "user",
           content: [
-            "请优化下面这个 Agent 定义，使它更适合团队级 Agent 平台使用。",
-            "输出必须是 JSON，不要输出额外解释。",
+            uiText("ui.generated.c429c23928a"),
+            uiText("ui.generated.cbc1f6c13ce"),
             'JSON schema: {"name":"string","role":"string","description":"string","systemPrompt":"string","testPrompt":"string","notes":["string"]}',
-            `Owner business team: ${businessTeam?.name ?? "未指定"}`,
+            `Owner business team: ${businessTeam?.name ?? uiText("ui.generated.c8c577dc72c")}`,
             `Current name: ${args.definition.name}`,
             `Current role: ${args.definition.role}`,
             `Current description: ${args.definition.description}`,
@@ -231,7 +232,7 @@ export async function optimizeAgentDefinitionDraft(args: {
             `Secret access: ${harnessProfile.secretAccess}`,
             `Current system prompt:\n${args.definition.systemPrompt}`,
             args.optimizationGoal ? `Optimization goal:\n${args.optimizationGoal}` : "",
-            "目标：保持定义严肃、可执行、边界清楚，强调职责、输入输出约束、协作方式和安全边界，并与当前 Harness 权限模型一致。",
+            uiText("ui.generated.c0aceaf111b"),
           ]
             .filter(Boolean)
             .join("\n\n"),
@@ -247,13 +248,13 @@ export async function optimizeAgentDefinitionDraft(args: {
   );
 
   if (response.stopReason === "error") {
-    throw new Error(response.errorMessage ?? "优化 Agent 定义失败。");
+    throw new Error(response.errorMessage ?? uiText("ui.generated.c9d5c682f71"));
   }
 
   const rawText = flattenVisibleText(response);
   const parsed = extractJsonObject(rawText);
   if (!parsed) {
-    throw new Error("模型返回的优化结果不是有效 JSON。");
+    throw new Error(uiText("ui.generated.c03db2420e2"));
   }
 
   return {
@@ -428,7 +429,7 @@ export async function testAgentDefinitionDraft(args: {
     const outputText = resolvedFinalMessage ? flattenVisibleText(resolvedFinalMessage) : "";
     const thinkingText = resolvedFinalMessage ? flattenThinkingText(resolvedFinalMessage) : "";
     const summary =
-      outputText.trim().slice(0, 240) || "测试已完成，但输出为空。";
+      outputText.trim().slice(0, 240) || uiText("ui.generated.c15f1dfbc9a");
     if (args.persistValidation) {
       maybePersistValidation(args.definition.id, "passed", summary);
     }
@@ -446,7 +447,7 @@ export async function testAgentDefinitionDraft(args: {
       usage: resolvedFinalMessage?.usage ?? null,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "测试 Agent 失败。";
+    const message = error instanceof Error ? error.message : uiText("ui.generated.c51edde4b4c");
     if (args.persistValidation) {
       maybePersistValidation(args.definition.id, "failed", message);
     }

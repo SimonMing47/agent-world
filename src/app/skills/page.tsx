@@ -44,41 +44,41 @@ export default function SkillsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Skill 管理"
-        title="Skill 管理"
-        description="维护 Skill 内容、归属团队、标签和同步状态。"
+        eyebrow="ui.generated.ceb5b6ad433"
+        title="ui.generated.ceb5b6ad433"
+        description="ui.generated.c62d736b98a"
         badges={[
-          { label: `${skills.length} 个 Skill`, variant: "accent" },
-          { label: `启用 ${skills.filter((skill) => skill.isEnabled).length}`, variant: "success" },
+          { label: <>{skills.length} ui.generated.cd927cc5599</>, variant: "accent" },
+          { label: <>ui.common.enabled {skills.filter((skill) => skill.isEnabled).length}</>, variant: "success" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "Skill 总数", value: skills.length, detail: "可被 Agent 团队和任务引用" },
-          { label: "团队 Skill", value: skills.filter((skill) => skill.visibility === "team").length, detail: "归属业务团队" },
-          { label: "全局 Skill", value: skills.filter((skill) => skill.visibility === "global").length, detail: "跨团队可读" },
-          { label: "已同步", value: skills.filter((skill) => skill.vikingUri).length, detail: "OpenViking URI 已生成" },
+          { label: "ui.generated.c689ed1840a", value: skills.length, detail: "ui.generated.c88de249f0c" },
+          { label: "ui.generated.cb4a1e14fb0", value: skills.filter((skill) => skill.visibility === "team").length, detail: "ui.generated.c26f30fd79b" },
+          { label: "ui.generated.ccfdaeadfc4", value: skills.filter((skill) => skill.visibility === "global").length, detail: "ui.generated.cc01f8c8827" },
+          { label: "ui.generated.c76ce8e3d5e", value: skills.filter((skill) => skill.vikingUri).length, detail: "ui.generated.c312888d6b1" },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="Skill 注册表"
-          description="查看团队归属、标签、版本和启用状态。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.c58f961e5b0"
+          description="ui.generated.c87b80ff260"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Skill
+                  ui.generated.c502ac6e63b
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Skill</DialogTitle>
-                  <DialogDescription>定义可在任务运行时使用的团队能力。</DialogDescription>
+                  <DialogTitle>ui.generated.c502ac6e63b</DialogTitle>
+                  <DialogDescription>ui.generated.c0e37e96b3c</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <SkillForm
@@ -86,7 +86,7 @@ export default function SkillsPage() {
                     skill={{
                       id: "",
                       ownerBusinessTeamId: businessTeams[0]?.id ?? null,
-                      name: "新增 Skill",
+                      name: "",
                       layer: "global/code-review",
                       description: "",
                       tagsJson: "[]",
@@ -106,11 +106,11 @@ export default function SkillsPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>Skill</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>知识层</DataTableHead>
-                <DataTableHead>标签</DataTableHead>
-                <DataTableHead>运行状态</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>ui.generated.c986ff01617</DataTableHead>
+                <DataTableHead>ui.generated.cae0a7afece</DataTableHead>
+                <DataTableHead>ui.generated.c2a4080ad9f</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -129,36 +129,36 @@ export default function SkillsPage() {
                         </div>
                       ) : null}
                     </DataTableCell>
-                    <DataTableCell>{team?.name ?? "全局"}</DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.ca5644f4bbf"}</DataTableCell>
                     <DataTableCell>{skill.layer}</DataTableCell>
                     <DataTableCell>
                       <div className="flex max-w-[240px] flex-wrap gap-1">
-                        {tags.length ? tags.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>) : "未标注"}
+                        {tags.length ? tags.map((tag) => <Badge key={tag} variant="neutral">{tag}</Badge>) : "ui.generated.c86f9195e25"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <Badge variant={skill.isEnabled ? "success" : "neutral"}>{skill.isEnabled ? "运行时可用" : "停用"}</Badge>
+                      <Badge variant={skill.isEnabled ? "success" : "neutral"}>{skill.isEnabled ? "ui.generated.c0e122f82e5" : "ui.generated.cd989e55188"}</Badge>
                     </DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />查看</Button>
+                            <Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>{skill.name}</DialogTitle>
-                              <DialogDescription>Skill 元数据和 OpenViking 地址。</DialogDescription>
+                              <DialogDescription>ui.generated.c8191f8fe7e</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
                                   { label: "Skill ID", value: skill.id },
-                                  { label: "归属团队", value: team?.name ?? "全局" },
-                                  { label: "知识层", value: skill.layer },
-                                  { label: "可见性", value: skill.visibility },
-                                  { label: "OpenViking URI", value: skill.vikingUri ?? "未同步" },
-                                  { label: "状态", value: skill.isEnabled ? "启用" : "停用" },
+                                  { label: "ui.generated.c53d4919c45", value: team?.name ?? "ui.generated.ca5644f4bbf" },
+                                  { label: "ui.generated.c986ff01617", value: skill.layer },
+                                  { label: "ui.generated.c747b74cec9", value: skill.visibility },
+                                  { label: "OpenViking URI", value: skill.vikingUri ?? "ui.generated.c16f4087b8b" },
+                                  { label: "ui.generated.c62e951a692", value: skill.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188" },
                                 ]}
                               />
                               <pre className="max-h-[320px] overflow-auto rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 text-xs leading-5 text-[var(--ink-muted)]">
@@ -169,11 +169,11 @@ export default function SkillsPage() {
                         </Dialog>
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />编辑</Button>
+                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 Skill</DialogTitle>
+                              <DialogTitle>ui.generated.cdbb8f200a6</DialogTitle>
                               <DialogDescription>{skill.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
@@ -181,7 +181,7 @@ export default function SkillsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/skills" id={skill.id} confirmText={`确认删除 Skill「${skill.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/skills" id={skill.id} confirmParams={{ resource: "ui.common.resources.skill", name: skill.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

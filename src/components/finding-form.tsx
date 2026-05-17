@@ -68,7 +68,7 @@ export function FindingForm({
     category: finding?.category ?? "manual",
     severity: finding?.severity ?? "info",
     confidence: String(finding?.confidence ?? 1),
-    title: finding?.title ?? "新增 Finding",
+    title: finding?.title ?? "ui.generated.c3b576dc25d",
     description: finding?.description ?? "",
     evidenceJson: normalizeJson(finding?.evidenceJson ?? "{}", "{}"),
     recommendation: finding?.recommendation ?? "",
@@ -94,11 +94,11 @@ export function FindingForm({
         }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "保存 Finding 失败。");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? "ui.generated.cc4389dc37f");
       setOpen(false);
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存 Finding 失败。");
+      setMessage(error instanceof Error ? error.message : "ui.generated.cc4389dc37f");
     } finally {
       setIsSaving(false);
     }
@@ -109,19 +109,19 @@ export function FindingForm({
       <DialogTrigger asChild>
         <Button variant={isEdit ? "ghost" : "secondary"} size={isEdit ? "sm" : "md"}>
           {isEdit ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {triggerLabel ?? (isEdit ? "编辑" : "新增 Finding")}
+          {triggerLabel ?? (isEdit ? "ui.generated.ca7f814c0a4" : "ui.generated.c3b576dc25d")}
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[min(96vw,1040px)]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "编辑 Finding" : "新增 Finding"}</DialogTitle>
+          <DialogTitle>{isEdit ? "ui.generated.cedb5b2b6bb" : "ui.generated.c3b576dc25d"}</DialogTitle>
           <DialogDescription>
-            Finding 是任务运行的标准化问题输出，可用于误报治理、修复跟踪、报告发布和看板聚合。
+            ui.generated.c955d76553e
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <div className="grid gap-4 md:grid-cols-2">
-            <FieldGroup label="关联任务运行">
+            <FieldGroup label="ui.generated.c9e55ae88d8">
               {isEdit || taskRuns.length === 0 ? (
                 <Input value={form.taskRunId} onChange={(event) => setForm({ ...form, taskRunId: event.target.value })} disabled={isEdit} />
               ) : (
@@ -134,16 +134,16 @@ export function FindingForm({
                 </Select>
               )}
             </FieldGroup>
-            <FieldGroup label="来源 Agent">
+            <FieldGroup label="ui.generated.cbcd2a00caf">
               <Input value={form.sourceAgent} onChange={(event) => setForm({ ...form, sourceAgent: event.target.value })} />
             </FieldGroup>
-            <FieldGroup label="标题" className="md:col-span-2">
+            <FieldGroup label="ui.generated.c748d7dc7e3" className="md:col-span-2">
               <Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
             </FieldGroup>
-            <FieldGroup label="类别">
+            <FieldGroup label="ui.generated.ced9f6d4d8e">
               <Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} />
             </FieldGroup>
-            <FieldGroup label="严重度">
+            <FieldGroup label="ui.generated.c9272e8abe5">
               <Select value={form.severity} onChange={(event) => setForm({ ...form, severity: event.target.value })}>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -152,47 +152,47 @@ export function FindingForm({
                 <option value="info">Info</option>
               </Select>
             </FieldGroup>
-            <FieldGroup label="状态">
+            <FieldGroup label="ui.generated.c62e951a692">
               <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-                <option value="open">待处理</option>
-                <option value="published">已发布</option>
-                <option value="fixed">已修复</option>
-                <option value="ignored">已忽略</option>
-                <option value="false_positive">误报</option>
+                <option value="open">ui.generated.c59a9eb4e65</option>
+                <option value="published">ui.generated.c176a2eb4eb</option>
+                <option value="fixed">ui.generated.c50138c31ac</option>
+                <option value="ignored">ui.generated.cbd172c8dcb</option>
+                <option value="false_positive">ui.generated.c2d8bd33c00</option>
               </Select>
             </FieldGroup>
-            <FieldGroup label="置信度">
+            <FieldGroup label="ui.generated.cb78c2dc2e2">
               <Input value={form.confidence} onChange={(event) => setForm({ ...form, confidence: event.target.value })} />
             </FieldGroup>
-            <FieldGroup label="描述" className="md:col-span-2">
+            <FieldGroup label="ui.generated.c412f54dc38" className="md:col-span-2">
               <Textarea
                 className="min-h-28"
                 value={form.description}
                 onChange={(event) => setForm({ ...form, description: event.target.value })}
               />
             </FieldGroup>
-            <FieldGroup label="修复建议" className="md:col-span-2">
+            <FieldGroup label="ui.generated.cd7edee9ff4" className="md:col-span-2">
               <Textarea
                 className="min-h-24"
                 value={form.recommendation}
                 onChange={(event) => setForm({ ...form, recommendation: event.target.value })}
               />
             </FieldGroup>
-            <FieldGroup label="证据 JSON" className="md:col-span-2">
+            <FieldGroup label="ui.generated.c23f30ae0c4" className="md:col-span-2">
               <Textarea
                 className="min-h-28 font-mono"
                 value={form.evidenceJson}
                 onChange={(event) => setForm({ ...form, evidenceJson: event.target.value })}
               />
             </FieldGroup>
-            <FieldGroup label="关联 Skill JSON">
+            <FieldGroup label="ui.generated.c211b8d9818">
               <Textarea
                 className="min-h-24 font-mono"
                 value={form.skillRefsJson}
                 onChange={(event) => setForm({ ...form, skillRefsJson: event.target.value })}
               />
             </FieldGroup>
-            <FieldGroup label="发布状态 JSON">
+            <FieldGroup label="ui.generated.c00ae640edd">
               <Textarea
                 className="min-h-24 font-mono"
                 value={form.publicationJson}
@@ -204,10 +204,10 @@ export function FindingForm({
             {message ? <div className="text-sm text-[var(--danger)]">{message}</div> : <div />}
             <div className="flex gap-2">
               <Button type="button" onClick={() => setOpen(false)}>
-                取消
+                ui.generated.c4d0b4688c7
               </Button>
               <Button type="button" variant="primary" onClick={save} disabled={isSaving || !form.taskRunId || !form.title.trim()}>
-                {isSaving ? "保存中" : "保存"}
+                {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.cfadf24dbc5"}
               </Button>
             </div>
           </div>

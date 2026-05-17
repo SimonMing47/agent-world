@@ -18,6 +18,7 @@ import {
   type PluginManifest,
 } from "@/server/plugin-core";
 import { listOfficialPluginManifests } from "@/server/plugin-sdk-core";
+import { uiText } from "@/lib/language-pack";
 
 type ExtensionEnvironmentInput = {
   id: string;
@@ -463,7 +464,7 @@ export function resolveWebhookTaskConfiguration(teamId: string, pathKey?: string
       taskTemplate?.summary ??
       (typeof scheduleInput.summary === "string"
         ? scheduleInput.summary
-        : "Webhook 已按任务模板转为可观测任务。"),
+        : uiText("ui.generated.c677c9d2f08")),
     nodes: taskTemplate ? parseJsonArray(taskTemplate.nodesJson) : [],
     defaultInput,
   };
@@ -491,7 +492,7 @@ export function buildExtensionImportExample() {
     taskBlueprints: [
       {
         id: "codehub_mr_review",
-        name: "CodeHub MR 代码检视",
+        name: uiText("ui.generated.ca96d3de47c"),
         category: "code_review",
         visibility: "team",
         ownerBusinessTeamSlug: "release-team",
@@ -517,8 +518,8 @@ export function buildExtensionImportExample() {
           strategy: "leader_worker_parallel",
           leader: "agent-shield-review-leader",
           workers: [
-            { agent: "agent-code-quality-reviewer", task: "检查代码质量和兼容性。" },
-            { agent: "agent-security-reviewer", task: "检查安全风险。" },
+            { agent: "agent-code-quality-reviewer", task: uiText("ui.generated.cf91b285b56") },
+            { agent: "agent-security-reviewer", task: uiText("ui.generated.cbbce156290") },
           ],
           aggregation: {
             agent: "agent-shield-review-leader",
@@ -559,7 +560,7 @@ export function buildExtensionImportExample() {
       {
         id: "env-codehub-mr-review",
         businessTeamSlug: "release-team",
-        name: "CodeHub MR 检视环境",
+        name: uiText("ui.generated.cc4c2624540"),
         repositoryProvider: "codehub",
         repositoryName: "group/project",
         repositoryUrl: "ssh://codehub.example.com/group/project.git",
@@ -589,12 +590,12 @@ export function buildExtensionImportExample() {
       {
         id: "task-template-codehub-mr-review",
         teamSlug: "pr-vanguard",
-        name: "CodeHub MR 分层检视",
+        name: uiText("ui.generated.c53ac66ae27"),
         caseKey: "shield",
         pluginId: "official.codehub",
         environmentId: "env-codehub-mr-review",
         plannerMode: "rule",
-        summary: "CodeHub MR 通过导入模板进入神盾计划检视团队。",
+        summary: uiText("ui.generated.c921c067664"),
         inputSchema: { type: "object", required: ["repository", "changeRequest", "diff"] },
         defaultInput: { taskCategory: "code_review" },
         memoryLayers: ["repository/code-review", "global/code-review", "security"],
@@ -608,7 +609,7 @@ export function buildExtensionImportExample() {
         id: `template-codehub-mr-review-${randomUUID().slice(0, 8)}`,
         businessTeamSlug: "release-team",
         teamSlug: "pr-vanguard",
-        name: "CodeHub MR webhook 检视",
+        name: uiText("ui.generated.c4f40ebdf40"),
         scheduleKind: "event",
         cadence: "Webhook: MR diff",
         inputPayload: {

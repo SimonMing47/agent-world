@@ -59,57 +59,57 @@ export default function AgentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Agent 管理"
-        title="Agent 目录"
-        description="维护 Agent 定义、共享范围、模型服务和验证状态。"
+        eyebrow="ui.generated.c5491ae865b"
+        title="ui.generated.cc7b4185dbe"
+        description="ui.generated.c69802baf5e"
         badges={[
-          { label: `${definitions.length} 个 Agent`, variant: "accent" },
-          { label: `${definitions.filter((item) => item.validationStatus === "passed").length} 个已验证`, variant: "neutral" },
+          { label: <>{definitions.length} ui.common.count.agents</>, variant: "accent" },
+          { label: <>{definitions.filter((item) => item.validationStatus === "passed").length} ui.generated.c923a1cdedd</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "个人可见",
+            label: "ui.generated.c92d308d6fe",
             value: definitions.filter((item) => item.visibility === "personal").length,
-            detail: "只面向个人使用",
+            detail: "ui.generated.c1b6e57c2cc",
           },
           {
-            label: "团队 / 共享",
+            label: "ui.generated.ce995c6b170",
             value: definitions.filter((item) => item.visibility === "team").length,
-            detail: `${shares.length} 条共享关系`,
+            detail: <>{shares.length} ui.generated.c3e2aa4cf66</>,
           },
           {
-            label: "全局可见",
+            label: "ui.generated.cdab54dd8bb",
             value: definitions.filter((item) => item.visibility === "global").length,
-            detail: "可被多个团队复用",
+            detail: "ui.generated.c98604e091a",
           },
           {
-            label: "可验证",
+            label: "ui.generated.c5200201ff3",
             value: runtimeBindings.length,
-            detail: `${providers.length} 个模型服务可参与优化`,
+            detail: <>{providers.length} ui.common.detail.modelServicesForOptimization</>,
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="目录"
-          title="Agent 目录"
-          description="按归属、共享、模型服务和验证状态管理。"
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cc7b4185dbe"
+          description="ui.generated.c4e9fe80cb6"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Agent
+                  ui.generated.c8c79a89d5a
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Agent</DialogTitle>
-                  <DialogDescription>通过默认系统提示词、运行约束和模型服务验证职责边界。</DialogDescription>
+                  <DialogTitle>ui.generated.c8c79a89d5a</DialogTitle>
+                  <DialogDescription>ui.generated.c1931bbfbde</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentDefinitionForm
@@ -140,7 +140,7 @@ export default function AgentsPage() {
                       lastValidationSummary: null,
                     }}
                     shareBusinessTeamIds={[]}
-                    title="新增 Agent"
+                    title="ui.generated.c8c79a89d5a"
                     businessTeamOptions={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
                     providerOptions={providers.map((provider) => ({
                       id: provider.id,
@@ -163,12 +163,12 @@ export default function AgentsPage() {
             <DataTableHeader>
               <DataTableRow>
                 <DataTableHead>Agent</DataTableHead>
-                <DataTableHead>归属团队</DataTableHead>
-                <DataTableHead>模型服务 / 模型</DataTableHead>
-                <DataTableHead>可见性</DataTableHead>
-                <DataTableHead>验证</DataTableHead>
-                <DataTableHead>更新时间</DataTableHead>
-                <DataTableHead align="right">操作</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>ui.generated.c9e4e906aa5</DataTableHead>
+                <DataTableHead>ui.generated.c747b74cec9</DataTableHead>
+                <DataTableHead>ui.generated.c80144e2e73</DataTableHead>
+                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -189,20 +189,20 @@ export default function AgentsPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.role} · {translateStatus(definition.status)}</div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{ownerTeam?.name ?? "未指定"}</div>
+                      <div>{ownerTeam?.name ?? "ui.generated.c8c577dc72c"}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {sharedTeamNames ? `共享到 ${sharedTeamNames}` : "未共享"}
+                        {sharedTeamNames ? `ui.common.shareToPrefix ${sharedTeamNames}` : "ui.generated.c82170fe0dd"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{provider?.name ?? "未绑定模型服务"}</div>
+                      <div>{provider?.name ?? "ui.generated.c89b342a06a"}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.model}</div>
                     </DataTableCell>
                     <DataTableCell>{translateVisibility(definition.visibility)}</DataTableCell>
                     <DataTableCell>
                       <div>{translateStatus(definition.validationStatus)}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {definition.lastValidatedAt ? formatDateTime(definition.lastValidatedAt) : "尚未验证"}
+                        {definition.lastValidatedAt ? formatDateTime(definition.lastValidatedAt) : "ui.generated.c088eff165e"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(definition.updatedAt)}</DataTableCell>
@@ -212,65 +212,65 @@ export default function AgentsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              查看
+                              ui.generated.cf7acefd2d4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(92vw,880px)]">
                             <DialogHeader>
                               <DialogTitle>{definition.name}</DialogTitle>
-                              <DialogDescription>查看 Agent 定义、默认系统提示词、运行约束和共享范围。</DialogDescription>
+                              <DialogDescription>ui.generated.c953946d326</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "角色", value: definition.role },
-                                  { label: "归属团队", value: ownerTeam?.name ?? "未指定" },
-                                  { label: "可见性", value: translateVisibility(definition.visibility) },
-                                  { label: "模型", value: definition.model },
-                                  { label: "模型服务", value: provider?.name ?? "未绑定" },
-                                  { label: "验证状态", value: translateStatus(definition.validationStatus) },
+                                  { label: "ui.generated.c6b26695e4d", value: definition.role },
+                                  { label: "ui.generated.c53d4919c45", value: ownerTeam?.name ?? "ui.generated.c8c577dc72c" },
+                                  { label: "ui.generated.c747b74cec9", value: translateVisibility(definition.visibility) },
+                                  { label: "ui.generated.c98fd0cbd9c", value: definition.model },
+                                  { label: "ui.generated.cbc56f948bb", value: provider?.name ?? "ui.generated.c3bf179d8d0" },
+                                  { label: "ui.generated.ce9ec85920b", value: translateStatus(definition.validationStatus) },
                                 ]}
                               />
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">定义说明</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.ce5d671f7b9</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
-                                  {definition.description || "未填写"}
+                                  {definition.description || "ui.generated.c287a1d1034"}
                                 </div>
                               </div>
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">默认系统提示词</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c1842230316</div>
                                 <pre className="max-h-[280px] overflow-auto whitespace-pre-wrap rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 text-xs leading-5 text-[var(--ink)]">
                                   {definition.systemPrompt}
                                 </pre>
                               </div>
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">运行约束</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c9b167bacc3</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
-                                  审批模式: {harnessProfile.approvalMode}
+                                  ui.generated.cf15b273f4a {harnessProfile.approvalMode}
                                   <br />
-                                  推理强度: {harnessProfile.thinkingLevel}
+                                  ui.generated.c2a4d7b8890 {harnessProfile.thinkingLevel}
                                   <br />
-                                  人工介入: {harnessProfile.humanIntervention}
+                                  ui.generated.cd914e78ca4 {harnessProfile.humanIntervention}
                                   <br />
-                                  仓库权限: {harnessProfile.repositoryAccess}
+                                  ui.generated.c297fff5fbc {harnessProfile.repositoryAccess}
                                   <br />
-                                  记忆权限: {harnessProfile.memoryAccess}
+                                  ui.generated.c05cee285a8 {harnessProfile.memoryAccess}
                                   <br />
-                                  密钥权限: {harnessProfile.secretAccess}
+                                  ui.generated.c986fc1c379 {harnessProfile.secretAccess}
                                   <br />
-                                  允许工具: {harnessProfile.allowedToolNames.join(", ") || "全部只读工具"}
+                                  ui.generated.cbddd8368fb {harnessProfile.allowedToolNames.join(", ") || "ui.generated.c04b1918949"}
                                   <br />
-                                  禁止工具: {harnessProfile.deniedToolNames.join(", ") || "无"}
+                                  ui.generated.ce7244d9bb0 {harnessProfile.deniedToolNames.join(", ") || "ui.generated.c72077749f7"}
                                 </div>
                               </div>
                               <div className="space-y-2">
-                                <div className="text-sm font-medium text-[var(--ink)]">工具 / 标签</div>
+                                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cef6487371a</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
-                                  工具: {parseStringArray(definition.toolBindingsJson).join(", ") || "未配置"}
+                                  ui.generated.cf7bb5ad4da {parseStringArray(definition.toolBindingsJson).join(", ") || "ui.generated.c63595e95b7"}
                                   <br />
-                                  标签: {parseStringArray(definition.tagsJson).join(", ") || "未配置"}
+                                  ui.generated.c0f1b4aa04e {parseStringArray(definition.tagsJson).join(", ") || "ui.generated.c63595e95b7"}
                                   <br />
-                                  共享团队: {sharedTeamNames || "未共享"}
+                                  ui.generated.c1fc32e6a0b {sharedTeamNames || "ui.generated.c82170fe0dd"}
                                 </div>
                               </div>
                             </DialogBody>
@@ -281,12 +281,12 @@ export default function AgentsPage() {
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              编辑
+                              ui.generated.ca7f814c0a4
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(94vw,980px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 Agent</DialogTitle>
+                              <DialogTitle>ui.generated.c9489407cf3</DialogTitle>
                               <DialogDescription>{definition.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
@@ -310,7 +310,7 @@ export default function AgentsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/agent-definitions" id={definition.id} confirmText={`确认删除 Agent「${definition.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/agent-definitions" id={definition.id} confirmParams={{ resource: "ui.common.resources.agent", name: definition.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

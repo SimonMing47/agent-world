@@ -11,6 +11,7 @@ export type LanguagePack = {
   navigation: Record<string, unknown>;
   actions: Record<string, string>;
   phrases: Record<string, string>;
+  ui: Record<string, unknown>;
 };
 
 export type LanguagePackOverride = Partial<LanguagePack> & Record<string, unknown>;

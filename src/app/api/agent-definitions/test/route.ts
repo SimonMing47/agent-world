@@ -3,6 +3,7 @@ import {
   testAgentDefinitionDraft,
   type AgentDefinitionDraft,
 } from "@/server/agent-definition-core";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       persistValidation?: boolean;
     };
     if (!body.testPrompt?.trim()) {
-      return NextResponse.json({ ok: false, error: "测试提示词不能为空。" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: uiText("ui.api.errors.emptyTestPrompt") }, { status: 400 });
     }
     const result = await testAgentDefinitionDraft({
       definition: body.definition,
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "验证 Agent 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.validateAgentFailed") },
       { status: 400 },
     );
   }

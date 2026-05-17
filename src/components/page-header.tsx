@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useLanguageText } from "@/components/language-pack-provider";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ export function PageHeader({
   eyebrow?: string;
   title: string;
   description?: string;
-  badges?: Array<{ label: string; variant?: "neutral" | "accent" | "success" | "warning" | "danger" }>;
+  badges?: Array<{ label: React.ReactNode; variant?: "neutral" | "accent" | "success" | "warning" | "danger" }>;
   action?: React.ReactNode;
   className?: string;
 }) {
@@ -40,7 +40,7 @@ export function PageHeader({
           <div className="flex flex-wrap items-center gap-2">
             {badges?.map((badge, index) => (
               <Badge key={`${badge.label}-${index}`} variant={badge.variant}>
-                {text(badge.label)}
+                {localizeNode(badge.label, text)}
               </Badge>
             ))}
             {action}

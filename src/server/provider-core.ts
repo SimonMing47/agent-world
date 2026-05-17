@@ -5,6 +5,7 @@ import {
   type ProviderProfile,
   type TenantSpace,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type ProviderCapability =
   | "session.create"
@@ -99,27 +100,27 @@ export function listProviderExecutionModes(): ProviderExecutionMode[] {
   return [
     {
       id: "agentworld-runtime-adapter",
-      name: "AgentWorld 内置执行接口",
+      name: uiText("ui.generated.c1d9b27a203"),
       command: "system://agentworld-runtime",
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
       status: "default",
-      note: "默认执行层，主干通过系统内置运行接口发起真实会话。",
+      note: uiText("ui.generated.cbd13243979"),
     },
     {
       id: "hermes-runtime-adapter",
-      name: "Hermes 执行接口",
+      name: uiText("ui.generated.c2fc6e522d3"),
       command: "plugin://runtime-adapter/hermes",
       secretRefs: [],
       status: "plugin",
-      note: "通过运行时插件扩展，不修改主干执行流程。",
+      note: uiText("ui.generated.cbb78cc5a51"),
     },
     {
       id: "langgraph-runtime-adapter",
-      name: "LangGraph 执行接口",
+      name: uiText("ui.generated.cd21fa9e40d"),
       command: "plugin://runtime-adapter/langgraph",
       secretRefs: [],
       status: "plugin",
-      note: "通过运行时插件扩展，作为编排引擎候选。",
+      note: uiText("ui.generated.c1d1039194e"),
     },
   ];
 }
@@ -189,10 +190,15 @@ export function buildProviderSelection(args: {
     whitelist,
     rationale: preferred
       ? [
-          `租户空间模型白名单允许使用 ${whitelist.join(", ")}。`,
-          `业务团队的偏好 Provider 为 ${businessTeamPolicy.preferredProvider ?? "未显式指定"}。`,
-          `Agent ${args.agent.name} 当前偏好模型是 ${args.agent.model}。`,
+          uiText("ui.server.provider.whitelist", undefined, { models: whitelist.join(", ") }),
+          uiText("ui.server.provider.preferredProvider", undefined, {
+            provider: businessTeamPolicy.preferredProvider ?? uiText("ui.generated.c2ac7331066"),
+          }),
+          uiText("ui.server.provider.agentModel", undefined, {
+            agentName: args.agent.name,
+            model: args.agent.model,
+          }),
         ]
-      : ["当前没有启用中的 Provider 同时满足模型白名单约束。"],
+      : [uiText("ui.generated.c746d02e660")],
   };
 }

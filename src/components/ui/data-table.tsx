@@ -14,7 +14,7 @@ export function DataTable({
 
   return (
     <div
-      aria-label={text("数据表格")}
+      aria-label={text("ui.generated.c09c6cd2673")}
       className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/18"
       role="region"
       tabIndex={0}

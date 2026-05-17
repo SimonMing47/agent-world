@@ -7,6 +7,7 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { uiText } from "@/lib/language-pack";
 
 type RuntimeSessionCreateFormProps = {
   tenantSpaceId: string;
@@ -48,15 +49,14 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
-    title: "新建模型会话",
+    title: uiText("ui.generated.c200cb4b94a"),
     mode: "single_agent",
     agentDefinitionId: "",
     runtimeBindingId: firstBinding?.id ?? "",
     providerProfileId: initialProvider?.id ?? "",
     agentTeamId: "",
     model: initialProvider?.defaultModel ?? "",
-    systemPrompt:
-      "保持协作过程清晰、可审计。输出必要计划、工具调用结果和明确结论。",
+    systemPrompt: uiText("ui.common.runtimeSessionSystemPromptDefault"),
   });
 
   const selectedProvider = useMemo(
@@ -88,14 +88,14 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
 
     setIsSaving(false);
     if (!response.ok) {
-      setMessage("创建失败");
+      setMessage("ui.generated.cdeb3990191");
       return;
     }
 
     const payload = (await response.json()) as { detail?: { session?: { id: string } } };
     const sessionId = payload.detail?.session?.id;
     if (!sessionId) {
-      setMessage("会话创建成功，但未返回会话 ID");
+      setMessage("ui.generated.ca22e464204");
       return;
     }
 
@@ -106,14 +106,14 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="会话名称">
+        <FieldGroup label="ui.generated.c864aff361d">
           <Input
             value={form.title}
             onChange={(event) => setForm({ ...form, title: event.target.value })}
-            placeholder="会话名称"
+            placeholder="ui.generated.c864aff361d"
           />
         </FieldGroup>
-        <FieldGroup label="模式">
+        <FieldGroup label="ui.generated.ced0eea8f20">
           <Select
             value={form.mode}
             onChange={(event) =>
@@ -125,12 +125,12 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
               })
             }
           >
-              <option value="single_agent">单 Agent</option>
-              <option value="agent_team">Agent 团队</option>
+              <option value="single_agent">ui.generated.c20b7e967a5</option>
+              <option value="agent_team">ui.generated.c70f970c1fc</option>
             </Select>
           </FieldGroup>
         {form.mode === "single_agent" ? (
-          <FieldGroup label="Agent 定义">
+          <FieldGroup label="ui.generated.c2bca55a7ed">
             <Select
               value={form.agentDefinitionId}
               onChange={(event) => {
@@ -149,7 +149,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
                 });
               }}
             >
-              <option value="">自由会话</option>
+              <option value="">ui.generated.caf6ff1122c</option>
               {props.agentDefinitions.map((definition) => (
                 <option key={definition.id} value={definition.id}>
                   {definition.name}
@@ -158,7 +158,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             </Select>
           </FieldGroup>
         ) : null}
-        <FieldGroup label="执行配置">
+        <FieldGroup label="ui.generated.c8e175e7aa9">
           <Select
             value={form.runtimeBindingId}
             onChange={(event) => {
@@ -180,7 +180,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="模型服务">
+        <FieldGroup label="ui.generated.cbc56f948bb">
           <Select
             value={form.providerProfileId}
             onChange={(event) => {
@@ -200,12 +200,12 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
           </Select>
         </FieldGroup>
         {form.mode === "agent_team" ? (
-          <FieldGroup label="Agent 团队" className="md:col-span-2">
+          <FieldGroup label="ui.generated.c70f970c1fc" className="md:col-span-2">
             <Select
               value={form.agentTeamId}
               onChange={(event) => setForm({ ...form, agentTeamId: event.target.value })}
             >
-              <option value="">请选择 Agent 团队</option>
+              <option value="">ui.generated.c0ceb68320e</option>
               {props.agentTeams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
@@ -214,24 +214,24 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             </Select>
           </FieldGroup>
         ) : null}
-        <FieldGroup label="模型">
+        <FieldGroup label="ui.generated.c98fd0cbd9c">
           <Input
             value={form.model}
             onChange={(event) => setForm({ ...form, model: event.target.value })}
-            placeholder={selectedProvider?.defaultModel ?? "模型名"}
+            placeholder={selectedProvider?.defaultModel ?? "ui.generated.c5e65d873e8"}
           />
         </FieldGroup>
-        <FieldGroup label="系统指令" className="md:col-span-2">
+        <FieldGroup label="ui.generated.c63f3275e5c" className="md:col-span-2">
           <Textarea
             value={form.systemPrompt}
             onChange={(event) => setForm({ ...form, systemPrompt: event.target.value })}
-            placeholder="描述本次会话的运行策略、协作边界和输出要求。"
+            placeholder="ui.generated.c29a6fb09d6"
           />
         </FieldGroup>
       </div>
       <div className="flex items-center justify-between gap-3">
         <Button type="button" onClick={submit} disabled={isSaving}>
-          {isSaving ? "创建中" : "创建会话"}
+          {isSaving ? "ui.generated.c0db71cb110" : "ui.generated.c69feaeaa1c"}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>

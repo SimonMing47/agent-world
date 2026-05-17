@@ -37,53 +37,53 @@ export type NavGroup = {
 
 export const navigationGroups: NavGroup[] = [
   {
-    title: "总览",
+    title: "ui.generated.cc122e1758c",
     items: [
-      { href: "/", label: "整体任务看板", sidebarLabel: "整体", description: "任务、风险和配置状态", icon: LayoutDashboard },
-      { href: "/team-wallboard", label: "团队任务看板", sidebarLabel: "团队", description: "按业务团队组织的任务运行情况", icon: ChartNoAxesCombined },
-      { href: "/agent-team-wallboard", label: "Agent 团队看板", sidebarLabel: "执行团队", description: "按 Agent 团队观察调度效果", icon: Activity },
-      { href: "/findings", label: "Finding 治理", sidebarLabel: "风险", description: "标准化问题输出、误报、修复和发布状态", icon: ShieldCheck },
+      { href: "/", label: "ui.generated.c5219bd1bbc", sidebarLabel: "ui.generated.cf0e2bbbacc", description: "ui.generated.cc1ecf48bb4", icon: LayoutDashboard },
+      { href: "/team-wallboard", label: "ui.generated.c40b17f7982", sidebarLabel: "ui.generated.c21d7042ff0", description: "ui.generated.c89b53fa03e", icon: ChartNoAxesCombined },
+      { href: "/agent-team-wallboard", label: "ui.generated.c0309379742", sidebarLabel: "ui.generated.cd4f6dd33b7", description: "ui.generated.c24430ad429", icon: Activity },
+      { href: "/findings", label: "ui.generated.c3c2f7b1bc9", sidebarLabel: "ui.generated.c96a9697379", description: "ui.generated.ca528221852", icon: ShieldCheck },
     ],
   },
   {
-    title: "智能体治理",
+    title: "ui.generated.c85894b835e",
     items: [
-      { href: "/agents", label: "Agent 目录", sidebarLabel: "Agent", description: "Agent 定义、模型和权限", icon: Bot },
-      { href: "/agent-teams", label: "Agent 团队", sidebarLabel: "执行团队", description: "Leader、成员和工作流", icon: Workflow },
+      { href: "/agents", label: "ui.generated.cc7b4185dbe", sidebarLabel: "Agent", description: "ui.generated.c10e5edeb6f", icon: Bot },
+      { href: "/agent-teams", label: "ui.generated.c70f970c1fc", sidebarLabel: "ui.generated.cd4f6dd33b7", description: "ui.generated.c0bd68882f9", icon: Workflow },
     ],
   },
   {
-    title: "团队治理",
+    title: "ui.generated.c41decbbd6e",
     items: [
-      { href: "/business-teams", label: "组织结构", sidebarLabel: "组织", description: "业务团队结构、归属和同步入口", icon: Users },
-      { href: "/team-members", label: "团队成员", sidebarLabel: "成员", description: "成员、工号、邮箱、团队和角色", icon: UserRoundCog },
-      { href: "/team-permissions", label: "成员权限", sidebarLabel: "权限", description: "团队成员对 AgentWorld 的操作权限", icon: KeyRound },
-      { href: "/team-assets", label: "团队资产", sidebarLabel: "资产", description: "Skill、知识库、Codebase 和 Connector 授权", icon: Boxes },
-      { href: "/task-blueprints", label: "任务管理", sidebarLabel: "任务", description: "任务定义和触发方式", icon: ScrollText },
+      { href: "/business-teams", label: "ui.generated.c21dfec6104", sidebarLabel: "ui.generated.ca3540e824b", description: "ui.generated.ca9f7562a7c", icon: Users },
+      { href: "/team-members", label: "ui.generated.c7de0251fdd", sidebarLabel: "ui.generated.cc1ee9f0190", description: "ui.generated.c2fddae130e", icon: UserRoundCog },
+      { href: "/team-permissions", label: "ui.generated.c24a78ebc85", sidebarLabel: "ui.generated.c560165a6d7", description: "ui.generated.cf5d07326c6", icon: KeyRound },
+      { href: "/team-assets", label: "ui.generated.ce40458cdde", sidebarLabel: "ui.generated.c713fd96fb2", description: "ui.generated.c9cc4c1ba80", icon: Boxes },
+      { href: "/task-blueprints", label: "ui.generated.cff5e8b99ae", sidebarLabel: "ui.generated.c3172b317f9", description: "ui.generated.cc954e6a95e", icon: ScrollText },
     ],
   },
   {
-    title: "基础配置",
+    title: "ui.generated.c5095009346",
     items: [
-      { href: "/runtimes", label: "模型服务", sidebarLabel: "模型", description: "模型网关、密钥引用和能力参数", icon: Cable },
-      { href: "/skills", label: "Skill 管理", sidebarLabel: "Skill", description: "Skill 内容、标签和同步状态", icon: Wrench },
-      { href: "/mcp", label: "MCP 管理", sidebarLabel: "MCP", description: "MCP 服务、传输方式和工具白名单", icon: Network },
-      { href: "/connectors", label: "Connector 管理", sidebarLabel: "连接器", description: "IM、邮件、Web Push 和外部通知通道", icon: Plug },
-      { href: "/codebases", label: "Codebase 管理", sidebarLabel: "Codebase", description: "代码仓、地址和多个操作者 token", icon: Code2 },
-      { href: "/knowledge", label: "知识库管理", sidebarLabel: "知识库", description: "基于 OpenViking 的团队/项目知识空间", icon: BookOpen },
-      { href: "/settings", label: "系统配置", sidebarLabel: "系统", description: "执行环境、Webhook、运行配置、租户和系统级入口", icon: Settings },
+      { href: "/runtimes", label: "ui.generated.cbc56f948bb", sidebarLabel: "ui.generated.c98fd0cbd9c", description: "ui.generated.c0f0ca69c34", icon: Cable },
+      { href: "/skills", label: "ui.generated.ceb5b6ad433", sidebarLabel: "Skill", description: "ui.generated.cdc0757c222", icon: Wrench },
+      { href: "/mcp", label: "ui.generated.c0950f9419b", sidebarLabel: "MCP", description: "ui.generated.c82a807f2dd", icon: Network },
+      { href: "/connectors", label: "ui.generated.c2e8b3a3fbd", sidebarLabel: "ui.generated.cc2dd028659", description: "ui.generated.cda19037130", icon: Plug },
+      { href: "/codebases", label: "ui.generated.c30a4255f18", sidebarLabel: "Codebase", description: "ui.generated.c53f720768a", icon: Code2 },
+      { href: "/knowledge", label: "ui.generated.c053fc4ecbf", sidebarLabel: "ui.generated.c1dda51f9e3", description: "ui.generated.c572ffec9e5", icon: BookOpen },
+      { href: "/settings", label: "ui.generated.c3c71dca8a0", sidebarLabel: "ui.generated.c1a1f6dff78", description: "ui.generated.cc133a25a4a", icon: Settings },
     ],
   },
 ];
 
 export const secondaryNavigation: NavItem[] = [
-  { href: "/runtime-bindings", label: "模型执行配置", sidebarLabel: "执行配置", description: "默认模型服务、密钥引用、审批模式和附加参数", icon: Cable },
-  { href: "/environments", label: "执行环境管理", sidebarLabel: "环境", description: "任务运行对象、代码仓、执行人、路径和记忆依赖", icon: Database },
-  { href: "/webhooks", label: "Webhook 管理", sidebarLabel: "Webhook", description: "外部触发入口、签名密钥引用和请求 Schema", icon: Plug },
-  { href: "/tenant-spaces", label: "租户空间", sidebarLabel: "租户", description: "租户级治理边界和模型白名单", icon: Globe },
-  { href: "/execution-policies", label: "执行策略", sidebarLabel: "策略", description: "工具权限、预算、审批和输出约束", icon: ShieldCheck },
-  { href: "/service-catalog", label: "服务目录", sidebarLabel: "目录", description: "跨团队服务条目", icon: Database },
-  { href: "/access-grants", label: "跨团队授权", sidebarLabel: "授权", description: "服务方和消费方授权", icon: KeyRound },
+  { href: "/runtime-bindings", label: "ui.generated.c94a82a5175", sidebarLabel: "ui.generated.c8e175e7aa9", description: "ui.generated.c607060c125", icon: Cable },
+  { href: "/environments", label: "ui.generated.c78f16f104a", sidebarLabel: "ui.generated.caa3833ea2a", description: "ui.generated.c6024d1d911", icon: Database },
+  { href: "/webhooks", label: "ui.generated.cc6ce61d180", sidebarLabel: "Webhook", description: "ui.generated.c1ed9c2542f", icon: Plug },
+  { href: "/tenant-spaces", label: "ui.generated.c3db35d2741", sidebarLabel: "ui.generated.ccc04fa896e", description: "ui.generated.c187be7147c", icon: Globe },
+  { href: "/execution-policies", label: "ui.generated.c6408e9f93d", sidebarLabel: "ui.generated.cf3c49831c6", description: "ui.generated.cf1eddc323b", icon: ShieldCheck },
+  { href: "/service-catalog", label: "ui.generated.cab63588ee3", sidebarLabel: "ui.generated.c41e5243e2d", description: "ui.generated.ce05c93fb64", icon: Database },
+  { href: "/access-grants", label: "ui.generated.c2c4520c3e3", sidebarLabel: "ui.generated.c3a6e607f0c", description: "ui.generated.cb7453bf268", icon: KeyRound },
 ];
 
 export const flatNavigation = [
