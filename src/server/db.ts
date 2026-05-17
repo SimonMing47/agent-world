@@ -556,6 +556,7 @@ export type CodeReviewSkill = {
 
 export type OpenVikingKnowledgeEntry = {
   id: string;
+  knowledgeSpaceId: string | null;
   layer: string;
   scopeKey: string;
   skillId: string | null;
@@ -582,6 +583,34 @@ export type KnowledgeLayer = {
   isEnabled: number;
   createdAt: string;
   updatedAt: string;
+};
+
+export type KnowledgeSpace = {
+  id: string;
+  tenantSpaceId: string;
+  businessTeamId: string | null;
+  agentTeamId: string | null;
+  projectKey: string | null;
+  slug: string;
+  name: string;
+  spaceType: string;
+  vikingUri: string;
+  description: string;
+  visibility: string;
+  status: string;
+  retentionPolicyJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type KnowledgeSpaceBinding = {
+  id: string;
+  knowledgeSpaceId: string;
+  targetType: string;
+  targetId: string;
+  accessLevel: string;
+  loadOrder: number;
+  createdAt: string;
 };
 
 export type MergeRequestReview = {
@@ -1270,6 +1299,7 @@ CREATE TABLE IF NOT EXISTS code_review_skills (
 
 CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
   id TEXT PRIMARY KEY,
+  knowledge_space_id TEXT,
   layer TEXT NOT NULL,
   scope_key TEXT NOT NULL,
   skill_id TEXT,
@@ -1296,6 +1326,34 @@ CREATE TABLE IF NOT EXISTS knowledge_layers (
   is_enabled INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_spaces (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT NOT NULL,
+  business_team_id TEXT,
+  agent_team_id TEXT,
+  project_key TEXT,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  space_type TEXT NOT NULL,
+  viking_uri TEXT NOT NULL,
+  description TEXT NOT NULL,
+  visibility TEXT NOT NULL,
+  status TEXT NOT NULL,
+  retention_policy_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_space_bindings (
+  id TEXT PRIMARY KEY,
+  knowledge_space_id TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  access_level TEXT NOT NULL,
+  load_order INTEGER NOT NULL,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS merge_request_reviews (
@@ -2516,6 +2574,153 @@ function ensureCodeReviewSkillSeed(db: DatabaseSync) {
   });
 }
 
+function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
+  const now = new Date().toISOString();
+  const tenant = db
+    .prepare("SELECT id FROM tenant_spaces ORDER BY created_at ASC LIMIT 1")
+    .get() as { id: string } | undefined;
+  const releaseTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("release-team") as { id: string } | undefined;
+  const platformTeam = db
+    .prepare("SELECT id FROM business_teams WHERE slug = ?")
+    .get("platform-team") as { id: string } | undefined;
+  const reviewAgentTeam = db
+    .prepare("SELECT id FROM agent_teams WHERE slug = ?")
+    .get("pr-vanguard") as { id: string } | undefined;
+  const researchAgentTeam = db
+    .prepare("SELECT id FROM agent_teams WHERE slug = ?")
+    .get("research-relay") as { id: string } | undefined;
+
+  if (!tenant) return;
+
+  const insertSpace = db.prepare(
+    "INSERT OR IGNORE INTO knowledge_spaces (id, tenant_space_id, business_team_id, agent_team_id, project_key, slug, name, space_type, viking_uri, description, visibility, status, retention_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const insertBinding = db.prepare(
+    "INSERT OR IGNORE INTO knowledge_space_bindings (id, knowledge_space_id, target_type, target_id, access_level, load_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  );
+
+  const spaces = [
+    {
+      id: "ks-global-code-review",
+      businessTeamId: null,
+      agentTeamId: null,
+      projectKey: null,
+      slug: "global-code-review",
+      name: "全局代码检视知识",
+      spaceType: "global",
+      vikingUri: "viking://resources/agentworld/global/code-review",
+      description: "全局通用代码检视规范、跨团队经验和可复用检视样例。",
+      visibility: "global",
+      retention: { keepDays: 540, promoteToSkill: true },
+      bindings: [],
+    },
+    {
+      id: "ks-release-code-review",
+      businessTeamId: releaseTeam?.id ?? null,
+      agentTeamId: null,
+      projectKey: null,
+      slug: "release-team-code-review",
+      name: "Release Team 代码检视知识",
+      spaceType: "team",
+      vikingUri: "viking://resources/agentworld/teams/release-team/code-review",
+      description: "Release Team 的代码规范、历史检视偏好、误报基线和团队约束。",
+      visibility: "team",
+      retention: { keepDays: 365, requireTeamReview: true },
+      bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 20 }] : [],
+    },
+    {
+      id: "ks-release-platform-project",
+      businessTeamId: releaseTeam?.id ?? null,
+      agentTeamId: null,
+      projectKey: "demo/platform",
+      slug: "release-demo-platform-project",
+      name: "demo/platform 项目知识",
+      spaceType: "project",
+      vikingUri: "viking://resources/agentworld/teams/release-team/projects/demo-platform",
+      description: "demo/platform 项目架构、仓库风险画像、接口约束和历史检视结论。",
+      visibility: "team",
+      retention: { keepDays: 365, archiveFindings: true },
+      bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 30 }] : [],
+    },
+    {
+      id: "ks-pr-vanguard-skills",
+      businessTeamId: releaseTeam?.id ?? null,
+      agentTeamId: reviewAgentTeam?.id ?? null,
+      projectKey: null,
+      slug: "pr-vanguard-skills",
+      name: "PR Vanguard AgentTeam Skill 空间",
+      spaceType: "agent_team",
+      vikingUri: "viking://agent/skills/agentworld/teams/release-team/agent-teams/pr-vanguard",
+      description: "PR Vanguard 使用的分层检视方法、输出模板和发布策略。",
+      visibility: "team",
+      retention: { keepDays: 540, versionedSkill: true },
+      bindings: reviewAgentTeam ? [{ targetType: "agent_team", targetId: reviewAgentTeam.id, accessLevel: "read", loadOrder: 10 }] : [],
+    },
+    {
+      id: "ks-release-security-review",
+      businessTeamId: releaseTeam?.id ?? null,
+      agentTeamId: reviewAgentTeam?.id ?? null,
+      projectKey: null,
+      slug: "release-security-review",
+      name: "Release Team 安全检视知识",
+      spaceType: "team",
+      vikingUri: "viking://agent/skills/agentworld/teams/release-team/security-review",
+      description: "安全基线、依赖风险、密钥泄露、敏感 API 和误报抑制规则。",
+      visibility: "team",
+      retention: { keepDays: 540, suppressFalsePositive: true },
+      bindings: reviewAgentTeam ? [{ targetType: "agent_team", targetId: reviewAgentTeam.id, accessLevel: "read", loadOrder: 15 }] : [],
+    },
+    {
+      id: "ks-platform-research",
+      businessTeamId: platformTeam?.id ?? null,
+      agentTeamId: researchAgentTeam?.id ?? null,
+      projectKey: null,
+      slug: "platform-research",
+      name: "Platform Team 研究知识",
+      spaceType: "team",
+      vikingUri: "viking://resources/agentworld/teams/platform-team/research",
+      description: "平台团队沉淀的研究资料、决策依据和跨团队可读结论。",
+      visibility: "team",
+      retention: { keepDays: 365, publishDigest: true },
+      bindings: researchAgentTeam ? [{ targetType: "agent_team", targetId: researchAgentTeam.id, accessLevel: "read", loadOrder: 20 }] : [],
+    },
+  ];
+
+  for (const space of spaces) {
+    insertSpace.run(
+      space.id,
+      tenant.id,
+      space.businessTeamId,
+      space.agentTeamId,
+      space.projectKey,
+      space.slug,
+      space.name,
+      space.spaceType,
+      space.vikingUri,
+      space.description,
+      space.visibility,
+      "active",
+      JSON.stringify(space.retention),
+      now,
+      now,
+    );
+
+    for (const binding of space.bindings) {
+      insertBinding.run(
+        `${space.id}:${binding.targetType}:${binding.targetId}`,
+        space.id,
+        binding.targetType,
+        binding.targetId,
+        binding.accessLevel,
+        binding.loadOrder,
+        now,
+      );
+    }
+  }
+}
+
 function ensureProviderAdapterSeed(db: DatabaseSync) {
   const now = new Date().toISOString();
   const insertAdapter = db.prepare(
@@ -3414,6 +3619,12 @@ function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSync) {
   }
 }
 
+function ensureOpenVikingKnowledgeColumns(db: DatabaseSync) {
+  if (!tableHasColumn(db, "openviking_knowledge_entries", "knowledge_space_id")) {
+    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN knowledge_space_id TEXT");
+  }
+}
+
 function ensureAgentTeamCatalogColumns(db: DatabaseSync) {
   if (!tableHasColumn(db, "agent_teams", "orchestration_prompt")) {
     db.exec("ALTER TABLE agent_teams ADD COLUMN orchestration_prompt TEXT NOT NULL DEFAULT ''");
@@ -3577,12 +3788,14 @@ export function getDb() {
     ensureAgentTeamCatalogColumns(database);
     ensureAgentDefinitionHarnessColumns(database);
     ensureRuntimeSessionAgentDefinitionColumn(database);
+    ensureOpenVikingKnowledgeColumns(database);
     seed(database);
     ensureCodeReviewSkillSeed(database);
     ensureProviderAdapterSeed(database);
     ensureCoreCaseSeed(database);
     ensureAgentDefinitionSeed(database);
     ensureLegacyAgentsPromotedToTeamMembers(database);
+    ensureKnowledgeSpaceSeed(database);
   }
 
   return database;

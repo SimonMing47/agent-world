@@ -7,6 +7,8 @@ import {
   queryOne,
   type CodeReviewSkill,
   type KnowledgeLayer,
+  type KnowledgeSpace,
+  type KnowledgeSpaceBinding,
   type OpenVikingKnowledgeEntry,
 } from "@/server/db";
 
@@ -14,6 +16,7 @@ const SHADOW_ROOT = path.join(process.cwd(), "data", "openviking-shadow");
 const DEFAULT_OPENVIKING_BASE_URL = "http://127.0.0.1:1933";
 
 type KnowledgeInput = {
+  knowledgeSpaceId?: string | null;
   layer: string;
   scopeKey: string;
   title: string;
@@ -55,6 +58,8 @@ function getOpenVikingHeaders() {
   };
   const apiKey = process.env.OPENVIKING_API_KEY;
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+  if (process.env.OPENVIKING_ACCOUNT) headers["X-OpenViking-Account"] = process.env.OPENVIKING_ACCOUNT;
+  if (process.env.OPENVIKING_USER) headers["X-OpenViking-User"] = process.env.OPENVIKING_USER;
 
   return headers;
 }
@@ -78,8 +83,17 @@ function getLayer(layerKey: string) {
   );
 }
 
-function buildVikingUri(layer: string, scopeKey: string, id: string) {
-  const root = getLayer(layer)?.vikingUri ?? layerFallback(layer);
+function getKnowledgeSpace(spaceId: string | null | undefined) {
+  if (!spaceId) return null;
+  return queryOne<KnowledgeSpace>(
+    "SELECT * FROM knowledge_spaces WHERE id = ? AND status = ?",
+    spaceId,
+    "active",
+  );
+}
+
+function buildVikingUri(layer: string, scopeKey: string, id: string, knowledgeSpaceId?: string | null) {
+  const root = getKnowledgeSpace(knowledgeSpaceId)?.vikingUri ?? getLayer(layer)?.vikingUri ?? layerFallback(layer);
   return `${root}/${slugify(scopeKey)}/${id}.md`;
 }
 
@@ -162,7 +176,8 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
   const id = randomUUID();
   const createdAt = new Date().toISOString();
   const layer = getLayer(input.layer);
-  const vikingUri = buildVikingUri(input.layer, input.scopeKey, id);
+  const knowledgeSpace = getKnowledgeSpace(input.knowledgeSpaceId);
+  const vikingUri = buildVikingUri(input.layer, input.scopeKey, id, input.knowledgeSpaceId);
   const filePath = shadowFilePath(input.layer, input.scopeKey, id);
   const metadata = {
     ...input.metadata,
@@ -172,6 +187,8 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
     sourceType: input.sourceType,
     openVikingScope: layer?.scope ?? null,
     openVikingLayerRoot: layer?.vikingUri ?? null,
+    knowledgeSpaceId: knowledgeSpace?.id ?? null,
+    knowledgeSpaceName: knowledgeSpace?.name ?? null,
     createdAt,
   };
   const content = [
@@ -194,8 +211,9 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
   const syncResult = await syncRemote(vikingUri, content);
 
   execute(
-    "INSERT INTO openviking_knowledge_entries (id, layer, scope_key, skill_id, viking_uri, title, content_md, metadata_json, source_type, sync_status, sync_error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO openviking_knowledge_entries (id, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title, content_md, metadata_json, source_type, sync_status, sync_error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
+    knowledgeSpace?.id ?? null,
     input.layer,
     input.scopeKey,
     input.skillId ?? null,
@@ -341,10 +359,14 @@ export async function syncReviewSkillsToOpenViking() {
 }
 
 export async function getKnowledgeManagementSnapshot() {
-  const [health, layers, entries] = await Promise.all([
+  const openVikingProcess = await import("@/server/openviking-process");
+  const processStatus = await openVikingProcess.ensureOpenVikingServerStarted("knowledge-snapshot");
+  const [health, layers, entries, spaces, bindings] = await Promise.all([
     getOpenVikingHealth(),
     Promise.resolve(listKnowledgeLayers()),
     Promise.resolve(listLayeredKnowledge(12)),
+    Promise.resolve(queryAll<KnowledgeSpace>("SELECT * FROM knowledge_spaces ORDER BY name ASC")),
+    Promise.resolve(queryAll<KnowledgeSpaceBinding>("SELECT * FROM knowledge_space_bindings ORDER BY load_order ASC, created_at ASC")),
   ]);
   const skills = listKnowledgeSkills();
 
@@ -354,8 +376,14 @@ export async function getKnowledgeManagementSnapshot() {
   }
 
   return {
+    process: {
+      ...openVikingProcess.getOpenVikingProcessStatus(),
+      startup: processStatus,
+    },
     health,
     layers,
+    spaces,
+    bindings,
     entries,
     skills,
     tree,

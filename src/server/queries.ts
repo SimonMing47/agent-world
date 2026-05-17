@@ -62,6 +62,10 @@ import {
   buildFindingFingerprint,
   summarizeFinding,
 } from "@/server/finding-core";
+import {
+  buildTaskRunKnowledgeRetrieval,
+  resolveTaskKnowledgeContext,
+} from "@/server/knowledge-core";
 import { publishTaskRunOutputs } from "@/server/output-publisher-core";
 import {
   buildTaskBlueprintDetail,
@@ -1692,6 +1696,30 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
     },
   });
 
+  const knowledgeContext = environmentSnapshot?.payload
+    ? (environmentSnapshot.payload as Record<string, unknown>).knowledgeContext
+    : null;
+  if (knowledgeContext) {
+    const context = knowledgeContext as {
+      loadRefs?: unknown[];
+      archiveRefs?: unknown[];
+      spaces?: unknown[];
+    };
+    appendTaskRunEvent({
+      traceId,
+      taskRunId,
+      phase: "memory.context_resolved",
+      foldGroup: "Planning",
+      title: "知识上下文已解析",
+      content: "任务运行已根据业务团队、项目、AgentTeam、环境和蓝图生成 OpenViking 知识上下文。",
+      metadata: {
+        loadRefCount: Array.isArray(context.loadRefs) ? context.loadRefs.length : 0,
+        archiveRefCount: Array.isArray(context.archiveRefs) ? context.archiveRefs.length : 0,
+        spaceCount: Array.isArray(context.spaces) ? context.spaces.length : 0,
+      },
+    });
+  }
+
   return getTaskRunDetail(taskRunId);
 }
 
@@ -1734,12 +1762,22 @@ export function submitTaskRunFromBlueprint(args: {
     ...inputPayload,
   });
   const sourceType = normalizeTriggerType(trigger.type) as TaskRun["sourceType"];
-  const environmentSnapshotPayload = buildEnvironmentSnapshotPayload({
+  const baseEnvironmentSnapshotPayload = buildEnvironmentSnapshotPayload({
     taskRunId: "pending",
     blueprint,
     environment,
     inputPayload,
   });
+  const knowledgeContext = resolveTaskKnowledgeContext({
+    blueprint,
+    team,
+    environment,
+    inputPayload,
+  });
+  const environmentSnapshotPayload = {
+    ...baseEnvironmentSnapshotPayload,
+    knowledgeContext,
+  };
   const nodeSpecs = buildNodeSpecsFromRunPlan(blueprint.agentTeamRunPlanJson, agents);
 
   return submitTaskRun({
@@ -1934,6 +1972,31 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       metadata: { tool, policyHit: executionPolicyDecision.policyHit },
     });
     return getTaskRunDetail(taskRunId);
+  }
+
+  if (tool === "memory.retrieve") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "memory.read_requested",
+      foldGroup: "Analysis",
+      title: "读取知识上下文",
+      content: "节点正在按任务知识上下文读取 OpenViking 知识空间。",
+    });
+    const retrieval = await buildTaskRunKnowledgeRetrieval(taskRun);
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: retrieval.degraded ? "memory.degraded" : "memory.read_completed",
+      foldGroup: "Analysis",
+      title: retrieval.degraded ? "知识读取降级" : "知识读取完成",
+      content: retrieval.degraded
+        ? "OpenViking 当前不可用，任务保留本地知识上下文快照并继续执行。"
+        : "OpenViking 知识空间已按 AgentTeam 可见性完成读取。",
+      metadata: retrieval,
+    });
   }
 
   if (timeoutReached) {
