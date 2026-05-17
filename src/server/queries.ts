@@ -981,7 +981,7 @@ export function getTaskRunDetail(taskRunId: string) {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["当前无法给出 Provider 选择结果。"] };
+      : { provider: null, rationale: ["当前无法给出模型服务选择结果。"] };
 
   return {
     taskRun,
@@ -1100,7 +1100,7 @@ export function getDashboardSnapshot() {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["当前没有可展示的 Provider 选择结果。"] };
+      : { provider: null, rationale: ["当前没有可展示的模型服务选择结果。"] };
   const featuredRuntime =
     featuredTaskRun
       ? runtimes.find((runtime) => runtime.businessTeamId === featuredTaskRun.businessTeamId) ?? null
@@ -1730,7 +1730,7 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
       phase: "memory.context_resolved",
       foldGroup: "Planning",
       title: "知识上下文已解析",
-      content: "任务运行已根据业务团队、项目、AgentTeam、环境和蓝图生成 OpenViking 知识上下文。",
+      content: "任务运行已根据业务团队、项目、Agent 团队、环境和蓝图生成 OpenViking 知识上下文。",
       metadata: {
         loadRefCount: Array.isArray(context.loadRefs) ? context.loadRefs.length : 0,
         archiveRefCount: Array.isArray(context.archiveRefs) ? context.archiveRefs.length : 0,
@@ -2013,7 +2013,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       title: retrieval.degraded ? "知识读取降级" : "知识读取完成",
       content: retrieval.degraded
         ? "OpenViking 当前不可用，任务保留本地知识上下文快照并继续执行。"
-        : "OpenViking 知识空间已按 AgentTeam 可见性完成读取。",
+        : "OpenViking 知识空间已按 Agent 团队可见性完成读取。",
       metadata: retrieval,
     });
   }

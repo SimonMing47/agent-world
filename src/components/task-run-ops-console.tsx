@@ -46,7 +46,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
 
   return (
     <Panel>
-      <PanelHeader eyebrow="Actions" title="操作控制台" description="推进运行、恢复任务和处理门禁。" />
+      <PanelHeader eyebrow="操作" title="操作控制台" description="推进运行、恢复任务和处理门禁。" />
       <PanelBody>
         <div className="grid gap-3 sm:grid-cols-2">
           <Button

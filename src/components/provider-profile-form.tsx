@@ -188,11 +188,11 @@ export function ProviderProfileForm({
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="模型接口名称">
+          <FieldGroup label="模型服务名称">
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="Provider 名称"
+              placeholder="模型服务名称"
             />
           </FieldGroup>
           <FieldGroup label="API 风格">
@@ -310,7 +310,7 @@ export function ProviderProfileForm({
                 checked={form.reasoning}
                 onChange={(event) => setForm({ ...form, reasoning: event.target.checked })}
               />
-              Reasoning
+              推理能力
             </label>
           </div>
           <FieldGroup
@@ -321,7 +321,7 @@ export function ProviderProfileForm({
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"compat":{"reasoning_field":"thinking"}}'
+              placeholder='{"compat":{"reasoning_field":"reasoning_summary"}}'
             />
           </FieldGroup>
         </div>
@@ -331,7 +331,7 @@ export function ProviderProfileForm({
             onClick={save}
             disabled={isSaving}
           >
-            {isSaving ? "保存中" : "保存模型接口"}
+            {isSaving ? "保存中" : "保存模型服务"}
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
@@ -347,7 +347,7 @@ export function ProviderProfileForm({
     <Panel>
       <PanelHeader
         title={title}
-        description="模型接口、默认模型和 API Key 引用。"
+        description="模型服务、默认模型和 API Key 引用。"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

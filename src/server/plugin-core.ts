@@ -37,7 +37,7 @@ export function listBuiltinPluginManifests(): PluginManifest[] {
   return [
     {
       id: "builtin.provider.agentworld-runtime",
-      name: "AgentWorld Runtime Provider",
+      name: "AgentWorld 内置模型执行接口",
       version: "1.0.0",
       capability: "provider",
       lifecycle: "configured",
@@ -120,7 +120,7 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
   return [
     {
       id: "provider-runtime",
-      name: "Provider 执行扩展点",
+      name: "模型服务执行扩展点",
       accepts: ["provider"],
       implementationContract: "实现 invoke/discover/health 三个能力，主干只读取清单与健康结果。",
       noCoreChangeRule: "新增 Hermes、LangGraph、Mastra 或其他 Runtime Adapter 时只新增插件目录和配置。",

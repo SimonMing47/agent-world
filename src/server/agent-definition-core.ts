@@ -141,15 +141,15 @@ function resolveProviderAndRuntime(definition: AgentDefinitionDraft) {
     );
 
   if (!runtimeBinding) {
-    throw new Error("未找到可用的运行时绑定，请先配置 Runtime。");
+    throw new Error("未找到可用的执行配置，请先配置模型执行配置。");
   }
   if (!providerProfile) {
-    throw new Error("未找到可用的模型接口，请先配置 Provider。");
+    throw new Error("未找到可用的模型服务，请先配置模型服务。");
   }
 
   const apiKey = resolveProviderApiKey(providerProfile, runtimeBinding);
   if (!apiKey) {
-    throw new Error("当前 Provider 缺少 API Key 引用。");
+    throw new Error("当前模型服务缺少 API Key 引用。");
   }
 
   return {

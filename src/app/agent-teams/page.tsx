@@ -91,7 +91,7 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
     id: "",
     businessTeamId: defaultBusinessTeamId,
     slug: "",
-    name: "New Agent Team",
+    name: "新增执行团队",
     description: "",
     leaderAgentId: null,
     workflowType: "parallel",
@@ -132,11 +132,11 @@ export default function AgentTeamsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Agent Teams"
-        title="Agent 团队编排"
-        description="从 Agent 定义目录中组装团队，配置 Team 结构、工作流、成员职责和共享到不同人类业务团队的可见性与使用权限。"
+        eyebrow="执行团队"
+        title="Agent 团队目录"
+        description="从 Agent 目录中组装调度团队，配置团队结构、工作流、成员职责以及业务团队的可见性和使用权限。"
         badges={[
-          { label: `${teams.length} 个 Agent Team`, variant: "accent" },
+          { label: `${teams.length} 个 Agent 团队`, variant: "accent" },
           { label: `${members.length} 个成员编排`, variant: "neutral" },
         ]}
       />
@@ -159,7 +159,7 @@ export default function AgentTeamsPage() {
             detail: `${new Set(shares.map((share) => share.businessTeamId)).size} 个业务团队收到授权`,
           },
           {
-            label: "可选 Agent",
+            label: "可选成员",
             value: agentDefinitions.length,
             detail: `${executionPolicies.length} 条运行约束可绑定`,
           },
@@ -168,26 +168,26 @@ export default function AgentTeamsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Catalog"
-          title="Agent Team 目录"
+          eyebrow="目录"
+          title="Agent 团队目录"
           description="已定义的团队以表格管理；查看和编辑通过弹窗完成。"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Team
+                  新增 Agent 团队
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,1180px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 Agent Team</DialogTitle>
-                  <DialogDescription>选择 Agent 成员、定义 Team 工作流，并把它共享给需要使用它的业务团队。</DialogDescription>
+                  <DialogTitle>新增 Agent 团队</DialogTitle>
+                  <DialogDescription>选择 Agent 成员、定义工作流，并把它共享给需要使用它的业务团队。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentTeamForm
                     embedded
-                    title="新增 Agent Team"
+                    title="新增 Agent 团队"
                     team={buildNewTeamTemplate(defaultBusinessTeamId, defaultExecutionPolicyId)}
                     members={[]}
                     shares={[]}
@@ -211,7 +211,7 @@ export default function AgentTeamsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow>
-                <DataTableHead>Agent Team</DataTableHead>
+                <DataTableHead>Agent 团队</DataTableHead>
                 <DataTableHead>归属业务团队</DataTableHead>
                 <DataTableHead>结构 / 工作流</DataTableHead>
                 <DataTableHead>成员编排</DataTableHead>
@@ -282,7 +282,7 @@ export default function AgentTeamsPage() {
                           <DialogContent className="w-[min(96vw,1080px)]">
                             <DialogHeader>
                               <DialogTitle>{team.name}</DialogTitle>
-                              <DialogDescription>查看 Team 结构、成员编排、共享权限和工作流定义。</DialogDescription>
+                              <DialogDescription>查看团队结构、成员编排、共享权限和工作流定义。</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
@@ -348,7 +348,7 @@ export default function AgentTeamsPage() {
                                           </DataTableCell>
                                           <DataTableCell>{member.memberRole}</DataTableCell>
                                           <DataTableCell>{translateStatus(member.status)}</DataTableCell>
-                                          <DataTableCell>{member.workInstruction || "继承 Agent 默认职责"}</DataTableCell>
+                                          <DataTableCell>{member.workInstruction || "继承默认职责"}</DataTableCell>
                                         </DataTableRow>
                                       ))}
                                     </DataTableBody>
@@ -398,7 +398,7 @@ export default function AgentTeamsPage() {
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
                               <DialogTitle>编辑 {team.name}</DialogTitle>
-                              <DialogDescription>调整 Team 结构、工作流、共享权限和成员职责。</DialogDescription>
+                              <DialogDescription>调整团队结构、工作流、共享权限和成员职责。</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <AgentTeamForm
@@ -434,7 +434,7 @@ export default function AgentTeamsPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/agent-teams" id={team.id} confirmText={`确认删除 Agent Team「${team.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/agent-teams" id={team.id} confirmText={`确认删除 Agent 团队「${team.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

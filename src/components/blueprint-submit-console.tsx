@@ -56,7 +56,7 @@ export function BlueprintSubmitConsole({
   return (
     <Panel>
       <PanelHeader
-        eyebrow="Run Console"
+        eyebrow="运行控制台"
         title="从任务蓝图创建运行实例"
         description="输入本次运行的 payload，直接提交到任务平台内核。"
         action={

@@ -99,7 +99,7 @@ export function KnowledgeEntryForm({
         <DialogHeader>
           <DialogTitle>{isEdit ? "编辑知识条目" : "新增知识条目"}</DialogTitle>
           <DialogDescription>
-            知识条目会写入本地记录并同步到 OpenViking，供团队、项目和 Agent Team 在任务运行时检索。
+            知识条目会写入本地记录并同步到 OpenViking，供团队、项目和 Agent 团队在任务运行时检索。
           </DialogDescription>
         </DialogHeader>
         <DialogBody>

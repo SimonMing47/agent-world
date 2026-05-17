@@ -44,7 +44,7 @@ export default function TeamPermissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Team Governance"
+        eyebrow="团队治理"
         title="团队成员权限"
         description="配置团队成员或团队角色对 AgentWorld 资源的操作权限，支持 allow、ask、deny 三类效果。"
         badges={[
@@ -55,7 +55,7 @@ export default function TeamPermissionsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Permission Grants"
+          eyebrow="权限规则"
           title="权限规则"
           description="权限显式落库，供 Agent、任务和资产治理共同引用。"
           action={

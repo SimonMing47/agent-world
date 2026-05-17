@@ -35,7 +35,7 @@ export default function BusinessTeamsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Team Governance"
+        eyebrow="团队治理"
         title="组织结构定义"
         description="业务团队是人、资产、权限和任务归属的核心对象，支持新增、查看、编辑和删除。"
         badges={[
@@ -46,7 +46,7 @@ export default function BusinessTeamsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Organization"
+          eyebrow="组织结构"
           title="业务团队目录"
           description="团队和智能体团队是两个不同概念：团队与人和资产相关；智能体团队是任务调度单元。"
           action={

@@ -1738,7 +1738,7 @@ function seed(db: DatabaseSync) {
     platformBusinessTeamId,
     tenantSpaceId,
     "platform-team",
-    "Platform Team",
+    "平台工程团队",
     "ming",
     "active",
     1820,
@@ -1752,7 +1752,7 @@ function seed(db: DatabaseSync) {
     releaseBusinessTeamId,
     tenantSpaceId,
     "release-team",
-    "Release Team",
+    "发布工程团队",
     "sophia",
     "active",
     910,
@@ -1879,9 +1879,9 @@ function seed(db: DatabaseSync) {
   insertTeam.run(
     reviewTeamId,
     releaseBusinessTeamId,
-    "pr-vanguard",
-    "PR Vanguard",
-    "Reviews pull requests, assesses release risk, and stops before write-back without approval.",
+    "code-review-team",
+    "代码检视执行团队",
+    "负责 MR 代码检视、发布风险识别和回写前审批控制。",
     null,
     "parallel",
     JSON.stringify({ type: "object", required: ["repository", "pullRequest"] }),
@@ -2067,7 +2067,7 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     tenantSpaceId,
     platformBusinessTeamId,
-    "AgentWorld Research Runtime",
+    "研究任务执行接口",
     "embedded://agentworld/research",
     "pi",
     "offline",
@@ -2080,7 +2080,7 @@ function seed(db: DatabaseSync) {
   );
 
   insertProviderRuntimeBinding.run(
-    "runtime-binding-pi-default",
+    "runtime-binding-default",
     tenantSpaceId,
     releaseBusinessTeamId,
     "pi-runtime-adapter",
@@ -2095,7 +2095,7 @@ function seed(db: DatabaseSync) {
       defaultModel: "GLM-5.1",
       executionMode: "embedded",
       approvalMode: "allow",
-      eventContract: "provider_event_v1",
+      eventContract: "agent_event_v1",
       humanIntervention: "steer",
       env: {
         AGENTWORLD_GLM_API_KEY: "ref:env:AGENTWORLD_GLM_API_KEY",
@@ -2109,7 +2109,7 @@ function seed(db: DatabaseSync) {
     randomUUID(),
     tenantSpaceId,
     releaseBusinessTeamId,
-    "AgentWorld Release Runtime",
+    "发布任务执行接口",
     "embedded://agentworld/release",
     "pi",
     "offline",
@@ -2436,7 +2436,7 @@ function seed(db: DatabaseSync) {
     "open",
     iso(-1000 * 60 * 58),
     null,
-    JSON.stringify({ team: "PR Vanguard" }),
+    JSON.stringify({ team: "代码检视执行团队" }),
   );
   insertSpan.run(
     randomUUID(),
@@ -2849,10 +2849,10 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
       agentTeamId: null,
       projectKey: null,
       slug: "release-team-code-review",
-      name: "Release Team 代码检视知识",
+      name: "发布工程团队代码检视知识",
       spaceType: "team",
       vikingUri: "viking://resources/agentworld/teams/release-team/code-review",
-      description: "Release Team 的代码规范、历史检视偏好、误报基线和团队约束。",
+      description: "发布工程团队的代码规范、历史检视偏好、误报基线和团队约束。",
       visibility: "team",
       retention: { keepDays: 365, requireTeamReview: true },
       bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 20 }] : [],
@@ -2872,15 +2872,15 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
       bindings: releaseTeam ? [{ targetType: "business_team", targetId: releaseTeam.id, accessLevel: "write", loadOrder: 30 }] : [],
     },
     {
-      id: "ks-pr-vanguard-skills",
+      id: "ks-code-review-team-skills",
       businessTeamId: releaseTeam?.id ?? null,
       agentTeamId: reviewAgentTeam?.id ?? null,
       projectKey: null,
-      slug: "pr-vanguard-skills",
-      name: "PR Vanguard AgentTeam Skill 空间",
+      slug: "code-review-team-skills",
+      name: "代码检视执行团队 Skill 空间",
       spaceType: "agent_team",
-      vikingUri: "viking://agent/skills/agentworld/teams/release-team/agent-teams/pr-vanguard",
-      description: "PR Vanguard 使用的分层检视方法、输出模板和发布策略。",
+      vikingUri: "viking://agent/skills/agentworld/teams/release-team/agent-teams/code-review-team",
+      description: "代码检视执行团队使用的分层检视方法、输出模板和发布策略。",
       visibility: "team",
       retention: { keepDays: 540, versionedSkill: true },
       bindings: reviewAgentTeam ? [{ targetType: "agent_team", targetId: reviewAgentTeam.id, accessLevel: "read", loadOrder: 10 }] : [],
@@ -2891,7 +2891,7 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
       agentTeamId: reviewAgentTeam?.id ?? null,
       projectKey: null,
       slug: "release-security-review",
-      name: "Release Team 安全检视知识",
+      name: "发布工程团队安全检视知识",
       spaceType: "team",
       vikingUri: "viking://agent/skills/agentworld/teams/release-team/security-review",
       description: "安全基线、依赖风险、密钥泄露、敏感 API 和误报抑制规则。",
@@ -2905,7 +2905,7 @@ function ensureKnowledgeSpaceSeed(db: DatabaseSync) {
       agentTeamId: researchAgentTeam?.id ?? null,
       projectKey: null,
       slug: "platform-research",
-      name: "Platform Team 研究知识",
+      name: "平台工程团队研究知识",
       spaceType: "team",
       vikingUri: "viking://resources/agentworld/teams/platform-team/research",
       description: "平台团队沉淀的研究资料、决策依据和跨团队可读结论。",
@@ -3260,7 +3260,7 @@ function ensureTeamGovernanceSeed(db: DatabaseSync) {
       memberId: "member-platform-ava",
       type: "knowledge_space",
       assetId: "ks-platform-research",
-      assetName: "Platform Team 研究知识",
+      assetName: "平台工程团队研究知识",
       permissions: { read: true, write: true, curate: true },
     },
   ].forEach((asset) => {
@@ -3288,7 +3288,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
   [
     {
       id: "pi-runtime-adapter",
-      name: "AgentWorld Runtime Adapter",
+      name: "AgentWorld 内置执行接口",
       adapterType: "sdk",
       entryRef: "system://agentworld-runtime",
       lifecycle: "configured",
@@ -3307,7 +3307,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
           baseUrl: { type: "string" },
           apiKeySecretRef: { type: "string" },
           defaultModel: { type: "string" },
-          eventContract: { type: "string", default: "provider_event_v1" },
+          eventContract: { type: "string", default: "agent_event_v1" },
         },
       },
       secretRefs: ["env:AGENTWORLD_GLM_API_KEY", "env:OPENAI_API_KEY"],
@@ -3316,7 +3316,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
     },
     {
       id: "hermes-runtime-adapter",
-      name: "Hermes Runtime Adapter",
+      name: "Hermes 执行接口",
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/hermes",
       lifecycle: "declared",
@@ -3334,7 +3334,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
     },
     {
       id: "langgraph-runtime-adapter",
-      name: "LangGraph Runtime Adapter",
+      name: "LangGraph 执行接口",
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/langgraph",
       lifecycle: "declared",
@@ -3352,7 +3352,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
     },
     {
       id: "mastra-runtime-adapter",
-      name: "Mastra Runtime Adapter",
+      name: "Mastra 执行接口",
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/mastra",
       lifecycle: "declared",
@@ -3370,7 +3370,7 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
     },
     {
       id: "custom-runtime-adapter",
-      name: "Custom Runtime Adapter",
+      name: "自定义执行接口",
       adapterType: "plugin",
       entryRef: "plugin://runtime-adapter/custom",
       lifecycle: "declared",
@@ -3407,19 +3407,66 @@ function ensureProviderAdapterSeed(db: DatabaseSync) {
 
 function ensureRuntimeDisplayNames(db: DatabaseSync) {
   db.prepare(
-    "UPDATE provider_runtime_bindings SET name = REPLACE(name, 'Pi 默认运行时', 'AgentWorld 默认执行配置'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/'), config_json = REPLACE(config_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%' OR config_json LIKE '%pi_agent_event_v1%'",
+    "UPDATE provider_runtime_bindings SET id = ? WHERE id = ?",
+  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  db.prepare(
+    "UPDATE agent_definitions SET default_runtime_binding_id = ? WHERE default_runtime_binding_id = ?",
+  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  db.prepare(
+    "UPDATE runtime_sessions SET runtime_binding_id = ? WHERE runtime_binding_id = ?",
+  ).run("runtime-binding-default", "runtime-binding-pi-default");
+  db.prepare(
+    "UPDATE provider_runtime_bindings SET name = REPLACE(name, 'Pi 默认运行时', 'AgentWorld 默认执行配置'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/'), config_json = REPLACE(REPLACE(config_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%' OR config_json LIKE '%pi_agent_event_v1%' OR config_json LIKE '%provider_event_v1%'",
   ).run();
   db.prepare(
-    "UPDATE runtime_endpoints SET name = REPLACE(name, 'Pi', 'AgentWorld'), base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/') WHERE name LIKE '%Pi%' OR base_url LIKE 'embedded://pi/%'",
+    "UPDATE runtime_endpoints SET name = CASE WHEN name = 'AgentWorld Research Runtime' THEN '研究任务执行接口' WHEN name = 'AgentWorld Release Runtime' THEN '发布任务执行接口' ELSE REPLACE(name, 'Pi', 'AgentWorld') END, base_url = REPLACE(base_url, 'embedded://pi/', 'embedded://agentworld/') WHERE name LIKE '%Pi%' OR name IN ('AgentWorld Research Runtime', 'AgentWorld Release Runtime') OR base_url LIKE 'embedded://pi/%'",
   ).run();
   db.prepare(
-    "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(config_schema_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE id = ?",
-  ).run("AgentWorld Runtime Adapter", "system://agentworld-runtime", "pi-runtime-adapter");
+    "UPDATE provider_adapter_definitions SET name = ?, entry_ref = ?, config_schema_json = REPLACE(REPLACE(config_schema_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE id = ?",
+  ).run("AgentWorld 内置执行接口", "system://agentworld-runtime", "pi-runtime-adapter");
   db.prepare(
-    "UPDATE task_blueprints SET provider_policy_json = REPLACE(provider_policy_json, 'pi_agent_event_v1', 'provider_event_v1') WHERE provider_policy_json LIKE '%pi_agent_event_v1%'",
+    "UPDATE task_blueprints SET provider_policy_json = REPLACE(REPLACE(provider_policy_json, 'pi_agent_event_v1', 'agent_event_v1'), 'provider_event_v1', 'agent_event_v1') WHERE provider_policy_json LIKE '%pi_agent_event_v1%' OR provider_policy_json LIKE '%provider_event_v1%'",
   ).run();
   db.prepare(
     "UPDATE agent_definitions SET last_validation_summary = REPLACE(last_validation_summary, '默认 Pi 运行时', '默认运行接口') WHERE last_validation_summary LIKE '%默认 Pi 运行时%'",
+  ).run();
+  db.prepare(
+    "UPDATE agent_teams SET slug = ?, name = ?, description = ? WHERE slug = ? OR name = ?",
+  ).run(
+    "code-review-team",
+    "代码检视执行团队",
+    "负责 MR 代码检视、发布风险识别和回写前审批控制。",
+    "pr-vanguard",
+    "PR Vanguard",
+  );
+  db.prepare(
+    "UPDATE business_teams SET name = CASE WHEN name = 'Platform Team' THEN '平台工程团队' WHEN name = 'Release Team' THEN '发布工程团队' ELSE name END WHERE name IN ('Platform Team', 'Release Team')",
+  ).run();
+  db.prepare(
+    "UPDATE knowledge_spaces SET name = REPLACE(REPLACE(name, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队'), description = REPLACE(REPLACE(description, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队') WHERE name LIKE '%Release Team%' OR name LIKE '%Platform Team%' OR description LIKE '%Release Team%' OR description LIKE '%Platform Team%'",
+  ).run();
+  db.prepare(
+    "UPDATE team_asset_grants SET asset_name = REPLACE(REPLACE(asset_name, 'Release Team', '发布工程团队'), 'Platform Team', '平台工程团队') WHERE asset_name LIKE '%Release Team%' OR asset_name LIKE '%Platform Team%'",
+  ).run();
+  db.prepare(
+    "UPDATE knowledge_spaces SET id = ?, slug = ?, name = ?, viking_uri = ?, description = ? WHERE id = ? OR slug = ?",
+  ).run(
+    "ks-code-review-team-skills",
+    "code-review-team-skills",
+    "代码检视执行团队 Skill 空间",
+    "viking://agent/skills/agentworld/teams/release-team/agent-teams/code-review-team",
+    "代码检视执行团队使用的分层检视方法、输出模板和发布策略。",
+    "ks-pr-vanguard-skills",
+    "pr-vanguard-skills",
+  );
+  db.prepare(
+    "UPDATE knowledge_space_bindings SET knowledge_space_id = ? WHERE knowledge_space_id = ?",
+  ).run("ks-code-review-team-skills", "ks-pr-vanguard-skills");
+  db.prepare(
+    "UPDATE event_logs SET metadata_json = REPLACE(metadata_json, 'PR Vanguard', '代码检视执行团队') WHERE metadata_json LIKE '%PR Vanguard%'",
+  ).run();
+  db.prepare(
+    "UPDATE trace_spans SET attributes_json = REPLACE(attributes_json, 'PR Vanguard', '代码检视执行团队') WHERE attributes_json LIKE '%PR Vanguard%'",
   ).run();
 }
 
@@ -3798,7 +3845,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     JSON.stringify({
       adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "provider_event_v1",
+      eventContract: "agent_event_v1",
       timeoutMinutes: 30,
     }),
     JSON.stringify({
@@ -3929,7 +3976,7 @@ function ensureCoreCaseSeed(db: DatabaseSync) {
     JSON.stringify({
       adapterId: "pi-runtime-adapter",
       mode: "session",
-      eventContract: "provider_event_v1",
+      eventContract: "agent_event_v1",
       timeoutMinutes: 240,
     }),
     JSON.stringify({
@@ -4010,7 +4057,7 @@ function ensureAgentDefinitionSeed(db: DatabaseSync) {
     .get("release-team") as { id: string } | undefined;
   const piRuntime = db
     .prepare("SELECT id FROM provider_runtime_bindings WHERE id = ?")
-    .get("runtime-binding-pi-default") as { id: string } | undefined;
+    .get("runtime-binding-default") as { id: string } | undefined;
   const glmProvider = db
     .prepare("SELECT id FROM provider_profiles WHERE name = ?")
     .get("GLM-5.1 Coding") as { id: string } | undefined;
@@ -4258,7 +4305,7 @@ function ensureLegacyAgentsPromotedToTeamMembers(db: DatabaseSync) {
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const piRuntime = db
     .prepare("SELECT id FROM provider_runtime_bindings WHERE id = ?")
-    .get("runtime-binding-pi-default") as { id: string } | undefined;
+    .get("runtime-binding-default") as { id: string } | undefined;
   const glmProvider = db
     .prepare("SELECT id FROM provider_profiles WHERE name = ?")
     .get("GLM-5.1 Coding") as { id: string } | undefined;

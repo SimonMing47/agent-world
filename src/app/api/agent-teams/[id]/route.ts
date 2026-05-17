@@ -11,7 +11,7 @@ export async function GET(
   const { id } = await params;
   const detail = getAgentTeam(id);
   if (!detail) {
-    return NextResponse.json({ ok: false, error: "Agent Team 不存在。" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "Agent 团队不存在。" }, { status: 404 });
   }
   return NextResponse.json({ ok: true, detail });
 }
@@ -30,7 +30,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, detail });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存 Agent Team 失败。" },
+      { ok: false, error: error instanceof Error ? error.message : "保存 Agent 团队失败。" },
       { status: 400 },
     );
   }

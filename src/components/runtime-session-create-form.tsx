@@ -56,7 +56,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
     agentTeamId: "",
     model: initialProvider?.defaultModel ?? "",
     systemPrompt:
-      "Keep the interaction operational and explicit. Show planning changes, tool calls, and clear conclusions.",
+      "保持协作过程清晰、可审计。输出必要计划、工具调用结果和明确结论。",
   });
 
   const selectedProvider = useMemo(
@@ -126,7 +126,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             }
           >
               <option value="single_agent">单 Agent</option>
-              <option value="agent_team">Agent Team</option>
+              <option value="agent_team">Agent 团队</option>
             </Select>
           </FieldGroup>
         {form.mode === "single_agent" ? (
@@ -180,7 +180,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="模型接口">
+        <FieldGroup label="模型服务">
           <Select
             value={form.providerProfileId}
             onChange={(event) => {
@@ -200,12 +200,12 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
           </Select>
         </FieldGroup>
         {form.mode === "agent_team" ? (
-          <FieldGroup label="Agent Team" className="md:col-span-2">
+          <FieldGroup label="Agent 团队" className="md:col-span-2">
             <Select
               value={form.agentTeamId}
               onChange={(event) => setForm({ ...form, agentTeamId: event.target.value })}
             >
-              <option value="">请选择 Agent Team</option>
+              <option value="">请选择 Agent 团队</option>
               {props.agentTeams.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
@@ -225,7 +225,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
           <Textarea
             value={form.systemPrompt}
             onChange={(event) => setForm({ ...form, systemPrompt: event.target.value })}
-            placeholder="Describe the operating policy for this session."
+            placeholder="描述本次会话的运行策略、协作边界和输出要求。"
           />
         </FieldGroup>
       </div>

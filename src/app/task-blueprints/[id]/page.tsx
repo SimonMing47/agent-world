@@ -131,7 +131,7 @@ export default async function TaskBlueprintDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Task Detail"
+        eyebrow="任务详情"
         title={detail.blueprint.name}
         description="从同一工作台维护任务定义、提交调试输入、预览权限和追踪最近运行。"
         badges={[
@@ -155,9 +155,9 @@ export default async function TaskBlueprintDetailPage({
         <section className="space-y-4">
           <Panel>
             <PanelHeader
-              eyebrow="Summary"
+              eyebrow="摘要"
               title="蓝图定义"
-              description="稳定字段用定义列表展示，围绕任务、Team、环境和触发方式组织。"
+              description="稳定字段用定义列表展示，围绕任务、Agent 团队、环境和触发方式组织。"
             />
             <PanelBody>
               <DefinitionList
@@ -168,7 +168,7 @@ export default async function TaskBlueprintDetailPage({
                   { label: "业务团队", value: detail.businessTeamName },
                   { label: "Agent 团队", value: detail.agentTeamName },
                   { label: "执行环境", value: detail.environmentName },
-                  { label: "Provider", value: detail.providerName },
+                  { label: "模型服务", value: detail.providerName },
                   { label: "创建时间", value: formatDateTime(detail.blueprint.createdAt) },
                   { label: "更新时间", value: formatDateTime(detail.blueprint.updatedAt) },
                 ]}
@@ -178,7 +178,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Trigger & Input"
+              eyebrow="触发与输入"
               title="触发器与输入 Schema"
               description="触发器用定义列表，Schema 字段用表格便于横向比对。"
             />
@@ -232,7 +232,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Permissions"
+              eyebrow="权限"
               title="权限预览"
               description="按最终优先级展示 allow / ask / deny 规则。"
             />
@@ -276,7 +276,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Orchestration"
+              eyebrow="编排"
               title="Agent 团队编排"
               description="Leader、Worker、聚合和冲突策略按工作台视图拆开展示。"
             />
@@ -328,7 +328,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Recent Runs"
+              eyebrow="最近运行"
               title="最近运行"
               description="运行实例用表格展示，便于查找状态、来源和时间。"
             />
@@ -372,7 +372,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Findings"
+              eyebrow="问题输出"
               title="最近 Finding"
               description="问题产出按严重度、类别、置信度和状态排序查看。"
             />
@@ -417,7 +417,7 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="Policies"
+              eyebrow="策略"
               title="环境、记忆和输出策略"
               description="复杂结构保留 JSON 审计视图，避免把策略细节压扁。"
             />

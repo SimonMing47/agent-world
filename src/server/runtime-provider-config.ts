@@ -145,11 +145,14 @@ export function buildRuntimeDescriptor(
     adapterDefinitionId: binding.adapterDefinitionId,
     runtimeKind: binding.runtimeKind,
     executionMode: bindingConfig.executionMode ?? "embedded",
-    eventContract: bindingConfig.eventContract ?? "provider_event_v1",
+    eventContract:
+      bindingConfig.eventContract === "provider_event_v1"
+        ? "agent_event_v1"
+        : bindingConfig.eventContract ?? "agent_event_v1",
     approvalMode: bindingConfig.approvalMode ?? "allow",
     humanIntervention: bindingConfig.humanIntervention ?? "steer",
     defaultModel: provider ? resolveProviderModelId(provider, binding) : bindingConfig.defaultModel ?? "",
-    providerLabel: provider ? `${provider.name} / ${resolveProviderModelId(provider, binding)}` : "未绑定模型接口",
+    providerLabel: provider ? `${provider.name} / ${resolveProviderModelId(provider, binding)}` : "未绑定模型服务",
     apiKeyRefMasked: maskSecretRef(binding.apiKeyRef || provider?.apiKeyRef || ""),
   };
 }

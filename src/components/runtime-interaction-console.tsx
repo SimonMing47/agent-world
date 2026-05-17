@@ -520,7 +520,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
   return (
     <Panel className="overflow-hidden">
       <PanelHeader
-        eyebrow="Conversation"
+        eyebrow="会话"
         title="模型交互"
         description="让对话、协作和执行状态待在同一个工作台里。"
         action={
@@ -529,7 +529,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               {status}
             </Badge>
             <Badge variant="neutral">
-              {props.sessionMode === "agent_team" ? "Agent Team" : "Single Agent"}
+              {props.sessionMode === "agent_team" ? "Agent 团队" : "单 Agent"}
             </Badge>
             {activeActors.length > 1 ? <Badge variant="accent">{activeActors.length} 路并行</Badge> : null}
           </div>
@@ -643,7 +643,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                         {message.role === "assistant" && thinkingText(message.content) ? (
                           <details className="mt-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-3">
                             <summary className="cursor-pointer text-xs font-medium text-[var(--ink-muted)]">
-                              思考过程
+                              推理摘要
                             </summary>
                             <div className="mt-2 whitespace-pre-wrap text-xs leading-5 text-[var(--ink-muted)]">
                               {redactSecrets(thinkingText(message.content))}
@@ -653,11 +653,11 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                         {message.role === "assistant" ? (
                           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-muted)]">
                             {typeof message.content.responseModel === "string" ? (
-                              <span>responseModel: {message.content.responseModel}</span>
+                              <span>模型: {message.content.responseModel}</span>
                             ) : null}
                             {renderUsage(message.content) ? <span>{renderUsage(message.content)}</span> : null}
                             {typeof message.content.stopReason === "string" ? (
-                              <span>stop: {message.content.stopReason}</span>
+                              <span>停止原因: {message.content.stopReason}</span>
                             ) : null}
                           </div>
                         ) : null}

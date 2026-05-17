@@ -39,7 +39,7 @@ function typeLabel(type: string) {
     global: "全局",
     team: "团队",
     project: "项目",
-    agent_team: "AgentTeam",
+    agent_team: "Agent 团队",
   };
   return labels[type] ?? type;
 }
@@ -69,9 +69,9 @@ export default async function KnowledgePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Knowledge"
+        eyebrow="知识库"
         title="知识管理"
-        description="基于 OpenViking 的团队级、项目级、AgentTeam 级知识空间，任务运行时会按权限解析并加载。"
+        description="基于 OpenViking 的团队级、项目级、Agent 团队级知识空间，任务运行时会按权限解析并加载。"
         badges={[
           { label: snapshot.health.ok ? "OpenViking 已连接" : "OpenViking 未连接", variant: snapshot.health.ok ? "success" : "warning" },
           { label: `${spaces.length} 个知识空间`, variant: "accent" },
@@ -122,9 +122,9 @@ export default async function KnowledgePage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Knowledge Spaces"
+          eyebrow="知识空间"
           title="团队知识体系"
-          description="每个空间映射到稳定的 viking:// URI，可绑定业务团队、项目、AgentTeam 或任务蓝图。"
+          description="每个空间映射到稳定的 viking:// URI，可绑定业务团队、项目、Agent 团队或任务蓝图。"
         />
         <DataTable>
           <DataTableHeader>
@@ -173,7 +173,7 @@ export default async function KnowledgePage() {
                               { label: "类型", value: typeLabel(space.spaceType) },
                               { label: "状态", value: statusLabel(space.status) },
                               { label: "业务团队", value: space.businessTeamId ?? "未绑定" },
-                              { label: "AgentTeam", value: space.agentTeamId ?? "未绑定" },
+                              { label: "Agent 团队", value: space.agentTeamId ?? "未绑定" },
                               { label: "项目 Key", value: space.projectKey ?? "未绑定" },
                               { label: "可见性", value: space.visibility },
                               { label: "OpenViking URI", value: <span className="break-all font-mono text-xs">{space.vikingUri}</span> },
@@ -210,9 +210,9 @@ export default async function KnowledgePage() {
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Skill Registry"
+            eyebrow="Skill 目录"
             title="Skill 注册表"
-            description="Skill 内容同步到 OpenViking，AgentTeam 通过知识空间或蓝图 memoryPolicy 获取。"
+            description="Skill 内容同步到 OpenViking，Agent 团队通过知识空间或蓝图 memoryPolicy 获取。"
           />
           <DataTable>
             <DataTableHeader>
@@ -239,7 +239,7 @@ export default async function KnowledgePage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="Recent Knowledge"
+            eyebrow="最近知识"
             title="最近知识条目"
             description="任务上下文、Skill、人工反馈和归档结果都会进入这里。"
             action={

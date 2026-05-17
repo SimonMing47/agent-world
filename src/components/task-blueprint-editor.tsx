@@ -384,7 +384,7 @@ export function TaskBlueprintEditor({
 
     if (!form.teamId.trim()) {
       setIsSaving(false);
-      setMessage("请先关联 Agent Team。");
+      setMessage("请先关联 Agent 团队。");
       return;
     }
 
@@ -551,12 +551,12 @@ export function TaskBlueprintEditor({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="关联 Agent Team" hint="任务实际执行时会调用这里选中的 Team。">
+        <FieldGroup label="关联 Agent 团队" hint="任务实际执行时会调用这里选中的 Agent 团队。">
           <Select
             value={form.teamId}
             onChange={(event) => setForm({ ...form, teamId: event.target.value })}
           >
-            <option value="">选择 Agent Team</option>
+            <option value="">选择 Agent 团队</option>
             {options.agentTeams.map((option) => (
               <option key={option.id} value={option.id}>
                 {option.name}
@@ -725,7 +725,7 @@ export function TaskBlueprintEditor({
           <Textarea
             value={form.taskObjective}
             onChange={(event) => setForm({ ...form, taskObjective: event.target.value })}
-            placeholder="描述这个任务要让 Agent Team 完成什么。"
+            placeholder="描述这个任务要让 Agent 团队完成什么。"
           />
         </FieldGroup>
       </div>
@@ -778,7 +778,7 @@ export function TaskBlueprintEditor({
             onChange={(event) => setForm({ ...form, executionPolicyJson: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="Provider 策略 JSON">
+        <FieldGroup label="模型服务策略 JSON">
           <Textarea
             className="min-h-28"
             value={form.providerPolicyJson}
@@ -831,9 +831,9 @@ export function TaskBlueprintEditor({
   return (
     <Panel>
       <PanelHeader
-        eyebrow="Editor"
+        eyebrow="编辑器"
         title={title}
-        description="围绕触发器、Agent Team 和执行环境定义任务，保留高级策略作为可选 JSON。"
+        description="围绕触发器、Agent 团队和执行环境定义任务，保留高级策略作为可选 JSON。"
       />
       <PanelBody>{content}</PanelBody>
     </Panel>

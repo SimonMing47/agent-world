@@ -741,7 +741,7 @@ export function AssetGrantForm({
       <div className="grid gap-3 md:grid-cols-2">
         <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="成员"><Select value={form.memberId} onChange={(event) => setForm({ ...form, memberId: event.target.value })}><option value="">团队级资产</option>{members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="资产类型"><Select value={form.assetType} onChange={(event) => setForm({ ...form, assetType: event.target.value })}><option value="skill">Skill</option><option value="knowledge_space">知识库</option><option value="codebase">Codebase</option><option value="connector">Connector</option><option value="agent_team">Agent Team</option></Select></FieldGroup>
+        <FieldGroup label="资产类型"><Select value={form.assetType} onChange={(event) => setForm({ ...form, assetType: event.target.value })}><option value="skill">Skill</option><option value="knowledge_space">知识库</option><option value="codebase">Codebase</option><option value="connector">Connector</option><option value="agent_team">Agent 团队</option></Select></FieldGroup>
         <FieldGroup label="资产 ID"><Input value={form.assetId} onChange={(event) => setForm({ ...form, assetId: event.target.value })} /></FieldGroup>
         <FieldGroup label="状态">
           <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
@@ -967,7 +967,7 @@ export function ExecutionPolicyForm({
         <FieldGroup label="策略名称"><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></FieldGroup>
         <FieldGroup label="租户空间"><Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}><option value="">全局</option>{tenantSpaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="业务团队"><Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}><option value="">不限定</option>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
-        <FieldGroup label="Agent Team"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">不限定</option>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="Agent 团队"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}><option value="">不限定</option>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="系统约束说明" className="md:col-span-2"><Textarea value={form.systemInstruction} onChange={(event) => setForm({ ...form, systemInstruction: event.target.value })} /></FieldGroup>
         <FieldGroup label="工具策略 JSON"><Textarea value={form.toolPolicyJson} onChange={(event) => setForm({ ...form, toolPolicyJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="审批策略 JSON"><Textarea value={form.approvalPolicyJson} onChange={(event) => setForm({ ...form, approvalPolicyJson: event.target.value })} /></FieldGroup>
@@ -1019,7 +1019,7 @@ export function ServiceCatalogForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="Agent Team"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="Agent 团队"><Select value={form.teamId} onChange={(event) => setForm({ ...form, teamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="招募模式"><Select value={form.recruitmentMode} onChange={(event) => setForm({ ...form, recruitmentMode: event.target.value })}><option value="manual">手动授权</option><option value="request">申请使用</option><option value="open">开放使用</option></Select></FieldGroup>
         <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>
         <FieldGroup label="标签"><Textarea value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} /></FieldGroup>
@@ -1076,7 +1076,7 @@ export function AccessGrantForm({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="服务 Agent Team"><Select value={form.providerTeamId} onChange={(event) => setForm({ ...form, providerTeamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
+        <FieldGroup label="服务 Agent 团队"><Select value={form.providerTeamId} onChange={(event) => setForm({ ...form, providerTeamId: event.target.value })}>{agentTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="消费业务团队"><Select value={form.consumerBusinessTeamId} onChange={(event) => setForm({ ...form, consumerBusinessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="服务账号引用"><Input value={form.serviceAccountRef} onChange={(event) => setForm({ ...form, serviceAccountRef: event.target.value })} /></FieldGroup>
         <FieldGroup label="状态"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">启用</option><option value="disabled">停用</option></Select></FieldGroup>

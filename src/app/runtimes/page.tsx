@@ -60,9 +60,9 @@ export default function AiProvidersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="AI Provider"
-        title="AI Provider 配置"
-        description="维护模型接口、Base URL、API Key 引用、默认模型和模型能力。运行接口由系统内置，控制台只暴露可治理的模型接口。"
+        eyebrow="模型服务"
+        title="模型服务配置"
+        description="维护模型网关、Base URL、API Key 引用、默认模型和能力参数。运行接口由系统内置，页面只暴露可治理的模型服务。"
         badges={[
           { label: `${snapshot.providers.length} 个接口`, variant: "accent" },
           { label: `启用 ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },
@@ -72,12 +72,12 @@ export default function AiProvidersPage() {
       <SummaryStrip
         items={[
           {
-            label: "模型接口",
+            label: "模型服务",
             value: snapshot.providers.length,
             detail: "OpenAI Compatible / Anthropic / Azure 等",
           },
           {
-            label: "启用接口",
+            label: "启用服务",
             value: snapshot.providers.filter((provider) => provider.isEnabled).length,
             detail: "可被 Agent 和任务调用",
           },
@@ -89,27 +89,27 @@ export default function AiProvidersPage() {
           {
             label: "业务团队",
             value: snapshot.businessTeams.length,
-            detail: "Provider 可被团队策略选择",
+            detail: "模型服务可被团队策略选择",
           },
         ]}
       />
 
       <Panel>
         <PanelHeader
-          eyebrow="Provider Catalog"
-          title="模型接口目录"
+          eyebrow="服务目录"
+          title="模型服务目录"
           description="已配置内容进入表格陈列，新增、查看、编辑均通过弹窗完成。"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  新增 Provider
+                  新增模型服务
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>新增 AI Provider</DialogTitle>
+                  <DialogTitle>新增模型服务</DialogTitle>
                   <DialogDescription>配置模型网关、模型列表和密钥引用。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
@@ -118,7 +118,7 @@ export default function AiProvidersPage() {
                     provider={{
                       id: "",
                       tenantSpaceId,
-                      name: "新增 AI Provider",
+                      name: "新增模型服务",
                       baseUrl: "https://api.openai.com/v1",
                       apiStyle: "openai-compatible",
                       defaultModel: "gpt-5.4",
@@ -136,7 +136,7 @@ export default function AiProvidersPage() {
                       ),
                       isEnabled: 1,
                     }}
-                    title="新增 AI Provider"
+                    title="新增模型服务"
                   />
                 </DialogBody>
               </DialogContent>
@@ -147,7 +147,7 @@ export default function AiProvidersPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>Provider</DataTableHead>
+                <DataTableHead>模型服务</DataTableHead>
                 <DataTableHead>API 风格</DataTableHead>
                 <DataTableHead>默认模型</DataTableHead>
                 <DataTableHead>模型数</DataTableHead>
@@ -170,7 +170,7 @@ export default function AiProvidersPage() {
                     <DataTableCell>{provider.defaultModel}</DataTableCell>
                     <DataTableCell>{models.length}</DataTableCell>
                     <DataTableCell>
-                      <div className="text-sm text-[var(--ink)]">Reasoning {config.reasoning}</div>
+                      <div className="text-sm text-[var(--ink)]">推理能力 {config.reasoning}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">Headers {config.headers}</div>
                     </DataTableCell>
                     <DataTableCell>
@@ -188,12 +188,12 @@ export default function AiProvidersPage() {
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>{provider.name}</DialogTitle>
-                              <DialogDescription>Provider 明细。</DialogDescription>
+                              <DialogDescription>模型服务明细。</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "Provider ID", value: provider.id },
+                                  { label: "服务 ID", value: provider.id },
                                   { label: "API 风格", value: provider.apiStyle },
                                   { label: "Base URL", value: provider.baseUrl },
                                   { label: "默认模型", value: provider.defaultModel },
@@ -222,7 +222,7 @@ export default function AiProvidersPage() {
                           </DialogTrigger>
                           <DialogContent className="w-[min(94vw,860px)]">
                             <DialogHeader>
-                              <DialogTitle>编辑 AI Provider</DialogTitle>
+                              <DialogTitle>编辑模型服务</DialogTitle>
                               <DialogDescription>{provider.name}</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
@@ -230,7 +230,7 @@ export default function AiProvidersPage() {
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <DeleteResourceButton endpoint="/api/provider-profiles" id={provider.id} confirmText={`确认删除 AI Provider「${provider.name}」？`} />
+                        <DeleteResourceButton endpoint="/api/provider-profiles" id={provider.id} confirmText={`确认删除模型服务「${provider.name}」？`} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

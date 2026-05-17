@@ -39,16 +39,16 @@ export const navigationGroups: NavGroup[] = [
   {
     title: "总览",
     items: [
-      { href: "/", label: "整体任务大屏", sidebarLabel: "整体", description: "平台级任务、风险和治理指标", icon: LayoutDashboard },
-      { href: "/team-wallboard", label: "团队任务大屏", sidebarLabel: "团队", description: "按业务团队组织的任务运行情况", icon: ChartNoAxesCombined },
-      { href: "/agent-team-wallboard", label: "智能体团队大屏", sidebarLabel: "AgentTeam", description: "按智能体团队观察调度效果", icon: Activity },
+      { href: "/", label: "整体任务看板", sidebarLabel: "整体", description: "平台级任务、风险和治理指标", icon: LayoutDashboard },
+      { href: "/team-wallboard", label: "团队任务看板", sidebarLabel: "团队", description: "按业务团队组织的任务运行情况", icon: ChartNoAxesCombined },
+      { href: "/agent-team-wallboard", label: "Agent 团队看板", sidebarLabel: "执行团队", description: "按 Agent 团队观察调度效果", icon: Activity },
     ],
   },
   {
     title: "智能体治理",
     items: [
-      { href: "/agents", label: "智能体定义", sidebarLabel: "智能体", description: "Agent 是调度的最小单位和系统第一公民", icon: Bot },
-      { href: "/agent-teams", label: "智能体团队", sidebarLabel: "Agent团队", description: "用于完成复杂任务的 Agent 调度单元", icon: Workflow },
+      { href: "/agents", label: "Agent 目录", sidebarLabel: "Agent", description: "Agent 是调度的最小单位和系统第一公民", icon: Bot },
+      { href: "/agent-teams", label: "Agent 团队", sidebarLabel: "执行团队", description: "用于完成复杂任务的 Agent 调度单元", icon: Workflow },
     ],
   },
   {
@@ -64,7 +64,7 @@ export const navigationGroups: NavGroup[] = [
   {
     title: "基础配置",
     items: [
-      { href: "/runtimes", label: "AI Provider", sidebarLabel: "Provider", description: "模型接口、密钥引用和模型能力", icon: Cable },
+      { href: "/runtimes", label: "模型服务", sidebarLabel: "模型", description: "模型网关、密钥引用和能力参数", icon: Cable },
       { href: "/skills", label: "Skill 管理", sidebarLabel: "Skill", description: "存储在 OpenViking 的可复用运行能力", icon: Sparkles },
       { href: "/mcp", label: "MCP 管理", sidebarLabel: "MCP", description: "MCP 服务、传输方式和工具白名单", icon: Network },
       { href: "/connectors", label: "Connector 管理", sidebarLabel: "连接器", description: "IM、邮件、Web Push 和外部通知通道", icon: PlugZap },
@@ -76,7 +76,7 @@ export const navigationGroups: NavGroup[] = [
 ];
 
 export const secondaryNavigation: NavItem[] = [
-  { href: "/runtime-bindings", label: "Provider 执行配置", sidebarLabel: "执行配置", description: "默认模型接口、密钥引用、审批模式和附加参数", icon: Cable },
+  { href: "/runtime-bindings", label: "模型执行配置", sidebarLabel: "执行配置", description: "默认模型服务、密钥引用、审批模式和附加参数", icon: Cable },
   { href: "/environments", label: "执行环境管理", sidebarLabel: "环境", description: "任务运行对象、代码仓、执行人、路径和记忆依赖", icon: Database },
   { href: "/webhooks", label: "Webhook 管理", sidebarLabel: "Webhook", description: "外部触发入口、签名密钥引用和请求 Schema", icon: PlugZap },
   { href: "/tenant-spaces", label: "租户空间", sidebarLabel: "租户", description: "租户级治理边界和模型白名单", icon: Globe },

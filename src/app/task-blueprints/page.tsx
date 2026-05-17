@@ -116,9 +116,9 @@ export default function TaskBlueprintsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Tasks"
+        eyebrow="任务治理"
         title="任务定义中心"
-        description="定义任务与 Agent Team、执行环境和触发方式的绑定关系。底层仍使用 Task Blueprint 内核，但界面上直接围绕任务配置展开。"
+        description="定义任务与 Agent 团队、执行环境和触发方式的绑定关系。底层仍使用 Task Blueprint 内核，但界面上直接围绕任务配置展开。"
         badges={[
           { label: `${snapshot.blueprints.length} 个任务定义`, variant: "accent" },
           { label: "团队视角治理", variant: "neutral" },
@@ -152,9 +152,9 @@ export default function TaskBlueprintsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Catalog"
+          eyebrow="目录"
           title="任务定义目录"
-          description="在这里定义任务、关联 Agent Team、绑定执行环境，并配置触发方式。"
+          description="在这里定义任务、关联 Agent 团队、绑定执行环境，并配置触发方式。"
           action={
             <Dialog>
               <DialogTrigger asChild>
@@ -166,7 +166,7 @@ export default function TaskBlueprintsPage() {
               <DialogContent className="w-[min(96vw,1180px)]">
                 <DialogHeader>
                   <DialogTitle>新增任务定义</DialogTitle>
-                  <DialogDescription>选择 Agent Team、执行环境和触发方式，建立一个新的任务配置。</DialogDescription>
+                  <DialogDescription>选择 Agent 团队、执行环境和触发方式，建立一个新的任务配置。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <TaskBlueprintEditor
@@ -185,7 +185,7 @@ export default function TaskBlueprintsPage() {
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>任务定义</DataTableHead>
-                <DataTableHead>业务团队 / Agent Team</DataTableHead>
+                <DataTableHead>业务团队 / Agent 团队</DataTableHead>
                 <DataTableHead>触发方式</DataTableHead>
                 <DataTableHead>执行环境</DataTableHead>
                 <DataTableHead>状态 / 可见性</DataTableHead>
@@ -258,7 +258,7 @@ export default function TaskBlueprintsPage() {
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
                               <DialogTitle>{blueprint.name}</DialogTitle>
-                              <DialogDescription>查看任务与 Team、环境、触发方式和发布策略的绑定关系。</DialogDescription>
+                              <DialogDescription>查看任务与 Agent 团队、环境、触发方式和发布策略的绑定关系。</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
@@ -266,7 +266,7 @@ export default function TaskBlueprintsPage() {
                                   { label: "任务 Key", value: blueprint.id },
                                   { label: "任务类别", value: blueprint.category },
                                   { label: "业务团队", value: blueprint.businessTeamName },
-                                  { label: "Agent Team", value: blueprint.agentTeamName },
+                                  { label: "Agent 团队", value: blueprint.agentTeamName },
                                   { label: "执行环境", value: blueprint.environmentName },
                                   { label: "执行底座", value: "系统内置" },
                                   { label: "状态", value: translateStatus(blueprint.status) },
@@ -309,7 +309,7 @@ export default function TaskBlueprintsPage() {
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
                               <DialogTitle>编辑 {blueprint.name}</DialogTitle>
-                              <DialogDescription>调整任务关联的 Team、执行环境和触发方式。</DialogDescription>
+                              <DialogDescription>调整任务关联的 Agent 团队、执行环境和触发方式。</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <TaskBlueprintEditor

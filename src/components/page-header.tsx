@@ -26,7 +26,7 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--ink)] sm:text-3xl">
+          <h1 className="text-2xl font-semibold tracking-normal text-[var(--ink)] sm:text-3xl">
             {title}
           </h1>
           {description ? <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{description}</p> : null}

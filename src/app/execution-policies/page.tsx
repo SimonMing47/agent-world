@@ -28,7 +28,7 @@ import { translateExecutionPolicyScope } from "@/lib/presentation";
 import { listAgentTeams, listBusinessTeams, listExecutionPolicies, listTenantSpaces } from "@/server/queries";
 
 function scopeOf(profile: { teamId: string | null; businessTeamId: string | null; tenantSpaceId: string | null }) {
-  return profile.teamId ? "AgentTeam" : profile.businessTeamId ? "BusinessTeam" : profile.tenantSpaceId ? "TenantSpace" : "Global";
+  return profile.teamId ? "Agent 团队" : profile.businessTeamId ? "业务团队" : profile.tenantSpaceId ? "租户空间" : "全局";
 }
 
 export default function ExecutionPolicyPage() {
@@ -43,7 +43,7 @@ export default function ExecutionPolicyPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Execution Policies"
+        eyebrow="执行策略"
         title="执行策略"
         description="统一配置工具许可、人工门禁、预算和输出安全策略，支持增删查改。"
         badges={[{ label: `${executionPolicies.length} 条执行策略`, variant: "accent" }]}
@@ -51,9 +51,9 @@ export default function ExecutionPolicyPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="Registry"
+          eyebrow="目录"
           title="执行策略目录"
-          description="策略可作用于全局、租户、业务团队或 Agent Team。"
+          description="策略可作用于全局、租户、业务团队或 Agent 团队。"
           action={
             <Dialog>
               <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />新增策略</Button></DialogTrigger>

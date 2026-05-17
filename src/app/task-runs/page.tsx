@@ -29,7 +29,7 @@ export default function TaskRunsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Runs"
+        eyebrow="任务运行"
         title="任务运行中心"
         description="集中查看运行实例、当前状态、触发来源和所属团队，快速进入单次任务的执行空间。"
         badges={[
@@ -66,7 +66,7 @@ export default function TaskRunsPage() {
       <section className="grid gap-4 2xl:grid-cols-[1.45fr_0.55fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Run List"
+            eyebrow="运行列表"
             title="全部运行实例"
             description="按蓝图、业务团队、来源和状态浏览每次执行。"
           />
@@ -131,7 +131,7 @@ export default function TaskRunsPage() {
         <div className="space-y-4">
           <Panel>
             <PanelHeader
-              eyebrow="By Source"
+              eyebrow="按来源"
               title="来源分布"
               description="帮助值班时快速判断负载从哪里来。"
             />
@@ -161,7 +161,7 @@ export default function TaskRunsPage() {
 
           <Panel>
             <PanelHeader
-              eyebrow="Watch List"
+              eyebrow="关注列表"
               title="最近关注"
               description="优先打开这些实例查看轨迹与人工干预情况。"
             />

@@ -28,8 +28,8 @@ export function buildInvocationPlan(args: {
   accessGrant: AccessGrant | null;
 }) {
   const executionPolicy = buildExecutionPolicySummary(args.executionPolicy);
-  const runtimeName = args.runtime?.name ?? "未选择 runtime";
-  const providerName = args.provider?.name ?? "未选择 Provider";
+  const runtimeName = args.runtime?.name ?? "未选择执行配置";
+  const providerName = args.provider?.name ?? "未选择模型服务";
 
   const stages: InvocationStage[] = [
     {
@@ -54,21 +54,21 @@ export function buildInvocationPlan(args: {
     },
     {
       key: "provider",
-      label: "选择模型 Provider",
-      owner: "provider-core",
+      label: "选择模型服务",
+      owner: "model-service-core",
       description: `在不突破 ${args.tenantSpace.name} 模型白名单的前提下，把调用路由到 ${providerName}。`,
     },
     {
       key: "runtime",
-      label: "挂载执行 runtime",
-      owner: "runtime-core",
-      description: `优先使用 ${runtimeName}，并在节点真正开工前把 runtime 健康状态显式展示出来。`,
+      label: "挂载执行配置",
+      owner: "execution-core",
+      description: `优先使用 ${runtimeName}，并在节点真正开工前把执行健康状态显式展示出来。`,
     },
     {
       key: "trace",
       label: "流式记录 Trace 与工具事件",
       owner: "trace-core",
-      description: `把 ${args.agent.name} 的思考、工具动作、人工批准和文本输出写成可回放的事件分组。`,
+      description: `把 ${args.agent.name} 的推理摘要、工具动作、人工批准和文本输出写成可回放的事件分组。`,
     },
   ];
 
