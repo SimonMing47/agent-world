@@ -54,7 +54,6 @@ export function ProviderRuntimeBindingForm({
   binding,
   title,
   providerOptions,
-  adapterOptions,
   businessTeamOptions,
   embedded = false,
   onSaved,
@@ -80,7 +79,9 @@ export function ProviderRuntimeBindingForm({
     approvalMode:
       typeof parsedConfig.approvalMode === "string" ? parsedConfig.approvalMode : "ask",
     eventContract:
-      typeof parsedConfig.eventContract === "string" ? parsedConfig.eventContract : "provider_event_v1",
+      typeof parsedConfig.eventContract === "string" && parsedConfig.eventContract !== "provider_event_v1"
+        ? parsedConfig.eventContract
+        : "agent_event_v1",
     envJson: normalizeJson(
       JSON.stringify(
         parsedConfig.env && typeof parsedConfig.env === "object" && !Array.isArray(parsedConfig.env)
@@ -102,7 +103,7 @@ export function ProviderRuntimeBindingForm({
       JSON.parse(form.configJson);
     } catch {
       setIsSaving(false);
-      setMessage("JSON 格式不正确");
+      setMessage("ui.generated.cf09c995336");
       return;
     }
 
@@ -137,11 +138,11 @@ export function ProviderRuntimeBindingForm({
 
     setIsSaving(false);
     if (!response.ok) {
-      setMessage("保存失败");
+      setMessage("ui.generated.c40525a7328");
       return;
     }
 
-    setMessage("已保存");
+    setMessage("ui.generated.ccdfab96f75");
     onSaved?.();
     router.refresh();
   }
@@ -153,7 +154,7 @@ export function ProviderRuntimeBindingForm({
         checked={form.isEnabled}
         onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      启用
+      ui.generated.cd4e9ca3dd4
     </label>
   );
 
@@ -162,12 +163,12 @@ export function ProviderRuntimeBindingForm({
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="归属业务团队">
+          <FieldGroup label="ui.generated.c26f30fd79b">
             <Select
               value={form.businessTeamId}
               onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
             >
-              <option value="">全局默认</option>
+              <option value="">ui.generated.ce0523a661c</option>
               {businessTeamOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -175,59 +176,35 @@ export function ProviderRuntimeBindingForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="执行引擎名称">
+          <FieldGroup label="ui.generated.cb9133eb1c8">
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="OpenCode Production"
+              placeholder="ui.generated.c53215c3826"
             />
           </FieldGroup>
-          <FieldGroup label="Provider Adapter">
-            <Select
-              value={form.adapterDefinitionId}
-              onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
-            >
-              {adapterOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </Select>
-          </FieldGroup>
-          <FieldGroup label="运行协议">
-            <Select
-              value={form.runtimeKind}
-              onChange={(event) => setForm({ ...form, runtimeKind: event.target.value })}
-            >
-              {["opencode", "http", "cli"].map((kind) => (
-                <option key={kind} value={kind}>
-                  {kind}
-                </option>
-              ))}
-            </Select>
-          </FieldGroup>
-          <FieldGroup label="Runtime Base URL">
+          <FieldGroup label="ui.generated.c86e118291e">
             <Input
               value={form.baseUrl}
               onChange={(event) => setForm({ ...form, baseUrl: event.target.value })}
-              placeholder="http://127.0.0.1:4096"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="启动命令">
+          <FieldGroup label="ui.generated.c1ea645dd58">
             <Input
               value={form.command}
               onChange={(event) => setForm({ ...form, command: event.target.value })}
-              placeholder="opencode"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="工作目录">
+          <FieldGroup label="ui.generated.c42dfc81f99">
             <Input
               value={form.workspaceRoot}
               onChange={(event) => setForm({ ...form, workspaceRoot: event.target.value })}
-              placeholder="/workspace"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="审批模式">
+          <FieldGroup label="ui.generated.c1072712e57">
             <Select
               value={form.approvalMode}
               onChange={(event) => setForm({ ...form, approvalMode: event.target.value })}
@@ -239,33 +216,33 @@ export function ProviderRuntimeBindingForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="事件协议">
+          <FieldGroup label="ui.generated.cc07c5b925e">
             <Input
               value={form.eventContract}
               onChange={(event) => setForm({ ...form, eventContract: event.target.value })}
-              placeholder="provider_event_v1"
+              placeholder="agent_event_v1"
             />
           </FieldGroup>
-          <FieldGroup label="默认模型覆盖">
+          <FieldGroup label="ui.generated.c5f62d7b454">
             <Input
               value={form.defaultModel}
               onChange={(event) => setForm({ ...form, defaultModel: event.target.value })}
-              placeholder="gpt-5.4"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="OpenCode API Key 引用" className="md:col-span-2">
+          <FieldGroup label="ui.generated.ce3b1d54127" className="md:col-span-2">
             <Input
               value={form.apiKeyRef}
               onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-              placeholder="env:OPENCODE_API_KEY"
+	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="默认模型接口" className="md:col-span-2">
+          <FieldGroup label="ui.generated.cbff226d7bb" className="md:col-span-2">
             <Select
               value={form.defaultProviderProfileId}
               onChange={(event) => setForm({ ...form, defaultProviderProfileId: event.target.value })}
             >
-              <option value="">未绑定</option>
+              <option value="">ui.generated.c3bf179d8d0</option>
               {providerOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -274,25 +251,25 @@ export function ProviderRuntimeBindingForm({
             </Select>
           </FieldGroup>
           <FieldGroup
-            label="环境变量映射"
-            hint="在这里维护 OpenCode 运行进程需要的环境变量引用。"
+            label="ui.generated.c4bd4a7b2ba"
+            hint="ui.generated.c34b4349209"
             className="md:col-span-2"
           >
             <Textarea
               value={form.envJson}
               onChange={(event) => setForm({ ...form, envJson: event.target.value })}
-              placeholder='{"OPENAI_API_KEY":"ref:env:OPENAI_API_KEY"}'
+	              placeholder="{}"
             />
           </FieldGroup>
           <FieldGroup
-            label="附加配置"
-            hint="保留给 Provider Adapter 的额外参数。"
+            label="ui.generated.cc066260025"
+            hint="ui.generated.c77efedac45"
             className="md:col-span-2"
           >
             <Textarea
               value={form.configJson}
               onChange={(event) => setForm({ ...form, configJson: event.target.value })}
-              placeholder='{"providerProfileAlias":"openai-default"}'
+	              placeholder="{}"
             />
           </FieldGroup>
         </div>
@@ -302,7 +279,7 @@ export function ProviderRuntimeBindingForm({
             onClick={save}
             disabled={isSaving}
           >
-            {isSaving ? "保存中" : "保存执行引擎"}
+            {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c3537820aeb"}
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
@@ -315,10 +292,10 @@ export function ProviderRuntimeBindingForm({
   }
 
   return (
-    <Panel>
+      <Panel>
       <PanelHeader
         title={title}
-        description="执行引擎地址、命令、默认模型与环境变量映射。"
+        description="ui.generated.cbf9a3f9cf9"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

@@ -12,7 +12,7 @@ import {
 import { DefinitionList } from "@/components/ui/definition-list";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
-import { translateSourceType, translateStatus } from "@/lib/presentation";
+import { translateSeverity, translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { getDashboardSnapshot, getSettingsSnapshot } from "@/server/queries";
 
@@ -23,12 +23,12 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Operations"
-        title="任务平台总览"
-        description="围绕任务运行、Finding、配置完整度和蓝图活跃度组织日常操作视图。"
+        eyebrow="ui.generated.cc122e1758c"
+        title="ui.generated.cdf49420f76"
+        description="ui.generated.c6310a0e06c"
         badges={[
-          { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
-          { label: `${settings.metrics.runtimeBindingCount} 个执行引擎`, variant: "neutral" },
+          { label: <>{snapshot.task_runs.length} ui.common.count.runs</>, variant: "accent" },
+          { label: <>{settings.metrics.providerProfileCount} ui.common.count.modelServices</>, variant: "neutral" },
         ]}
       />
 
@@ -37,19 +37,19 @@ export default function OverviewPage() {
       <section className="grid gap-4 2xl:grid-cols-[1.35fr_0.65fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Runs"
-            title="最近任务运行"
-            description="按来源、团队、状态和时间直接查看最近的任务执行。"
+            eyebrow="ui.generated.c0a4e01232c"
+            title="ui.generated.c11a785d660"
+            description="ui.generated.c571219824d"
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>任务来源</DataTableHead>
-                  <DataTableHead>业务团队 / Agent 团队</DataTableHead>
-                  <DataTableHead>运行状态</DataTableHead>
-                  <DataTableHead>触发方式</DataTableHead>
-                  <DataTableHead align="right">创建时间</DataTableHead>
+                  <DataTableHead>ui.generated.c7526ca012d</DataTableHead>
+                  <DataTableHead>ui.generated.c97fa784b22</DataTableHead>
+                  <DataTableHead>ui.generated.c2a4080ad9f</DataTableHead>
+                  <DataTableHead>ui.generated.cf67f1852d8</DataTableHead>
+                  <DataTableHead align="right">ui.generated.c84e3802f60</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
@@ -63,11 +63,11 @@ export default function OverviewPage() {
                         <Link href={`/task-runs/${taskRun.id}`} className="font-medium text-[var(--ink)] hover:underline">
                           {taskRun.sourceRef ?? taskRun.sourceType}
                         </Link>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{taskRun.idempotencyKey ?? "无幂等键"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{taskRun.idempotencyKey ?? "ui.generated.c2874ba6f1c"}</div>
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{businessTeam?.name ?? "未知业务团队"}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{team?.name ?? "未知 Agent 团队"}</div>
+                        <div className="font-medium text-[var(--ink)]">{businessTeam?.name ?? "ui.generated.c7ae513bf4d"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{team?.name ?? "ui.generated.c603903ef14"}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div>
@@ -97,21 +97,21 @@ export default function OverviewPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="Load"
-            title="来源与问题分布"
-            description="值班时先看这里，判断负载来自哪里，问题集中在哪个等级。"
+            eyebrow="ui.generated.c4d5e4d7797"
+            title="ui.generated.c600f0cb918"
+            description="ui.generated.cf86759abbc"
           />
           <PanelBody className="space-y-6">
             <div>
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
-                触发来源
+              <div className="mb-3 text-xs font-medium text-[var(--ink-muted)]">
+                ui.generated.c3a2573f2a1
               </div>
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>来源</DataTableHead>
-                    <DataTableHead align="right">运行数</DataTableHead>
-                    <DataTableHead align="right">活跃数</DataTableHead>
+                    <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cc184a1f9d0</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cb135b311ab</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -129,21 +129,21 @@ export default function OverviewPage() {
             </div>
 
             <div>
-              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
-                Finding 严重级别
+              <div className="mb-3 text-xs font-medium text-[var(--ink-muted)]">
+                ui.generated.c970b477286
               </div>
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>级别</DataTableHead>
-                    <DataTableHead align="right">数量</DataTableHead>
+                    <DataTableHead>ui.generated.c2548499200</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cb9ae893190</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
                   {snapshot.findingDashboard.bySeverity.map((item) => (
                     <DataTableRow key={item.severity}>
-                      <DataTableCell className="font-medium uppercase text-[var(--ink)]">
-                        {item.severity}
+                      <DataTableCell className="font-medium text-[var(--ink)]">
+                        {translateSeverity(item.severity)}
                       </DataTableCell>
                       <DataTableCell align="right">{item.count}</DataTableCell>
                     </DataTableRow>
@@ -158,32 +158,27 @@ export default function OverviewPage() {
       <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Readiness"
-            title="配置完整度"
-            description="从模型接口、执行引擎、蓝图和 Webhook 观察平台可运行程度。"
+            eyebrow="ui.generated.c1d2cbbea2f"
+            title="ui.generated.c4ae36a315e"
+            description="ui.generated.c4c59ef3914"
           />
           <PanelBody>
             <DefinitionList
               items={[
                 {
-                  label: "模型接口",
+                  label: "ui.generated.cbc56f948bb",
                   value: `${settings.metrics.enabledProviderProfileCount}/${settings.metrics.providerProfileCount}`,
-                  detail: "已启用模型接口 / 全部接口",
+                  detail: "ui.generated.c284ed6750f",
                 },
                 {
-                  label: "执行引擎",
-                  value: `${settings.metrics.enabledRuntimeBindingCount}/${settings.metrics.runtimeBindingCount}`,
-                  detail: "已启用运行时绑定 / 全部运行时",
-                },
-                {
-                  label: "任务蓝图",
+                  label: "ui.generated.c2e17bc4894",
                   value: `${settings.metrics.enabledBlueprintCount}/${settings.metrics.blueprintCount}`,
-                  detail: "激活蓝图 / 全部蓝图",
+                  detail: "ui.generated.cee6d753fb9",
                 },
                 {
-                  label: "Webhook 与环境",
+                  label: "ui.generated.c65243bac10",
                   value: `${settings.webhooks.length} / ${settings.environments.length}`,
-                  detail: "Webhook 入口 / 执行环境",
+                  detail: "ui.generated.c7324947cb6",
                 },
               ]}
             />
@@ -192,18 +187,18 @@ export default function OverviewPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="Blueprints"
-            title="蓝图目录"
-            description="蓝图作为统一任务入口，直接在表格里看触发器、运行量和 Finding 产出。"
+            eyebrow="ui.generated.c2e17bc4894"
+            title="ui.generated.cacc75374db"
+            description="ui.generated.c21a3fd73aa"
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>蓝图</DataTableHead>
-                  <DataTableHead>类别</DataTableHead>
-                  <DataTableHead>触发器</DataTableHead>
-                  <DataTableHead align="right">运行数</DataTableHead>
+                  <DataTableHead>ui.generated.c6c72663ddb</DataTableHead>
+                  <DataTableHead>ui.generated.ced9f6d4d8e</DataTableHead>
+                  <DataTableHead>ui.generated.c2d189a3f46</DataTableHead>
+                  <DataTableHead align="right">ui.generated.cc184a1f9d0</DataTableHead>
                   <DataTableHead align="right">Finding</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>

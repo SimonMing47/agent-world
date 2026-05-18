@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 
 export function RuntimeDiscoveryButton() {
   const router = useRouter();
+  const text = useLanguageText();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -19,10 +21,10 @@ export function RuntimeDiscoveryButton() {
           try {
             const response = await fetch("/api/runtimes/discover", { method: "POST" });
             const payload = (await response.json()) as { count: number };
-            setMessage(`已刷新 ${payload.count} 个 runtime 端点。`);
+            setMessage(text("ui.common.runtimeEndpointsRefreshed", undefined, { count: payload.count }));
             router.refresh();
           } catch {
-            setMessage("Runtime 发现失败，界面会保留上一次健康状态快照。");
+            setMessage("ui.generated.c8827366c6b");
           } finally {
             setPending(false);
           }
@@ -30,7 +32,7 @@ export function RuntimeDiscoveryButton() {
         className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-[var(--canvas)] transition hover:opacity-90 disabled:opacity-60"
         disabled={pending}
       >
-        {pending ? "发现中..." : "发现 runtime"}
+        {pending ? "ui.generated.c6336f539ff" : "ui.generated.cb5a56eb61f"}
       </button>
       {message ? (
         <p className="text-sm text-[var(--ink-muted)]">{message}</p>

@@ -1,55 +1,151 @@
+import { Eye, PencilLine, Plus } from "lucide-react";
+import { ExecutionPolicyForm } from "@/components/admin-forms";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow,
+} from "@/components/ui/data-table";
+import { DefinitionList } from "@/components/ui/definition-list";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { buildExecutionPolicySummary } from "@/server/execution-policy-core";
 import { translateExecutionPolicyScope } from "@/lib/presentation";
-import { listExecutionPolicies } from "@/server/queries";
+import { listAgentTeams, listBusinessTeams, listExecutionPolicies, listTenantSpaces } from "@/server/queries";
+
+function scopeOf(profile: { teamId: string | null; businessTeamId: string | null; tenantSpaceId: string | null }) {
+  return profile.teamId ? "ui.generated.c70f970c1fc" : profile.businessTeamId ? "ui.generated.c2b90028ff3" : profile.tenantSpaceId ? "ui.generated.c3db35d2741" : "ui.generated.ca5644f4bbf";
+}
 
 export default function ExecutionPolicyPage() {
   const executionPolicies = listExecutionPolicies();
+  const tenantSpaces = listTenantSpaces();
+  const businessTeams = listBusinessTeams();
+  const agentTeams = listAgentTeams();
+  const tenantOptions = tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
+  const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
+  const agentTeamOptions = agentTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Execution Policies"
-        title="运行约束"
-        description="统一查看工具许可、人工门禁、预算和输出安全策略。"
-        badges={[
-          { label: `${executionPolicies.length} 条运行约束`, variant: "accent" },
-        ]}
+        eyebrow="ui.generated.c6408e9f93d"
+        title="ui.generated.c6408e9f93d"
+        description="ui.generated.c275dbd5d7b"
+        badges={[{ label: <>{executionPolicies.length} ui.common.count.executionPolicies</>, variant: "accent" }]}
       />
 
-      {executionPolicies.map((profile) => {
-        const executionPolicy = buildExecutionPolicySummary(profile);
-        const scope =
-          profile.teamId
-            ? "AgentTeam"
-            : profile.businessTeamId
-              ? "BusinessTeam"
-              : profile.tenantSpaceId
-                ? "TenantSpace"
-                : "Global";
-
-        return (
-          <Panel key={profile.id}>
-            <PanelHeader
-              eyebrow={`${translateExecutionPolicyScope(scope)}运行约束`}
-              title={executionPolicy.name}
-              description={executionPolicy.instruction}
-              action={<Badge variant="neutral">{translateExecutionPolicyScope(scope)}</Badge>}
-            />
-            <PanelBody className="space-y-3 text-sm text-[var(--ink-muted)]">
-              <div>允许工具: <span className="font-medium text-[var(--ink)]">{executionPolicy.allowedTools.join(", ")}</span></div>
-              <div>人工门禁: <span className="font-medium text-[var(--ink)]">{executionPolicy.approvalRequiredTools.join(", ") || "当前无人工门禁"}</span></div>
-              <div>预算约束: <span className="font-medium text-[var(--ink)]">{executionPolicy.budget.maxRuntimeMinutes} 分钟 / {executionPolicy.budget.maxSteps} 步 / {executionPolicy.budget.maxToolCalls} 次工具调用</span></div>
-              <div>默认语言: <span className="font-medium text-[var(--ink)]">{executionPolicy.safety.defaultLocale}</span></div>
-              <div>默认折叠思考: <span className="font-medium text-[var(--ink)]">{executionPolicy.safety.collapseThinkingByDefault ? "是" : "否"}</span></div>
-              <div>结构化输出: <span className="font-medium text-[var(--ink)]">{executionPolicy.safety.structuredOutput ? "是" : "否"}</span></div>
-              <div>Prompt 扫描 / 输出扫描: <span className="font-medium text-[var(--ink)]">{executionPolicy.safety.promptScan ? "开" : "关"} / {executionPolicy.safety.outputScan ? "开" : "关"}</span></div>
-            </PanelBody>
-          </Panel>
-        );
-      })}
+      <Panel>
+        <PanelHeader
+          eyebrow="ui.generated.c41e5243e2d"
+          title="ui.generated.cd5d169228c"
+          description="ui.generated.c756b8eca35"
+          action={
+            <Dialog>
+              <DialogTrigger asChild><Button size="sm" variant="secondary"><Plus className="h-4 w-4" />ui.generated.c294d9cb571</Button></DialogTrigger>
+              <DialogContent className="w-[min(96vw,980px)]">
+                <DialogHeader><DialogTitle>ui.generated.c0da4967602</DialogTitle><DialogDescription>ui.generated.ccd5cad2742</DialogDescription></DialogHeader>
+                <DialogBody>
+                  <ExecutionPolicyForm
+                    tenantSpaces={tenantOptions}
+                    businessTeams={teamOptions}
+                    agentTeams={agentTeamOptions}
+                    policy={{
+                      id: "",
+                      tenantSpaceId: null,
+                      businessTeamId: null,
+                      teamId: null,
+                      name: "",
+                      systemInstruction: "",
+                      toolPolicyJson: JSON.stringify({ allow: [], deny: [] }, null, 2),
+                      approvalPolicyJson: JSON.stringify({ mode: "ask" }, null, 2),
+                      budgetPolicyJson: JSON.stringify({ maxRuntimeMinutes: 30, maxSteps: 20, maxToolCalls: 50 }, null, 2),
+                      outputPolicyJson: "{}",
+                      securityPolicyJson: "{}",
+                    }}
+                  />
+                </DialogBody>
+              </DialogContent>
+            </Dialog>
+          }
+        />
+        <PanelBody className="p-0">
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>ui.generated.cf3c49831c6</DataTableHead>
+                <DataTableHead>ui.generated.c785b52eb97</DataTableHead>
+                <DataTableHead>ui.generated.cc4a935a9c3</DataTableHead>
+                <DataTableHead>ui.generated.c1ce79677a9</DataTableHead>
+                <DataTableHead>ui.generated.c8e662a5618</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {executionPolicies.map((profile) => {
+                const executionPolicy = buildExecutionPolicySummary(profile);
+                const scope = scopeOf(profile);
+                return (
+                  <DataTableRow key={profile.id}>
+                    <DataTableCell>
+                      <div className="font-semibold text-[var(--ink)]">{executionPolicy.name}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{executionPolicy.instruction}</div>
+                    </DataTableCell>
+                    <DataTableCell><Badge variant="neutral">{translateExecutionPolicyScope(scope)}</Badge></DataTableCell>
+                    <DataTableCell>{executionPolicy.budget.maxRuntimeMinutes} ui.generated.cc15da1ef70 {executionPolicy.budget.maxToolCalls} ui.generated.c02acc3b1c4</DataTableCell>
+                    <DataTableCell>{executionPolicy.approvalRequiredTools.join(", ") || "ui.generated.c72077749f7"}</DataTableCell>
+                    <DataTableCell>{executionPolicy.safety.promptScan ? "ui.generated.cea15810cf6" : "ui.generated.cd35af39b0a"}</DataTableCell>
+                    <DataTableCell align="right">
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader><DialogTitle>{profile.name}</DialogTitle><DialogDescription>ui.generated.c0fc696b711</DialogDescription></DialogHeader>
+                            <DialogBody>
+                              <DefinitionList
+                                items={[
+                                  { label: "ui.generated.c225a81e171", value: profile.id },
+                                  { label: "ui.generated.cc15757bcfa", value: profile.toolPolicyJson },
+                                  { label: "ui.generated.c065633d525", value: profile.approvalPolicyJson },
+                                  { label: "ui.generated.c4499bd58a7", value: profile.budgetPolicyJson },
+                                  { label: "ui.generated.c084415a1ec", value: profile.outputPolicyJson },
+                                  { label: "ui.generated.c7fb27626a0", value: profile.securityPolicyJson },
+                                ]}
+                              />
+                            </DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                          <DialogTrigger asChild><Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />ui.generated.ca7f814c0a4</Button></DialogTrigger>
+                          <DialogContent className="w-[min(96vw,980px)]">
+                            <DialogHeader><DialogTitle>ui.generated.c1866d4c0fb</DialogTitle><DialogDescription>{profile.name}</DialogDescription></DialogHeader>
+                            <DialogBody><ExecutionPolicyForm tenantSpaces={tenantOptions} businessTeams={teamOptions} agentTeams={agentTeamOptions} policy={profile} /></DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/execution-policies" id={profile.id} confirmParams={{ resource: "ui.common.resources.executionPolicy", name: profile.name }} />
+                      </div>
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
+        </PanelBody>
+      </Panel>
     </div>
   );
 }

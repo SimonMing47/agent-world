@@ -1,0 +1,33 @@
+import { NextResponse } from "next/server";
+import { deleteRuntimeSession, getRuntimeSessionDetail } from "@/server/runtime-session-core";
+import { uiText } from "@/lib/language-pack";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const resolved = await params;
+  const detail = getRuntimeSessionDetail(resolved.id);
+  if (!detail) {
+    return NextResponse.json({ error: uiText("ui.api.errors.sessionNotFound") }, { status: 404 });
+  }
+  return NextResponse.json({ detail });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const resolved = await params;
+    deleteRuntimeSession(resolved.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.deleteRuntimeSessionFailed") },
+      { status: 400 },
+    );
+  }
+}

@@ -67,7 +67,7 @@ spec:
     templateId: env-template-review
     snapshotPolicy: per-run
   providerPolicy:
-    preferredAdapters: [opencode.default]
+    preferredAdapters: [agentworld-runtime-adapter]
     fallbackAdapters: []
     modelConstraints: {}
   permissions:

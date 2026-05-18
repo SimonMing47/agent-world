@@ -5,6 +5,7 @@ import {
   type TaskRun,
   type ScheduleTemplate,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 function parseJson<T>(value: string, fallback: T): T {
   try {
@@ -19,7 +20,7 @@ export function buildEnvironmentSummary(environment: ExecutionEnvironment, busin
     id: environment.id,
     name: environment.name,
     businessTeamName:
-      business_teams.find((businessTeam) => businessTeam.id === environment.businessTeamId)?.name ?? "未知业务团队",
+      business_teams.find((businessTeam) => businessTeam.id === environment.businessTeamId)?.name ?? uiText("ui.generated.c7ae513bf4d"),
     repository: {
       provider: environment.repositoryProvider,
       name: environment.repositoryName,

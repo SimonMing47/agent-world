@@ -6,7 +6,7 @@ import {
   submitTaskRunFromBlueprint,
 } from "@/server/queries";
 import {
-  buildWebhookTaskInput,
+  buildWebhookTaskInputForBlueprint,
   matchWebhookBlueprints,
   validateWebhookSecret,
 } from "@/server/webhook-trigger-core";
@@ -89,9 +89,14 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const inputPayload = buildWebhookTaskInput(pathKey, payload, request);
-  const results = matchedBlueprints.map((blueprint) => {
+  const results = await Promise.all(matchedBlueprints.map(async (blueprint) => {
     try {
+      const inputPayload = await buildWebhookTaskInputForBlueprint({
+        pathKey,
+        payload,
+        request,
+        blueprint,
+      });
       const detail = submitTaskRunFromBlueprint({
         blueprintId: blueprint.id,
         requestedBy: String(inputPayload.author ?? "webhook"),
@@ -119,7 +124,7 @@ export async function POST(request: Request, context: RouteContext) {
         error: error instanceof Error ? error.message : "submit failed",
       };
     }
-  });
+  }));
 
   const hasSuccess = results.some((result) => result.ok);
   return NextResponse.json(

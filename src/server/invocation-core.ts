@@ -9,6 +9,7 @@ import {
   type RuntimeEndpoint,
   type TenantSpace,
 } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type InvocationStage = {
   key: string;
@@ -28,64 +29,69 @@ export function buildInvocationPlan(args: {
   accessGrant: AccessGrant | null;
 }) {
   const executionPolicy = buildExecutionPolicySummary(args.executionPolicy);
-  const runtimeName = args.runtime?.name ?? "未选择 runtime";
-  const providerName = args.provider?.name ?? "未选择 Provider";
+  const runtimeName = args.runtime?.name ?? uiText("ui.generated.cb0d8f8f854");
+  const providerName = args.provider?.name ?? uiText("ui.generated.c7afbbac594");
 
   const stages: InvocationStage[] = [
     {
       key: "envelope",
-      label: "组装调用上下文",
+      label: uiText("ui.generated.cd9162444dd"),
       owner: "invocation-core",
-      description: "在请求首个 token 之前，先把租户空间、业务团队、Agent 团队、Agent 和任务上下文拼装完整。",
+      description: uiText("ui.generated.c1b73db886f"),
     },
     {
       key: "executionPolicy",
-      label: "解析运行约束",
+      label: uiText("ui.generated.cc025a65a39"),
       owner: "execution-policy-core",
-      description: `把 ${executionPolicy.name} 与 Agent 团队、租户策略合并，让工具、预算、输出规则都变成显式约束。`,
+      description: uiText("ui.server.invocation.mergePolicy", undefined, { policyName: executionPolicy.name }),
     },
     {
       key: "accessGrant",
-      label: "校验跨团队授权范围",
+      label: uiText("ui.generated.c8ee81b5926"),
       owner: "access-grant-core",
       description: args.accessGrant
-        ? "在开始外部服务动作之前，先应用生效中的跨团队授权范围和定价限制。"
-        : `这次调用留在 ${args.businessTeam.name} 内部，因此不需要做跨业务团队的范围扩展。`,
+        ? uiText("ui.generated.c29ad4c5c4b")
+        : uiText("ui.server.invocation.sameBusinessTeam", undefined, { teamName: args.businessTeam.name }),
     },
     {
       key: "provider",
-      label: "选择模型 Provider",
-      owner: "provider-core",
-      description: `在不突破 ${args.tenantSpace.name} 模型白名单的前提下，把调用路由到 ${providerName}。`,
+      label: uiText("ui.generated.c1a1e8def94"),
+      owner: "model-service-core",
+      description: uiText("ui.server.invocation.routeProvider", undefined, {
+        tenantName: args.tenantSpace.name,
+        providerName,
+      }),
     },
     {
       key: "runtime",
-      label: "挂载执行 runtime",
-      owner: "runtime-core",
-      description: `优先使用 ${runtimeName}，并在节点真正开工前把 runtime 健康状态显式展示出来。`,
+      label: uiText("ui.generated.ce92dd711eb"),
+      owner: "execution-core",
+      description: uiText("ui.server.invocation.mountRuntime", undefined, { runtimeName }),
     },
     {
       key: "trace",
-      label: "流式记录 Trace 与工具事件",
+      label: uiText("ui.generated.cd8971310ee"),
       owner: "trace-core",
-      description: `把 ${args.agent.name} 的思考、工具动作、人工批准和文本输出写成可回放的事件分组。`,
+      description: uiText("ui.server.invocation.traceAgent", undefined, { agentName: args.agent.name }),
     },
   ];
 
   if (executionPolicy.approvalRequiredTools.length > 0) {
     stages.push({
       key: "gate",
-      label: "人工门禁暂停",
+      label: uiText("ui.generated.cf436fbc144"),
       owner: "human-gate",
-      description: `在 ${executionPolicy.approvalRequiredTools.join(", ")} 这类受保护动作之前暂停，并等待显式批准。`,
+      description: uiText("ui.server.invocation.approvalGate", undefined, {
+        tools: executionPolicy.approvalRequiredTools.join(", "),
+      }),
     });
   }
 
   stages.push({
     key: "finalize",
-    label: "完成节点收尾",
+    label: uiText("ui.generated.c6ef37f44e1"),
     owner: "executor-core",
-    description: "校验输出、记录成本，并把任务节点推进到下一个稳定状态。",
+    description: uiText("ui.generated.cbd6e4b1ed3"),
   });
 
   return stages;

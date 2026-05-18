@@ -417,7 +417,7 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 
 ## 9. 实现对照
 
-- Provider 执行层：`provider-core.ts`、`runtime-core.ts`、`opencode-adapter.ts`
+- Provider 执行层：`provider-core.ts`、`runtime-adapter-core.ts`、`runtime-provider-config.ts`、`runtime-session-core.ts`
 - Agent 定义层：`registry-core.ts`、`agent-teams/page.tsx`
 - 工具 / Skill 管理层：`execution-policy-core.ts`、`plugin-core.ts`、`openviking-core.ts`
 - 多 Agent 编排层：`planner-core.ts`、`executor-core.ts`、`invocation-core.ts`

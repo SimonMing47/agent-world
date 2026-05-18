@@ -4,11 +4,11 @@ export function MetricCard(props: {
   detail: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
-      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+    <section className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+      <div className="text-xs font-medium text-[var(--ink-subtle)]">
         {props.label}
       </div>
-      <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-4xl">
+      <div className="mt-3 text-2xl font-semibold tracking-normal text-[var(--ink)] sm:text-3xl">
         {props.value}
       </div>
       <p className="mt-2 max-w-[20rem] text-sm leading-6 text-[var(--ink-muted)]">

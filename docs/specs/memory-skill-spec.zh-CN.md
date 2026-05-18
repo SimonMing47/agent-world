@@ -32,7 +32,26 @@ viking://user/memories/agentworld/...
 
 平台不得将 Secret 明文写入任何记忆空间。
 
-## 4. 记忆层级
+## 4. Knowledge Space 与绑定
+
+AgentWorld 在 OpenViking URI 之上增加平台级 Knowledge Space：
+
+- `global`：全局知识，默认只读加载。
+- `team`：业务团队知识，归属于某个业务团队。
+- `project`：项目知识，绑定项目 key、仓库或服务。
+- `agent_team`：AgentTeam 的 Skill、方法论和输出约束。
+
+Knowledge Space 保存稳定 `viking://` 根 URI，Knowledge Binding 将空间授权给业务团队、项目、AgentTeam、任务蓝图或 Agent 定义。绑定声明 `read`、`write`、`archive` 三类访问级别和加载顺序。
+
+任务实例化时，平台生成 Knowledge Context：
+
+1. 解析业务团队可见的全局 / 团队空间。
+2. 按输入项目、仓库或 `project_key` 加载项目空间。
+3. 按 AgentTeam 加载团队编排专属 Skill 空间。
+4. 合并 TaskBlueprint `memoryPolicy` 和 Environment `memoryLayerRefs`。
+5. 写入 Environment Snapshot，并在任务事件中记录 `memory.context_resolved`。
+
+## 5. 记忆层级
 
 建议采用以下层级：
 
@@ -43,7 +62,7 @@ viking://user/memories/agentworld/...
 
 TaskBlueprint 可以声明读取层级，ProviderAdapter 在调用前通过记忆服务获取内容摘要或原文引用。
 
-## 5. Skill 模型
+## 6. Skill 模型
 
 Skill 是可版本化能力单元：
 
@@ -71,7 +90,7 @@ spec:
 
 Skill 必须声明输入输出契约、适用领域、Finding 分类和版本。Skill 内容可以存储在 OpenViking，平台注册表保存索引和权限元数据。
 
-## 6. TaskBlueprint 记忆声明
+## 7. TaskBlueprint 记忆声明
 
 ```yaml
 memory:
@@ -90,7 +109,7 @@ memory:
 
 读取范围必须显式声明。写入范围必须经过权限评估。Skill 引用应绑定版本，避免历史 TaskRun 因 Skill 更新而语义漂移。
 
-## 7. 读写流程
+## 8. 读写流程
 
 读取流程：
 
@@ -108,7 +127,7 @@ memory:
 4. 远端失败时按可靠性策略写入本地影子索引并标记 degraded。
 5. 事件流记录 memory.write、memory.sync 或 memory.degraded。
 
-## 8. Finding 与反馈写回
+## 9. Finding 与反馈写回
 
 Finding 处理结果应写入用户记忆空间：
 
@@ -121,7 +140,7 @@ viking://user/memories/agentworld/code-review/feedback/accepted-risk
 
 写回内容应包含 Finding 引用、人工判断、证据摘要、适用范围、时间和处理人引用。不得写入未脱敏 Secret、私钥或访问令牌。
 
-## 9. 权限与隔离
+## 10. 权限与隔离
 
 记忆权限同样采用 allow / ask / deny：
 
@@ -132,7 +151,7 @@ viking://user/memories/agentworld/code-review/feedback/accepted-risk
 
 业务团队私有记忆默认只允许本团队读取。跨团队读取必须通过服务目录、访问授权或显式 TaskBlueprint 配置完成。
 
-## 10. 降级策略
+## 11. 降级策略
 
 OpenViking 远端不可用时：
 
@@ -143,7 +162,7 @@ OpenViking 远端不可用时：
 
 降级状态必须进入 TaskRun 可靠性状态机和看板。
 
-## 11. 验收标准
+## 12. 验收标准
 
 - 所有记忆地址使用 `viking://` URI。
 - TaskBlueprint 可声明读写范围和 Skill 引用。

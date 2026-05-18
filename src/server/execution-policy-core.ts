@@ -1,4 +1,5 @@
 import { type ExecutionPolicy } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export type ResolvedExecutionPolicy = {
   name: string;
@@ -63,7 +64,7 @@ export function resolveExecutionPolicy(profile: ExecutionPolicy): ResolvedExecut
 }
 
 function intersectAllowedTools(current: string[], incoming: string[]) {
-  // 空数组表示“这一层不额外收紧”，因此沿用上层结果，仅当某层显式给出 allow 清单时才做交集收敛。
+  // An empty list means this layer does not narrow the inherited allow list.
   if (incoming.length === 0) return current;
   if (current.length === 0) return incoming;
   return current.filter((tool) => incoming.includes(tool));
@@ -104,7 +105,7 @@ export function composeExecutionPolicy(args: {
     );
 
   const base: ResolvedExecutionPolicy = {
-    name: "组合运行约束",
+    name: uiText("ui.generated.cd2822a7873"),
     systemInstruction: "",
     allowedTools: [],
     blockedTools: [],
@@ -142,7 +143,7 @@ export function composeExecutionPolicy(args: {
       collapseThinkingByDefault: resolved.collapseThinkingByDefault,
       structuredOutput: resolved.structuredOutput,
       defaultLocale: resolved.defaultLocale ?? composed.defaultLocale,
-      // 安全扫描采用“任一层开启即开启”的并集策略，避免下层意外关闭上层防护。
+      // Safety scans use a union strategy so lower layers cannot disable upstream protection.
       promptScan: composed.promptScan || resolved.promptScan,
       outputScan: composed.outputScan || resolved.outputScan,
     };
@@ -183,7 +184,7 @@ export function evaluateExecutionPolicyToolPolicy(
     return {
       allowed: false,
       requiresApproval: false,
-      reason: `工具 ${toolName} 命中 blocked 清单。`,
+      reason: uiText("ui.server.executionPolicy.blockedTool", undefined, { toolName }),
       policyHit: "blocked_tool",
     };
   }
@@ -192,7 +193,7 @@ export function evaluateExecutionPolicyToolPolicy(
     return {
       allowed: false,
       requiresApproval: false,
-      reason: `工具 ${toolName} 不在 allow 清单中。`,
+      reason: uiText("ui.server.executionPolicy.notAllowedTool", undefined, { toolName }),
       policyHit: "not_allowed_tool",
     };
   }
@@ -201,7 +202,7 @@ export function evaluateExecutionPolicyToolPolicy(
     return {
       allowed: true,
       requiresApproval: true,
-      reason: `工具 ${toolName} 需要人工批准。`,
+      reason: uiText("ui.server.executionPolicy.approvalTool", undefined, { toolName }),
       policyHit: "approval_required_tool",
     };
   }
@@ -209,7 +210,7 @@ export function evaluateExecutionPolicyToolPolicy(
   return {
     allowed: true,
     requiresApproval: false,
-    reason: `工具 ${toolName} 通过运行约束工具策略。`,
+    reason: uiText("ui.server.executionPolicy.allowedTool", undefined, { toolName }),
     policyHit: "allow",
   };
 }

@@ -22,7 +22,7 @@ async function postJson(url: string, body: Record<string, unknown>) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "请求失败");
+    throw new Error(text || "ui.generated.c8fdc4112a4");
   }
 }
 
@@ -36,17 +36,17 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
       try {
         setMessage(null);
         await run();
-        setMessage("操作已提交。");
+        setMessage("ui.generated.cdf74cc3481");
         router.refresh();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "操作失败");
+        setMessage(error instanceof Error ? error.message : "ui.generated.c09e424b5e8");
       }
     });
   };
 
   return (
     <Panel>
-      <PanelHeader eyebrow="Actions" title="操作控制台" description="推进运行、恢复任务和处理门禁。" />
+      <PanelHeader eyebrow="ui.generated.cf3ea6d345e" title="ui.generated.c0c1b35f1c4" description="ui.generated.c96220dbea8" />
       <PanelBody>
         <div className="grid gap-3 sm:grid-cols-2">
           <Button
@@ -57,7 +57,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
               runAction(() => postJson(`/api/task-runs/${props.taskRunId}/tick`, { requestedBy: OPS_ACTOR }))
             }
           >
-            执行一轮调度 Tick
+            ui.generated.ce3cacac29e
           </Button>
           <Button
             type="button"
@@ -67,7 +67,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
               runAction(() => postJson(`/api/task-runs/${props.taskRunId}/resume`, { requestedBy: OPS_ACTOR }))
             }
           >
-            恢复任务
+            ui.generated.cc6c4880a68
           </Button>
           {props.retryNodeId ? (
             <Button
@@ -82,7 +82,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                 )
               }
             >
-              重试失败节点
+              ui.generated.c645f6f5302
             </Button>
           ) : null}
           {props.pendingInterventionId ? (
@@ -101,7 +101,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                   )
                 }
               >
-                批准门禁
+                ui.generated.c23f7419d21
               </Button>
               <Button
                 type="button"
@@ -117,7 +117,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                   )
                 }
               >
-                拒绝门禁
+                ui.generated.c1c9e390d8c
               </Button>
             </div>
           ) : null}
