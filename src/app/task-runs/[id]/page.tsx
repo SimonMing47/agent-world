@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { DeleteResourceButton } from "@/components/delete-resource-button";
+import { FindingForm } from "@/components/finding-form";
 import { PageHeader } from "@/components/page-header";
 import { TaskRunOpsConsole } from "@/components/task-run-ops-console";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +60,7 @@ function formatCurrency(value: number) {
 }
 
 function CompactList({ items }: { items: string[] }) {
-  if (items.length === 0) return <span>无</span>;
+  if (items.length === 0) return <span>ui.generated.c72077749f7</span>;
 
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -104,9 +106,9 @@ export default async function TaskRunDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Run Detail"
+        eyebrow="ui.generated.ca939e999ca"
         title={detail.taskRun.sourceRef ?? detail.taskRun.sourceType}
-        description="面向值班排障、审计复盘和人工介入的任务运行控制台。"
+        description="ui.generated.c8a3289e545"
         badges={[
           { label: translateStatus(detail.taskRun.status), variant: statusVariant(detail.taskRun.status) },
           { label: translateStatus(detail.taskRun.runState), variant: statusVariant(detail.taskRun.runState) },
@@ -118,24 +120,24 @@ export default async function TaskRunDetailPage({
         gridClassName="sm:grid-cols-2 xl:grid-cols-4"
         items={[
           {
-            label: "运行状态",
+            label: "ui.generated.c2a4080ad9f",
             value: translateStatus(detail.taskRun.runState),
-            detail: `任务状态: ${translateStatus(detail.taskRun.status)}`,
+            detail: <>ui.generated.c4f49ffd119 {translateStatus(detail.taskRun.status)}</>,
           },
           {
-            label: "节点",
+            label: "ui.generated.ce840cd6f1e",
             value: detail.nodes.length,
-            detail: `${detail.executionInsights?.metrics.throughput ? formatPercent(detail.executionInsights.metrics.throughput) : "0%"} 已完成`,
+            detail: <>{detail.executionInsights?.metrics.throughput ? formatPercent(detail.executionInsights.metrics.throughput) : "0%"} ui.common.completed</>,
           },
           {
             label: "Finding",
             value: detail.kernel.findings.length,
-            detail: detail.kernel.findings.length > 0 ? "本次运行已有标准化产出" : "暂无 Finding",
+            detail: detail.kernel.findings.length > 0 ? "ui.generated.cb9c1fbac56" : "ui.generated.ca98031c097",
           },
           {
-            label: "成本",
+            label: "ui.generated.c5354b098e2",
             value: formatCurrency(detail.taskRun.costActual),
-            detail: `估算 ${formatCurrency(detail.taskRun.costEstimate)}`,
+            detail: <>ui.common.estimatePrefix {formatCurrency(detail.taskRun.costEstimate)}</>,
           },
         ]}
       />
@@ -150,19 +152,19 @@ export default async function TaskRunDetailPage({
         <main className="space-y-6">
           <Panel>
             <PanelHeader
-              eyebrow="Execution"
-              title="节点执行表"
-              description={detail.plan?.summary ? localizeDemoCopy(detail.plan.summary) : "按计划节点展示 Agent、依赖和重试状态。"}
+              eyebrow="ui.generated.c28febba225"
+              title="ui.generated.cc96e332bca"
+              description={detail.plan?.summary ? localizeDemoCopy(detail.plan.summary) : "ui.generated.ca8b782cc01"}
             />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow>
-                    <DataTableHead>节点</DataTableHead>
+                    <DataTableHead>ui.generated.ce840cd6f1e</DataTableHead>
                     <DataTableHead>Agent</DataTableHead>
-                    <DataTableHead>状态</DataTableHead>
-                    <DataTableHead align="center">尝试</DataTableHead>
-                    <DataTableHead align="center">依赖数</DataTableHead>
+                    <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                    <DataTableHead align="center">ui.generated.c31d1e44656</DataTableHead>
+                    <DataTableHead align="center">ui.generated.c33a12a7ba9</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -183,15 +185,15 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Stages" title="调用阶段" description="从上下文组装到输出收尾的执行检查点。" />
+            <PanelHeader eyebrow="ui.generated.c4ca39faad0" title="ui.generated.c97cbaa1711" description="ui.generated.c13762e63f5" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow>
                     <DataTableHead align="center">#</DataTableHead>
-                    <DataTableHead>阶段</DataTableHead>
-                    <DataTableHead>责任模块</DataTableHead>
-                    <DataTableHead>说明</DataTableHead>
+                    <DataTableHead>ui.generated.c4ca39faad0</DataTableHead>
+                    <DataTableHead>ui.generated.cf39e67d4b9</DataTableHead>
+                    <DataTableHead>ui.generated.c26670dda42</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -205,7 +207,7 @@ export default async function TaskRunDetailPage({
                   ))}
                   {detail.invocationStages.length === 0 ? (
                     <DataTableRow>
-                      <DataTableCell>暂无调用阶段数据。</DataTableCell>
+                      <DataTableCell>ui.generated.cb9bdd531c7</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
@@ -217,24 +219,24 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Audit Trail" title="执行轨迹" description="按 fold group 保留原始执行事件，便于审计和复盘。" />
+            <PanelHeader eyebrow="ui.generated.c45da5e2d84" title="ui.generated.c2e2d00e345" description="ui.generated.c8f62f04612" />
             <PanelBody className="space-y-4">
               {eventGroups.length === 0 ? (
-                <EmptyState>暂无执行事件。</EmptyState>
+                <EmptyState>ui.generated.c3d32890e15</EmptyState>
               ) : (
                 eventGroups.map(([group, events]) => (
                   <section key={group} className="space-y-2">
                     <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
                       <div className="text-sm font-semibold text-[var(--ink)]">{group}</div>
-                      <div className="text-xs text-[var(--ink-muted)]">{events.length} 条事件</div>
+                      <div className="text-xs text-[var(--ink-muted)]">{events.length} ui.generated.cee5f313268</div>
                     </div>
                     <DataTable>
                       <DataTableHeader>
                         <DataTableRow>
                           <DataTableHead align="center">Seq</DataTableHead>
-                          <DataTableHead>阶段</DataTableHead>
-                          <DataTableHead>事件</DataTableHead>
-                          <DataTableHead>时间</DataTableHead>
+                          <DataTableHead>ui.generated.c4ca39faad0</DataTableHead>
+                          <DataTableHead>ui.generated.c550e328062</DataTableHead>
+                          <DataTableHead>ui.generated.c89b4aa6364</DataTableHead>
                         </DataTableRow>
                       </DataTableHeader>
                       <DataTableBody>
@@ -258,15 +260,15 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Events" title="标准事件流" description="统一 Provider 事件、工具事件和状态事件。" />
+            <PanelHeader eyebrow="ui.generated.c550e328062" title="ui.generated.cc58934da53" description="ui.generated.ca1fff15fb5" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow>
-                    <DataTableHead>事件类型</DataTableHead>
-                    <DataTableHead>可见性</DataTableHead>
-                    <DataTableHead>摘要</DataTableHead>
-                    <DataTableHead>时间</DataTableHead>
+                    <DataTableHead>ui.generated.c5b2d75aa54</DataTableHead>
+                    <DataTableHead>ui.generated.c747b74cec9</DataTableHead>
+                    <DataTableHead>ui.generated.c46d4c1b4e4</DataTableHead>
+                    <DataTableHead>ui.generated.c89b4aa6364</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -282,7 +284,7 @@ export default async function TaskRunDetailPage({
                   ))}
                   {detail.kernel.events.length === 0 ? (
                     <DataTableRow>
-                      <DataTableCell>暂无标准事件。</DataTableCell>
+                      <DataTableCell>ui.generated.c4016f05ec9</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
@@ -294,16 +296,17 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Findings" title="Finding 输出" description="本次运行产出的标准化问题、建议和置信度。" />
+            <PanelHeader eyebrow="ui.generated.c97ea95eadd" title="ui.generated.c9db12d6e34" description="ui.generated.c5f46a35e71" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow>
                     <DataTableHead>Finding</DataTableHead>
-                    <DataTableHead>严重度</DataTableHead>
-                    <DataTableHead>来源</DataTableHead>
-                    <DataTableHead align="right">置信度</DataTableHead>
-                    <DataTableHead>状态</DataTableHead>
+                    <DataTableHead>ui.generated.c9272e8abe5</DataTableHead>
+                    <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cb78c2dc2e2</DataTableHead>
+                    <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -312,7 +315,7 @@ export default async function TaskRunDetailPage({
                       <DataTableCell className="max-w-[560px]">
                         <div className="font-medium text-[var(--ink)]">{finding.title}</div>
                         <div className="mt-1 leading-6">{finding.description}</div>
-                        <div className="mt-2 text-xs text-[var(--ink-muted)]">建议: {finding.recommendation}</div>
+                        <div className="mt-2 text-xs text-[var(--ink-muted)]">ui.generated.caeb9400518 {finding.recommendation}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <Badge variant={severityVariant(finding.severity)}>
@@ -324,11 +327,39 @@ export default async function TaskRunDetailPage({
                       <DataTableCell>
                         <Badge variant={statusVariant(finding.status)}>{translateStatus(finding.status)}</Badge>
                       </DataTableCell>
+                      <DataTableCell align="right">
+                        <div className="flex justify-end gap-2">
+                          <FindingForm
+                            finding={{
+                              id: finding.id,
+                              taskRunId: finding.taskRunId,
+                              sourceAgent: finding.sourceAgent,
+                              category: finding.category,
+                              severity: finding.severity,
+                              confidence: finding.confidence,
+                              title: finding.title,
+                              description: finding.description,
+                              evidenceJson: JSON.stringify(finding.evidence, null, 2),
+                              recommendation: finding.recommendation,
+                              skillRefsJson: JSON.stringify(finding.skillRefs, null, 2),
+                              status: finding.status,
+                              publicationJson: JSON.stringify(finding.publication, null, 2),
+                            }}
+                            triggerLabel="ui.generated.ca7f814c0a4"
+                          />
+                          <DeleteResourceButton
+                            endpoint="/api/findings"
+                            id={finding.id}
+                            confirmParams={{ resource: "ui.common.resources.finding", name: finding.title }}
+                          />
+                        </div>
+                      </DataTableCell>
                     </DataTableRow>
                   ))}
                   {detail.kernel.findings.length === 0 ? (
                     <DataTableRow>
-                      <DataTableCell>暂无 Finding 输出。</DataTableCell>
+                      <DataTableCell>ui.generated.cb8dfd045cc</DataTableCell>
+                      <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
@@ -343,21 +374,21 @@ export default async function TaskRunDetailPage({
 
         <aside className="space-y-6">
           <Panel>
-            <PanelHeader eyebrow="Summary" title="运行摘要" description="主体对象、来源、时间和幂等信息。" />
+            <PanelHeader eyebrow="ui.generated.c46d4c1b4e4" title="ui.generated.c535a2a9419" description="ui.generated.cd166e3d6aa" />
             <PanelBody>
               <DefinitionList
                 columnsClassName="grid-cols-1"
                 items={[
-                  { label: "任务蓝图", value: detail.kernel.blueprint?.name ?? "未绑定" },
-                  { label: "租户空间", value: detail.tenantSpace?.name ?? "未知租户空间" },
-                  { label: "业务团队", value: detail.businessTeam?.name ?? "未知业务团队" },
-                  { label: "Agent 团队", value: detail.team?.name ?? "未知 Agent 团队" },
-                  { label: "提交人", value: detail.taskRun.requestedBy },
-                  { label: "来源", value: translateSourceType(detail.taskRun.sourceType), detail: detail.taskRun.sourceRef ?? "无来源引用" },
+                  { label: "ui.generated.c2e17bc4894", value: detail.kernel.blueprint?.name ?? "ui.generated.c3bf179d8d0" },
+                  { label: "ui.generated.c3db35d2741", value: detail.tenantSpace?.name ?? "ui.generated.cdad87f89f1" },
+                  { label: "ui.generated.c2b90028ff3", value: detail.businessTeam?.name ?? "ui.generated.c7ae513bf4d" },
+                  { label: "ui.generated.c70f970c1fc", value: detail.team?.name ?? "ui.generated.c603903ef14" },
+                  { label: "ui.generated.c3c75f3646a", value: detail.taskRun.requestedBy },
+                  { label: "ui.generated.cc63f79e636", value: translateSourceType(detail.taskRun.sourceType), detail: detail.taskRun.sourceRef ?? "ui.generated.cbaee8fc00e" },
                   { label: "Trace ID", value: detail.taskRun.traceId },
-                  { label: "幂等键", value: detail.taskRun.idempotencyKey ?? "无" },
-                  { label: "创建时间", value: formatDateTime(detail.taskRun.createdAt) },
-                  { label: "完成时间", value: detail.taskRun.completedAt ? formatDateTime(detail.taskRun.completedAt) : "未完成" },
+                  { label: "ui.generated.c11118f711c", value: detail.taskRun.idempotencyKey ?? "ui.generated.c72077749f7" },
+                  { label: "ui.generated.c84e3802f60", value: formatDateTime(detail.taskRun.createdAt) },
+                  { label: "ui.generated.c754a8a2e2d", value: detail.taskRun.completedAt ? formatDateTime(detail.taskRun.completedAt) : "ui.generated.cb61b08aec3" },
                 ]}
               />
             </PanelBody>
@@ -365,15 +396,15 @@ export default async function TaskRunDetailPage({
 
           {detail.kernel.blueprint ? (
             <Panel>
-              <PanelHeader eyebrow="Blueprint" title="蓝图快照" description="本次运行绑定的蓝图版本。" />
+              <PanelHeader eyebrow="ui.generated.c6c72663ddb" title="ui.generated.cd82461b1da" description="ui.generated.c8f8b752ead" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
                   items={[
-                    { label: "名称", value: detail.kernel.blueprint.name },
-                    { label: "类别", value: detail.kernel.blueprint.category },
-                    { label: "版本", value: `v${detail.kernel.blueprint.version}` },
-                    { label: "触发器", value: String(detail.kernel.blueprint.trigger.type ?? "manual") },
+                    { label: "ui.generated.c1be7ae4fc2", value: detail.kernel.blueprint.name },
+                    { label: "ui.generated.ced9f6d4d8e", value: detail.kernel.blueprint.category },
+                    { label: "ui.generated.c989d1affa0", value: `v${detail.kernel.blueprint.version}` },
+                    { label: "ui.generated.c2d189a3f46", value: String(detail.kernel.blueprint.trigger.type ?? "manual") },
                   ]}
                 />
               </PanelBody>
@@ -383,15 +414,20 @@ export default async function TaskRunDetailPage({
           {detail.kernel.agentTeamRunPlan ? (
             <Panel>
               <PanelHeader
-                eyebrow="Orchestration"
-                title="编排协议"
+                eyebrow="ui.generated.c63881557e3"
+                title="ui.generated.c47c3f7e80b"
                 description={`${detail.kernel.agentTeamRunPlan.strategy} · Leader ${detail.kernel.agentTeamRunPlan.leader.agentName}`}
               />
               <PanelBody>
                 <div className="space-y-3">
                   {detail.kernel.agentTeamRunPlan.workers.map((worker) => (
                     <div key={`${worker.agent}-${worker.task}`} className="border-b border-[var(--line)] pb-3 last:border-b-0 last:pb-0">
-                      <div className="text-sm font-medium text-[var(--ink)]">{worker.agentName}</div>
+                      <div className="text-sm font-medium text-[var(--ink)]">
+                        {worker.title ?? worker.agentName}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--ink-soft)]">
+                        {worker.blockType ?? "agent"} · {worker.tool ?? "agent.execute"} · {worker.agentName}
+                      </div>
                       <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{worker.task}</div>
                     </div>
                   ))}
@@ -402,14 +438,14 @@ export default async function TaskRunDetailPage({
 
           {detail.accessGrant ? (
             <Panel>
-              <PanelHeader eyebrow="Access Grant" title="跨团队授权" description={detail.accessGrant.serviceAccountRef} />
+              <PanelHeader eyebrow="ui.generated.c3a6e607f0c" title="ui.generated.c2c4520c3e3" description={detail.accessGrant.serviceAccountRef} />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
                   items={[
-                    { label: "状态", value: translateStatus(detail.accessGrant.status) },
-                    { label: "动作范围", value: <CompactList items={detail.accessGrant.scope.actions ?? []} /> },
-                    { label: "工具范围", value: <CompactList items={detail.accessGrant.scope.tools ?? []} /> },
+                    { label: "ui.generated.c62e951a692", value: translateStatus(detail.accessGrant.status) },
+                    { label: "ui.generated.c89c12949bd", value: <CompactList items={detail.accessGrant.scope.actions ?? []} /> },
+                    { label: "ui.generated.c2ff5d9099e", value: <CompactList items={detail.accessGrant.scope.tools ?? []} /> },
                     {
                       label: "SLA",
                       value: `${detail.accessGrant.sla.responseSeconds ?? 0}s / ${Math.round((detail.accessGrant.sla.successRateFloor ?? 0) * 100)}%`,
@@ -422,21 +458,21 @@ export default async function TaskRunDetailPage({
 
           {detail.executionPolicy ? (
             <Panel>
-              <PanelHeader eyebrow="Policy" title="运行约束" description={detail.executionPolicy.name} />
+              <PanelHeader eyebrow="ui.generated.cf3c49831c6" title="ui.generated.c9b167bacc3" description={detail.executionPolicy.name} />
               <PanelBody className="space-y-4">
                 <p className="text-sm leading-6 text-[var(--ink-muted)]">{detail.executionPolicy.instruction}</p>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
                   items={[
-                    { label: "允许工具", value: <CompactList items={detail.executionPolicy.allowedTools} /> },
-                    { label: "需人工批准", value: <CompactList items={detail.executionPolicy.approvalRequiredTools} /> },
-                    { label: "阻断工具", value: <CompactList items={detail.executionPolicy.blockedTools} /> },
+                    { label: "ui.generated.cae64ad83d4", value: <CompactList items={detail.executionPolicy.allowedTools} /> },
+                    { label: "ui.generated.c05721ff529", value: <CompactList items={detail.executionPolicy.approvalRequiredTools} /> },
+                    { label: "ui.generated.c7fcc2673a0", value: <CompactList items={detail.executionPolicy.blockedTools} /> },
                     {
-                      label: "预算",
-                      value: `${detail.executionPolicy.budget.maxRuntimeMinutes} 分钟 / ${detail.executionPolicy.budget.maxSteps} 步 / ${detail.executionPolicy.budget.maxToolCalls} 次工具调用`,
+                      label: "ui.generated.c0dcf0e012a",
+                      value: `${detail.executionPolicy.budget.maxRuntimeMinutes} min / ${detail.executionPolicy.budget.maxSteps} steps / ${detail.executionPolicy.budget.maxToolCalls} tool calls`,
                     },
-                    { label: "默认语言", value: detail.executionPolicy.safety.defaultLocale },
-                    { label: "默认折叠思考", value: detail.executionPolicy.safety.collapseThinkingByDefault ? "是" : "否" },
+                    { label: "ui.generated.c607885d6d2", value: detail.executionPolicy.safety.defaultLocale },
+                    { label: "ui.generated.c1c42609eaf", value: detail.executionPolicy.safety.collapseThinkingByDefault ? "ui.generated.c30160a21b9" : "ui.generated.c8bf5c10ad9" },
                   ]}
                 />
               </PanelBody>
@@ -444,7 +480,7 @@ export default async function TaskRunDetailPage({
           ) : null}
 
           <Panel>
-            <PanelHeader eyebrow="Provider" title="Provider 选择依据" description="调度前的模型和运行时选择说明。" />
+            <PanelHeader eyebrow="ui.generated.cbc56f948bb" title="ui.generated.ced2bd2bf48" description="ui.generated.c5299224630" />
             <PanelBody>
               <ul className="space-y-2 text-sm leading-6 text-[var(--ink-muted)]">
                 {detail.providerRationale.map((line) => (
@@ -457,14 +493,14 @@ export default async function TaskRunDetailPage({
           </Panel>
 
           <Panel>
-            <PanelHeader eyebrow="Interventions" title="人工干预记录" description="审批门禁和人工决策请求。" />
+            <PanelHeader eyebrow="ui.generated.c8d8f100fb8" title="ui.generated.ced026e8593" description="ui.generated.c7d7af6731f" />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow>
-                    <DataTableHead>动作</DataTableHead>
-                    <DataTableHead>状态</DataTableHead>
-                    <DataTableHead>时间</DataTableHead>
+                    <DataTableHead>ui.generated.cd9d9827827</DataTableHead>
+                    <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                    <DataTableHead>ui.generated.c89b4aa6364</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -483,7 +519,7 @@ export default async function TaskRunDetailPage({
                   ))}
                   {detail.interventions.length === 0 ? (
                     <DataTableRow>
-                      <DataTableCell>暂无人工干预。</DataTableCell>
+                      <DataTableCell>ui.generated.cadec1c5085</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                       <DataTableCell>{" "}</DataTableCell>
                     </DataTableRow>
@@ -495,15 +531,15 @@ export default async function TaskRunDetailPage({
 
           {detail.executionInsights ? (
             <Panel>
-              <PanelHeader eyebrow="Metrics" title="执行指标" description="吞吐、失败和人工介入水平。" />
+              <PanelHeader eyebrow="ui.generated.c1dfc810a7b" title="ui.generated.ce5e042d196" description="ui.generated.cc7282252c5" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
                   items={[
-                    { label: "吞吐率", value: formatPercent(detail.executionInsights.metrics.throughput) },
-                    { label: "失败率", value: formatPercent(detail.executionInsights.metrics.failureRate) },
-                    { label: "人工介入率", value: formatPercent(detail.executionInsights.metrics.humanInterventionRate) },
-                    { label: "失败可恢复率", value: formatPercent(detail.executionInsights.metrics.retryRecoveryPotential) },
+                    { label: "ui.generated.cf7433d17bd", value: formatPercent(detail.executionInsights.metrics.throughput) },
+                    { label: "ui.generated.cc9951c649f", value: formatPercent(detail.executionInsights.metrics.failureRate) },
+                    { label: "ui.generated.c6cc4015eb4", value: formatPercent(detail.executionInsights.metrics.humanInterventionRate) },
+                    { label: "ui.generated.cb2509cb072", value: formatPercent(detail.executionInsights.metrics.retryRecoveryPotential) },
                   ]}
                 />
               </PanelBody>
@@ -512,15 +548,15 @@ export default async function TaskRunDetailPage({
 
           {detail.costBreakdown ? (
             <Panel>
-              <PanelHeader eyebrow="Costs" title="成本明细" description="估算与实际消耗对照。" />
+              <PanelHeader eyebrow="ui.generated.c5354b098e2" title="ui.generated.c9f89e5dcbd" description="ui.generated.ce8f2b3f9c3" />
               <PanelBody>
                 <DefinitionList
                   columnsClassName="grid-cols-1"
                   items={[
-                    { label: "运行估算", value: formatCurrency(detail.costBreakdown.estimatedUsd) },
-                    { label: "运行实际", value: formatCurrency(detail.costBreakdown.actualUsd) },
-                    { label: "任务记录估算", value: formatCurrency(detail.costBreakdown.estimateFromTaskRun) },
-                    { label: "任务记录实际", value: formatCurrency(detail.costBreakdown.actualFromTaskRun) },
+                    { label: "ui.generated.c79437efdb6", value: formatCurrency(detail.costBreakdown.estimatedUsd) },
+                    { label: "ui.generated.c1f118e1442", value: formatCurrency(detail.costBreakdown.actualUsd) },
+                    { label: "ui.generated.cd0e0e8257e", value: formatCurrency(detail.costBreakdown.estimateFromTaskRun) },
+                    { label: "ui.generated.c257cb670a4", value: formatCurrency(detail.costBreakdown.actualFromTaskRun) },
                   ]}
                 />
               </PanelBody>
@@ -529,7 +565,7 @@ export default async function TaskRunDetailPage({
 
           {detail.kernel.environmentSnapshot ? (
             <Panel>
-              <PanelHeader eyebrow="Environment" title="环境快照" description="仓库、执行路径与凭据绑定。" />
+              <PanelHeader eyebrow="ui.generated.caa3833ea2a" title="ui.generated.c2f01454e91" description="ui.generated.c425eaa5447" />
               <PanelBody>
                 <JsonBlock value={detail.kernel.environmentSnapshot} />
               </PanelBody>
@@ -537,7 +573,7 @@ export default async function TaskRunDetailPage({
           ) : null}
 
           <Panel>
-            <PanelHeader eyebrow="Permissions" title="权限快照" description="本次运行实际生效的权限规则。" />
+            <PanelHeader eyebrow="ui.generated.c560165a6d7" title="ui.generated.c15a9cfd4b8" description="ui.generated.c96b026a172" />
             <PanelBody>
               <JsonBlock value={detail.kernel.permissionSnapshot} />
             </PanelBody>

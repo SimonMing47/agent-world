@@ -1,5 +1,5 @@
 import { formatDateTime } from "@/lib/utils";
-import { localizeDemoCopy, translateSourceType, translateStatus, translateWorkflowType } from "@/lib/presentation";
+import { localizeDemoCopy, translateSeverity, translateSourceType, translateStatus, translateWorkflowType } from "@/lib/presentation";
 import { getWallboardSnapshot } from "@/server/queries";
 
 export default function WallboardPage() {
@@ -8,79 +8,79 @@ export default function WallboardPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
       <section className="space-y-4">
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            活跃任务
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.c56a2fa282b
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.activeTaskRuns.map((taskRun) => (
               <div
                 key={taskRun.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">
                     {taskRun.sourceRef ?? taskRun.sourceType}
                   </div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                  <div className="text-xs font-medium text-[var(--ink-muted)]">
                     {translateStatus(taskRun.status)}
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  提交人 {taskRun.requestedBy} · {formatDateTime(taskRun.createdAt)}
+                  ui.generated.c3c75f3646a {taskRun.requestedBy} · {formatDateTime(taskRun.createdAt)}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Runtime 健康度
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.cd4c11371e2
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {snapshot.runtimes.map((runtime) => (
               <div
                 key={runtime.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-base font-semibold text-[var(--ink)]">{runtime.name}</div>
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+                  <div className="text-xs font-medium text-[var(--ink-muted)]">
                     {translateStatus(runtime.healthStatus)}
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {runtime.activeRunCount} 个活跃运行 / {runtime.concurrencyLimit} 个槽位
+                  {runtime.activeRunCount} ui.generated.c0e8d5d0351 {runtime.concurrencyLimit} ui.generated.c0188a1d615
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            任务类别
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.c3c943b28b2
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
             {snapshot.taskExecutionDashboard.bySourceType.map((item) => (
-              <div key={item.sourceType} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
+              <div key={item.sourceType} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
                 <div className="text-sm text-[var(--ink-muted)]">{translateSourceType(item.sourceType)}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.taskRunCount}</div>
-                <div className="mt-1 text-xs text-[var(--ink-muted)]">活跃 {item.activeCount}</div>
+                <div className="mt-1 text-xs text-[var(--ink-muted)]">ui.generated.c8c0daf7f81 {item.activeCount}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            Finding 聚合
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.ce1eb870c31
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-5">
             {snapshot.findingDashboard.bySeverity.map((item) => (
-              <div key={item.severity} className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-                <div className="text-sm uppercase text-[var(--ink-muted)]">{item.severity}</div>
+              <div key={item.severity} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+                <div className="text-sm text-[var(--ink-muted)]">{translateSeverity(item.severity)}</div>
                 <div className="mt-2 text-xl font-semibold text-[var(--ink)]">{item.count}</div>
               </div>
             ))}
@@ -89,57 +89,57 @@ export default function WallboardPage() {
       </section>
 
       <section className="space-y-4">
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            核心 Agent 团队
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.cc8fd36b938
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topTeams.map((team) => (
               <div
                 key={team.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{team.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {translateWorkflowType(team.workflowType)} · {team.agentCount} 个 Agent · 成功率目标 {Math.round(team.successRateTarget * 100)}%
+                  {translateWorkflowType(team.workflowType)} · {team.agentCount} ui.generated.ce2481c87f2 {Math.round(team.successRateTarget * 100)}%
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            活跃代码仓
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.cacce24c07a
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topRepositories.map((repository) => (
               <div
                 key={repository.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{repository.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {repository.provider} · {repository.branch} · 最近 {repository.lastTaskRunCount} 个任务
+                  {repository.provider} · {repository.branch} ui.generated.c89fa5ee6d9 {repository.lastTaskRunCount} ui.generated.cc5680a85b1
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-[var(--line)] bg-[var(--surface-strong)] p-6">
-          <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-muted)]">
-            活跃开发者
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-strong)] p-6">
+          <div className="text-xs font-medium text-[var(--ink-muted)]">
+            ui.generated.c52ad88f273
           </div>
           <div className="mt-4 space-y-3">
             {snapshot.topDevelopers.map((developer) => (
               <div
                 key={developer.id}
-                className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
+                className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-4"
               >
                 <div className="text-base font-semibold text-[var(--ink)]">{developer.name}</div>
                 <div className="mt-2 text-sm text-[var(--ink-muted)]">
-                  {localizeDemoCopy(developer.focus)} · 最近活跃于 {formatDateTime(developer.lastActiveAt)}
+                  {localizeDemoCopy(developer.focus)} ui.generated.c2f29355d6e {formatDateTime(developer.lastActiveAt)}
                 </div>
               </div>
             ))}

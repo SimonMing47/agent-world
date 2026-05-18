@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import {
   execute,
   queryAll,
@@ -11,12 +10,12 @@ import {
 } from "@/server/db";
 import {
   getPluginSecurityModel,
-  listBuiltinPluginManifests,
   listPluginExtensionPoints,
   type PluginCapability,
   type PluginLifecycle,
   type PluginManifest,
 } from "@/server/plugin-core";
+import { uiText } from "@/lib/language-pack";
 
 type ExtensionEnvironmentInput = {
   id: string;
@@ -96,12 +95,27 @@ type ExtensionTaskBlueprintInput = {
   archivePolicy?: Record<string, unknown>;
 };
 
+type ExtensionWebhookInput = {
+  id?: string;
+  businessTeamSlug?: string;
+  businessTeamId?: string;
+  teamSlug?: string;
+  teamId?: string;
+  name: string;
+  pathKey: string;
+  method?: string;
+  requestSchema?: Record<string, unknown>;
+  secretHint?: string;
+  isEnabled?: boolean;
+};
+
 export type AgentWorldExtensionBundle = {
   id?: string;
   name?: string;
   source?: string;
   plugins?: PluginManifest[];
   environments?: ExtensionEnvironmentInput[];
+  webhooks?: ExtensionWebhookInput[];
   taskTemplates?: ExtensionTaskTemplateInput[];
   taskBlueprints?: ExtensionTaskBlueprintInput[];
   scheduleTemplates?: ExtensionScheduleTemplateInput[];
@@ -164,12 +178,7 @@ export function listImportedPluginManifests() {
 }
 
 export function listAllPluginManifests() {
-  const imported = listImportedPluginManifests();
-  const importedIds = new Set(imported.map((plugin) => plugin.id));
-  return [
-    ...listBuiltinPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
-    ...imported,
-  ];
+  return listImportedPluginManifests();
 }
 
 export function getExtensionRegistrySnapshot() {
@@ -185,6 +194,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   const createdAt = nowIso();
   const importedPlugins: string[] = [];
   const importedEnvironments: string[] = [];
+  const importedWebhooks: string[] = [];
   const importedTaskTemplates: string[] = [];
   const importedTaskBlueprints: string[] = [];
   const importedScheduleTemplates: string[] = [];
@@ -233,6 +243,25 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     importedEnvironments.push(environment.id);
   }
 
+  for (const webhook of bundle.webhooks ?? []) {
+    const businessTeamId = resolveBusinessTeamId(webhook);
+    const teamId = resolveTeamId(webhook);
+    const webhookId = webhook.id ?? `webhook:${webhook.pathKey}`;
+    execute(
+      "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      webhookId,
+      businessTeamId,
+      teamId,
+      webhook.name,
+      webhook.pathKey,
+      webhook.method ?? "POST",
+      JSON.stringify(webhook.requestSchema ?? {}),
+      webhook.secretHint ?? "",
+      webhook.isEnabled === false ? 0 : 1,
+    );
+    importedWebhooks.push(webhookId);
+  }
+
   for (const taskTemplate of bundle.taskTemplates ?? []) {
     const teamId = resolveTeamId(taskTemplate);
     execute(
@@ -272,7 +301,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       ownerBusinessTeamId,
       teamId,
       blueprint.environmentId ?? null,
-      blueprint.providerAdapterId ?? "opencode-provider",
+      blueprint.providerAdapterId ?? "",
       blueprint.version ?? 1,
       blueprint.status ?? "active",
       JSON.stringify(blueprint.trigger),
@@ -291,6 +320,27 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       createdAt,
     );
     importedTaskBlueprints.push(blueprint.id);
+
+    if (
+      blueprint.trigger.type === "webhook" &&
+      typeof blueprint.trigger.webhookPathKey === "string" &&
+      !importedWebhooks.includes(`webhook:${blueprint.trigger.webhookPathKey}`)
+    ) {
+      const webhookId = `webhook:${blueprint.trigger.webhookPathKey}`;
+      execute(
+        "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        webhookId,
+        ownerBusinessTeamId,
+        teamId,
+        `${blueprint.name} Webhook`,
+        blueprint.trigger.webhookPathKey,
+        "POST",
+        JSON.stringify(blueprint.inputSchema ?? {}),
+        typeof blueprint.trigger.webhookSecretRef === "string" ? blueprint.trigger.webhookSecretRef : "",
+        1,
+      );
+      importedWebhooks.push(webhookId);
+    }
   }
 
   for (const template of bundle.scheduleTemplates ?? []) {
@@ -316,6 +366,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     source,
     importedPlugins,
     importedEnvironments,
+    importedWebhooks,
     importedTaskTemplates,
     importedTaskBlueprints,
     importedScheduleTemplates,
@@ -404,146 +455,8 @@ export function resolveWebhookTaskConfiguration(teamId: string, pathKey?: string
       taskTemplate?.summary ??
       (typeof scheduleInput.summary === "string"
         ? scheduleInput.summary
-        : "Webhook 已按任务模板转为可观测任务。"),
+        : uiText("ui.generated.c677c9d2f08")),
     nodes: taskTemplate ? parseJsonArray(taskTemplate.nodesJson) : [],
     defaultInput,
   };
-}
-
-export function buildExtensionImportExample() {
-  return {
-    id: "enterprise-git-review",
-    source: "enterprise-git-plugin",
-    plugins: [
-      {
-        id: "enterprise.repo.git",
-        name: "Enterprise Git Connector",
-        version: "1.0.0",
-        capability: "code_repo",
-        lifecycle: "declared",
-        mountPoint: "execution-environment",
-        configSchema: "{ baseUrl, privateKeyRef, diffApiPath, commentApiPath }",
-        requiredSecretRefs: ["secret:enterprise-git-private-key", "secret:enterprise-git-token"],
-        permissions: ["repo:read", "repo:mr:comment"],
-        healthCheck: "connector self-check",
-        extensionOnly: true,
-      },
-    ],
-    taskBlueprints: [
-      {
-        id: "enterprise_mr_review",
-        name: "企业 Git MR 代码检视",
-        category: "code_review",
-        visibility: "team",
-        ownerBusinessTeamSlug: "release-team",
-        teamSlug: "pr-vanguard",
-        environmentId: "env-enterprise-mr-review",
-        providerAdapterId: "opencode-provider",
-        trigger: {
-          type: "webhook",
-          connector: "enterprise.repo.git",
-          event: "merge_request.updated",
-          webhookPathKey: "enterprise-mr",
-          idempotencyKey: "${repo_id}:${mr_id}:${source_commit_sha}",
-        },
-        inputSchema: { type: "object", required: ["repo_id", "mr_id", "diff_ref"] },
-        environmentSelector: {
-          type: "repository_workspace",
-          repoBinding: "${repo_id}",
-          checkoutMode: "diff_context",
-          privateKeyBinding: "enterprise_repo_executor_key",
-        },
-        agentTeamRunPlan: {
-          strategy: "leader_worker_parallel",
-          leader: "agent-shield-review-leader",
-          workers: [
-            { agent: "agent-code-quality-reviewer", task: "检查代码质量和兼容性。" },
-            { agent: "agent-security-reviewer", task: "检查安全风险。" },
-          ],
-          aggregation: {
-            agent: "agent-shield-review-leader",
-            method: "deduplicate_rank_and_publish",
-          },
-        },
-        memoryPolicy: {
-          requiredSpaces: ["viking://teams/security/code-review/", "viking://global/skills/code-review/"],
-          archiveOutputTo: ["viking://teams/security/review-cases/"],
-        },
-        permissionPolicy: {
-          defaultMode: "ask",
-          rules: [
-            { effect: "allow", resource: "tool.git.diff.read", scope: "repository" },
-            { effect: "allow", resource: "tool.mr.comment.write", scope: "current_merge_request" },
-            { effect: "deny", resource: "secret.read.raw_private_key", scope: "*" },
-          ],
-        },
-        outputPolicy: {
-          publishers: [
-            { type: "merge_request_comment", pluginId: "enterprise.repo.git" },
-            { type: "dashboard" },
-          ],
-        },
-        executionPolicy: {
-          timeoutMinutes: 30,
-          retry: 1,
-          concurrencyKey: "${repo_id}:${mr_id}",
-        },
-      },
-    ],
-    environments: [
-      {
-        id: "env-enterprise-mr-review",
-        businessTeamSlug: "release-team",
-        name: "企业 Git MR 检视环境",
-        repositoryProvider: "enterprise-git",
-        repositoryName: "group/project",
-        repositoryUrl: "ssh://git.example.com/group/project.git",
-        defaultBranch: "main",
-        executorRef: "svc-release-reviewer",
-        privateKeyRef: "secret:release-team/enterprise-git-private-key",
-        workingDirectory: ".",
-        sandboxProfile: { isolation: "future-sandbox", network: "egress-controlled" },
-        memoryLayerRefs: ["repository/code-review", "global/code-review", "security"],
-        visibility: "team",
-      },
-    ],
-    taskTemplates: [
-      {
-        id: "task-template-enterprise-mr-review",
-        teamSlug: "pr-vanguard",
-        name: "企业 Git MR 分层检视",
-        caseKey: "shield",
-        pluginId: "enterprise.repo.git",
-        environmentId: "env-enterprise-mr-review",
-        plannerMode: "rule",
-        summary: "企业 Git MR 通过导入模板进入神盾计划检视团队。",
-        inputSchema: { type: "object", required: ["repository", "changeRequest", "diff"] },
-        defaultInput: { taskCategory: "code_review" },
-        memoryLayers: ["repository/code-review", "global/code-review", "security"],
-        outputTargets: ["mr_comment", "task_trace", "knowledge_archive"],
-        webhookParserRef: "enterprise.repo.git.webhookParser",
-        visibility: "team",
-      },
-    ],
-    scheduleTemplates: [
-      {
-        id: `template-enterprise-mr-review-${randomUUID().slice(0, 8)}`,
-        businessTeamSlug: "release-team",
-        teamSlug: "pr-vanguard",
-        name: "企业 Git MR webhook 检视",
-        scheduleKind: "event",
-        cadence: "Webhook: MR diff",
-        inputPayload: {
-          caseKey: "shield",
-          taskTemplateId: "task-template-enterprise-mr-review",
-          taskCategory: "code_review",
-          webhookPathKey: "enterprise-mr",
-          environmentId: "env-enterprise-mr-review",
-          memoryLayers: ["repository/code-review", "global/code-review", "security"],
-          repositoryPlugin: "enterprise.repo.git",
-          output: ["mr_comment", "task_trace", "knowledge_archive"],
-        },
-      },
-    ],
-  } satisfies AgentWorldExtensionBundle;
 }

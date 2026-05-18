@@ -29,36 +29,36 @@ export default function TaskRunsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Runs"
-        title="任务运行中心"
-        description="集中查看运行实例、当前状态、触发来源和所属团队，快速进入单次任务的执行空间。"
+        eyebrow="ui.generated.c0a4e01232c"
+        title="ui.generated.c95a3020ca1"
+        description="ui.generated.c849e36c6f6"
         badges={[
-          { label: `${snapshot.task_runs.length} 个运行实例`, variant: "accent" },
-          { label: `${activeCount} 个活跃运行`, variant: "neutral" },
+          { label: <>{snapshot.task_runs.length} ui.common.count.runs</>, variant: "accent" },
+          { label: <>{activeCount} ui.common.count.activeRuns</>, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "活跃运行",
+            label: "ui.generated.c87fd4f5a2c",
             value: activeCount,
-            detail: "排队、执行与等待审批",
+            detail: "ui.generated.ca80b58dee8",
           },
           {
-            label: "失败运行",
+            label: "ui.generated.c0d0790ac20",
             value: failedCount,
-            detail: "需要人工检查或重试",
+            detail: "ui.generated.c8da6092a1e",
           },
           {
-            label: "Webhook 触发",
+            label: "ui.generated.cbae9dc4399",
             value: webhookCount,
-            detail: "外部事件驱动",
+            detail: "ui.generated.c91ab3c018c",
           },
           {
-            label: "手动提交",
+            label: "ui.generated.ce873245925",
             value: manualCount,
-            detail: "控制台即时提交",
+            detail: "ui.generated.c28db4f1237",
           },
         ]}
       />
@@ -66,19 +66,19 @@ export default function TaskRunsPage() {
       <section className="grid gap-4 2xl:grid-cols-[1.45fr_0.55fr]">
         <Panel>
           <PanelHeader
-            eyebrow="Run List"
-            title="全部运行实例"
-            description="按蓝图、业务团队、来源和状态浏览每次执行。"
+            eyebrow="ui.generated.c471e1f2820"
+            title="ui.generated.ca53a0bf86d"
+            description="ui.generated.cbdb2b6fe32"
           />
           <PanelBody className="p-0">
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>任务来源</DataTableHead>
-                  <DataTableHead>业务团队 / Agent 团队</DataTableHead>
-                  <DataTableHead>状态</DataTableHead>
-                  <DataTableHead>蓝图</DataTableHead>
-                  <DataTableHead align="right">创建时间</DataTableHead>
+                  <DataTableHead>ui.generated.c7526ca012d</DataTableHead>
+                  <DataTableHead>ui.generated.c97fa784b22</DataTableHead>
+                  <DataTableHead>ui.generated.c62e951a692</DataTableHead>
+                  <DataTableHead>ui.generated.c6c72663ddb</DataTableHead>
+                  <DataTableHead align="right">ui.generated.c84e3802f60</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
@@ -93,11 +93,11 @@ export default function TaskRunsPage() {
                         <Link href={`/task-runs/${taskRun.id}`} className="font-medium text-[var(--ink)] hover:underline">
                           {taskRun.sourceRef ?? taskRun.sourceType}
                         </Link>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{taskRun.idempotencyKey ?? "无幂等键"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{taskRun.idempotencyKey ?? "ui.generated.c2874ba6f1c"}</div>
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{businessTeam?.name ?? "未知业务团队"}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{team?.name ?? "未知 Agent 团队"}</div>
+                        <div className="font-medium text-[var(--ink)]">{businessTeam?.name ?? "ui.generated.c7ae513bf4d"}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{team?.name ?? "ui.generated.c603903ef14"}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="flex flex-wrap gap-2">
@@ -115,10 +115,10 @@ export default function TaskRunsPage() {
                           <Badge variant="neutral">{translateSourceType(taskRun.sourceType)}</Badge>
                         </div>
                         <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                          运行状态 {translateStatus(taskRun.runState)} · 优先级 {taskRun.priority}
+                          ui.generated.c2a4080ad9f {translateStatus(taskRun.runState)} ui.generated.c7338a0689f {taskRun.priority}
                         </div>
                       </DataTableCell>
-                      <DataTableCell>{blueprint?.name ?? "未绑定蓝图"}</DataTableCell>
+                      <DataTableCell>{blueprint?.name ?? "ui.generated.c4d86b98a37"}</DataTableCell>
                       <DataTableCell align="right">{formatDateTime(taskRun.createdAt)}</DataTableCell>
                     </DataTableRow>
                   );
@@ -131,17 +131,17 @@ export default function TaskRunsPage() {
         <div className="space-y-4">
           <Panel>
             <PanelHeader
-              eyebrow="By Source"
-              title="来源分布"
-              description="帮助值班时快速判断负载从哪里来。"
+              eyebrow="ui.generated.c2c3ece162f"
+              title="ui.generated.c5958ac66a5"
+              description="ui.generated.c7918948f96"
             />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>来源</DataTableHead>
-                    <DataTableHead align="right">运行数</DataTableHead>
-                    <DataTableHead align="right">活跃数</DataTableHead>
+                    <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cc184a1f9d0</DataTableHead>
+                    <DataTableHead align="right">ui.generated.cb135b311ab</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -161,16 +161,16 @@ export default function TaskRunsPage() {
 
           <Panel>
             <PanelHeader
-              eyebrow="Watch List"
-              title="最近关注"
-              description="优先打开这些实例查看轨迹与人工干预情况。"
+              eyebrow="ui.generated.ceb321b2c43"
+              title="ui.generated.c8068ee8e7c"
+              description="ui.generated.c1dceb6c2b4"
             />
             <PanelBody className="p-0">
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>实例</DataTableHead>
-                    <DataTableHead>状态</DataTableHead>
+                    <DataTableHead>ui.generated.c69fffaf196</DataTableHead>
+                    <DataTableHead>ui.generated.c62e951a692</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>

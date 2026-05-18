@@ -1,10 +1,13 @@
+"use client";
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/24 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
@@ -35,9 +38,20 @@ export interface ButtonProps
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, "aria-label": ariaLabel, title, ...props }, ref) => {
+    const text = useLanguageText();
     const Comp = asChild ? Slot : "button";
-    return <Comp ref={ref} className={cn(buttonVariants({ variant, size }), className)} {...props} />;
+    return (
+      <Comp
+        ref={ref}
+        aria-label={typeof ariaLabel === "string" ? text(ariaLabel) : ariaLabel}
+        className={cn(buttonVariants({ variant, size }), className)}
+        title={typeof title === "string" ? text(title) : title}
+        {...props}
+      >
+        {localizeNode(children, text)}
+      </Comp>
+    );
   },
 );
 

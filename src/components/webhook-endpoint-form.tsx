@@ -67,7 +67,7 @@ export function WebhookEndpointForm({
       JSON.parse(form.requestSchemaJson);
     } catch {
       setIsSaving(false);
-      setMessage("请求 Schema 不是合法 JSON");
+      setMessage("ui.generated.c8201863b3a");
       return;
     }
 
@@ -89,11 +89,11 @@ export function WebhookEndpointForm({
 
     setIsSaving(false);
     if (!response.ok) {
-      setMessage("保存失败");
+      setMessage("ui.generated.c40525a7328");
       return;
     }
 
-    setMessage("已保存");
+    setMessage("ui.generated.ccdfab96f75");
     onSaved?.();
     router.refresh();
   }
@@ -105,7 +105,7 @@ export function WebhookEndpointForm({
         checked={form.isEnabled}
         onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      启用
+      ui.generated.cd4e9ca3dd4
     </label>
   );
 
@@ -114,26 +114,26 @@ export function WebhookEndpointForm({
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="Webhook 名称">
+          <FieldGroup label="ui.generated.c0f6b89c79b">
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="企业代码检视入口"
+              placeholder="ui.generated.c286e8511b1"
             />
           </FieldGroup>
-          <FieldGroup label="路径标识">
+          <FieldGroup label="ui.generated.c9614806f47">
             <Input
               value={form.pathKey}
               onChange={(event) => setForm({ ...form, pathKey: event.target.value })}
               placeholder="enterprise-mr"
             />
           </FieldGroup>
-          <FieldGroup label="归属业务团队">
+          <FieldGroup label="ui.generated.c26f30fd79b">
             <Select
               value={form.businessTeamId}
               onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}
             >
-              <option value="">选择业务团队</option>
+              <option value="">ui.generated.cc51fbedf93</option>
               {businessTeamOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -141,12 +141,12 @@ export function WebhookEndpointForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="接收 Agent 团队">
+          <FieldGroup label="ui.generated.c0701a2538a">
             <Select
               value={form.teamId}
               onChange={(event) => setForm({ ...form, teamId: event.target.value })}
             >
-              <option value="">选择 Agent 团队</option>
+              <option value="">ui.generated.c9750d7aa4d</option>
               {agentTeamOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -154,7 +154,7 @@ export function WebhookEndpointForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="HTTP 方法">
+          <FieldGroup label="ui.generated.cb1d337493c">
             <Select
               value={form.method}
               onChange={(event) => setForm({ ...form, method: event.target.value })}
@@ -166,14 +166,14 @@ export function WebhookEndpointForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="签名密钥引用">
+          <FieldGroup label="ui.generated.cf7981046c3">
             <Input
               value={form.secretHint}
               onChange={(event) => setForm({ ...form, secretHint: event.target.value })}
               placeholder="env:CODE_PLATFORM_WEBHOOK_SECRET"
             />
           </FieldGroup>
-          <FieldGroup label="请求 Schema" className="md:col-span-2">
+          <FieldGroup label="ui.generated.c02aa35d407" className="md:col-span-2">
             <Textarea
               className="min-h-28"
               value={form.requestSchemaJson}
@@ -188,7 +188,7 @@ export function WebhookEndpointForm({
             onClick={save}
             disabled={isSaving}
           >
-            {isSaving ? "保存中" : "保存 Webhook"}
+            {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c2edacd603b"}
           </Button>
           {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
         </div>
@@ -204,7 +204,7 @@ export function WebhookEndpointForm({
     <Panel>
       <PanelHeader
         title={title}
-        description="Webhook 路径、归属团队、签名密钥提示和请求 Schema。"
+        description="ui.generated.cac19706e0f"
         action={enabledControl}
       />
       <PanelBody>{content}</PanelBody>

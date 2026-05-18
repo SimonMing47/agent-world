@@ -5,7 +5,11 @@ import {
   queryAll,
   queryOne,
   type Agent,
+  type AgentDefinition,
+  type AgentDefinitionShare,
   type AgentTeam,
+  type AgentTeamMember,
+  type AgentTeamShare,
   type AccessGrant,
   type DeveloperProfile,
   type EventLog,
@@ -39,7 +43,7 @@ import {
   evaluateExecutionPolicyToolPolicy,
 } from "@/server/execution-policy-core";
 import { buildInvocationPlan } from "@/server/invocation-core";
-import { discoverConfiguredRuntimes } from "@/server/opencode-adapter";
+import { discoverConfiguredRuntimes } from "@/server/runtime-adapter-core";
 import { buildTaskRunPriorityAssessment, listDueSchedules, listScheduleAssessments } from "@/server/scheduler-core";
 import { groupEventsByFoldGroup } from "@/server/trace-core";
 import { buildTenantSpaceSummary, buildBusinessTeamSummary } from "@/server/tenant-space-core";
@@ -53,7 +57,16 @@ import {
 } from "@/server/environment-core";
 import { buildNodeSpecsFromRunPlan } from "@/server/agent-orchestration-core";
 import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
-import { buildFindingDashboard, summarizeFinding } from "@/server/finding-core";
+import {
+  buildFindingDashboard,
+  buildFindingFingerprint,
+  summarizeFinding,
+} from "@/server/finding-core";
+import {
+  buildTaskRunKnowledgeRetrieval,
+  resolveTaskKnowledgeContext,
+} from "@/server/knowledge-core";
+import { publishTaskRunOutputs } from "@/server/output-publisher-core";
 import {
   buildTaskBlueprintDetail,
   buildTaskBlueprintSummary,
@@ -62,13 +75,15 @@ import {
   renderTemplateValue,
 } from "@/server/task-blueprint-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
+import { getLanguagePackSetting } from "@/server/language-pack-store";
+import { uiText } from "@/lib/language-pack";
 
 export function listTenantSpaces() {
-  return queryAll<TenantSpace>("SELECT * FROM tenant_spaces ORDER BY name ASC");
+  return queryAll<TenantSpace>("SELECT * FROM tenant_spaces WHERE status <> 'deleted' ORDER BY name ASC");
 }
 
 export function listBusinessTeams() {
-  return queryAll<BusinessTeam>("SELECT * FROM business_teams ORDER BY name ASC");
+  return queryAll<BusinessTeam>("SELECT * FROM business_teams WHERE status <> 'deleted' ORDER BY name ASC");
 }
 
 export function listExecutionPolicies() {
@@ -76,41 +91,338 @@ export function listExecutionPolicies() {
 }
 
 export function listAgentTeams() {
-  return queryAll<AgentTeam>("SELECT * FROM agent_teams ORDER BY name ASC");
+  return queryAll<AgentTeam>("SELECT * FROM agent_teams ORDER BY updated_at DESC, name ASC");
 }
 
 export function listAgents() {
+  const mapped = queryAll<Agent>(
+    `
+      SELECT
+        agent_team_members.id,
+        agent_team_members.team_id,
+        agent_definitions.slug,
+        agent_definitions.name,
+        agent_team_members.member_role AS role,
+        CASE
+          WHEN TRIM(agent_team_members.work_instruction) <> '' THEN agent_team_members.work_instruction
+          ELSE agent_definitions.system_prompt
+        END AS persona_prompt,
+        agent_definitions.model,
+        8 AS short_term_window,
+        json_object(
+          'memberRole', agent_team_members.member_role,
+          'agentDefinitionId', agent_team_members.agent_definition_id,
+          'memoryScope', agent_definitions.memory_scope
+        ) AS rag_config_json,
+        agent_definitions.tool_bindings_json,
+        agent_definitions.memory_scope,
+        agent_definitions.permission_policy_json AS safety_policy_json,
+        agent_team_members.status,
+        agent_team_members.created_at
+      FROM agent_team_members
+      JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
+      WHERE agent_definitions.status <> 'deleted'
+      ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
+    `,
+  );
+
+  if (mapped.length > 0) return mapped;
   return queryAll<Agent>("SELECT * FROM agents ORDER BY name ASC");
 }
 
-export function updateAgentDefinition(
-  agentId: string,
-  input: Partial<{
-    name: string;
-    role: string;
-    personaPrompt: string;
-    model: string;
-    toolBindings: string[];
-    memoryScope: string;
-    status: string;
-  }>,
+export function listAgentTeamMembers(teamId?: string) {
+  return teamId
+    ? queryAll<AgentTeamMember>(
+        "SELECT * FROM agent_team_members WHERE team_id = ? ORDER BY position ASC, created_at ASC",
+        teamId,
+      )
+    : queryAll<AgentTeamMember>(
+        "SELECT * FROM agent_team_members ORDER BY team_id ASC, position ASC, created_at ASC",
+      );
+}
+
+export function listAgentTeamShares(teamId?: string) {
+  return teamId
+    ? queryAll<AgentTeamShare>(
+        "SELECT * FROM agent_team_shares WHERE agent_team_id = ? ORDER BY created_at ASC",
+        teamId,
+      )
+    : queryAll<AgentTeamShare>("SELECT * FROM agent_team_shares ORDER BY created_at ASC");
+}
+
+export function listAgentTeamMemberProfiles(teamId?: string) {
+  return queryAll<
+    AgentTeamMember &
+      Pick<
+        AgentDefinition,
+        | "name"
+        | "slug"
+        | "role"
+        | "description"
+        | "systemPrompt"
+        | "model"
+        | "toolBindingsJson"
+        | "memoryScope"
+        | "visibility"
+        | "defaultProviderProfileId"
+        | "defaultRuntimeBindingId"
+        | "harnessConfigJson"
+        | "permissionPolicyJson"
+      >
+  >(
+    `
+      SELECT
+        agent_team_members.*,
+        agent_definitions.slug,
+        agent_definitions.name,
+        agent_definitions.role,
+        agent_definitions.description,
+        agent_definitions.system_prompt,
+        agent_definitions.model,
+        agent_definitions.tool_bindings_json,
+        agent_definitions.memory_scope,
+        agent_definitions.visibility,
+        agent_definitions.default_provider_profile_id,
+        agent_definitions.default_runtime_binding_id,
+        agent_definitions.harness_config_json,
+        agent_definitions.permission_policy_json
+      FROM agent_team_members
+      JOIN agent_definitions ON agent_definitions.id = agent_team_members.agent_definition_id
+      WHERE agent_definitions.status <> 'deleted'
+      ${teamId ? "AND agent_team_members.team_id = ?" : ""}
+      ORDER BY agent_team_members.team_id ASC, agent_team_members.position ASC, agent_team_members.created_at ASC
+    `,
+    ...(teamId ? [teamId] : []),
+  );
+}
+
+export function listAgentDefinitions() {
+  return queryAll<AgentDefinition>(
+    "SELECT * FROM agent_definitions WHERE status <> 'deleted' ORDER BY updated_at DESC, name ASC",
+  );
+}
+
+export function listAgentDefinitionShares(agentDefinitionId?: string) {
+  return agentDefinitionId
+    ? queryAll<AgentDefinitionShare>(
+        "SELECT * FROM agent_definition_shares WHERE agent_definition_id = ? ORDER BY created_at ASC",
+        agentDefinitionId,
+      )
+    : queryAll<AgentDefinitionShare>(
+        "SELECT * FROM agent_definition_shares ORDER BY created_at ASC",
+      );
+}
+
+export function getAgentDefinition(id: string) {
+  const definition = queryOne<AgentDefinition>(
+    "SELECT * FROM agent_definitions WHERE id = ?",
+    id,
+  );
+  if (!definition) return null;
+
+  return {
+    definition,
+    shares: listAgentDefinitionShares(id),
+  };
+}
+
+export function getAgentTeam(id: string) {
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", id);
+  if (!team) return null;
+
+  return {
+    team,
+    members: listAgentTeamMemberProfiles(id),
+    shares: listAgentTeamShares(id),
+  };
+}
+
+export function upsertAgentDefinition(
+  input: Pick<
+    AgentDefinition,
+    | "id"
+    | "tenantSpaceId"
+    | "ownerBusinessTeamId"
+    | "ownerUserId"
+    | "sourceAgentId"
+    | "slug"
+    | "name"
+    | "role"
+    | "description"
+    | "systemPrompt"
+    | "model"
+    | "defaultProviderProfileId"
+    | "defaultRuntimeBindingId"
+    | "toolBindingsJson"
+    | "harnessConfigJson"
+    | "permissionPolicyJson"
+    | "memoryScope"
+    | "tagsJson"
+    | "visibility"
+    | "status"
+    | "validationStatus"
+    | "lastValidatedAt"
+    | "lastValidationSummary"
+  >,
+  shareBusinessTeamIds: string[],
 ) {
-  const current = queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
-  if (!current) throw new Error("Agent 不存在。");
+	const current = queryOne<AgentDefinition>(
+	  "SELECT * FROM agent_definitions WHERE id = ?",
+	  input.id,
+	);
+	const ownerBusinessTeam = input.ownerBusinessTeamId
+	  ? queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", input.ownerBusinessTeamId)
+	  : null;
+	const tenantSpaceId = input.tenantSpaceId || current?.tenantSpaceId || ownerBusinessTeam?.tenantSpaceId || "";
+	const createdAt = current?.createdAt ?? new Date().toISOString();
+	const updatedAt = new Date().toISOString();
 
   execute(
-    "UPDATE agents SET name = ?, role = ?, persona_prompt = ?, model = ?, tool_bindings_json = ?, memory_scope = ?, status = ? WHERE id = ?",
-    input.name ?? current.name,
-    input.role ?? current.role,
-    input.personaPrompt ?? current.personaPrompt,
-    input.model ?? current.model,
-    JSON.stringify(input.toolBindings ?? (JSON.parse(current.toolBindingsJson) as string[])),
-    input.memoryScope ?? current.memoryScope,
-    input.status ?? current.status,
-    agentId,
+    "INSERT OR REPLACE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+	    tenantSpaceId,
+    input.ownerBusinessTeamId ?? null,
+    input.ownerUserId,
+    input.sourceAgentId ?? null,
+    input.slug,
+    input.name,
+    input.role,
+    input.description,
+    input.systemPrompt,
+    input.model,
+    input.defaultProviderProfileId ?? null,
+    input.defaultRuntimeBindingId ?? null,
+    input.toolBindingsJson,
+    input.harnessConfigJson,
+    input.permissionPolicyJson,
+    input.memoryScope,
+    input.tagsJson,
+    input.visibility,
+    input.status,
+    input.validationStatus,
+    input.lastValidatedAt ?? null,
+    input.lastValidationSummary ?? null,
+    createdAt,
+    updatedAt,
   );
 
-  return queryOne<Agent>("SELECT * FROM agents WHERE id = ?", agentId);
+  execute("DELETE FROM agent_definition_shares WHERE agent_definition_id = ?", input.id);
+  const seenTeamIds = new Set<string>();
+  shareBusinessTeamIds
+    .map((teamId) => teamId.trim())
+    .filter(Boolean)
+    .forEach((teamId) => {
+      if (seenTeamIds.has(teamId)) return;
+      seenTeamIds.add(teamId);
+      execute(
+        "INSERT INTO agent_definition_shares (id, agent_definition_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+        randomUUID(),
+        input.id,
+        teamId,
+        "viewer",
+        updatedAt,
+      );
+    });
+
+  return getAgentDefinition(input.id);
+}
+
+export function upsertAgentTeam(
+  input: Pick<
+    AgentTeam,
+    | "id"
+    | "businessTeamId"
+    | "slug"
+    | "name"
+    | "description"
+    | "leaderAgentId"
+    | "workflowType"
+    | "orchestrationPrompt"
+    | "workflowDefinitionJson"
+    | "inputSchemaJson"
+    | "outputSchemaJson"
+    | "maxConcurrency"
+    | "timeoutMs"
+    | "successRateThreshold"
+    | "pricingModelJson"
+    | "visibility"
+    | "defaultExecutionPolicyId"
+  >,
+  members: Array<
+    Pick<AgentTeamMember, "id" | "agentDefinitionId" | "memberRole" | "workInstruction" | "position" | "status">
+  >,
+  shares: Array<Pick<AgentTeamShare, "businessTeamId" | "accessLevel">>,
+) {
+  const current = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.id);
+  const createdAt = current?.createdAt ?? new Date().toISOString();
+  const updatedAt = new Date().toISOString();
+
+  execute(
+    "INSERT OR REPLACE INTO agent_teams (id, business_team_id, slug, name, description, leader_agent_id, workflow_type, orchestration_prompt, workflow_definition_json, input_schema_json, output_schema_json, max_concurrency, timeout_ms, success_rate_threshold, pricing_model_json, visibility, default_execution_policy_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    input.id,
+    input.businessTeamId,
+    input.slug,
+    input.name,
+    input.description,
+    input.leaderAgentId ?? null,
+    input.workflowType,
+    input.orchestrationPrompt,
+    input.workflowDefinitionJson,
+    input.inputSchemaJson,
+    input.outputSchemaJson,
+    input.maxConcurrency,
+    input.timeoutMs,
+    input.successRateThreshold,
+    input.pricingModelJson,
+    input.visibility,
+    input.defaultExecutionPolicyId ?? null,
+    createdAt,
+    updatedAt,
+  );
+
+  execute("DELETE FROM agent_team_members WHERE team_id = ?", input.id);
+  const seenMemberIds = new Set<string>();
+  members
+    .slice()
+    .sort((left, right) => left.position - right.position)
+    .forEach((member, index) => {
+      const memberId = member.id?.trim() || randomUUID();
+      if (seenMemberIds.has(memberId)) return;
+      seenMemberIds.add(memberId);
+      execute(
+        "INSERT INTO agent_team_members (id, team_id, agent_definition_id, member_role, work_instruction, position, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        memberId,
+        input.id,
+        member.agentDefinitionId,
+        member.memberRole,
+        member.workInstruction,
+        index,
+        member.status,
+        createdAt,
+        updatedAt,
+      );
+    });
+
+  execute("DELETE FROM agent_team_shares WHERE agent_team_id = ?", input.id);
+  const seenShareKeys = new Set<string>();
+  shares.forEach((share) => {
+    const teamId = share.businessTeamId.trim();
+    if (!teamId) return;
+    const accessLevel = share.accessLevel?.trim() || "viewer";
+    const key = `${teamId}:${accessLevel}`;
+    if (seenShareKeys.has(key)) return;
+    seenShareKeys.add(key);
+    execute(
+      "INSERT INTO agent_team_shares (id, agent_team_id, business_team_id, access_level, created_at) VALUES (?, ?, ?, ?, ?)",
+      randomUUID(),
+      input.id,
+      teamId,
+      accessLevel,
+      updatedAt,
+    );
+  });
+
+  return getAgentTeam(input.id);
 }
 
 export function listProviders() {
@@ -123,28 +435,129 @@ export function listProviderRuntimeBindings() {
   );
 }
 
+export function deleteProviderRuntimeBinding(id: string) {
+  execute("DELETE FROM provider_runtime_bindings WHERE id = ?", id);
+  return { ok: true };
+}
+
 export function listRuntimeEndpoints() {
   return queryAll<RuntimeEndpoint>("SELECT * FROM runtime_endpoints ORDER BY name ASC");
 }
 
 export function listAccessGrants() {
-  return queryAll<AccessGrant>("SELECT * FROM access_grants ORDER BY created_at DESC");
+  return queryAll<AccessGrant>("SELECT * FROM access_grants WHERE status <> 'deleted' ORDER BY created_at DESC");
 }
 
 export function listServiceCatalogListings() {
-  return queryAll<ServiceCatalogListing>("SELECT * FROM service_catalog_listings ORDER BY created_at DESC");
+  return queryAll<ServiceCatalogListing>(
+    "SELECT * FROM service_catalog_listings WHERE status <> 'deleted' ORDER BY created_at DESC",
+  );
+}
+
+function estimateNextCronRunAt(expression: unknown, now = new Date()) {
+  if (typeof expression !== "string" || !expression.trim()) return addMinutes(now, 60).toISOString();
+  const parts = expression.trim().split(/\s+/);
+  if (parts.length < 5) return addMinutes(now, 60).toISOString();
+  const [minutePart, hourPart] = parts;
+  const intervalMatch = minutePart.match(/^\*\/(\d+)$/);
+  if (intervalMatch) {
+    return addMinutes(now, Math.max(1, Number(intervalMatch[1]))).toISOString();
+  }
+  const minute = Number(minutePart);
+  const hour = Number(hourPart);
+  if (Number.isInteger(minute) && Number.isInteger(hour) && minute >= 0 && minute < 60 && hour >= 0 && hour < 24) {
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    return next.toISOString();
+  }
+  return addMinutes(now, 60).toISOString();
 }
 
 export function listScheduleTemplates() {
-  return queryAll<ScheduleTemplate>("SELECT * FROM schedule_templates ORDER BY created_at DESC");
+  return listTaskBlueprints().map((blueprint) => {
+    const trigger = parseJsonRecord(blueprint.triggerJson);
+    const triggerType = normalizeTriggerType(trigger.type);
+    const nextRunAt =
+      triggerType === "schedule"
+        ? typeof trigger.nextRunAt === "string"
+          ? trigger.nextRunAt
+          : estimateNextCronRunAt(trigger.expression)
+        : null;
+    return {
+      id: `blueprint:${blueprint.id}:trigger`,
+      businessTeamId: blueprint.ownerBusinessTeamId,
+      teamId: blueprint.teamId,
+      name: uiText("ui.server.taskBlueprint.triggerName", undefined, { name: blueprint.name }),
+      scheduleKind: triggerType === "schedule" ? "cron" : triggerType,
+      cadence:
+        typeof trigger.expression === "string"
+          ? trigger.expression
+          : typeof trigger.event === "string"
+            ? `Webhook: ${trigger.event}`
+            : triggerType,
+      nextRunAt,
+      inputPayloadJson: JSON.stringify({
+        taskBlueprintId: blueprint.id,
+        trigger,
+        source: "task_blueprint",
+      }),
+      isEnabled: blueprint.status === "active" ? 1 : 0,
+      createdAt: blueprint.createdAt,
+    } satisfies ScheduleTemplate;
+  });
 }
 
 export function listTaskTemplates() {
-  return queryAll<TaskTemplate>("SELECT * FROM task_templates ORDER BY created_at DESC");
+  return listTaskBlueprints().map((blueprint) => {
+    const trigger = parseJsonRecord(blueprint.triggerJson);
+    const runPlan = parseJsonRecord(blueprint.agentTeamRunPlanJson);
+    const memoryPolicy = parseJsonRecord(blueprint.memoryPolicyJson);
+    const outputPolicy = parseJsonRecord(blueprint.outputPolicyJson);
+    const publishers = Array.isArray(outputPolicy.publishers)
+      ? outputPolicy.publishers
+      : [];
+    const firstPublisher =
+      publishers.find((publisher) => publisher && typeof publisher === "object") as
+        | { pluginId?: string; type?: string }
+        | undefined;
+    return {
+      id: `blueprint:${blueprint.id}`,
+      name: blueprint.name,
+      caseKey: blueprint.category,
+      pluginId:
+        firstPublisher?.pluginId ??
+        (typeof trigger.connector === "string" ? trigger.connector : null),
+      teamId: blueprint.teamId,
+      environmentId: blueprint.environmentId,
+      plannerMode: typeof runPlan.strategy === "string" ? runPlan.strategy : "task_blueprint",
+      summary: uiText("ui.server.taskBlueprint.compatibilitySummary", undefined, { name: blueprint.name }),
+      inputSchemaJson: blueprint.inputSchemaJson,
+      defaultInputJson: JSON.stringify({
+        taskBlueprintId: blueprint.id,
+        category: blueprint.category,
+      }),
+      memoryLayersJson: JSON.stringify(
+        Array.isArray(memoryPolicy.requiredSpaces) ? memoryPolicy.requiredSpaces : [],
+      ),
+      outputTargetsJson: JSON.stringify(
+        publishers.map((publisher) =>
+          publisher && typeof publisher === "object" && "type" in publisher
+            ? String((publisher as { type?: unknown }).type)
+            : "unknown",
+        ),
+      ),
+      nodesJson: blueprint.agentTeamRunPlanJson,
+      webhookParserRef:
+        typeof trigger.webhookParserRef === "string" ? trigger.webhookParserRef : null,
+      visibility: blueprint.visibility,
+      createdAt: blueprint.createdAt,
+    } satisfies TaskTemplate;
+  });
 }
 
 export function listTaskBlueprints() {
-  return queryAll<TaskBlueprint>("SELECT * FROM task_blueprints ORDER BY category ASC, name ASC");
+  return queryAll<TaskBlueprint>("SELECT * FROM task_blueprints WHERE status <> 'deleted' ORDER BY category ASC, name ASC");
 }
 
 export function listTaskRuns() {
@@ -158,7 +571,7 @@ export function listTaskEvents(taskRunId?: string) {
 }
 
 export function listFindings() {
-  return queryAll<Finding>("SELECT * FROM findings ORDER BY created_at DESC");
+  return queryAll<Finding>("SELECT * FROM findings WHERE status <> 'deleted' ORDER BY created_at DESC");
 }
 
 export function listProviderAdapterDefinitions() {
@@ -177,8 +590,54 @@ export function listDevelopers() {
 
 export function listExecutionEnvironments() {
   return queryAll<ExecutionEnvironment>(
-    "SELECT * FROM execution_environments ORDER BY status ASC, name ASC",
+    "SELECT * FROM execution_environments WHERE status <> 'deleted' ORDER BY status ASC, name ASC",
   );
+}
+
+export function deleteExecutionEnvironment(id: string) {
+  execute("UPDATE execution_environments SET status = 'deleted' WHERE id = ?", id);
+  return { ok: true };
+}
+
+export function getTaskBlueprintEditorOptions() {
+  const businessTeams = listBusinessTeams();
+  const agentTeams = listAgentTeams();
+  const agentTeamMembers = listAgentTeamMemberProfiles();
+  const environments = listExecutionEnvironments();
+  const providerAdapters = listProviderAdapterDefinitions();
+
+  return {
+    businessTeams: businessTeams.map((team) => ({ id: team.id, name: team.name })),
+    agentTeams: agentTeams.map((team) => ({
+      id: team.id,
+      name: team.name,
+      workflowType: team.workflowType,
+      leaderAgentId: team.leaderAgentId,
+      orchestrationPrompt: team.orchestrationPrompt,
+      workflowDefinitionJson: team.workflowDefinitionJson,
+      members: agentTeamMembers
+        .filter((member) => member.teamId === team.id)
+        .map((member) => ({
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          memberRole: member.memberRole,
+          workInstruction: member.workInstruction,
+        })),
+    })),
+    environments: environments.map((environment) => ({
+      id: environment.id,
+      name: environment.name,
+      repositoryProvider: environment.repositoryProvider,
+      repositoryName: environment.repositoryName,
+      workingDirectory: environment.workingDirectory,
+      sandboxProfileJson: environment.sandboxProfileJson,
+    })),
+    providerAdapters: providerAdapters.map((adapter) => ({
+      id: adapter.id,
+      name: adapter.name,
+    })),
+  };
 }
 
 export function upsertProviderProfile(
@@ -316,6 +775,7 @@ export function getSettingsSnapshot() {
     environments,
     webhooks,
     taskBlueprints,
+    languagePackSetting: getLanguagePackSetting(),
     metrics: {
       providerProfileCount: providers.length,
       enabledProviderProfileCount: providers.filter((provider) => provider.isEnabled).length,
@@ -331,7 +791,8 @@ export function getTaskBlueprintDetail(blueprintId: string) {
   const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", blueprintId);
   if (!blueprint) return null;
 
-  return buildTaskBlueprintDetail({
+  return {
+    ...buildTaskBlueprintDetail({
     blueprint,
     businessTeams: listBusinessTeams(),
     teams: listAgentTeams(),
@@ -340,7 +801,9 @@ export function getTaskBlueprintDetail(blueprintId: string) {
     providerAdapters: listProviderAdapterDefinitions(),
     taskRuns: listTaskRuns(),
     findings: listFindings(),
-  });
+    }),
+    options: getTaskBlueprintEditorOptions(),
+  };
 }
 
 export function upsertTaskBlueprint(
@@ -372,6 +835,10 @@ export function upsertTaskBlueprint(
 ) {
   const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
+  const executionPolicyJson = buildTaskBlueprintExecutionPolicyJson(
+    input.executionPolicyJson,
+    input.agentTeamRunPlanJson,
+  );
   execute(
     "INSERT OR REPLACE INTO task_blueprints (id, name, category, visibility, owner_business_team_id, team_id, environment_id, provider_adapter_id, version, status, trigger_json, input_schema_json, environment_selector_json, agent_team_run_plan_json, memory_policy_json, provider_policy_json, permission_policy_json, result_schema_json, output_policy_json, dashboard_policy_json, execution_policy_json, archive_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
@@ -394,13 +861,82 @@ export function upsertTaskBlueprint(
     input.resultSchemaJson,
     input.outputPolicyJson,
     input.dashboardPolicyJson,
-    input.executionPolicyJson,
+    executionPolicyJson,
     input.archivePolicyJson,
     createdAt,
     new Date().toISOString(),
   );
 
+  ensureWebhookEndpointForTaskBlueprint(input);
+
   return queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
+}
+
+function buildTaskBlueprintExecutionPolicyJson(policyJson: string, runPlanJson: string) {
+  const policy = parseJsonRecord(policyJson);
+  const runPlan = parseJsonRecord(runPlanJson);
+  const blocks = Array.isArray(runPlan.blocks)
+    ? runPlan.blocks.filter((block): block is Record<string, unknown> => Boolean(block && typeof block === "object"))
+    : [];
+  const workers = Array.isArray(runPlan.workers)
+    ? runPlan.workers.filter((worker): worker is Record<string, unknown> => Boolean(worker && typeof worker === "object"))
+    : [];
+  const toolPolicy =
+    policy.toolPolicy && typeof policy.toolPolicy === "object" && !Array.isArray(policy.toolPolicy)
+      ? (policy.toolPolicy as Record<string, unknown>)
+      : {};
+  const allowedTools = dedupeStrings([
+    ...parseStringArray(policy.allowedTools),
+    ...parseStringArray(policy.tools),
+    ...parseStringArray(toolPolicy.allowed),
+    ...blocks.map((block) => (typeof block.tool === "string" ? block.tool : "")).filter(Boolean),
+    ...workers.map((worker) => (typeof worker.tool === "string" ? worker.tool : "")).filter(Boolean),
+  ]);
+
+  return JSON.stringify(
+    {
+      ...policy,
+      allowedTools,
+    },
+    null,
+    2,
+  );
+}
+
+function ensureWebhookEndpointForTaskBlueprint(
+  input: Pick<
+    TaskBlueprint,
+    | "id"
+    | "name"
+    | "ownerBusinessTeamId"
+    | "teamId"
+    | "status"
+    | "triggerJson"
+    | "inputSchemaJson"
+  >,
+) {
+  const trigger = parseJsonRecord(input.triggerJson);
+  if (normalizeTriggerType(trigger.type) !== "webhook") return;
+  const pathKey = typeof trigger.webhookPathKey === "string" ? trigger.webhookPathKey.trim() : "";
+  if (!pathKey) return;
+  const existing = getWebhookEndpointByPathKey(pathKey);
+  const secretHint =
+    typeof trigger.secretRef === "string"
+      ? trigger.secretRef
+      : typeof trigger.webhookSecretRef === "string"
+        ? trigger.webhookSecretRef
+        : "";
+  upsertWebhookEndpoint({
+    id: existing?.id ?? `webhook:${pathKey}`,
+    businessTeamId: input.ownerBusinessTeamId,
+    teamId: input.teamId,
+    name: `${input.name} Webhook`,
+    pathKey,
+    method: "POST",
+    requestSchemaJson: input.inputSchemaJson,
+    secretHint,
+    isEnabled: input.status === "archived" ? 0 : 1,
+  });
 }
 
 export function getTaskBlueprintPermissionPreview(blueprintId: string) {
@@ -453,6 +989,11 @@ export function upsertExecutionEnvironment(
 
 export function listWebhooks() {
   return queryAll<WebhookEndpoint>("SELECT * FROM webhook_endpoints ORDER BY name ASC");
+}
+
+export function deleteWebhookEndpoint(id: string) {
+  execute("DELETE FROM webhook_endpoints WHERE id = ?", id);
+  return { ok: true };
 }
 
 export function getWebhookEndpointByPathKey(pathKey: string) {
@@ -510,7 +1051,10 @@ export function getTaskRunDetail(taskRunId: string) {
   const environmentSnapshot = taskRun.environmentSnapshotId
     ? queryOne<EnvironmentSnapshot>("SELECT * FROM environment_snapshots WHERE id = ?", taskRun.environmentSnapshotId)
     : null;
-  const findings = queryAll<Finding>("SELECT * FROM findings WHERE task_run_id = ? ORDER BY created_at DESC", taskRun.id);
+  const findings = queryAll<Finding>(
+    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' ORDER BY created_at DESC",
+    taskRun.id,
+  );
   const plan = queryOne<TaskRunPlan>("SELECT * FROM task_run_plans WHERE task_run_id = ?", taskRun.id);
   const nodes = queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRun.id);
   const interventions = queryAll<TaskRunIntervention>(
@@ -546,7 +1090,7 @@ export function getTaskRunDetail(taskRunId: string) {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["当前无法给出 Provider 选择结果。"] };
+      : { provider: null, rationale: [uiText("ui.generated.c6355a4d7af")] };
 
   return {
     taskRun,
@@ -563,7 +1107,7 @@ export function getTaskRunDetail(taskRunId: string) {
       : null,
     nodes: nodes.map((node) => ({
       ...summarizeNodeState(node),
-      agentName: agents.find((agent) => agent.id === node.agentId)?.name ?? "未知 Agent",
+      agentName: agents.find((agent) => agent.id === node.agentId)?.name ?? uiText("ui.generated.c566f9749da"),
     })),
     executionBoard: buildExecutionBoard(nodes),
     interventions,
@@ -628,7 +1172,7 @@ export function getDashboardSnapshot() {
     const team = teams.find((item) => item.id === listing.teamId);
     return {
       ...buildServiceCatalogEntry(listing),
-      teamName: team?.name ?? "未知 Agent 团队",
+      teamName: team?.name ?? uiText("ui.generated.c603903ef14"),
     };
   });
 
@@ -665,7 +1209,7 @@ export function getDashboardSnapshot() {
           agent: featuredAgent,
           providers,
         })
-      : { provider: null, rationale: ["当前没有可展示的 Provider 选择结果。"] };
+      : { provider: null, rationale: [uiText("ui.generated.c0d7a8fc402")] };
   const featuredRuntime =
     featuredTaskRun
       ? runtimes.find((runtime) => runtime.businessTeamId === featuredTaskRun.businessTeamId) ?? null
@@ -674,24 +1218,24 @@ export function getDashboardSnapshot() {
   return {
     metrics: [
       {
-        label: "运行中的任务",
+        label: uiText("ui.generated.c40532103db"),
         value: String(runningTaskRuns.length),
-        detail: "这些任务正由进程内执行槽位接手运行。",
+        detail: uiText("ui.generated.c517bd12ff1"),
       },
       {
-        label: "等待人工处理",
+        label: uiText("ui.generated.c047d2ebeac"),
         value: String(awaitingTaskRuns.length),
-        detail: "这些任务命中了运行约束人工门禁，正在等待介入。",
+        detail: uiText("ui.generated.cb085a576d2"),
       },
       {
-        label: "公开 Agent 团队",
+        label: uiText("ui.generated.cba7e0dd246"),
         value: String(teams.filter((team) => team.visibility === "public").length),
-        detail: "这些 Agent 团队可以在服务目录上架，并被其他业务团队招募。",
+        detail: uiText("ui.generated.cc0cefb8d0d"),
       },
       {
-        label: "生效中的跨团队授权",
+        label: uiText("ui.generated.c9aaefc9ea1"),
         value: String(access_grants.filter((accessGrant) => accessGrant.status === "active").length),
-        detail: "跨业务团队的服务访问只能通过这些授权合法发生。",
+        detail: uiText("ui.generated.c7ac0354c34"),
       },
     ],
     tenantSpaceSummaries,
@@ -718,9 +1262,9 @@ export function getDashboardSnapshot() {
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
-      providerTeamName: teams.find((team) => team.id === accessGrant.providerTeamId)?.name ?? "未知 Agent 团队",
+      providerTeamName: teams.find((team) => team.id === accessGrant.providerTeamId)?.name ?? uiText("ui.generated.c603903ef14"),
       consumerBusinessTeamName:
-        business_teams.find((businessTeam) => businessTeam.id === accessGrant.consumerBusinessTeamId)?.name ?? "未知业务团队",
+        business_teams.find((businessTeam) => businessTeam.id === accessGrant.consumerBusinessTeamId)?.name ?? uiText("ui.generated.c7ae513bf4d"),
     })),
     runtimes: runtimes.map((runtime) => buildRuntimeSummary(runtime)),
     repositories,
@@ -890,6 +1434,49 @@ function appendTaskRunEvent(args: {
   );
 }
 
+function ensureTaskRunSummaryFinding(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint | null;
+}) {
+  const existing = queryOne<Finding>(
+    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' LIMIT 1",
+    args.taskRun.id,
+  );
+  if (existing) return;
+
+  const category = args.blueprint?.category ?? "execution";
+  const fingerprint = buildFindingFingerprint({
+    repoId: args.taskRun.sourceRef ?? args.taskRun.id,
+    category,
+    rule: "task-run-summary",
+    normalizedCode: args.taskRun.id,
+  });
+  const now = nowIso();
+  execute(
+    "INSERT INTO findings (id, task_run_id, source_agent, category, severity, confidence, title, description, evidence_json, recommendation, skill_refs_json, fingerprint, status, publication_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(),
+    args.taskRun.id,
+    "system",
+    category,
+    "info",
+    1,
+    uiText("ui.generated.ca3a70dcdff"),
+    uiText("ui.server.taskBlueprint.completedSummary", undefined, { name: args.blueprint?.name ?? uiText("ui.generated.c3172b317f9") }),
+    JSON.stringify({
+      taskRunId: args.taskRun.id,
+      sourceType: args.taskRun.sourceType,
+      sourceRef: args.taskRun.sourceRef,
+    }),
+    uiText("ui.generated.cf9afad7f97"),
+    JSON.stringify([]),
+    fingerprint,
+    "open",
+    JSON.stringify({ channels: [] }),
+    now,
+    now,
+  );
+}
+
 function synthesizeTeamNodes(team: AgentTeam) {
   const teamAgents = listAgents().filter((agent) => agent.teamId === team.id);
   const leader = team.leaderAgentId
@@ -954,12 +1541,42 @@ function loadComposedExecutionPolicyForTaskRun(taskRun: TaskRun) {
   const profiles = listExecutionPolicies();
   if (!team) return null;
 
-  return composeExecutionPolicy({
+  const composed = composeExecutionPolicy({
     profiles,
     tenantSpaceId: taskRun.tenantSpaceId,
     businessTeamId: taskRun.businessTeamId,
     teamId: team.id,
   });
+  const taskRunToolPolicy = deriveToolPolicyFromTaskRunSnapshot(taskRun);
+
+  if (
+    taskRunToolPolicy.allowedTools.length === 0 &&
+    taskRunToolPolicy.blockedTools.length === 0 &&
+    taskRunToolPolicy.approvalRequiredTools.length === 0
+  ) {
+    return composed;
+  }
+
+  const blockedTools = dedupeStrings([
+    ...composed.resolved.blockedTools,
+    ...taskRunToolPolicy.blockedTools,
+  ]);
+
+  return {
+    ...composed,
+    resolved: {
+      ...composed.resolved,
+      allowedTools:
+        taskRunToolPolicy.allowedTools.length > 0
+          ? taskRunToolPolicy.allowedTools
+          : composed.resolved.allowedTools,
+      blockedTools,
+      approvalRequiredTools: dedupeStrings([
+        ...composed.resolved.approvalRequiredTools,
+        ...taskRunToolPolicy.approvalRequiredTools,
+      ]).filter((tool) => !blockedTools.includes(tool)),
+    },
+  };
 }
 
 function resolveTaskRunStatusFromNodes(nodes: TaskRunNode[]) {
@@ -1003,10 +1620,67 @@ function parseJsonRecord(value: string) {
   }
 }
 
+function parseStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function dedupeStrings(values: string[]) {
+  return values.filter((value, index, array) => array.indexOf(value) === index);
+}
+
+function normalizeToolResource(resource: unknown) {
+  if (typeof resource !== "string") return null;
+  if (!resource.startsWith("tool.")) return null;
+  return resource.slice("tool.".length);
+}
+
+function deriveToolPolicyFromTaskRunSnapshot(taskRun: TaskRun) {
+  const permissionSnapshot = parseJsonRecord(taskRun.permissionSnapshotJson);
+  const executionPolicySnapshot = parseJsonRecord(taskRun.executionPolicyJson);
+  const executionToolPolicy =
+    executionPolicySnapshot.toolPolicy &&
+    typeof executionPolicySnapshot.toolPolicy === "object" &&
+    !Array.isArray(executionPolicySnapshot.toolPolicy)
+      ? (executionPolicySnapshot.toolPolicy as Record<string, unknown>)
+      : {};
+  const rules = Array.isArray(permissionSnapshot.rules) ? permissionSnapshot.rules : [];
+  const allowedTools = [
+    ...parseStringArray(executionPolicySnapshot.allowedTools),
+    ...parseStringArray(executionToolPolicy.allowed),
+    ...parseStringArray(executionPolicySnapshot.tools),
+  ];
+  const blockedTools = [
+    ...parseStringArray(executionPolicySnapshot.blockedTools),
+    ...parseStringArray(executionToolPolicy.blocked),
+  ];
+  const approvalRequiredTools = [
+    ...parseStringArray(executionPolicySnapshot.approvalRequiredTools),
+    ...parseStringArray(executionToolPolicy.approvalRequired),
+  ];
+
+  for (const rule of rules) {
+    if (!rule || typeof rule !== "object") continue;
+    const typedRule = rule as { effect?: unknown; resource?: unknown };
+    const toolName = normalizeToolResource(typedRule.resource);
+    if (!toolName) continue;
+    if (typedRule.effect === "allow") allowedTools.push(toolName);
+    if (typedRule.effect === "deny") blockedTools.push(toolName);
+    if (typedRule.effect === "ask") approvalRequiredTools.push(toolName);
+  }
+
+  return {
+    allowedTools: dedupeStrings(allowedTools),
+    blockedTools: dedupeStrings(blockedTools),
+    approvalRequiredTools: dedupeStrings(approvalRequiredTools),
+  };
+}
+
 export function submitTaskRun(input: SubmitTaskRunInput) {
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", input.teamId);
   if (!team) {
-    throw new Error("代理团队不存在。");
+    throw new Error(uiText("ui.generated.c7f1a712e10"));
   }
 
   if (input.blueprintId && input.idempotencyKey) {
@@ -1020,12 +1694,12 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
 
   const businessTeam = queryOne<BusinessTeam>("SELECT * FROM business_teams WHERE id = ?", team.businessTeamId);
   if (!businessTeam) {
-    throw new Error("业务团队不存在。");
+    throw new Error(uiText("ui.generated.c5720b81904"));
   }
 
   const tenantSpace = queryOne<TenantSpace>("SELECT * FROM tenant_spaces WHERE id = ?", businessTeam.tenantSpaceId);
   if (!tenantSpace) {
-    throw new Error("租户空间不存在。");
+    throw new Error(uiText("ui.generated.c56f9b31da8"));
   }
 
   const taskRunId = randomUUID();
@@ -1111,7 +1785,7 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
     taskRunId,
     input.plannerMode ?? (team.workflowType === "dag" ? "leader_agent" : "rule"),
     JSON.stringify({ nodes: dagNodes, edges: dagEdges }),
-    input.summary ?? "任务已提交并生成执行图。",
+    input.summary ?? uiText("ui.generated.cd9716b4169"),
     createdAt,
   );
 
@@ -1139,8 +1813,8 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
     taskRunId,
     phase: "planning",
     foldGroup: "Planning",
-    title: "任务已提交",
-    content: `任务已进入 ${team.name} 的执行队列。`,
+    title: uiText("ui.generated.c7bdaa28ba6"),
+    content: uiText("ui.server.taskBlueprint.queued", undefined, { teamName: team.name }),
     metadata: {
       blueprintId: input.blueprintId ?? null,
       idempotencyKey: input.idempotencyKey ?? null,
@@ -1149,6 +1823,30 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
       nodeCount: nodeSpecs.length,
     },
   });
+
+  const knowledgeContext = environmentSnapshot?.payload
+    ? (environmentSnapshot.payload as Record<string, unknown>).knowledgeContext
+    : null;
+  if (knowledgeContext) {
+    const context = knowledgeContext as {
+      loadRefs?: unknown[];
+      archiveRefs?: unknown[];
+      spaces?: unknown[];
+    };
+    appendTaskRunEvent({
+      traceId,
+      taskRunId,
+      phase: "memory.context_resolved",
+      foldGroup: "Planning",
+      title: uiText("ui.generated.c01e20b4b22"),
+      content: uiText("ui.generated.c331d71dd1b"),
+      metadata: {
+        loadRefCount: Array.isArray(context.loadRefs) ? context.loadRefs.length : 0,
+        archiveRefCount: Array.isArray(context.archiveRefs) ? context.archiveRefs.length : 0,
+        spaceCount: Array.isArray(context.spaces) ? context.spaces.length : 0,
+      },
+    });
+  }
 
   return getTaskRunDetail(taskRunId);
 }
@@ -1162,11 +1860,11 @@ export function submitTaskRunFromBlueprint(args: {
   parentTaskRunId?: string | null;
 }) {
   const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", args.blueprintId);
-  if (!blueprint) throw new Error("任务蓝图不存在。");
-  if (blueprint.status !== "active") throw new Error("任务蓝图未启用。");
+  if (!blueprint) throw new Error(uiText("ui.generated.cd492e543a6"));
+  if (blueprint.status !== "active") throw new Error(uiText("ui.generated.ce030c4c173"));
 
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", blueprint.teamId);
-  if (!team) throw new Error("任务蓝图绑定的 Agent 团队不存在。");
+  if (!team) throw new Error(uiText("ui.generated.ccd11f4dbde"));
 
   const agents = listAgents().filter((agent) => agent.teamId === team.id);
   const environment = blueprint.environmentId
@@ -1178,7 +1876,7 @@ export function submitTaskRunFromBlueprint(args: {
     taskCategory: blueprint.category,
     taskBlueprintId: blueprint.id,
     run_date: new Date().toISOString().slice(0, 10),
-    branch: environment?.defaultBranch ?? "main",
+	    branch: environment?.defaultBranch ?? "",
     ...args.inputPayload,
   };
   const idempotencyTemplate =
@@ -1192,12 +1890,22 @@ export function submitTaskRunFromBlueprint(args: {
     ...inputPayload,
   });
   const sourceType = normalizeTriggerType(trigger.type) as TaskRun["sourceType"];
-  const environmentSnapshotPayload = buildEnvironmentSnapshotPayload({
+  const baseEnvironmentSnapshotPayload = buildEnvironmentSnapshotPayload({
     taskRunId: "pending",
     blueprint,
     environment,
     inputPayload,
   });
+  const knowledgeContext = resolveTaskKnowledgeContext({
+    blueprint,
+    team,
+    environment,
+    inputPayload,
+  });
+  const environmentSnapshotPayload = {
+    ...baseEnvironmentSnapshotPayload,
+    knowledgeContext,
+  };
   const nodeSpecs = buildNodeSpecsFromRunPlan(blueprint.agentTeamRunPlanJson, agents);
 
   return submitTaskRun({
@@ -1218,7 +1926,7 @@ export function submitTaskRunFromBlueprint(args: {
     plannerMode: parseJsonRecord(blueprint.agentTeamRunPlanJson).strategy === "leader_worker_parallel"
       ? "leader_agent"
       : "rule",
-    summary: `${blueprint.name} 已按任务蓝图生成运行实例。`,
+    summary: uiText("ui.server.taskBlueprint.runCreated", undefined, { name: blueprint.name }),
     inputPayload,
     permissionSnapshot: buildEffectivePermissionPreview(blueprint.permissionPolicyJson),
     agentTeamRunPlan: parseJsonRecord(blueprint.agentTeamRunPlanJson),
@@ -1235,9 +1943,82 @@ export function submitTaskRunFromBlueprint(args: {
   });
 }
 
-export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
+function matchCronPart(part: string, value: number) {
+  if (part === "*") return true;
+  if (part.startsWith("*/")) {
+    const interval = Number(part.slice(2));
+    return Number.isInteger(interval) && interval > 0 && value % interval === 0;
+  }
+  return part
+    .split(",")
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item))
+    .includes(value);
+}
+
+function isCronBlueprintDue(expression: unknown, now = new Date()) {
+  if (typeof expression !== "string" || !expression.trim()) return false;
+  const [minutePart, hourPart, dayOfMonthPart, monthPart, dayOfWeekPart] = expression.trim().split(/\s+/);
+  if (!minutePart || !hourPart || !dayOfMonthPart || !monthPart || !dayOfWeekPart) return false;
+  return (
+    matchCronPart(minutePart, now.getMinutes()) &&
+    matchCronPart(hourPart, now.getHours()) &&
+    matchCronPart(dayOfMonthPart, now.getDate()) &&
+    matchCronPart(monthPart, now.getMonth() + 1) &&
+    matchCronPart(dayOfWeekPart, now.getDay())
+  );
+}
+
+export function submitDueTaskBlueprintSchedules(args: {
+  now?: string;
+  requestedBy?: string;
+  inputPayload?: Record<string, unknown>;
+} = {}) {
+  const now = args.now ? new Date(args.now) : new Date();
+  const results = listTaskBlueprints()
+    .filter((blueprint) => blueprint.status === "active")
+    .filter((blueprint) => {
+      const trigger = parseJsonRecord(blueprint.triggerJson);
+      return normalizeTriggerType(trigger.type) === "schedule" && isCronBlueprintDue(trigger.expression, now);
+    })
+    .map((blueprint) => {
+      try {
+        const detail = submitTaskRunFromBlueprint({
+          blueprintId: blueprint.id,
+          requestedBy: args.requestedBy ?? "scheduler",
+          sourceRef: `cron:${now.toISOString().slice(0, 16)}`,
+          priority: 72,
+          inputPayload: {
+            scheduler_now: now.toISOString(),
+            ...args.inputPayload,
+          },
+        });
+        return {
+          ok: true,
+          blueprintId: blueprint.id,
+          taskRunId: detail?.taskRun.id ?? null,
+          status: detail?.taskRun.status ?? "created",
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          blueprintId: blueprint.id,
+          error: error instanceof Error ? error.message : "submit failed",
+        };
+      }
+    });
+
+  return {
+    ok: results.every((result) => result.ok),
+    now: now.toISOString(),
+    submittedCount: results.filter((result) => result.ok).length,
+    results,
+  };
+}
+
+export async function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
-  if (!taskRun) throw new Error("任务不存在。");
+  if (!taskRun) throw new Error(uiText("ui.generated.c7faa8038d2"));
 
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", taskRun.teamId);
   const nodes = getTaskRunNodes(taskRunId);
@@ -1262,7 +2043,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
         phase: "planning",
         foldGroup: "Planning",
         title: "Node unlocked",
-        content: `节点 ${node.nodeKey} 依赖满足，进入可执行状态。`,
+        content: uiText("ui.server.taskBlueprint.nodeRunnable", undefined, { nodeKey: node.nodeKey }),
       });
     }
   }
@@ -1288,10 +2069,24 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     phase: "thinking",
     foldGroup: "Analysis",
     title: "Node started",
-    content: `节点 ${runnable.nodeKey} 开始执行，发起人：${requestedBy}。`,
+    content: uiText("ui.server.taskBlueprint.nodeStarted", undefined, { nodeKey: runnable.nodeKey, requestedBy }),
   });
 
-  const nodeInput = JSON.parse(runnable.inputJson) as { action?: string; tool?: string };
+  const nodeInput = JSON.parse(runnable.inputJson) as {
+    action?: string;
+    tool?: string;
+    assignment?: string;
+    blockId?: string;
+    blockType?: string;
+    title?: string;
+    targetAgentTeamId?: string;
+    script?: string;
+    url?: string;
+    method?: string;
+    connectorType?: string;
+    publisherRef?: string;
+    payloadTemplate?: string;
+  };
   const simulatedDurationMs = Number(
     (nodeInput as { simulatedDurationMs?: unknown }).simulatedDurationMs ?? 0,
   );
@@ -1324,7 +2119,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
       nodeId: runnable.id,
       phase: "access_grant_violation",
       foldGroup: "Human Actions",
-      title: "跨团队授权阻断",
+      title: uiText("ui.generated.c2c74fb9c92"),
       content: accessGrantDecision.reason,
       metadata: { failureClass, violation: accessGrantDecision.violation },
     });
@@ -1336,7 +2131,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     : {
         allowed: true,
         requiresApproval: false,
-        reason: "未配置运行约束，默认放行。",
+        reason: uiText("ui.generated.ca3d5b693a4"),
         policyHit: "allow" as const,
       };
 
@@ -1359,7 +2154,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
       nodeId: runnable.id,
       phase: "policy_violation",
       foldGroup: "Human Actions",
-      title: "运行约束阻断",
+      title: uiText("ui.generated.c5e3c3be6fd"),
       content: executionPolicyDecision.reason,
       metadata: { failureClass, policyHit: executionPolicyDecision.policyHit },
     });
@@ -1394,15 +2189,104 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     return getTaskRunDetail(taskRunId);
   }
 
+  if (tool === "memory.retrieve") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "memory.read_requested",
+      foldGroup: "Analysis",
+      title: uiText("ui.generated.c7a9ef07556"),
+      content: uiText("ui.generated.c38216bfaf2"),
+    });
+    const retrieval = await buildTaskRunKnowledgeRetrieval(taskRun);
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: retrieval.degraded ? "memory.degraded" : "memory.read_completed",
+      foldGroup: "Analysis",
+      title: retrieval.degraded ? uiText("ui.generated.c1691f223ab") : uiText("ui.generated.c0c29d5358e"),
+      content: retrieval.degraded
+        ? uiText("ui.generated.cb78ff98a2e")
+        : uiText("ui.generated.c00fe24f8ff"),
+      metadata: retrieval,
+    });
+  }
+
+  const blockType = typeof nodeInput.blockType === "string" ? nodeInput.blockType : "";
+  if (blockType === "agent_team") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "agent_team_delegated",
+      foldGroup: "Execution",
+      title: uiText("ui.generated.c13242c2e9b"),
+      content: uiText("ui.server.taskBlueprint.delegated", undefined, { nodeKey: runnable.nodeKey, teamId: nodeInput.targetAgentTeamId ?? uiText("ui.generated.cec90934f29") }),
+      metadata: {
+        targetAgentTeamId: nodeInput.targetAgentTeamId ?? null,
+        assignment: nodeInput.assignment ?? null,
+      },
+    });
+  }
+  if (blockType === "script_hook") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "command_executed",
+      foldGroup: "Execution",
+      title: uiText("ui.generated.c9d282026d5"),
+      content: nodeInput.script ? uiText("ui.server.taskBlueprint.scriptCommand", undefined, { script: nodeInput.script }) : uiText("ui.generated.c38e659ee98"),
+      metadata: {
+        script: nodeInput.script ?? null,
+        assignment: nodeInput.assignment ?? null,
+      },
+    });
+  }
+  if (blockType === "http_hook") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "tool_call_finished",
+      foldGroup: "Execution",
+      title: uiText("ui.generated.c95d6117b03"),
+      content: `${nodeInput.method ?? "POST"} ${nodeInput.url ?? uiText("ui.generated.c16a4d146d9")}`,
+      metadata: {
+        url: nodeInput.url ?? null,
+        method: nodeInput.method ?? "POST",
+        payloadTemplate: nodeInput.payloadTemplate ?? null,
+      },
+    });
+  }
+  if (blockType === "notification") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "output_published",
+      foldGroup: "Synthesis",
+      title: uiText("ui.generated.c175cf061a6"),
+      content: uiText("ui.server.taskBlueprint.notification", undefined, { connectorType: nodeInput.connectorType ?? uiText("ui.generated.c8c577dc72c"), publisherRef: nodeInput.publisherRef ?? uiText("ui.generated.ce83fc9345d") }),
+      metadata: {
+        connectorType: nodeInput.connectorType ?? null,
+        publisherRef: nodeInput.publisherRef ?? null,
+        payloadTemplate: nodeInput.payloadTemplate ?? null,
+      },
+    });
+  }
+
   if (timeoutReached) {
     const failureClass = classifyFailure({
-      reason: "节点执行超时",
+      reason: uiText("ui.generated.ca015a1489e"),
       timeout: true,
     });
     execute(
       "UPDATE task_run_nodes SET status = ?, output_json = ?, completed_at = ? WHERE id = ?",
       "failed",
-      JSON.stringify({ failureClass, reason: "节点执行超时" }),
+      JSON.stringify({ failureClass, reason: uiText("ui.generated.ca015a1489e") }),
       nowIso(),
       runnable.id,
     );
@@ -1414,7 +2298,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
       phase: "timeout",
       foldGroup: "Analysis",
       title: "Node timeout",
-      content: `节点 ${runnable.nodeKey} 执行超时。`,
+      content: uiText("ui.server.taskBlueprint.nodeTimeout", undefined, { nodeKey: runnable.nodeKey }),
       metadata: { failureClass },
     });
     return getTaskRunDetail(taskRunId);
@@ -1441,7 +2325,7 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     phase: "tool_result",
     foldGroup: "Synthesis",
     title: "Node completed",
-    content: `节点 ${runnable.nodeKey} 已完成，工具 ${tool} 执行成功。`,
+    content: uiText("ui.server.taskBlueprint.nodeCompleted", undefined, { nodeKey: runnable.nodeKey, tool }),
   });
 
   const completedNodes = getTaskRunNodes(taskRun.id);
@@ -1457,6 +2341,81 @@ export function executeTaskRunTick(taskRunId: string, requestedBy = "system") {
     taskRun.id,
   );
 
+  if (taskRunStatus === "completed") {
+    const completedTaskRun =
+      queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRun.id) ?? taskRun;
+    const blueprint = completedTaskRun.blueprintId
+      ? queryOne<TaskBlueprint>(
+          "SELECT * FROM task_blueprints WHERE id = ?",
+          completedTaskRun.blueprintId,
+        )
+      : null;
+    ensureTaskRunSummaryFinding({ taskRun: completedTaskRun, blueprint });
+    const findings = queryAll<Finding>(
+      "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' ORDER BY created_at DESC",
+      completedTaskRun.id,
+    );
+    const environmentSnapshot = completedTaskRun.environmentSnapshotId
+      ? queryOne<EnvironmentSnapshot>(
+          "SELECT * FROM environment_snapshots WHERE id = ?",
+          completedTaskRun.environmentSnapshotId,
+        )
+      : null;
+    appendTaskRunEvent({
+      traceId: completedTaskRun.traceId,
+      taskRunId: completedTaskRun.id,
+      phase: "publishing_output",
+      foldGroup: "Synthesis",
+      title: uiText("ui.generated.c65a48b8c9d"),
+      content: uiText("ui.generated.c155c71306b"),
+      metadata: { blueprintId: blueprint?.id ?? null, findingCount: findings.length },
+    });
+
+    const publicationResults = await publishTaskRunOutputs({
+      taskRun: completedTaskRun,
+      blueprint,
+      findings,
+      environmentSnapshot,
+    });
+    const publishedChannels = publicationResults
+      .filter((result) => result.status === "published" || result.status === "drafted")
+      .map((result) => result.publisherType);
+    for (const finding of findings) {
+      execute(
+        "UPDATE findings SET status = ?, publication_json = ?, updated_at = ? WHERE id = ?",
+        publishedChannels.length > 0 ? "published" : finding.status,
+        JSON.stringify({
+          channels: publishedChannels,
+          results: publicationResults,
+        }),
+        nowIso(),
+        finding.id,
+      );
+    }
+    execute(
+      "UPDATE task_runs SET output_payload_json = ? WHERE id = ?",
+      JSON.stringify({
+        publicationResults,
+        findingCount: findings.length,
+      }),
+      completedTaskRun.id,
+    );
+    for (const result of publicationResults) {
+      appendTaskRunEvent({
+        traceId: completedTaskRun.traceId,
+        taskRunId: completedTaskRun.id,
+        phase: result.status === "failed" ? "output_publish_failed" : "output_published",
+        foldGroup: "Synthesis",
+        title: `${result.publisherType} ${result.status}`,
+        content: result.message,
+        metadata: {
+          pluginId: result.pluginId,
+          payload: result.payload,
+        },
+      });
+    }
+  }
+
   return getTaskRunDetail(taskRunId);
 }
 
@@ -1464,11 +2423,11 @@ export function retryTaskRunNode(args: { taskRunId: string; nodeId: string; requ
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", args.taskRunId);
   const node = queryOne<TaskRunNode>("SELECT * FROM task_run_nodes WHERE id = ? AND task_run_id = ?", args.nodeId, args.taskRunId);
   if (!taskRun || !node) {
-    throw new Error("任务或节点不存在。");
+    throw new Error(uiText("ui.generated.c58c3165c3a"));
   }
 
   if (node.attemptCount >= node.maxAttempts) {
-    throw new Error("已达到最大重试次数。");
+    throw new Error(uiText("ui.generated.c2e27e37410"));
   }
 
   execute(
@@ -1488,7 +2447,7 @@ export function retryTaskRunNode(args: { taskRunId: string; nodeId: string; requ
     phase: "planning",
     foldGroup: "Planning",
     title: "Node retried",
-    content: `${args.requestedBy} 触发节点 ${node.nodeKey} 重试。`,
+    content: uiText("ui.server.taskBlueprint.retry", undefined, { requestedBy: args.requestedBy, nodeKey: node.nodeKey }),
   });
 
   return getTaskRunDetail(args.taskRunId);
@@ -1504,10 +2463,10 @@ export function resolveTaskRunIntervention(args: {
     "SELECT * FROM task_run_interventions WHERE id = ?",
     args.interventionId,
   );
-  if (!intervention) throw new Error("人工干预单不存在。");
+  if (!intervention) throw new Error(uiText("ui.generated.cbd5c41d72b"));
 
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", intervention.taskRunId);
-  if (!taskRun) throw new Error("任务不存在。");
+  if (!taskRun) throw new Error(uiText("ui.generated.c7faa8038d2"));
 
   execute(
     "UPDATE task_run_interventions SET status = ?, resolution_note = ?, resolved_at = ? WHERE id = ?",
@@ -1534,7 +2493,7 @@ export function resolveTaskRunIntervention(args: {
     phase: "approval_result",
     foldGroup: "Human Actions",
     title: "Intervention resolved",
-    content: `${args.resolvedBy} 将干预单 ${intervention.id} 标记为 ${args.decision}。`,
+    content: uiText("ui.server.taskBlueprint.interventionResolved", undefined, { resolvedBy: args.resolvedBy, interventionId: intervention.id, decision: args.decision }),
     metadata: { resolutionNote: args.resolutionNote ?? null },
   });
 
@@ -1543,7 +2502,7 @@ export function resolveTaskRunIntervention(args: {
 
 export function resumeTaskRun(taskRunId: string, requestedBy: string) {
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
-  if (!taskRun) throw new Error("任务不存在。");
+  if (!taskRun) throw new Error(uiText("ui.generated.c7faa8038d2"));
 
   execute("UPDATE task_run_nodes SET status = ? WHERE task_run_id = ? AND status = ?", "ready", taskRunId, "awaiting");
   execute("UPDATE task_runs SET status = ? WHERE id = ?", "running", taskRunId);
@@ -1553,8 +2512,8 @@ export function resumeTaskRun(taskRunId: string, requestedBy: string) {
     taskRunId,
     phase: "approval_result",
     foldGroup: "Human Actions",
-    title: "任务已恢复",
-    content: `${requestedBy} 恢复了任务执行。`,
+    title: uiText("ui.generated.c5b1e85dd38"),
+    content: uiText("ui.server.taskBlueprint.resumed", undefined, { requestedBy }),
   });
 
   return getTaskRunDetail(taskRunId);
@@ -1697,27 +2656,13 @@ export function getTaskRunPolicyHits(taskRunId: string) {
 export async function refreshRuntimeCatalogs() {
   const runtimes = listRuntimeEndpoints();
   const bindings = listProviderRuntimeBindings().filter((binding) => binding.baseUrl);
-  const syntheticRuntimes = bindings
-    .filter((binding) => !runtimes.some((runtime) => runtime.baseUrl === binding.baseUrl))
-    .map(
-      (binding) =>
-        ({
-          id: binding.id,
-          tenantSpaceId: binding.tenantSpaceId,
-          businessTeamId: binding.businessTeamId,
-          name: binding.name,
-          baseUrl: binding.baseUrl,
-          runtimeKind: binding.runtimeKind,
-          healthStatus: "unknown",
-          agentCatalogJson: "[]",
-          providerCatalogJson: "[]",
-          concurrencyLimit: 1,
-          activeRunCount: 0,
-          lastDiscoveredAt: "",
-          createdAt: new Date().toISOString(),
-        }) satisfies RuntimeEndpoint,
-    );
-  const discoveries = await discoverConfiguredRuntimes([...runtimes, ...syntheticRuntimes]);
+  const providers = listProviders();
+  const agents = listAgents();
+  const discoveries = await discoverConfiguredRuntimes({
+    bindings,
+    providers,
+    agents,
+  });
 
   for (const discovery of discoveries) {
     const current = runtimes.find((runtime) => runtime.baseUrl === discovery.baseUrl);

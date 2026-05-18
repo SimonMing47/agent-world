@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { listProviderRuntimeBindings, upsertProviderRuntimeBinding } from "@/server/queries";
+import {
+  deleteProviderRuntimeBinding,
+  listProviderRuntimeBindings,
+  upsertProviderRuntimeBinding,
+} from "@/server/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -17,4 +21,10 @@ export async function PATCH(request: Request) {
   const body = (await request.json()) as Parameters<typeof upsertProviderRuntimeBinding>[0];
   const providerRuntimeBinding = upsertProviderRuntimeBinding(body);
   return NextResponse.json({ ok: true, providerRuntimeBinding });
+}
+
+export async function DELETE(request: Request) {
+  const body = (await request.json()) as { id: string };
+  deleteProviderRuntimeBinding(body.id);
+  return NextResponse.json({ ok: true });
 }

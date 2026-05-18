@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { navigationGroups } from "@/components/navigation-config";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,80 +14,84 @@ type SidebarNavProps = {
   collapsed?: boolean;
   onItemClick?: () => void;
   onToggleCollapse?: () => void;
+  showBrand?: boolean;
 };
 
 export function SidebarNav({
   collapsed = false,
   onItemClick,
   onToggleCollapse,
+  showBrand = true,
 }: SidebarNavProps) {
   const pathname = usePathname();
+  const text = useLanguageText();
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-[var(--sidebar-line)] px-4 pb-4 pt-5">
-        <div className={cn("min-w-0", collapsed && "sr-only")}>
-          <div className="text-base font-semibold tracking-[0.01em] text-[var(--sidebar-ink)]">AgentWorld</div>
-          <div className="mt-1 text-xs font-medium text-[var(--sidebar-muted)]">任务平台控制台</div>
+    <div className="agent-sidebar flex h-full flex-col">
+      {showBrand ? (
+        <div className="flex items-center justify-between border-b border-[var(--sidebar-line)] px-3 py-4">
+          <div className={cn("flex min-w-0 items-center gap-3", collapsed && "sr-only")}>
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] text-sm font-semibold text-[var(--sidebar-ink)]">
+              AW
+            </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-[var(--sidebar-ink)]">{text("terminology.productName", "AgentWorld")}</div>
+              <div className="mt-0.5 text-xs font-medium text-[var(--sidebar-ink-softer)]">{text("ui.generated.c5bd086d22a")}</div>
+            </div>
+          </div>
+          {onToggleCollapse ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onToggleCollapse}
+              className="hidden h-8 w-8 border border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)] lg:inline-flex"
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+          ) : null}
         </div>
-        {onToggleCollapse ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onToggleCollapse}
-            className="hidden border border-transparent text-[var(--sidebar-muted)] hover:border-[var(--sidebar-line)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)] lg:inline-flex"
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </Button>
-        ) : null}
-      </div>
+      ) : null}
 
-      <AppScrollArea className="flex-1 px-3 py-3">
-        <nav className="space-y-6 pb-6">
+      <AppScrollArea className={cn("flex-1 px-2 py-3", !showBrand && "pt-4")}>
+        <nav className="space-y-4 pb-6">
           {navigationGroups.map((group) => (
-            <div key={group.title} className="space-y-2">
+            <div key={group.title} className="space-y-1.5">
               {!collapsed ? (
-                <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--sidebar-subtle)]">
-                  {group.title}
+                <div className="sidebar-section-title px-3 pb-1 text-[11px] font-semibold">
+                  {text(group.title)}
                 </div>
               ) : null}
               {group.items.map((item) => {
                 const isActive =
                   pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`));
                 const Icon = item.icon;
+                const displayLabel = item.sidebarLabel ?? item.label;
 
                 const content = (
                   <Link
                     key={item.href}
                     href={item.href}
+                    data-active={isActive ? "true" : "false"}
                     onClick={onItemClick}
                     className={cn(
-                      "group flex min-h-[56px] items-center gap-3 rounded-xl border px-3 py-2.5 transition-all",
+                      "sidebar-nav-link group flex min-h-10 items-center gap-3 rounded-lg border px-3 py-2 transition-colors",
                       collapsed && "justify-center px-0",
                       isActive
-                        ? "border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)] text-[var(--sidebar-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                        : "border-transparent text-[var(--sidebar-subtle)] hover:border-[var(--sidebar-line)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-ink)]",
+                        ? "border-[var(--sidebar-line)] bg-[var(--sidebar-surface-strong)]"
+                        : "border-transparent hover:bg-[var(--sidebar-surface)]",
                     )}
                   >
                     <Icon
                       className={cn(
-                        "h-4 w-4 shrink-0",
-                        isActive ? "text-[var(--sidebar-accent)]" : "text-current",
+                        "sidebar-nav-icon h-4 w-4 shrink-0 transition-colors",
+                        isActive && "sidebar-nav-icon-active",
                       )}
                     />
                     {!collapsed ? (
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold tracking-[0.01em]">{item.label}</div>
-                        <div
-                          className={cn(
-                            "truncate pt-0.5 text-xs",
-                            isActive
-                              ? "text-[color:rgba(248,250,252,0.78)]"
-                              : "text-[var(--sidebar-muted)] group-hover:text-[var(--sidebar-muted)]",
-                          )}
-                        >
-                          {item.description}
+                      <div className="min-w-0 flex-1">
+                        <div className="sidebar-nav-label truncate text-sm font-medium">
+                          {text(displayLabel)}
                         </div>
                       </div>
                     ) : null}
@@ -96,7 +101,7 @@ export function SidebarNav({
                 return collapsed ? (
                   <Tooltip key={item.href}>
                     <TooltipTrigger asChild>{content}</TooltipTrigger>
-                    <TooltipContent>{item.label}</TooltipContent>
+                    <TooltipContent>{text(displayLabel)}</TooltipContent>
                   </Tooltip>
                 ) : (
                   content

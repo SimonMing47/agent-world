@@ -1,4 +1,5 @@
 import { type Agent, type AgentTeam, type TaskRunNode, type TaskRunPlan } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export function summarizeTaskRunPlan(plan: TaskRunPlan, nodes: TaskRunNode[], agents: Agent[]) {
   const dag = JSON.parse(plan.dagJson) as {
@@ -20,12 +21,12 @@ export function summarizeTaskRunPlan(plan: TaskRunPlan, nodes: TaskRunNode[], ag
 export function buildTeamPlanningMode(team: AgentTeam) {
   switch (team.workflowType) {
     case "dag":
-      return "Leader Agent 可以先产出多节点 DAG，执行器会在真正运行前校验它。";
+      return uiText("ui.generated.cc7f887e140");
     case "parallel":
-      return "只要依赖满足，多个节点就可以同时进入可执行状态。";
+      return uiText("ui.generated.c66ae402528");
     case "sequential":
-      return "节点会按确定顺序一个接一个推进。";
+      return uiText("ui.generated.cb14a22c1e2");
     default:
-      return "这个团队默认使用单节点执行计划。";
+      return uiText("ui.generated.cbeb09bf83b");
   }
 }

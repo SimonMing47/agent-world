@@ -1,3 +1,6 @@
+"use client";
+
+import { localizeNode, useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 export function DataTable({
@@ -7,8 +10,15 @@ export function DataTable({
   className?: string;
   children: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
-    <div className="overflow-x-auto">
+    <div
+      aria-label={text("ui.generated.c09c6cd2673")}
+      className="max-w-full overflow-x-auto overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/18"
+      role="region"
+      tabIndex={0}
+    >
       <table className={cn("min-w-full border-separate border-spacing-0", className)}>
         {children}
       </table>
@@ -21,7 +31,7 @@ export function DataTableHeader({
 }: {
   children: React.ReactNode;
 }) {
-  return <thead className="bg-[var(--surface-muted)]">{children}</thead>;
+  return <thead className="sticky top-0 z-10 bg-[var(--surface-subtle)]">{children}</thead>;
 }
 
 export function DataTableBody({
@@ -39,7 +49,11 @@ export function DataTableRow({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <tr className={cn("transition hover:bg-[var(--surface-muted)]/70", className)}>{children}</tr>;
+  return (
+    <tr className={cn("transition-colors hover:bg-[var(--surface-muted)] focus-within:bg-[var(--surface-muted)]", className)}>
+      {children}
+    </tr>
+  );
 }
 
 export function DataTableHead({
@@ -51,15 +65,17 @@ export function DataTableHead({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
     <th
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 text-xs font-medium uppercase tracking-[0.14em] text-[var(--ink-muted)]",
+        "border-b border-[var(--line)] px-4 py-3 text-xs font-medium text-[var(--ink-subtle)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}
     >
-      {children}
+      {localizeNode(children, text)}
     </th>
   );
 }
@@ -73,6 +89,8 @@ export function DataTableCell({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const text = useLanguageText();
+
   return (
     <td
       className={cn(
@@ -81,7 +99,7 @@ export function DataTableCell({
         className,
       )}
     >
-      {children}
+      {localizeNode(children, text)}
     </td>
   );
 }

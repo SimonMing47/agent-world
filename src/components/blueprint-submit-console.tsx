@@ -26,7 +26,7 @@ export function BlueprintSubmitConsole({
       inputPayload = JSON.parse(payloadText) as Record<string, unknown>;
     } catch {
       setIsSubmitting(false);
-      setError("输入 JSON 格式不正确。");
+      setError("ui.generated.c187ddd0847");
       return;
     }
     const response = await fetch(`/api/task-blueprints/${blueprintId}/submit`, {
@@ -45,7 +45,7 @@ export function BlueprintSubmitConsole({
     setIsSubmitting(false);
 
     if (!response.ok || !result.taskRun?.id) {
-      setError(result.error ?? "任务蓝图提交失败。");
+      setError(result.error ?? "ui.generated.c8b01382baa");
       return;
     }
 
@@ -56,12 +56,12 @@ export function BlueprintSubmitConsole({
   return (
     <Panel>
       <PanelHeader
-        eyebrow="Run Console"
-        title="从任务蓝图创建运行实例"
-        description="输入本次运行的 payload，直接提交到任务平台内核。"
+        eyebrow="ui.generated.cd8ceb61834"
+        title="ui.generated.c6a708012d7"
+        description="ui.generated.c816f52d4dd"
         action={
           <Button type="button" onClick={submit} disabled={isSubmitting} variant="primary">
-            {isSubmitting ? "提交中" : "创建运行"}
+            {isSubmitting ? "ui.generated.c4cc708dce4" : "ui.generated.cc25be47f3b"}
           </Button>
         }
       />

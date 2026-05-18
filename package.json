@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node scripts/agentworld-next.mjs dev",
+    "build": "NODE_OPTIONS=--no-warnings=ExperimentalWarning next build",
+    "start": "node scripts/agentworld-next.mjs start",
     "lint": "eslint .",
+    "i18n:audit": "node scripts/i18n-audit.mjs",
+    "config-data:audit": "node scripts/config-data-audit.mjs",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
-    "db:seed": "tsx src/db/seed.ts",
     "bootstrap": "tsx scripts/setup.ts",
     "openviking:prepare": "node scripts/openviking-setup.mjs",
     "openviking:install": "node scripts/openviking-setup.mjs --dev-venv",
@@ -21,7 +22,8 @@
     "package:linux": "node scripts/package-linux.mjs"
   },
   "dependencies": {
-    "@opencode-ai/sdk": "1.4.3",
+    "@earendil-works/pi-agent-core": "0.74.0",
+    "@earendil-works/pi-ai": "0.74.0",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.8",
