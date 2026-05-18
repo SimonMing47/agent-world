@@ -6,7 +6,150 @@
 
 本项目尚未上线，因此领域名、数据库表、API 路径和文件名均按目标形态直接收敛，不保留旧路径兼容。
 
+### 1.1 总体架构图
+
+```plantuml
+@startuml
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+actor "业务用户 / 管理员" as User
+actor "外部系统" as External
+
+package "Control Plane" {
+  component "总览与治理控制台" as Console
+  component "租户 / 业务团队治理" as TeamGov
+  component "Agent / Agent Team 定义" as AgentGov
+  component "Task Blueprint 管理" as BlueprintGov
+  component "Connector / Codebase / MCP / Skill 管理" as ConfigGov
+}
+
+package "Execution Plane" {
+  component "任务调度器" as Scheduler
+  component "TaskRun / TaskRunNode 状态机" as TaskEngine
+  component "权限与运行约束" as Policy
+  component "Runtime Adapter Interface" as Runtime
+  component "事件流 / Finding / Artifact" as Observability
+}
+
+package "Extension Plane" {
+  component "插件注册表" as PluginRegistry
+  component "Repository Connector" as RepoPlugin
+  component "Webhook Parser" as WebhookPlugin
+  component "Output Publisher" as OutputPlugin
+  component "Tool Bundle" as ToolPlugin
+}
+
+package "Knowledge & Environment" {
+  component "OpenViking" as OpenViking
+  component "执行环境 / Codebase / Secret Ref" as Environment
+}
+
+database "SQLite" as DB
+
+User --> Console
+Console --> TeamGov
+Console --> AgentGov
+Console --> BlueprintGov
+Console --> ConfigGov
+
+External --> WebhookPlugin
+BlueprintGov --> Scheduler
+Scheduler --> TaskEngine
+TaskEngine --> Policy
+TaskEngine --> Runtime
+TaskEngine --> Observability
+TaskEngine --> Environment
+TaskEngine --> OpenViking
+Runtime --> PluginRegistry
+PluginRegistry --> RepoPlugin
+PluginRegistry --> WebhookPlugin
+PluginRegistry --> OutputPlugin
+PluginRegistry --> ToolPlugin
+
+TeamGov --> DB
+AgentGov --> DB
+BlueprintGov --> DB
+ConfigGov --> DB
+Scheduler --> DB
+TaskEngine --> DB
+Observability --> DB
+Environment --> DB
+OpenViking --> DB
+@enduml
+```
+
+### 1.2 任务执行时序图
+
+```plantuml
+@startuml
+actor "用户 / Webhook / 调度器" as Trigger
+participant "Task Blueprint API" as API
+participant "调度器" as Scheduler
+participant "TaskRun 状态机" as Run
+participant "权限服务" as Policy
+participant "Runtime Adapter" as Runtime
+participant "插件" as Plugin
+participant "OpenViking" as Memory
+participant "事件流" as Event
+
+Trigger -> API: 提交 manual / webhook / schedule 触发
+API -> Scheduler: 解析 Blueprint 与输入
+Scheduler -> Run: 创建 TaskRun / TaskRunNode
+Run -> Policy: 生成权限快照
+Run -> Memory: 读取知识空间 / Skill
+Run -> Runtime: 执行当前节点
+Runtime -> Plugin: 调用 connector / tool / publisher
+Plugin --> Runtime: 返回标准结果
+Runtime -> Event: 写入 reasoning summary / tool use / usage / finding
+Runtime -> Memory: 写入归档与反馈
+Runtime --> Run: 返回节点结果与重试分类
+Run --> Scheduler: 推进下一个节点或结束任务
+@enduml
+```
+
 ## 2. 领域模型
+
+### 2.0 领域关系图
+
+```plantuml
+@startuml
+hide methods
+hide stereotypes
+
+class TenantSpace
+class BusinessTeam
+class AgentDefinition
+class AgentTeam
+class TaskBlueprint
+class TaskRun
+class TaskRunNode
+class ExecutionEnvironment
+class EnvironmentSnapshot
+class KnowledgeLayer
+class Skill
+class Finding
+class AccessGrant
+class ServiceCatalogListing
+
+TenantSpace "1" -- "*" BusinessTeam
+BusinessTeam "1" -- "*" AgentDefinition
+BusinessTeam "1" -- "*" AgentTeam
+BusinessTeam "1" -- "*" TaskBlueprint
+BusinessTeam "1" -- "*" ExecutionEnvironment
+BusinessTeam "1" -- "*" KnowledgeLayer
+AgentTeam "*" -- "*" AgentDefinition : members
+TaskBlueprint "*" --> "1" AgentTeam : teamRef
+TaskBlueprint "*" --> "0..1" ExecutionEnvironment : environmentRef
+TaskRun "*" --> "1" TaskBlueprint
+TaskRun "1" -- "*" TaskRunNode
+TaskRun "*" --> "0..1" EnvironmentSnapshot
+TaskRun "*" --> "0..1" AccessGrant
+TaskRunNode "*" --> "0..*" Finding
+Skill "*" --> "1" KnowledgeLayer
+ServiceCatalogListing "*" --> "1" AgentTeam
+@enduml
+```
 
 ### 2.1 租户空间
 
@@ -160,6 +303,55 @@ Agent 团队是可运营服务单元，负责：
 
 ## 3. 后端设计
 
+### 3.0 后端执行链路图
+
+```plantuml
+@startuml
+skinparam componentStyle rectangle
+
+package "API Layer" {
+  [Task Blueprint API]
+  [Task Run API]
+  [Webhook API]
+}
+
+package "Core Services" {
+  [queries.ts]
+  [scheduler-core]
+  [runtime-session-core]
+  [execution-policy-core]
+  [output-publisher-core]
+  [plugin-sdk-core]
+}
+
+package "Adapters & Integrations" {
+  [runtime-adapter-core]
+  [provider-core]
+  [openviking-core]
+  [official codehub plugin]
+}
+
+database "SQLite" as DB
+component "OpenViking Server" as OV
+
+[Task Blueprint API] --> [queries.ts]
+[Task Run API] --> [scheduler-core]
+[Webhook API] --> [scheduler-core]
+[scheduler-core] --> [queries.ts]
+[scheduler-core] --> [runtime-session-core]
+[scheduler-core] --> [execution-policy-core]
+[runtime-session-core] --> [runtime-adapter-core]
+[runtime-adapter-core] --> [provider-core]
+[runtime-adapter-core] --> [plugin-sdk-core]
+[plugin-sdk-core] --> [official codehub plugin]
+[runtime-session-core] --> [output-publisher-core]
+[runtime-session-core] --> [openviking-core]
+[queries.ts] --> DB
+[output-publisher-core] --> DB
+[openviking-core] --> OV
+@enduml
+```
+
 ### 3.1 调度路径
 
 任务入口包括：
@@ -260,6 +452,39 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 - Webhook。
 
 ## 5. OpenViking 集成
+
+### 5.0 集成架构图
+
+```plantuml
+@startuml
+skinparam componentStyle rectangle
+
+node "Linux Host" {
+  component "AgentWorld App" as App
+  component "OpenViking Server Binary" as OV
+  database "SQLite agentworld.db" as DB
+  folder "data/openviking" as OVData
+  folder "thirdparty/openviking/bin" as ThirdParty
+}
+
+component "Knowledge UI / API" as KnowledgeUI
+component "Skill Sync" as SkillSync
+component "Task Runtime" as TaskRuntime
+component "CodeHub / Email / Webhook Plugins" as Plugins
+
+KnowledgeUI --> App
+SkillSync --> App
+TaskRuntime --> App
+Plugins --> App
+
+App --> DB
+App --> OV : HTTP /health /content /fs
+OV --> OVData
+ThirdParty --> OV
+TaskRuntime --> OV : 读 Skill / 写反馈 / 归档结果
+KnowledgeUI --> OV : 管理知识空间 / 条目
+@enduml
+```
 
 ### 5.1 集成方式
 
