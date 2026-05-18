@@ -59,7 +59,7 @@ function translateTeamStructure(value: string) {
   const labels: Record<string, string> = {
     leader_worker: "Leader / Worker",
     collaborative: "ui.common.workflow.teamStructure.collaborative",
-    reviewer_publisher: "ui.common.workflow.teamStructure.reviewerPublisher",
+    inspector_publisher: "ui.common.workflow.teamStructure.inspectorPublisher",
     custom: "ui.common.workflow.teamStructure.custom",
   };
   return labels[value] ?? value;

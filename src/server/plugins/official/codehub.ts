@@ -245,7 +245,7 @@ const webhookParser: ExecutableWebhookParser = {
 };
 
 const outputPublisher: ExecutableOutputPublisher = {
-  id: "official.codehub.publisher.merge_request_review",
+      id: "official.codehub.publisher.merge_request_comment",
   async publish(input, ctx) {
     const projectIdValue = String(input.projectId ?? input.project_id ?? "");
     const mrIidValue = String(input.mergeRequestIid ?? input.merge_request_iid ?? input.mr_iid ?? "");
@@ -297,7 +297,7 @@ const toolBundle: ExecutableToolBundle = {
       description: uiText("ui.generated.c669c44c877"),
     },
     {
-      id: "codehub.merge_request.review.publish",
+      id: "codehub.merge_request.comment.publish",
       title: uiText("ui.generated.c86c0e27f8d"),
       description: uiText("ui.generated.c82f8f202e1"),
     },
@@ -309,7 +309,7 @@ const toolBundle: ExecutableToolBundle = {
     if (toolId === "codehub.merge_request.changes") {
       return repositoryConnector.getMergeRequestChanges?.(input, ctx) ?? {};
     }
-    if (toolId === "codehub.merge_request.review.publish") {
+    if (toolId === "codehub.merge_request.comment.publish") {
       return outputPublisher.publish(input, ctx);
     }
     throw new Error(`Unsupported CodeHub tool: ${toolId}`);

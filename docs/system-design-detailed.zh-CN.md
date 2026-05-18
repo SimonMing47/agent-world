@@ -298,7 +298,7 @@ Agent 团队是可运营服务单元，负责：
 实现表：
 
 - `knowledge_layers`
-- `code_review_skills`
+- `inspection_skills`
 - `openviking_knowledge_entries`
 
 ## 3. 后端设计
@@ -552,14 +552,14 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 默认 URI 规划：
 
-- 仓库上下文：`viking://resources/agentworld/code-review/repositories`
-- 全局检视经验：`viking://resources/agentworld/code-review/global`
-- 安全 Skill：`viking://agent/skills/agentworld/code-review/security`
-- 测试 Skill：`viking://agent/skills/agentworld/code-review/quality-test`
-- 数据与接口 Skill：`viking://agent/skills/agentworld/code-review/data-api`
-- 正确反馈：`viking://user/memories/agentworld/code-review/feedback/correct`
-- 误报反馈：`viking://user/memories/agentworld/code-review/feedback/incorrect`
-- 解释不足反馈：`viking://user/memories/agentworld/code-review/feedback/unclear`
+- 仓库上下文：`viking://resources/agentworld/code-inspection/repositories`
+- 全局检视经验：`viking://resources/agentworld/code-inspection/global`
+- 安全 Skill：`viking://agent/skills/agentworld/code-inspection/security`
+- 测试 Skill：`viking://agent/skills/agentworld/code-inspection/quality-test`
+- 数据与接口 Skill：`viking://agent/skills/agentworld/code-inspection/data-api`
+- 正确反馈：`viking://user/memories/agentworld/code-inspection/feedback/correct`
+- 误报反馈：`viking://user/memories/agentworld/code-inspection/feedback/incorrect`
+- 解释不足反馈：`viking://user/memories/agentworld/code-inspection/feedback/unclear`
 
 ## 6. 核心案例
 
@@ -567,9 +567,9 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 配置对象：
 
-- `task-template-shield-mr-review`
-- `template-shield-mr-review`
-- `env-shield-mr-review`
+- `task-template-shield-mr-check`
+- `template-shield-mr-check`
+- `env-shield-mr-check`
 - `PR Vanguard`
 - `builtin.repo.git`
 
@@ -594,8 +594,8 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 配置对象：
 
-- `task-template-daily-security-review`
-- `template-daily-security-review`
+- `task-template-daily-security-scan`
+- `template-daily-security-scan`
 - `env-daily-security-scan`
 - `builtin.notify.email`
 

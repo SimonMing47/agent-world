@@ -50,7 +50,7 @@ metadata:
   version: 1.0.0
   ownerTeamId: team-platform
   labels:
-    domain: code-review
+    domain: code-inspection
 spec:
   trigger:
     modes: [manual, webhook, schedule]
@@ -61,10 +61,10 @@ spec:
     required: []
     properties: {}
   agentTeamRef:
-    id: agent-team-review
+    id: agent-team-inspection
     orchestration: dag
   environmentRef:
-    templateId: env-template-review
+    templateId: env-template-inspection
     snapshotPolicy: per-run
   providerPolicy:
     preferredAdapters: [agentworld-runtime-adapter]
@@ -184,17 +184,17 @@ TaskBlueprint 采用 allow / ask / deny 三态权限：
 
 ```yaml
 metadata:
-  id: task-template-shield-mr-review
+  id: task-template-shield-mr-check
   name: 神盾计划 MR 检视
 spec:
   trigger:
     modes: [webhook, manual]
     webhookRef: webhook-code-merge-request
   agentTeamRef:
-    id: agent-team-code-review
+    id: agent-team-code-inspection
     orchestration: dag
   environmentRef:
-    templateId: env-template-merge-request-review
+    templateId: env-template-merge-request-check
   permissions:
     default: ask
     tools:
@@ -203,14 +203,14 @@ spec:
       filesystem.write: deny
   memory:
     readScopes:
-      - viking://resources/agentworld/code-review/repositories
-      - viking://agent/skills/agentworld/code-review/security
+      - viking://resources/agentworld/code-inspection/repositories
+      - viking://agent/skills/agentworld/code-inspection/security
     writeScopes:
-      - viking://user/memories/agentworld/code-review/feedback
+      - viking://user/memories/agentworld/code-inspection/feedback
   outputs:
     findings:
       enabled: true
-      taxonomyRefs: [code-review-security, code-review-quality]
+      taxonomyRefs: [code-inspection-security, code-inspection-quality]
 ```
 
 ### 8.2 每日全量安全检视样例
@@ -219,14 +219,14 @@ spec:
 
 ```yaml
 metadata:
-  id: task-template-daily-security-review
+  id: task-template-daily-security-scan
   name: 每日全量安全检视
 spec:
   trigger:
     modes: [schedule, manual]
-    scheduleRef: schedule-daily-security-review
+    scheduleRef: schedule-daily-security-scan
   agentTeamRef:
-    id: agent-team-security-review
+    id: agent-team-security-inspection
     orchestration: parallel
   environmentRef:
     templateId: env-template-repository-collection
@@ -238,10 +238,10 @@ spec:
       repo.write: deny
   memory:
     readScopes:
-      - viking://agent/skills/agentworld/code-review/security
-      - viking://user/memories/agentworld/code-review/feedback
+      - viking://agent/skills/agentworld/code-inspection/security
+      - viking://user/memories/agentworld/code-inspection/feedback
     writeScopes:
-      - viking://resources/agentworld/code-review/global
+      - viking://resources/agentworld/code-inspection/global
   outputs:
     artifacts:
       - type: report
@@ -250,7 +250,7 @@ spec:
       enabled: true
 ```
 
-## 9. 验收标准
+## 9. 完成条件
 
 - 任意任务入口都可以转换为 TaskBlueprint 加输入数据。
 - 调度器只依赖 Blueprint、输入、环境模板和注册表，不依赖具体 Provider 实现。

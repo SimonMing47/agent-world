@@ -20,7 +20,7 @@ Environment Template 描述任务可运行所需的代码仓、分支、执行�
 apiVersion: agentworld.io/v1
 kind: EnvironmentTemplate
 metadata:
-  id: env-template-merge-request-review
+  id: env-template-merge-request-check
   name: 合并请求检视环境
   version: 1.0.0
 spec:
@@ -33,7 +33,7 @@ spec:
         mode: merge-request
   actor:
     type: service-account
-    ref: svc-code-review
+    ref: svc-code-inspection
   workdir:
     mode: per-run
     basePathRef: workspace-root
@@ -52,7 +52,7 @@ spec:
     write:
       - artifacts
   memoryDependencies:
-    - viking://resources/agentworld/code-review/repositories
+    - viking://resources/agentworld/code-inspection/repositories
   sandbox:
     mode: reserved
 ```
@@ -66,7 +66,7 @@ Environment Snapshot 在 TaskRun 创建时生成：
 ```yaml
 id: envsnap_001
 taskRunId: run_001
-templateId: env-template-merge-request-review
+templateId: env-template-merge-request-check
 templateVersion: 1.0.0
 resolved:
   repositories:
@@ -81,7 +81,7 @@ resolved:
       purpose: repo.read
       resolvedAt: 2026-05-16T00:00:00Z
   memoryDependencies:
-    - viking://resources/agentworld/code-review/repositories
+    - viking://resources/agentworld/code-inspection/repositories
 status: ready
 ```
 
@@ -162,7 +162,7 @@ in_use -> degraded
 
 ```yaml
 metadata:
-  id: env-template-merge-request-review
+  id: env-template-merge-request-check
 spec:
   repositories:
     - id: target-repo
@@ -199,7 +199,7 @@ spec:
 
 以上均为配置样例，不构成平台硬编码业务系统。
 
-## 10. 验收标准
+## 10. 完成条件
 
 - TaskRun 必须引用 Environment Snapshot，而不是只引用可变 Template。
 - Secret 明文不得进入 Blueprint、Snapshot、事件、日志、Artifact、Finding 或记忆。
