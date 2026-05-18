@@ -130,9 +130,9 @@ export function KnowledgeEntryForm({
               <Select value={form.sourceType} onChange={(event) => setForm({ ...form, sourceType: event.target.value })}>
                 <option value="manual">ui.generated.c2c6e7307ce</option>
                 <option value="skill">Skill</option>
-                <option value="review_context">ui.generated.cd9ef5d882a</option>
-                <option value="review_finding">ui.generated.cad1e33a0cf</option>
-                <option value="review_feedback">ui.generated.c3099cc73b2</option>
+                <option value="inspection_context">ui.generated.cd9ef5d882a</option>
+                <option value="inspection_finding">ui.generated.cad1e33a0cf</option>
+                <option value="inspection_feedback">ui.generated.c3099cc73b2</option>
               </Select>
             </FieldGroup>
             <FieldGroup label="Skill ID">

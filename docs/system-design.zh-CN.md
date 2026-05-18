@@ -152,7 +152,7 @@ participant "OpenViking" as Memory
 participant "代码平台评论接口" as Comment
 
 Git -> API: MR diff
-API -> Blueprint: 解析 shield_mr_review 蓝图
+API -> Blueprint: 解析 shield_mr_check 蓝图
 Blueprint -> Team: 生成分层检视任务
 Team -> Memory: 读取 Skill 和记忆
 Team -> Team: MR 结构 / 安全 / 测试 / 数据接口检视
@@ -183,10 +183,10 @@ Team -> Memory: 写入结果和人工反馈入口
 神盾计划通过配置而不是写死实现：
 
 - Webhook 入口：MR diff。
-- 任务蓝图：`shield_mr_review`。
-- 任务模板：`task-template-shield-mr-review`。
-- 触发模板：`template-shield-mr-review`。
-- 执行环境：`env-shield-mr-review`。
+- 任务蓝图：`shield_mr_check`。
+- 任务模板：`task-template-shield-mr-check`。
+- 触发模板：`template-shield-mr-check`。
+- 执行环境：`env-shield-mr-check`。
 - Agent 团队：`PR Vanguard`。
 - 记忆层：仓库上下文、全局检视经验、安全、测试、数据与接口。
 - 输出：MR 评论、任务执行轨迹、检视 finding、OpenViking 记忆。
@@ -196,8 +196,8 @@ Team -> Memory: 写入结果和人工反馈入口
 每日安全检视同样通过配置实现：
 
 - 触发类型：每日定时。
-- 任务蓝图：`daily_security_review`。
-- 任务模板：`task-template-daily-security-review`。
+- 任务蓝图：`daily_security_scan`。
+- 任务模板：`task-template-daily-security-scan`。
 - 执行环境：`env-daily-security-scan`。
 - 代码仓选择：按业务团队、分支和仓库集合选择。
 - 通知插件：邮件插件。

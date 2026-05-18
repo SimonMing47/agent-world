@@ -581,7 +581,7 @@ export function listProviderAdapterDefinitions() {
 }
 
 export function listRepositories() {
-  return queryAll<RepositoryProfile>("SELECT * FROM repository_profiles ORDER BY activity_score DESC, name ASC");
+  return queryAll<RepositoryProfile>("SELECT * FROM repository_profiles ORDER BY activity_index DESC, name ASC");
 }
 
 export function listDevelopers() {
@@ -1489,15 +1489,15 @@ function synthesizeTeamNodes(team: AgentTeam) {
   const executor =
     teamAgents.find((agent) => agent.role.toLowerCase() === "executor") ??
     specialist;
-  const reviewer =
-    teamAgents.find((agent) => agent.role.toLowerCase() === "reviewer") ??
+  const inspector =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "inspector") ??
     teamAgents[teamAgents.length - 1] ??
     null;
 
-  if (!leader && !specialist && !reviewer) return [];
+  if (!leader && !specialist && !inspector) return [];
 
   if (team.workflowType === "single") {
-    const singleAgent = leader ?? specialist ?? reviewer;
+    const singleAgent = leader ?? specialist ?? inspector;
     if (!singleAgent) return [];
     return [
       {
@@ -1509,10 +1509,10 @@ function synthesizeTeamNodes(team: AgentTeam) {
     ] satisfies TaskRunNodeSpec[];
   }
 
-  const defaultLeader = leader ?? specialist ?? reviewer;
-  const defaultSpecialist = executor ?? specialist ?? leader ?? reviewer;
-  const defaultReviewer = reviewer ?? leader ?? specialist;
-  if (!defaultLeader || !defaultSpecialist || !defaultReviewer) return [];
+  const defaultLeader = leader ?? specialist ?? inspector;
+  const defaultSpecialist = executor ?? specialist ?? leader ?? inspector;
+  const defaultInspector = inspector ?? leader ?? specialist;
+  if (!defaultLeader || !defaultSpecialist || !defaultInspector) return [];
 
   return [
     {
@@ -1528,10 +1528,10 @@ function synthesizeTeamNodes(team: AgentTeam) {
       input: { action: "execute", tool: "repo.read" },
     },
     {
-      nodeKey: "review",
-      agentId: defaultReviewer.id,
+      nodeKey: "finalize",
+      agentId: defaultInspector.id,
       dependsOn: ["execute"],
-      input: { action: "review", tool: "repo.write" },
+      input: { action: "finalize", tool: "repo.write" },
     },
   ] satisfies TaskRunNodeSpec[];
 }
@@ -2524,7 +2524,7 @@ export function getTaskRunExecutionBoard(taskRunId: string) {
   if (!taskRun) return null;
   const nodes = getTaskRunNodes(taskRunId);
 
-  const readyByDependency = nodes.map((node) => {
+  const dependencyStatus = nodes.map((node) => {
     const deps = JSON.parse(node.dependsOnJson) as string[];
     const dependencyNodes = nodes.filter((candidate) => deps.includes(candidate.nodeKey));
     const dependenciesReady =
@@ -2554,7 +2554,7 @@ export function getTaskRunExecutionBoard(taskRunId: string) {
     taskRunId,
     taskRunStatus: taskRun.status,
     board: buildExecutionBoard(nodes),
-    readiness: readyByDependency,
+    dependencyStatus,
     metrics: {
       throughput: Number(throughput.toFixed(2)),
       failureRate: Number(failureRate.toFixed(2)),

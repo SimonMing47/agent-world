@@ -106,10 +106,19 @@ http://localhost:7369
 
 ```bash
 pnpm config-data:audit
+pnpm quality:audit
+pnpm security:audit
 pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+工程交付基线：
+
+- `config-data:audit`：检查是否有可配置业务数据被 seed、首条默认值或示例 case 写回主干。
+- `i18n:audit`：检查是否把中文文案直接写回 `src`，绕过语言包。
+- `quality:audit`：输出仓库复杂度热点、`TODO/FIXME`、`any` 和 `eslint-disable` 使用情况，避免大文件和临时性代码继续扩张。
+- `security:audit`：检查危险执行、原始 HTML 注入、私钥材料、硬编码密钥和本地 secret 文件兜底等基础安全风险。
 
 生产启动：
 
@@ -278,7 +287,7 @@ plugins/official/<plugin-id>/plugin.json
 - `official.codehub`
   - Repository Connector
   - Webhook Parser
-  - Merge Request Review Publisher
+  - Merge Request Comment Publisher
   - Tool Bundle
 
 插件运行时 SDK 位于：
@@ -318,7 +327,7 @@ Webhook 把 MR diff 给到系统后，会先进入用户配置的任务蓝图，
 - Webhook endpoint。
 - 任务蓝图。
 
-CodeHub 类型的任务蓝图会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Review Publisher 生成或回写 MR 评论。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
+CodeHub 类型的任务蓝图会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Comment Publisher 生成或回写 MR 评论。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
 
 ### 每日全量安全检视
 

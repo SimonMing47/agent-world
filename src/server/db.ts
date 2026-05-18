@@ -487,7 +487,7 @@ export type RepositoryProfile = {
   name: string;
   provider: string;
   branch: string;
-  activityScore: number;
+  activityIndex: number;
   lastTaskRunCount: number;
 };
 
@@ -641,7 +641,7 @@ export type ProviderAdapterDefinition = {
   updatedAt: string;
 };
 
-export type CodeReviewSkill = {
+export type InspectionSkill = {
   id: string;
   ownerBusinessTeamId: string | null;
   name: string;
@@ -716,7 +716,7 @@ export type KnowledgeSpaceBinding = {
   createdAt: string;
 };
 
-export type MergeRequestReview = {
+export type MergeRequestComment = {
   id: string;
   webhookId: string;
   platform: string;
@@ -739,9 +739,9 @@ export type MergeRequestReview = {
   completedAt: string | null;
 };
 
-export type ReviewFinding = {
+export type InspectionFinding = {
   id: string;
-  reviewId: string;
+  inspectionId: string;
   skillId: string;
   knowledgeLayer: string;
   severity: string;
@@ -774,10 +774,10 @@ export type Finding = {
   updatedAt: string;
 };
 
-export type ReviewFeedback = {
+export type InspectionFeedback = {
   id: string;
   findingId: string;
-  reviewId: string;
+  inspectionId: string;
   token: string;
   verdict: string;
   note: string | null;
@@ -1338,7 +1338,7 @@ CREATE TABLE IF NOT EXISTS repository_profiles (
   name TEXT NOT NULL,
   provider TEXT NOT NULL,
   branch TEXT NOT NULL,
-  activity_score INTEGER NOT NULL,
+  activity_index INTEGER NOT NULL,
   last_task_run_count INTEGER NOT NULL
 );
 
@@ -1492,7 +1492,7 @@ CREATE TABLE IF NOT EXISTS provider_adapter_definitions (
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS code_review_skills (
+CREATE TABLE IF NOT EXISTS inspection_skills (
   id TEXT PRIMARY KEY,
   owner_business_team_id TEXT,
   name TEXT NOT NULL,
@@ -1567,7 +1567,7 @@ CREATE TABLE IF NOT EXISTS knowledge_space_bindings (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS merge_request_reviews (
+CREATE TABLE IF NOT EXISTS merge_request_comments (
   id TEXT PRIMARY KEY,
   webhook_id TEXT NOT NULL,
   platform TEXT NOT NULL,
@@ -1590,9 +1590,9 @@ CREATE TABLE IF NOT EXISTS merge_request_reviews (
   completed_at TEXT
 );
 
-CREATE TABLE IF NOT EXISTS review_findings (
+CREATE TABLE IF NOT EXISTS inspection_findings (
   id TEXT PRIMARY KEY,
-  review_id TEXT NOT NULL,
+  inspection_id TEXT NOT NULL,
   skill_id TEXT NOT NULL,
   knowledge_layer TEXT NOT NULL,
   severity TEXT NOT NULL,
@@ -1625,10 +1625,10 @@ CREATE TABLE IF NOT EXISTS findings (
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS review_feedback (
+CREATE TABLE IF NOT EXISTS inspection_feedback (
   id TEXT PRIMARY KEY,
   finding_id TEXT NOT NULL,
-  review_id TEXT NOT NULL,
+  inspection_id TEXT NOT NULL,
   token TEXT NOT NULL,
   verdict TEXT NOT NULL,
   note TEXT,
@@ -1675,17 +1675,17 @@ function ensureOpenVikingKnowledgeColumns(db: DatabaseSyncType) {
 }
 
 function ensureSkillGovernanceColumns(db: DatabaseSyncType) {
-  if (!tableHasColumn(db, "code_review_skills", "owner_business_team_id")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN owner_business_team_id TEXT");
+  if (!tableHasColumn(db, "inspection_skills", "owner_business_team_id")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN owner_business_team_id TEXT");
   }
-  if (!tableHasColumn(db, "code_review_skills", "tags_json")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'");
+  if (!tableHasColumn(db, "inspection_skills", "tags_json")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'");
   }
-  if (!tableHasColumn(db, "code_review_skills", "visibility")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN visibility TEXT NOT NULL DEFAULT 'team'");
+  if (!tableHasColumn(db, "inspection_skills", "visibility")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN visibility TEXT NOT NULL DEFAULT 'team'");
   }
-  if (!tableHasColumn(db, "code_review_skills", "viking_uri")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN viking_uri TEXT");
+  if (!tableHasColumn(db, "inspection_skills", "viking_uri")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN viking_uri TEXT");
   }
 }
 

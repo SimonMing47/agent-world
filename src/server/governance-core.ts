@@ -396,7 +396,7 @@ export function deleteManagedResource(input: { type: string; id: string }) {
       execute("UPDATE codebase_operator_tokens SET status = 'deleted', updated_at = ? WHERE id = ?", nowIso(), input.id);
       break;
     case "skill":
-      execute("DELETE FROM code_review_skills WHERE id = ?", input.id);
+      execute("DELETE FROM inspection_skills WHERE id = ?", input.id);
       break;
     case "provider-profile":
       execute("DELETE FROM provider_profiles WHERE id = ?", input.id);

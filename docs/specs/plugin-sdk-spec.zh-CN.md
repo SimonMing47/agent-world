@@ -47,11 +47,11 @@ spec:
       - id: merge-request
         pathKey: merge-request
     environmentTemplates:
-      - id: env-template-merge-request-review
+      - id: env-template-merge-request-check
     taskBlueprints:
-      - id: task-template-shield-mr-review
+      - id: task-template-shield-mr-check
     boardViews:
-      - id: board-code-review-findings
+      - id: board-code-inspection-findings
   configSchema:
     type: object
     properties: {}
@@ -169,7 +169,7 @@ uploaded -> validated -> installed -> configured -> enabled -> degraded -> disab
 - 插件不得默认获得网络、文件写入或外部通知权限。
 - 插件健康检查失败时必须进入 degraded 或 disabled，而不是继续静默执行。
 
-## 11. 验收标准
+## 11. 完成条件
 
 - 任何新增集成能力都可以通过 manifest 声明和生命周期接入。
 - 插件贡献的 TaskBlueprint 和 Environment Template 不需要修改平台主干代码。
