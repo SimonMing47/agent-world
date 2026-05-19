@@ -5,6 +5,7 @@ import {
   queryOne,
   type Finding,
   type TaskRun,
+  type TaskBlueprint,
   type BusinessTeam,
 } from "@/server/db";
 import { uiText } from "@/lib/language-pack";
@@ -184,6 +185,50 @@ export function updateFinding(input: {
 export function deleteFinding(id: string) {
   execute("UPDATE findings SET status = ?, updated_at = ? WHERE id = ?", "deleted", nowIso(), id);
   return { ok: true };
+}
+
+export function ensureTaskRunSummaryFinding(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint | null;
+}) {
+  const existing = queryOne<Finding>(
+    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' LIMIT 1",
+    args.taskRun.id,
+  );
+  if (existing) return;
+
+  const category = args.blueprint?.category ?? "execution";
+  const fingerprint = buildFindingFingerprint({
+    repoId: args.taskRun.sourceRef ?? args.taskRun.id,
+    category,
+    rule: "task-run-summary",
+    normalizedCode: args.taskRun.id,
+  });
+  const now = nowIso();
+
+  execute(
+    "INSERT INTO findings (id, task_run_id, source_agent, category, severity, confidence, title, description, evidence_json, recommendation, skill_refs_json, fingerprint, status, publication_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(),
+    args.taskRun.id,
+    "system",
+    category,
+    "info",
+    1,
+    uiText("ui.generated.ca3a70dcdff"),
+    uiText("ui.server.taskBlueprint.completedSummary", undefined, { name: args.blueprint?.name ?? uiText("ui.generated.c3172b317f9") }),
+    JSON.stringify({
+      taskRunId: args.taskRun.id,
+      sourceType: args.taskRun.sourceType,
+      sourceRef: args.taskRun.sourceRef,
+    }),
+    uiText("ui.generated.cf9afad7f97"),
+    JSON.stringify([]),
+    fingerprint,
+    "open",
+    JSON.stringify({ channels: [] }),
+    now,
+    now,
+  );
 }
 
 export function buildFindingDashboard(args: {
