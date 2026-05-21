@@ -26,6 +26,7 @@ import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
+import { canAccessBusinessTeam, getRequestAuthContext } from "@/server/auth-core";
 import {
   getTaskBlueprintEditorOptions,
   getTaskBlueprintsSnapshot,
@@ -103,9 +104,20 @@ export default async function TaskBlueprintsPage({
   searchParams?: Promise<{ teamId?: string }>;
 }) {
   const params = await searchParams;
+  const authContext = await getRequestAuthContext();
   const snapshot = getTaskBlueprintsSnapshot();
-  const rawBlueprints = listTaskBlueprints();
-  const options = getTaskBlueprintEditorOptions();
+  const rawBlueprints = listTaskBlueprints().filter((blueprint) =>
+    canAccessBusinessTeam(authContext, blueprint.ownerBusinessTeamId),
+  );
+  const rawOptions = getTaskBlueprintEditorOptions();
+  const options = {
+    ...rawOptions,
+    businessTeams: rawOptions.businessTeams.filter((team) => canAccessBusinessTeam(authContext, team.id)),
+    agentTeams: rawOptions.agentTeams.filter((team) => canAccessBusinessTeam(authContext, team.businessTeamId)),
+    environments: rawOptions.environments.filter((environment) =>
+      canAccessBusinessTeam(authContext, environment.businessTeamId),
+    ),
+  };
   const selectedTeamId = params?.teamId ?? "";
   const selectedTeam = options.businessTeams.find((team) => team.id === selectedTeamId);
   const rawMap = new Map(rawBlueprints.map((item) => [item.id, item]));
@@ -115,6 +127,9 @@ export default async function TaskBlueprintsPage({
       .map((blueprint) => blueprint.id),
   );
   const visibleBlueprints = snapshot.blueprints.filter((blueprint) => visibleBlueprintIds.has(blueprint.id));
+  const visibleFindingTotal = snapshot.findingDashboard.byBusinessTeam
+    .filter((item) => canAccessBusinessTeam(authContext, item.businessTeamId))
+    .reduce((sum, item) => sum + item.count, 0);
   const baseDefaultBlueprint = defaultBlueprint();
   const defaultNewBlueprint = {
     ...baseDefaultBlueprint,
@@ -152,7 +167,7 @@ export default async function TaskBlueprintsPage({
           },
           {
             label: "ui.generated.cb8c4d70c66",
-            value: snapshot.findingDashboard.total,
+            value: visibleFindingTotal,
             detail: "ui.generated.cd6f1ab3e5c",
           },
         ]}

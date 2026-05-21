@@ -15,22 +15,22 @@ export function SummaryStrip({
   const text = useLanguageText();
 
   return (
-    <section className={cn("overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]", className)}>
+    <section className={cn("overflow-hidden rounded-[20px] border border-white/70 bg-[var(--surface)] shadow-[var(--shadow-soft)]", className)}>
       <div className={cn("grid", gridClassName)}>
         {items.map((item, index) => (
           <div
             key={index}
             className={cn(
-              "px-5 py-4",
-              index !== items.length - 1 && "border-b border-[var(--line)] sm:border-b-0 xl:border-r",
+              "px-6 py-5",
+              index !== items.length - 1 && "border-b border-[var(--line)] sm:border-b-0 xl:border-r xl:border-[var(--line)]",
             )}
           >
-            <div className="text-xs font-medium text-[var(--ink-subtle)]">
+            <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--ink-subtle)]">
               {localizeNode(item.label, text)}
             </div>
-            <div className="mt-2 text-[26px] font-semibold leading-none text-[var(--ink)]">{item.value}</div>
+            <div className="mt-2 text-[clamp(2rem,3vw,3rem)] font-light leading-none text-[var(--ink)]">{item.value}</div>
             {item.detail ? (
-              <div className="mt-1.5 text-sm text-[var(--ink-muted)]">
+              <div className="mt-2 text-sm text-[var(--ink-muted)]">
                 {localizeNode(item.detail, text)}
               </div>
             ) : null}

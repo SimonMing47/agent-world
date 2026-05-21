@@ -65,6 +65,92 @@ export type TeamMember = {
   updatedAt: string;
 };
 
+export type AuthProviderConfig = {
+  id: string;
+  tenantSpaceId: string | null;
+  name: string;
+  adapterKey: string;
+  status: string;
+  issuerUrl: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  jwksUrl: string;
+  clientId: string;
+  clientSecretRef: string;
+  scopesJson: string;
+  mappingJson: string;
+  configJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IdentityUser = {
+  id: string;
+  tenantSpaceId: string | null;
+  authProviderConfigId: string | null;
+  externalUserId: string;
+  employeeNo: string;
+  email: string;
+  name: string;
+  avatarUrl: string;
+  title: string;
+  status: string;
+  isSystemAdmin: number;
+  primaryBusinessTeamId: string | null;
+  profileJson: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string;
+};
+
+export type IdentityUserBusinessTeamMembership = {
+  id: string;
+  userId: string;
+  businessTeamId: string;
+  membershipSource: string;
+  sourceRef: string;
+  roleTitle: string;
+  isPrimary: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthSession = {
+  id: string;
+  userId: string;
+  authProviderConfigId: string | null;
+  sessionToken: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lastSeenAt: string;
+};
+
+export type AccessWhitelistRule = {
+  id: string;
+  tenantSpaceId: string | null;
+  businessTeamId: string;
+  allowDescendants: number;
+  note: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AccessRequest = {
+  id: string;
+  authProviderConfigId: string | null;
+  email: string;
+  name: string;
+  requestedBusinessTeamHint: string;
+  requestNote: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TeamPermissionGrant = {
   id: string;
   businessTeamId: string;

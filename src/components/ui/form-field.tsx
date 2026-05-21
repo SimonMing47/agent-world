@@ -18,7 +18,7 @@ export function FieldGroup({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="text-xs font-medium text-[var(--ink-subtle)]">{text(label)}</div>
+      <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">{text(label)}</div>
       {children}
       {hint ? <div className="text-[11px] leading-5 text-[var(--ink-muted)]">{text(hint)}</div> : null}
     </div>

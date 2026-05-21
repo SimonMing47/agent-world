@@ -31,7 +31,7 @@ export function DataTableHeader({
 }: {
   children: React.ReactNode;
 }) {
-  return <thead className="sticky top-0 z-10 bg-[var(--surface-subtle)]">{children}</thead>;
+  return <thead className="sticky top-0 z-10 bg-transparent">{children}</thead>;
 }
 
 export function DataTableBody({
@@ -50,7 +50,7 @@ export function DataTableRow({
   children: React.ReactNode;
 }) {
   return (
-    <tr className={cn("transition-colors hover:bg-[var(--surface-muted)] focus-within:bg-[var(--surface-muted)]", className)}>
+    <tr className={cn("border-b border-[var(--line)] transition-colors hover:bg-[var(--surface-subtle)]/68 focus-within:bg-[var(--surface-subtle)]/68", className)}>
       {children}
     </tr>
   );
@@ -70,7 +70,7 @@ export function DataTableHead({
   return (
     <th
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 text-xs font-medium text-[var(--ink-subtle)]",
+        "border-b border-[var(--line)] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--ink-subtle)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}
@@ -94,7 +94,7 @@ export function DataTableCell({
   return (
     <td
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 align-top text-sm text-[var(--ink-muted)]",
+        "px-4 py-4 align-top text-sm text-[var(--ink-muted)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}

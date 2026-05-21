@@ -45,6 +45,16 @@ type RemoteSyncResult = {
   response?: unknown;
 };
 
+export type KnowledgeRetrievalTestHit = {
+  id: string;
+  title: string;
+  vikingUri: string;
+  syncStatus: string;
+  layer: string;
+  score: number;
+  excerpt: string;
+};
+
 type OpenVikingApiResult<T> = {
   status?: string;
   ok?: boolean;
@@ -336,6 +346,71 @@ export function listLayeredKnowledge(limit = 50) {
     "SELECT * FROM openviking_knowledge_entries ORDER BY created_at DESC LIMIT ?",
     limit,
   );
+}
+
+function compactWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function buildExcerpt(content: string, query: string) {
+  const normalizedContent = compactWhitespace(content);
+  const normalizedQuery = compactWhitespace(query);
+  if (!normalizedContent) return "";
+  const index = normalizedContent.toLowerCase().indexOf(normalizedQuery.toLowerCase());
+  if (index < 0) return normalizedContent.slice(0, 180);
+  const start = Math.max(0, index - 72);
+  const end = Math.min(normalizedContent.length, index + normalizedQuery.length + 96);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < normalizedContent.length ? "..." : "";
+  return `${prefix}${normalizedContent.slice(start, end)}${suffix}`;
+}
+
+export function runKnowledgeRetrievalTest(input: {
+  knowledgeSpaceId: string;
+  query: string;
+  limit?: number;
+}) {
+  const normalizedQuery = compactWhitespace(input.query);
+  if (!normalizedQuery) return [];
+
+  const entries = queryAll<OpenVikingKnowledgeEntry>(
+    "SELECT * FROM openviking_knowledge_entries WHERE knowledge_space_id = ? ORDER BY created_at DESC LIMIT 200",
+    input.knowledgeSpaceId,
+  );
+
+  const queryTerms = normalizedQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return entries
+    .map<KnowledgeRetrievalTestHit | null>((entry) => {
+      const haystackTitle = compactWhitespace(entry.title).toLowerCase();
+      const haystackContent = compactWhitespace(entry.contentMd).toLowerCase();
+      const haystackMetadata = compactWhitespace(entry.metadataJson).toLowerCase();
+
+      let score = 0;
+      for (const term of queryTerms) {
+        if (haystackTitle.includes(term)) score += 6;
+        if (haystackContent.includes(term)) score += 3;
+        if (haystackMetadata.includes(term)) score += 1;
+      }
+
+      if (!score) return null;
+
+      return {
+        id: entry.id,
+        title: entry.title,
+        vikingUri: entry.vikingUri,
+        syncStatus: entry.syncStatus,
+        layer: entry.layer,
+        score,
+        excerpt: buildExcerpt(entry.contentMd, normalizedQuery),
+      };
+    })
+    .filter((item): item is KnowledgeRetrievalTestHit => Boolean(item))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, input.limit ?? 8);
 }
 
 export function listKnowledgeSkills() {

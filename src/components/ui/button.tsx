@@ -7,14 +7,14 @@ import { localizeNode, useLanguageText } from "@/components/language-pack-provid
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/24 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/24 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         primary: "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]",
         secondary:
-          "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink)] hover:border-[var(--line-strong)] hover:bg-[var(--surface-muted)]",
-        ghost: "text-[var(--ink-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]",
+          "border border-[rgba(15,23,42,0.06)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] hover:bg-[var(--surface-subtle)]",
+        ghost: "text-[var(--ink-muted)] hover:bg-[rgba(15,23,42,0.04)] hover:text-[var(--ink)]",
         danger: "bg-[var(--danger)] text-white hover:opacity-95",
       },
       size: {

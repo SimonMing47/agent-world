@@ -53,6 +53,92 @@ CREATE TABLE IF NOT EXISTS team_members (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS auth_provider_configs (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT,
+  name TEXT NOT NULL,
+  adapter_key TEXT NOT NULL,
+  status TEXT NOT NULL,
+  issuer_url TEXT NOT NULL,
+  authorize_url TEXT NOT NULL,
+  token_url TEXT NOT NULL,
+  userinfo_url TEXT NOT NULL,
+  jwks_url TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  client_secret_ref TEXT NOT NULL,
+  scopes_json TEXT NOT NULL,
+  mapping_json TEXT NOT NULL,
+  config_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS identity_users (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT,
+  auth_provider_config_id TEXT,
+  external_user_id TEXT NOT NULL,
+  employee_no TEXT NOT NULL,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  avatar_url TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  is_system_admin INTEGER NOT NULL,
+  primary_business_team_id TEXT,
+  profile_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_login_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS identity_user_business_team_memberships (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  business_team_id TEXT NOT NULL,
+  membership_source TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  role_title TEXT NOT NULL,
+  is_primary INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  auth_provider_config_id TEXT,
+  session_token TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS access_whitelist_rules (
+  id TEXT PRIMARY KEY,
+  tenant_space_id TEXT,
+  business_team_id TEXT NOT NULL,
+  allow_descendants INTEGER NOT NULL,
+  note TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS access_requests (
+  id TEXT PRIMARY KEY,
+  auth_provider_config_id TEXT,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  requested_business_team_hint TEXT NOT NULL,
+  request_note TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS team_permission_grants (
   id TEXT PRIMARY KEY,
   business_team_id TEXT NOT NULL,

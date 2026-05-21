@@ -1,17 +1,36 @@
 import { NextResponse } from "next/server";
+import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import { deleteManagedResource } from "@/server/governance-core";
-import { getTaskBlueprintsSnapshot, upsertTaskBlueprint } from "@/server/queries";
+import { getTaskBlueprintsSnapshot, listTaskBlueprints, upsertTaskBlueprint } from "@/server/queries";
 import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return NextResponse.json(getTaskBlueprintsSnapshot());
+export async function GET() {
+  const authContext = await getRequestAuthContext();
+  const snapshot = getTaskBlueprintsSnapshot();
+  return NextResponse.json({
+    ...snapshot,
+    blueprints: snapshot.blueprints.filter((blueprint) =>
+      canAccessBusinessTeam(
+        authContext,
+        listTaskBlueprints().find((raw) => raw.id === blueprint.id)?.ownerBusinessTeamId,
+      ),
+    ),
+    findingDashboard: {
+      ...snapshot.findingDashboard,
+      byBusinessTeam: snapshot.findingDashboard.byBusinessTeam.filter((item) =>
+        canAccessBusinessTeam(authContext, item.businessTeamId),
+      ),
+    },
+  });
 }
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof upsertTaskBlueprint>[0];
+    const authContext = await getRequestAuthContext();
+    requireBusinessTeamAccess(authContext, body.ownerBusinessTeamId);
     const blueprint = upsertTaskBlueprint(body);
     return NextResponse.json({ ok: true, blueprint });
   } catch (error) {
@@ -25,6 +44,8 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof upsertTaskBlueprint>[0];
+    const authContext = await getRequestAuthContext();
+    requireBusinessTeamAccess(authContext, body.ownerBusinessTeamId);
     const blueprint = upsertTaskBlueprint(body);
     return NextResponse.json({ ok: true, blueprint });
   } catch (error) {
@@ -37,6 +58,9 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
+  const authContext = await getRequestAuthContext();
+  const blueprint = listTaskBlueprints().find((item) => item.id === body.id);
+  requireBusinessTeamAccess(authContext, blueprint?.ownerBusinessTeamId);
   deleteManagedResource({ type: "task-blueprint", id: body.id });
   return NextResponse.json({ ok: true });
 }

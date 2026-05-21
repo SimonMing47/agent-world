@@ -25,6 +25,7 @@ import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateVisibility, translateWorkflowType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -119,13 +120,22 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
   };
 }
 
-export default function AgentTeamsPage() {
-  const teams = listAgentTeams();
-  const members = listAgentTeamMemberProfiles();
-  const shares = listAgentTeamShares();
-  const businessTeams = listBusinessTeams();
-  const agentDefinitions = listAgentDefinitions();
-  const executionPolicies = listExecutionPolicies();
+export default async function AgentTeamsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const shares = listAgentTeamShares().filter((share) => visibleBusinessTeamIds.has(share.businessTeamId));
+  const sharedTeamIds = new Set(shares.map((share) => share.agentTeamId));
+  const teams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId) || sharedTeamIds.has(team.id));
+  const visibleTeamIds = new Set(teams.map((team) => team.id));
+  const members = listAgentTeamMemberProfiles().filter((member) => visibleTeamIds.has(member.teamId));
+  const agentDefinitions = listAgentDefinitions().filter((definition) =>
+    definition.visibility === "global" ||
+    canAccessBusinessTeam(authContext, definition.ownerBusinessTeamId, { allowGlobal: true }),
+  );
+  const executionPolicies = listExecutionPolicies().filter((policy) =>
+    canAccessBusinessTeam(authContext, policy.businessTeamId, { allowGlobal: true }),
+  );
   return (
     <div className="space-y-6">
       <PageHeader

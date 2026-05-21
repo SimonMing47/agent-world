@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import {
   listCodebases,
   listConnectors,
@@ -228,22 +229,28 @@ function TeamDetailDialog({
   );
 }
 
-export default function BusinessTeamsPage() {
-  const businessTeams = listBusinessTeams();
+export default async function BusinessTeamsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
   const tenantSpaces = listTenantSpaces();
-  const taskBlueprints = listTaskBlueprints();
-  const members = listTeamMembers();
-  const permissionGrants = listTeamPermissionGrants();
-  const assetGrants = listTeamAssetGrants();
-  const agentTeams = listAgentTeams();
-  const codebases = listCodebases();
-  const connectors = listConnectors();
-  const knowledgeSpaces = listKnowledgeSpaces();
+  const taskBlueprints = listTaskBlueprints().filter((blueprint) => visibleBusinessTeamIds.has(blueprint.ownerBusinessTeamId));
+  const members = listTeamMembers().filter((member) => visibleBusinessTeamIds.has(member.businessTeamId));
+  const permissionGrants = listTeamPermissionGrants().filter((grant) => visibleBusinessTeamIds.has(grant.businessTeamId));
+  const assetGrants = listTeamAssetGrants().filter((grant) => visibleBusinessTeamIds.has(grant.businessTeamId));
+  const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
+  const codebases = listCodebases().filter((codebase) => visibleBusinessTeamIds.has(codebase.businessTeamId));
+  const connectors = listConnectors().filter((connector) => connector.businessTeamId ? visibleBusinessTeamIds.has(connector.businessTeamId) : authContext?.user.isSystemAdmin === 1);
+  const knowledgeSpaces = listKnowledgeSpaces().filter((space) => space.businessTeamId ? visibleBusinessTeamIds.has(space.businessTeamId) : authContext?.user.isSystemAdmin === 1);
 
-  const tenantOptions = tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
+  const visibleTenantSpaceIds = new Set(businessTeams.map((team) => team.tenantSpaceId));
+  const visibleTenantSpaces = authContext?.user.isSystemAdmin === 1
+    ? tenantSpaces
+    : tenantSpaces.filter((space) => visibleTenantSpaceIds.has(space.id));
+  const tenantOptions = visibleTenantSpaces.map((space) => ({ id: space.id, name: space.name }));
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
   const teamsById = new Map(businessTeams.map((team) => [team.id, team]));
-  const tenantNameById = new Map(tenantSpaces.map((space) => [space.id, space.name]));
+  const tenantNameById = new Map(visibleTenantSpaces.map((space) => [space.id, space.name]));
 
   const summaries = new Map<string, TeamSummary>(
     businessTeams.map((team) => [
@@ -343,7 +350,7 @@ export default function BusinessTeamsPage() {
           />
           <PanelBody>
             <div className="space-y-5">
-              {tenantSpaces.map((tenant) => {
+              {visibleTenantSpaces.map((tenant) => {
                 const rootTeams = (teamsByParent.get(null) ?? []).filter((team) => team.tenantSpaceId === tenant.id);
                 return (
                   <section key={tenant.id} className="space-y-3">

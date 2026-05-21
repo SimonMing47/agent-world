@@ -25,17 +25,25 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { buildExecutionPolicySummary } from "@/server/execution-policy-core";
 import { translateExecutionPolicyScope } from "@/lib/presentation";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listAgentTeams, listBusinessTeams, listExecutionPolicies, listTenantSpaces } from "@/server/queries";
 
 function scopeOf(profile: { teamId: string | null; businessTeamId: string | null; tenantSpaceId: string | null }) {
   return profile.teamId ? "ui.generated.c70f970c1fc" : profile.businessTeamId ? "ui.generated.c2b90028ff3" : profile.tenantSpaceId ? "ui.generated.c3db35d2741" : "ui.generated.ca5644f4bbf";
 }
 
-export default function ExecutionPolicyPage() {
-  const executionPolicies = listExecutionPolicies();
+export default async function ExecutionPolicyPage() {
+  const authContext = await getRequestAuthContext();
   const tenantSpaces = listTenantSpaces();
-  const businessTeams = listBusinessTeams();
-  const agentTeams = listAgentTeams();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
+  const visibleAgentTeamIds = new Set(agentTeams.map((team) => team.id));
+  const executionPolicies = listExecutionPolicies().filter((policy) =>
+    policy.teamId
+      ? visibleAgentTeamIds.has(policy.teamId)
+      : canAccessBusinessTeam(authContext, policy.businessTeamId, { allowGlobal: true }),
+  );
   const tenantOptions = tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
   const agentTeamOptions = agentTeams.map((team) => ({ id: team.id, name: team.name }));
