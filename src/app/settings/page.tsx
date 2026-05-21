@@ -65,6 +65,13 @@ const systemEntries = [
     description: "ui.generated.c35200d5ff0",
   },
   {
+    name: "identityAccess.page.title",
+    href: "/identity-access",
+    group: "ui.generated.cfad8b39e99",
+    scope: "identityAccess.scope.label",
+    description: "identityAccess.page.description",
+  },
+  {
     name: "ui.common.resources.runtimeBinding",
     href: "/runtime-bindings",
     group: "ui.generated.c2e03739792",

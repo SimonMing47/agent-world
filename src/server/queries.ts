@@ -616,6 +616,7 @@ export function getTaskBlueprintEditorOptions() {
     agentTeams: agentTeams.map((team) => ({
       id: team.id,
       name: team.name,
+      businessTeamId: team.businessTeamId,
       workflowType: team.workflowType,
       leaderAgentId: team.leaderAgentId,
       orchestrationPrompt: team.orchestrationPrompt,
@@ -632,6 +633,7 @@ export function getTaskBlueprintEditorOptions() {
     })),
     environments: environments.map((environment) => ({
       id: environment.id,
+      businessTeamId: environment.businessTeamId,
       name: environment.name,
       repositoryProvider: environment.repositoryProvider,
       repositoryName: environment.repositoryName,

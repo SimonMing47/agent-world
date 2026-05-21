@@ -14,7 +14,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
           ref={ref}
           aria-label={typeof ariaLabel === "string" ? text(ariaLabel) : ariaLabel}
           className={cn(
-            "h-10 w-full appearance-none rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 pr-10 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)]/45 focus:ring-2 focus:ring-[var(--accent)]/12 disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:opacity-70",
+            "h-11 w-full appearance-none rounded-xl border border-[rgba(15,23,42,0.06)] bg-[rgba(255,255,255,0.92)] px-4 pr-10 text-sm text-[var(--ink)] shadow-[0_1px_2px_rgba(15,23,42,0.02)] outline-none transition-colors focus:border-[var(--accent)]/22 focus:ring-2 focus:ring-[var(--accent)]/10 disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:opacity-70",
             className,
           )}
           title={typeof title === "string" ? text(title) : title}

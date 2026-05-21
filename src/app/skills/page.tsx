@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listSkills } from "@/server/skill-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -36,9 +37,12 @@ function parseTags(value: string) {
   }
 }
 
-export default function SkillsPage() {
-  const skills = listSkills();
-  const businessTeams = listBusinessTeams();
+export default async function SkillsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const skills = listSkills().filter((skill) =>
+    canAccessBusinessTeam(authContext, skill.ownerBusinessTeamId, { allowGlobal: skill.visibility === "global" }),
+  );
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (
