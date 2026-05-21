@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import {
   LanguagePackProvider,
-  localizeNode,
   useLanguageText,
 } from "@/components/language-pack-provider";
 import { findNavItem } from "@/components/navigation-config";
@@ -45,7 +44,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
   const text = useLanguageText();
-  const localizedChildren = useMemo(() => localizeNode(children, text), [children, text]);
   const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -101,7 +99,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
               <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-                {localizedChildren}
+                {children}
               </div>
             </main>
           </div>

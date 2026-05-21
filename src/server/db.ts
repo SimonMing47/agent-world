@@ -908,6 +908,14 @@ function ensureSkillGovernanceColumns(db: DatabaseSyncType) {
   }
 }
 
+function ensureRepositoryProfileActivityIndex(db: DatabaseSyncType) {
+  if (tableHasColumn(db, "repository_profiles", "activity_index")) return;
+  if (!tableHasColumn(db, "repository_profiles", "activity_score")) return;
+
+  db.exec("ALTER TABLE repository_profiles ADD COLUMN activity_index INTEGER NOT NULL DEFAULT 0");
+  db.exec("UPDATE repository_profiles SET activity_index = activity_score WHERE activity_index = 0");
+}
+
 function ensureAgentTeamCatalogColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "agent_teams", "orchestration_prompt")) {
     db.exec("ALTER TABLE agent_teams ADD COLUMN orchestration_prompt TEXT NOT NULL DEFAULT ''");
@@ -933,6 +941,7 @@ export function getDb() {
     ensureRuntimeSessionAgentDefinitionColumn(database);
     ensureOpenVikingKnowledgeColumns(database);
     ensureSkillGovernanceColumns(database);
+    ensureRepositoryProfileActivityIndex(database);
   }
 
   return database;
