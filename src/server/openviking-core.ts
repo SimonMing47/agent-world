@@ -5,7 +5,7 @@ import {
   execute,
   queryAll,
   queryOne,
-  type CodeReviewSkill,
+  type InspectionSkill,
   type KnowledgeLayer,
   type KnowledgeSpace,
   type KnowledgeSpaceBinding,
@@ -23,7 +23,7 @@ type KnowledgeInput = {
   title: string;
   contentMd: string;
   metadata?: Record<string, unknown>;
-  sourceType: "review_context" | "review_finding" | "review_feedback" | "skill" | "manual";
+  sourceType: "inspection_context" | "inspection_finding" | "inspection_feedback" | "skill" | "manual";
   skillId?: string | null;
 };
 
@@ -35,7 +35,7 @@ type KnowledgeEntryInput = {
   title: string;
   contentMd: string;
   metadataJson?: string;
-  sourceType: "review_context" | "review_finding" | "review_feedback" | "skill" | "manual";
+  sourceType: "inspection_context" | "inspection_finding" | "inspection_feedback" | "skill" | "manual";
   skillId?: string | null;
 };
 
@@ -43,6 +43,16 @@ type RemoteSyncResult = {
   status: string;
   error: string | null;
   response?: unknown;
+};
+
+export type KnowledgeRetrievalTestHit = {
+  id: string;
+  title: string;
+  vikingUri: string;
+  syncStatus: string;
+  layer: string;
+  score: number;
+  excerpt: string;
 };
 
 type OpenVikingApiResult<T> = {
@@ -80,13 +90,13 @@ function getOpenVikingHeaders() {
 function layerFallback(layer: string) {
   const safeLayer = slugify(layer);
   if (layer.startsWith("feedback/")) {
-    return `viking://user/memories/agentworld/code-review/${safeLayer}`;
+    return `viking://user/memories/agentworld/code-inspection/${safeLayer}`;
   }
   if (["security", "quality/test", "data-interface"].includes(layer)) {
-    return `viking://agent/skills/agentworld/code-review/${safeLayer}`;
+    return `viking://agent/skills/agentworld/code-inspection/${safeLayer}`;
   }
 
-  return `viking://resources/agentworld/code-review/${safeLayer}`;
+  return `viking://resources/agentworld/code-inspection/${safeLayer}`;
 }
 
 function getLayer(layerKey: string) {
@@ -338,9 +348,74 @@ export function listLayeredKnowledge(limit = 50) {
   );
 }
 
+function compactWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function buildExcerpt(content: string, query: string) {
+  const normalizedContent = compactWhitespace(content);
+  const normalizedQuery = compactWhitespace(query);
+  if (!normalizedContent) return "";
+  const index = normalizedContent.toLowerCase().indexOf(normalizedQuery.toLowerCase());
+  if (index < 0) return normalizedContent.slice(0, 180);
+  const start = Math.max(0, index - 72);
+  const end = Math.min(normalizedContent.length, index + normalizedQuery.length + 96);
+  const prefix = start > 0 ? "..." : "";
+  const suffix = end < normalizedContent.length ? "..." : "";
+  return `${prefix}${normalizedContent.slice(start, end)}${suffix}`;
+}
+
+export function runKnowledgeRetrievalTest(input: {
+  knowledgeSpaceId: string;
+  query: string;
+  limit?: number;
+}) {
+  const normalizedQuery = compactWhitespace(input.query);
+  if (!normalizedQuery) return [];
+
+  const entries = queryAll<OpenVikingKnowledgeEntry>(
+    "SELECT * FROM openviking_knowledge_entries WHERE knowledge_space_id = ? ORDER BY created_at DESC LIMIT 200",
+    input.knowledgeSpaceId,
+  );
+
+  const queryTerms = normalizedQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return entries
+    .map<KnowledgeRetrievalTestHit | null>((entry) => {
+      const haystackTitle = compactWhitespace(entry.title).toLowerCase();
+      const haystackContent = compactWhitespace(entry.contentMd).toLowerCase();
+      const haystackMetadata = compactWhitespace(entry.metadataJson).toLowerCase();
+
+      let score = 0;
+      for (const term of queryTerms) {
+        if (haystackTitle.includes(term)) score += 6;
+        if (haystackContent.includes(term)) score += 3;
+        if (haystackMetadata.includes(term)) score += 1;
+      }
+
+      if (!score) return null;
+
+      return {
+        id: entry.id,
+        title: entry.title,
+        vikingUri: entry.vikingUri,
+        syncStatus: entry.syncStatus,
+        layer: entry.layer,
+        score,
+        excerpt: buildExcerpt(entry.contentMd, normalizedQuery),
+      };
+    })
+    .filter((item): item is KnowledgeRetrievalTestHit => Boolean(item))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, input.limit ?? 8);
+}
+
 export function listKnowledgeSkills() {
-  return queryAll<CodeReviewSkill>(
-    "SELECT * FROM code_review_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
+  return queryAll<InspectionSkill>(
+    "SELECT * FROM inspection_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
   );
 }
 
@@ -355,11 +430,11 @@ export function updateKnowledgeSkill(
     heuristics: Record<string, unknown>;
   }>,
 ) {
-  const current = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
+  const current = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
   if (!current) throw new Error(uiText("ui.generated.cd4fe99088a"));
 
   execute(
-    "UPDATE code_review_skills SET name = ?, layer = ?, description = ?, is_enabled = ?, prompt_md = ?, heuristics_json = ?, updated_at = ? WHERE id = ?",
+    "UPDATE inspection_skills SET name = ?, layer = ?, description = ?, is_enabled = ?, prompt_md = ?, heuristics_json = ?, updated_at = ? WHERE id = ?",
     input.name ?? current.name,
     input.layer ?? current.layer,
     input.description ?? current.description,
@@ -370,7 +445,7 @@ export function updateKnowledgeSkill(
     skillId,
   );
 
-  return queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
+  return queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
 }
 
 export async function getOpenVikingHealth() {
@@ -410,9 +485,9 @@ export async function readOpenVikingContent(uri: string, level: "L0" | "L1" | "L
   });
 }
 
-export async function syncReviewSkillsToOpenViking() {
-  const skills = queryAll<CodeReviewSkill>(
-    "SELECT * FROM code_review_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
+export async function syncInspectionSkillsToOpenViking() {
+  const skills = queryAll<InspectionSkill>(
+    "SELECT * FROM inspection_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
   );
 
   const results = [];
@@ -422,7 +497,7 @@ export async function syncReviewSkillsToOpenViking() {
         layer: skill.layer,
         scopeKey: `skills/${skill.id}`,
         skillId: skill.id,
-        title: `Review Skill: ${skill.name}`,
+        title: `Inspection Skill: ${skill.name}`,
         sourceType: "skill",
         metadata: {
           skillId: skill.id,

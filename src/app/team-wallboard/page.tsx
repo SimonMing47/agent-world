@@ -33,7 +33,6 @@ export default function TeamWallboardPage() {
                 <DataTableHead>ui.generated.c2b90028ff3</DataTableHead>
                 <DataTableHead>ui.generated.c971c6e5190</DataTableHead>
                 <DataTableHead>ui.generated.c95ce6f5cb5</DataTableHead>
-                <DataTableHead>Finding</DataTableHead>
                 <DataTableHead>ui.generated.c389af6fb71</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
@@ -41,8 +40,6 @@ export default function TeamWallboardPage() {
               {snapshot.businessTeamSummaries.map((team) => {
                 const blueprints = snapshot.taskBlueprints.filter((blueprint) => blueprint.businessTeamName === team.name);
                 const runs = snapshot.task_runs.filter((run) => run.businessTeamId === team.id);
-                const findings =
-                  snapshot.findingDashboard.byBusinessTeam.find((item) => item.businessTeamName === team.name)?.count ?? 0;
                 return (
                   <DataTableRow key={team.id}>
                     <DataTableCell>
@@ -53,7 +50,6 @@ export default function TeamWallboardPage() {
                     </DataTableCell>
                     <DataTableCell>{blueprints.length}</DataTableCell>
                     <DataTableCell>{runs.length}</DataTableCell>
-                    <DataTableCell>{findings}</DataTableCell>
                     <DataTableCell>
                       <Badge variant={team.status === "active" ? "success" : "neutral"}>{team.status}</Badge>
                     </DataTableCell>

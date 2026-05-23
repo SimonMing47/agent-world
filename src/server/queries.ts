@@ -55,12 +55,14 @@ import {
   buildEnvironmentSummary,
   buildTaskExecutionDashboard,
 } from "@/server/environment-core";
-import { buildNodeSpecsFromRunPlan } from "@/server/agent-orchestration-core";
+import {
+  buildNodeSpecsFromRunPlan,
+  synthesizeTeamNodes,
+  type TaskRunNodeSpec,
+} from "@/server/agent-orchestration-core";
 import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
 import {
-  buildFindingDashboard,
-  buildFindingFingerprint,
-  summarizeFinding,
+  ensureTaskRunSummaryFinding,
 } from "@/server/finding-core";
 import {
   buildTaskRunKnowledgeRetrieval,
@@ -74,6 +76,7 @@ import {
   normalizeTriggerType,
   renderTemplateValue,
 } from "@/server/task-blueprint-core";
+import { appendTaskRunEvent, getTaskRunNodes } from "@/server/task-run-event-store";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
 import { getLanguagePackSetting } from "@/server/language-pack-store";
 import { uiText } from "@/lib/language-pack";
@@ -581,7 +584,7 @@ export function listProviderAdapterDefinitions() {
 }
 
 export function listRepositories() {
-  return queryAll<RepositoryProfile>("SELECT * FROM repository_profiles ORDER BY activity_score DESC, name ASC");
+  return queryAll<RepositoryProfile>("SELECT * FROM repository_profiles ORDER BY activity_index DESC, name ASC");
 }
 
 export function listDevelopers() {
@@ -611,6 +614,7 @@ export function getTaskBlueprintEditorOptions() {
     agentTeams: agentTeams.map((team) => ({
       id: team.id,
       name: team.name,
+      businessTeamId: team.businessTeamId,
       workflowType: team.workflowType,
       leaderAgentId: team.leaderAgentId,
       orchestrationPrompt: team.orchestrationPrompt,
@@ -627,6 +631,7 @@ export function getTaskBlueprintEditorOptions() {
     })),
     environments: environments.map((environment) => ({
       id: environment.id,
+      businessTeamId: environment.businessTeamId,
       name: environment.name,
       repositoryProvider: environment.repositoryProvider,
       repositoryName: environment.repositoryName,
@@ -746,11 +751,6 @@ export function getTaskBlueprintsSnapshot() {
       }),
     ),
     providerAdapters,
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns,
-      businessTeams,
-    }),
   };
 }
 
@@ -1253,12 +1253,6 @@ export function getDashboardSnapshot() {
       }),
     ),
     task_runs,
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns: task_runs,
-      businessTeams: business_teams,
-    }),
-    findings: findings.slice(0, 8).map(summarizeFinding),
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
@@ -1313,7 +1307,6 @@ export function getWallboardSnapshot() {
   const business_teams = listBusinessTeams();
   const runtimes = listRuntimeEndpoints();
   const schedules = listScheduleTemplates();
-  const findings = listFindings();
 
   return {
     activeTaskRuns: task_runs.filter((taskRun) => ["running", "awaiting"].includes(taskRun.status)),
@@ -1328,20 +1321,8 @@ export function getWallboardSnapshot() {
       teams,
       business_teams,
     }),
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns: task_runs,
-      businessTeams: business_teams,
-    }),
   };
 }
-
-type TaskRunNodeSpec = {
-  nodeKey: string;
-  agentId: string;
-  dependsOn?: string[];
-  input?: Record<string, unknown>;
-};
 
 type SubmitTaskRunInput = {
   teamId: string;
@@ -1372,168 +1353,6 @@ type SubmitTaskRunInput = {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function getTaskRunNodes(taskRunId: string) {
-  return queryAll<TaskRunNode>("SELECT * FROM task_run_nodes WHERE task_run_id = ? ORDER BY node_key ASC", taskRunId);
-}
-
-function getNextEventSeq(taskRunId: string) {
-  const row = queryOne<{ maxSeq: number | null }>(
-    "SELECT MAX(seq) as maxSeq FROM event_logs WHERE task_run_id = ?",
-    taskRunId,
-  );
-  return (row?.maxSeq ?? 0) + 1;
-}
-
-function appendTaskRunEvent(args: {
-  traceId: string;
-  taskRunId: string;
-  nodeId?: string | null;
-  phase: string;
-  foldGroup: string;
-  title: string;
-  content: string;
-  metadata?: Record<string, unknown>;
-  visibility?: TaskEvent["visibility"];
-  parentEventId?: string | null;
-}) {
-  const eventId = randomUUID();
-  const createdAt = nowIso();
-
-  execute(
-    "INSERT INTO event_logs (id, trace_id, task_run_id, node_id, seq, phase, fold_group, title, content, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    eventId,
-    args.traceId,
-    args.taskRunId,
-    args.nodeId ?? null,
-    getNextEventSeq(args.taskRunId),
-    args.phase,
-    args.foldGroup,
-    args.title,
-    args.content,
-    JSON.stringify(args.metadata ?? {}),
-    createdAt,
-  );
-  execute(
-    "INSERT INTO task_events (id, task_run_id, agent_run_id, event_type, event_time, visibility, payload_json, raw_payload_ref, parent_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    eventId,
-    args.taskRunId,
-    args.nodeId ?? null,
-    args.phase,
-    createdAt,
-    args.visibility ?? "team_only",
-    JSON.stringify({
-      title: args.title,
-      content: args.content,
-      foldGroup: args.foldGroup,
-      metadata: args.metadata ?? {},
-    }),
-    null,
-    args.parentEventId ?? null,
-  );
-}
-
-function ensureTaskRunSummaryFinding(args: {
-  taskRun: TaskRun;
-  blueprint: TaskBlueprint | null;
-}) {
-  const existing = queryOne<Finding>(
-    "SELECT * FROM findings WHERE task_run_id = ? AND status <> 'deleted' LIMIT 1",
-    args.taskRun.id,
-  );
-  if (existing) return;
-
-  const category = args.blueprint?.category ?? "execution";
-  const fingerprint = buildFindingFingerprint({
-    repoId: args.taskRun.sourceRef ?? args.taskRun.id,
-    category,
-    rule: "task-run-summary",
-    normalizedCode: args.taskRun.id,
-  });
-  const now = nowIso();
-  execute(
-    "INSERT INTO findings (id, task_run_id, source_agent, category, severity, confidence, title, description, evidence_json, recommendation, skill_refs_json, fingerprint, status, publication_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    randomUUID(),
-    args.taskRun.id,
-    "system",
-    category,
-    "info",
-    1,
-    uiText("ui.generated.ca3a70dcdff"),
-    uiText("ui.server.taskBlueprint.completedSummary", undefined, { name: args.blueprint?.name ?? uiText("ui.generated.c3172b317f9") }),
-    JSON.stringify({
-      taskRunId: args.taskRun.id,
-      sourceType: args.taskRun.sourceType,
-      sourceRef: args.taskRun.sourceRef,
-    }),
-    uiText("ui.generated.cf9afad7f97"),
-    JSON.stringify([]),
-    fingerprint,
-    "open",
-    JSON.stringify({ channels: [] }),
-    now,
-    now,
-  );
-}
-
-function synthesizeTeamNodes(team: AgentTeam) {
-  const teamAgents = listAgents().filter((agent) => agent.teamId === team.id);
-  const leader = team.leaderAgentId
-    ? teamAgents.find((agent) => agent.id === team.leaderAgentId) ?? null
-    : null;
-  const specialist =
-    teamAgents.find((agent) => agent.role.toLowerCase() === "specialist") ??
-    teamAgents[0] ??
-    null;
-  const executor =
-    teamAgents.find((agent) => agent.role.toLowerCase() === "executor") ??
-    specialist;
-  const reviewer =
-    teamAgents.find((agent) => agent.role.toLowerCase() === "reviewer") ??
-    teamAgents[teamAgents.length - 1] ??
-    null;
-
-  if (!leader && !specialist && !reviewer) return [];
-
-  if (team.workflowType === "single") {
-    const singleAgent = leader ?? specialist ?? reviewer;
-    if (!singleAgent) return [];
-    return [
-      {
-        nodeKey: "single",
-        agentId: singleAgent.id,
-        dependsOn: [],
-        input: { action: "analyze", tool: "memory.read" },
-      },
-    ] satisfies TaskRunNodeSpec[];
-  }
-
-  const defaultLeader = leader ?? specialist ?? reviewer;
-  const defaultSpecialist = executor ?? specialist ?? leader ?? reviewer;
-  const defaultReviewer = reviewer ?? leader ?? specialist;
-  if (!defaultLeader || !defaultSpecialist || !defaultReviewer) return [];
-
-  return [
-    {
-      nodeKey: "plan",
-      agentId: defaultLeader.id,
-      dependsOn: [],
-      input: { action: "plan", tool: "memory.read" },
-    },
-    {
-      nodeKey: "execute",
-      agentId: defaultSpecialist.id,
-      dependsOn: ["plan"],
-      input: { action: "execute", tool: "repo.read" },
-    },
-    {
-      nodeKey: "review",
-      agentId: defaultReviewer.id,
-      dependsOn: ["execute"],
-      input: { action: "review", tool: "repo.write" },
-    },
-  ] satisfies TaskRunNodeSpec[];
 }
 
 function loadComposedExecutionPolicyForTaskRun(taskRun: TaskRun) {
@@ -1706,7 +1525,7 @@ export function submitTaskRun(input: SubmitTaskRunInput) {
   const traceId = randomUUID();
   const planId = randomUUID();
   const createdAt = nowIso();
-  const nodeSpecs = input.nodes?.length ? input.nodes : synthesizeTeamNodes(team);
+  const nodeSpecs = input.nodes?.length ? input.nodes : synthesizeTeamNodes(team, listAgents());
   const inputPayload = {
     ...input.inputPayload,
     environmentId:
@@ -2524,7 +2343,7 @@ export function getTaskRunExecutionBoard(taskRunId: string) {
   if (!taskRun) return null;
   const nodes = getTaskRunNodes(taskRunId);
 
-  const readyByDependency = nodes.map((node) => {
+  const dependencyStatus = nodes.map((node) => {
     const deps = JSON.parse(node.dependsOnJson) as string[];
     const dependencyNodes = nodes.filter((candidate) => deps.includes(candidate.nodeKey));
     const dependenciesReady =
@@ -2554,7 +2373,7 @@ export function getTaskRunExecutionBoard(taskRunId: string) {
     taskRunId,
     taskRunStatus: taskRun.status,
     board: buildExecutionBoard(nodes),
-    readiness: readyByDependency,
+    dependencyStatus,
     metrics: {
       throughput: Number(throughput.toFixed(2)),
       failureRate: Number(failureRate.toFixed(2)),

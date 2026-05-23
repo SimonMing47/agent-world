@@ -201,7 +201,7 @@ export function DialogContent({
     <>
       <button
         aria-label={text("ui.generated.c81f18d4d48")}
-        className="fixed inset-0 z-40 cursor-default bg-black/18 backdrop-blur-[3px]"
+        className="fixed inset-0 z-40 cursor-default bg-[rgba(15,23,42,0.18)] backdrop-blur-[10px]"
         onClick={() => context.setOpen(false)}
         tabIndex={-1}
         type="button"
@@ -212,7 +212,7 @@ export function DialogContent({
         aria-labelledby={context.titleId}
         aria-modal="true"
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(92vw,760px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-[0_18px_48px_rgba(0,0,0,0.12)] outline-none",
+          "fixed left-1/2 top-1/2 z-50 flex max-h-[88vh] w-[min(92vw,760px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] border border-white/70 bg-[rgba(255,255,255,0.96)] shadow-[var(--shadow-strong)] outline-none",
           className,
         )}
         role="dialog"

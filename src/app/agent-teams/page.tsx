@@ -23,8 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { translateVisibility, translateWorkflowType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -59,7 +62,7 @@ function translateTeamStructure(value: string) {
   const labels: Record<string, string> = {
     leader_worker: "Leader / Worker",
     collaborative: "ui.common.workflow.teamStructure.collaborative",
-    reviewer_publisher: "ui.common.workflow.teamStructure.reviewerPublisher",
+    inspector_publisher: "ui.common.workflow.teamStructure.inspectorPublisher",
     custom: "ui.common.workflow.teamStructure.custom",
   };
   return labels[value] ?? value;
@@ -119,13 +122,25 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
   };
 }
 
-export default function AgentTeamsPage() {
-  const teams = listAgentTeams();
-  const members = listAgentTeamMemberProfiles();
-  const shares = listAgentTeamShares();
-  const businessTeams = listBusinessTeams();
-  const agentDefinitions = listAgentDefinitions();
-  const executionPolicies = listExecutionPolicies();
+export default async function AgentTeamsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const shares = listAgentTeamShares().filter((share) => visibleBusinessTeamIds.has(share.businessTeamId));
+  const sharedTeamIds = new Set(shares.map((share) => share.agentTeamId));
+  const teams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId) || sharedTeamIds.has(team.id));
+  const visibleTeamIds = new Set(teams.map((team) => team.id));
+  const members = listAgentTeamMemberProfiles().filter((member) => visibleTeamIds.has(member.teamId));
+  const agentDefinitions = listAgentDefinitions().filter((definition) =>
+    definition.visibility === "global" ||
+    canAccessBusinessTeam(authContext, definition.ownerBusinessTeamId, { allowGlobal: true }),
+  );
+  const executionPolicies = listExecutionPolicies().filter((policy) =>
+    canAccessBusinessTeam(authContext, policy.businessTeamId, { allowGlobal: true }),
+  );
   return (
     <div className="space-y-6">
       <PageHeader
@@ -253,7 +268,7 @@ export default function AgentTeamsPage() {
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{teamMembers.length} ui.generated.ce8bf2e8cb2</div>
+                      <div>{teamMembers.length} {t("ui.generated.ce8bf2e8cb2", "个成员")}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {roleSummary || "ui.generated.caf1c75f2b4"}
                       </div>

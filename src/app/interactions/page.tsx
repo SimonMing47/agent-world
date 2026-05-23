@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Eye, Plus } from "lucide-react";
+import { Bot, Eye, Plus, Users, Workflow } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { RuntimeSessionCreateForm } from "@/components/runtime-session-create-form";
 import { PageHeader } from "@/components/page-header";
@@ -22,17 +22,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Panel, PanelHeader } from "@/components/ui/panel";
+import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { translateSessionMode, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import {
   listAgentDefinitions,
   listAgentTeams,
+  listBusinessTeams,
   listProviders,
   listProviderRuntimeBindings,
   listTenantSpaces,
-  listBusinessTeams,
 } from "@/server/queries";
 import { listRuntimeSessions } from "@/server/runtime-session-core";
 
@@ -43,24 +46,115 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
   return "success";
 }
 
-export default function RuntimeInteractionsPage() {
-  const runtimeSessions = listRuntimeSessions();
-  const runtimeBindings = listProviderRuntimeBindings();
+function launchDialog(
+  mode: "single_agent" | "agent_team",
+  title: string,
+  description: string,
+  triggerLabel: string,
+  props: Parameters<typeof RuntimeSessionCreateForm>[0],
+) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button size="sm" variant={mode === "agent_team" ? "primary" : "secondary"}>
+          <Plus className="h-4 w-4" />
+          {triggerLabel}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="w-[min(92vw,860px)]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogBody>
+          <RuntimeSessionCreateForm {...props} initialMode={mode} />
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ActionCard({
+  icon,
+  title,
+  description,
+  badge,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  badge: string;
+  action: React.ReactNode;
+}) {
+  return (
+    <div className="aw-kpi-card px-5 py-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[var(--ink)]">
+          {icon}
+        </div>
+        <Badge variant="neutral">{badge}</Badge>
+      </div>
+      <div className="mt-4 text-base font-semibold tracking-tight text-[var(--ink)]">{title}</div>
+      <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{description}</p>
+      <div className="mt-5">{action}</div>
+    </div>
+  );
+}
+
+export default async function RuntimeInteractionsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const runtimeSessions = listRuntimeSessions().filter((session) => visibleBusinessTeamIds.has(session.businessTeamId));
+  const runtimeBindings = listProviderRuntimeBindings().filter((binding) =>
+    canAccessBusinessTeam(authContext, binding.businessTeamId, { allowGlobal: true }),
+  );
   const providerProfiles = listProviders();
-  const agentTeams = listAgentTeams();
-  const agentDefinitions = listAgentDefinitions();
-  const tenantSpaces = listTenantSpaces();
-  const businessTeams = listBusinessTeams();
+  const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
+  const agentDefinitions = listAgentDefinitions().filter((definition) =>
+    definition.visibility === "global" ||
+    canAccessBusinessTeam(authContext, definition.ownerBusinessTeamId, { allowGlobal: true }),
+  );
+  const visibleTenantSpaceIds = new Set(businessTeams.map((team) => team.tenantSpaceId));
+  const tenantSpaces = authContext?.user.isSystemAdmin === 1
+    ? listTenantSpaces()
+    : listTenantSpaces().filter((space) => visibleTenantSpaceIds.has(space.id));
+
+  const createFormProps = {
+    tenantSpaces: tenantSpaces.map((space) => ({ id: space.id, name: space.name })),
+    businessTeams: businessTeams.map((team) => ({ id: team.id, name: team.name })),
+    runtimeBindings,
+    providerProfiles,
+    agentTeams: agentTeams.map((team) => ({ id: team.id, name: team.name })),
+    agentDefinitions: agentDefinitions.map((definition) => ({
+      id: definition.id,
+      name: definition.name,
+      systemPrompt: definition.systemPrompt,
+      model: definition.model,
+      defaultProviderProfileId: definition.defaultProviderProfileId,
+      defaultRuntimeBindingId: definition.defaultRuntimeBindingId,
+      harnessConfigJson: definition.harnessConfigJson,
+      permissionPolicyJson: definition.permissionPolicyJson,
+    })),
+  } satisfies Parameters<typeof RuntimeSessionCreateForm>[0];
+
+  const runningSessions = runtimeSessions.filter((session) => session.status === "running");
+  const teamSessions = runtimeSessions.filter((session) => session.mode === "agent_team");
+  const recentSessions = runtimeSessions.slice(0, 5);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.cd7d45d4eb7"
-        title="ui.generated.cd7d45d4eb7"
-        description="ui.generated.c923f90e11b"
+        eyebrow="console.interactions.eyebrow"
+        title="console.interactions.title"
+        description="console.interactions.pageDescription"
         badges={[
-          { label: <>{runtimeSessions.length} ui.common.count.sessions</>, variant: "accent" },
-          { label: <>{providerProfiles.length} ui.common.count.modelServices</>, variant: "neutral" },
+          { label: `${runtimeSessions.length} ${t("ui.common.count.sessions", "个会话")}`, variant: "accent" },
+          { label: `${runningSessions.length} ${t("ui.common.detail.running", "个运行中")}`, variant: "neutral" },
         ]}
       />
 
@@ -69,73 +163,124 @@ export default function RuntimeInteractionsPage() {
           {
             label: "ui.generated.c4d72abd2e9",
             value: runtimeSessions.length,
-            detail: <>{runtimeSessions.filter((session) => session.status === "running").length} ui.common.detail.running</>,
+            detail: `${runningSessions.length} ${t("ui.common.detail.running", "个运行中")}`,
           },
           {
             label: "ui.generated.c6f6a995823",
-            value: runtimeSessions.filter((session) => session.mode === "agent_team").length,
-            detail: "ui.generated.c2f7aaafef2",
+            value: teamSessions.length,
+            detail: "console.interactions.summary.teamDetail",
           },
           {
             label: "ui.generated.c8e175e7aa9",
             value: runtimeBindings.length,
-            detail: <>{providerProfiles.length} ui.common.detail.modelServicesSelectable</>,
+            detail: `${providerProfiles.length} ${t("ui.common.detail.modelServicesSelectable", "个可选模型服务")}`,
           },
         ]}
       />
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <Panel>
+          <PanelHeader
+            eyebrow="console.interactions.heroTag"
+            title="console.interactions.launch.title"
+            description="console.interactions.launch.description"
+          />
+          <PanelBody className="grid gap-4 lg:grid-cols-2">
+            <ActionCard
+              icon={<Bot className="h-4.5 w-4.5" />}
+              title={t("console.interactions.singleAgent.title")}
+              description={t("console.interactions.singleAgent.description")}
+              badge={t("console.interactions.singleAgent.badge")}
+              action={launchDialog(
+                "single_agent",
+                t("console.interactions.singleAgent.dialogTitle"),
+                t("console.interactions.singleAgent.dialogDescription"),
+                t("console.interactions.singleAgent.action"),
+                createFormProps,
+              )}
+            />
+            <ActionCard
+              icon={<Workflow className="h-4.5 w-4.5" />}
+              title={t("console.interactions.agentTeam.title")}
+              description={t("console.interactions.agentTeam.description")}
+              badge={t("console.interactions.agentTeam.badge")}
+              action={launchDialog(
+                "agent_team",
+                t("console.interactions.agentTeam.dialogTitle"),
+                t("console.interactions.agentTeam.dialogDescription"),
+                t("console.interactions.agentTeam.action"),
+                createFormProps,
+              )}
+            />
+          </PanelBody>
+        </Panel>
+
+        <Panel>
+          <PanelHeader
+            eyebrow="console.interactions.recent.eyebrow"
+            title="console.interactions.recent.title"
+            description="console.interactions.recent.description"
+          />
+          <PanelBody className="p-0">
+            {recentSessions.length ? (
+              <DataTable>
+                <DataTableHeader>
+                  <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>{t("ui.generated.c836ffe0e10", "会话")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.ced0eea8f20", "模式")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
+                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                  </DataTableRow>
+                </DataTableHeader>
+                <DataTableBody>
+                  {recentSessions.map((session) => (
+                    <DataTableRow key={session.id}>
+                      <DataTableCell className="min-w-[260px]">
+                        <div className="font-medium text-[var(--ink)]">{session.title}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.model}</div>
+                      </DataTableCell>
+                      <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
+                      <DataTableCell>
+                        <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
+                      </DataTableCell>
+                      <DataTableCell align="right">
+                        <Link href={`/interactions/${session.id}`} className="text-sm font-medium text-[var(--accent)]">
+                          {t("console.interactions.openSession")}
+                        </Link>
+                      </DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            ) : (
+              <PanelBody>
+                <div className="aw-compact-empty">
+                  <div className="aw-compact-empty__title">{t("console.interactions.recent.empty")}</div>
+                  <div className="aw-compact-empty__description">从这里回到最近的单 Agent 或多 Agent 运行。</div>
+                </div>
+              </PanelBody>
+            )}
+          </PanelBody>
+        </Panel>
+      </div>
+
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.c592ea605ec"
-          title="ui.generated.c4e71e7bdab"
-          description="ui.generated.c6dc32bec15"
-          action={
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="secondary">
-                  <Plus className="h-4 w-4" />
-                  ui.generated.c3da224c43d
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[min(92vw,860px)]">
-                <DialogHeader>
-                  <DialogTitle>ui.generated.c200cb4b94a</DialogTitle>
-                  <DialogDescription>ui.generated.cfb9ea35772</DialogDescription>
-                </DialogHeader>
-                <DialogBody>
-	                  <RuntimeSessionCreateForm
-	                    tenantSpaces={tenantSpaces.map((space) => ({ id: space.id, name: space.name }))}
-	                    businessTeams={businessTeams.map((team) => ({ id: team.id, name: team.name }))}
-	                    runtimeBindings={runtimeBindings}
-                    providerProfiles={providerProfiles}
-                    agentTeams={agentTeams.map((team) => ({ id: team.id, name: team.name }))}
-                    agentDefinitions={agentDefinitions.map((definition) => ({
-                      id: definition.id,
-                      name: definition.name,
-                      systemPrompt: definition.systemPrompt,
-                      model: definition.model,
-                      defaultProviderProfileId: definition.defaultProviderProfileId,
-                      defaultRuntimeBindingId: definition.defaultRuntimeBindingId,
-                      harnessConfigJson: definition.harnessConfigJson,
-                      permissionPolicyJson: definition.permissionPolicyJson,
-                    }))}
-                  />
-                </DialogBody>
-              </DialogContent>
-            </Dialog>
-          }
+          eyebrow="console.interactions.table.eyebrow"
+          title="console.interactions.table.title"
+          description="console.interactions.table.description"
         />
-        <div className="overflow-hidden rounded-b-lg">
+        <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>
-              <DataTableRow>
-                <DataTableHead>ui.generated.c836ffe0e10</DataTableHead>
-                <DataTableHead>ui.generated.ced0eea8f20</DataTableHead>
-                <DataTableHead>ui.generated.c8e175e7aa9</DataTableHead>
-                <DataTableHead>ui.generated.c98fd0cbd9c</DataTableHead>
-                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
-                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
-                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+              <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>{t("ui.generated.c836ffe0e10", "会话")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.ced0eea8f20", "模式")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c8e175e7aa9", "执行配置")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c98fd0cbd9c", "所属团队")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c093dea88c9", "更新时间")}</DataTableHead>
+                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -148,7 +293,7 @@ export default function RuntimeInteractionsPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
                     </DataTableCell>
                     <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
-                    <DataTableCell>{runtime?.name ?? "ui.generated.c53215c3826"}</DataTableCell>
+                    <DataTableCell>{runtime?.name ?? t("ui.generated.c53215c3826", "未绑定")}</DataTableCell>
                     <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
                       <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
@@ -159,7 +304,7 @@ export default function RuntimeInteractionsPage() {
                         <Link href={`/interactions/${session.id}`}>
                           <Button size="sm" variant="ghost">
                             <Eye className="h-4 w-4" />
-                            ui.generated.c65fc81e161
+                            {t("console.interactions.openSession")}
                           </Button>
                         </Link>
                         <DeleteResourceButton
@@ -174,7 +319,37 @@ export default function RuntimeInteractionsPage() {
               })}
             </DataTableBody>
           </DataTable>
-        </div>
+        </PanelBody>
+      </Panel>
+
+      <Panel>
+        <PanelBody className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              icon: Bot,
+              title: t("console.interactions.capabilities.dialogueTitle"),
+              description: t("console.interactions.capabilities.dialogueDescription"),
+            },
+            {
+              icon: Users,
+              title: t("console.interactions.capabilities.teamTitle"),
+              description: t("console.interactions.capabilities.teamDescription"),
+            },
+            {
+              icon: Workflow,
+              title: t("console.interactions.capabilities.traceTitle"),
+              description: t("console.interactions.capabilities.traceDescription"),
+            },
+          ].map((item) => (
+            <div key={item.title} className="aw-kpi-card px-5 py-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[var(--ink)]">
+                <item.icon className="h-4.5 w-4.5" />
+              </div>
+              <div className="mt-4 text-sm font-semibold text-[var(--ink)]">{item.title}</div>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{item.description}</p>
+            </div>
+          ))}
+        </PanelBody>
       </Panel>
     </div>
   );

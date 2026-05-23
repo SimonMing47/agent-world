@@ -24,6 +24,7 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { WebhookEndpointForm } from "@/components/webhook-endpoint-form";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listAgentTeams, listBusinessTeams, listWebhooks } from "@/server/queries";
 
 function defaultWebhook(businessTeamId: string, teamId: string) {
@@ -40,10 +41,12 @@ function defaultWebhook(businessTeamId: string, teamId: string) {
   };
 }
 
-export default function WebhooksPage() {
-  const webhooks = listWebhooks();
-  const businessTeams = listBusinessTeams();
-  const agentTeams = listAgentTeams();
+export default async function WebhooksPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const webhooks = listWebhooks().filter((webhook) => visibleBusinessTeamIds.has(webhook.businessTeamId));
+  const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
   const businessTeamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
   const agentTeamOptions = agentTeams.map((team) => ({ id: team.id, name: team.name }));
 

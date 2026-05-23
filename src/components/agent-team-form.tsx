@@ -239,7 +239,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
           <Input
             value={form.slug}
             onChange={(event) => setForm({ ...form, slug: slugify(event.target.value) })}
-            placeholder="security-review-team"
+            placeholder="security-inspection-team"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.c26f30fd79b">
@@ -283,7 +283,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             value={form.teamStructure}
             onChange={(event) => setForm({ ...form, teamStructure: event.target.value })}
           >
-            {["leader_worker", "collaborative", "reviewer_publisher", "custom"].map((value) => (
+            {["leader_worker", "collaborative", "inspector_publisher", "custom"].map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
@@ -329,7 +329,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             value={form.conflictResolution}
             onChange={(event) => setForm({ ...form, conflictResolution: event.target.value })}
           >
-            {["leader_decision", "majority_vote", "manual_review"].map((value) => (
+            {["leader_decision", "majority_vote", "manual_check"].map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>

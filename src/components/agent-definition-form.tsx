@@ -473,21 +473,21 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                 slug: current.id ? current.slug : slugify(event.target.value),
               }))
             }
-            placeholder="Security Reviewer"
+            placeholder="Security Inspector"
           />
         </FieldGroup>
         <FieldGroup label="Slug">
           <Input
             value={form.slug}
             onChange={(event) => setForm({ ...form, slug: slugify(event.target.value) })}
-            placeholder="security-reviewer"
+            placeholder="security-inspectioner"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.c6b26695e4d">
           <Input
             value={form.role}
             onChange={(event) => setForm({ ...form, role: event.target.value })}
-            placeholder="reviewer"
+            placeholder="inspector"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.c62e951a692">
@@ -605,7 +605,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
           <Textarea
             value={form.tagsText}
             onChange={(event) => setForm({ ...form, tagsText: event.target.value })}
-            placeholder={"security\nreview\nmr"}
+            placeholder={"security\ninspect\nmr"}
           />
         </FieldGroup>
       </div>

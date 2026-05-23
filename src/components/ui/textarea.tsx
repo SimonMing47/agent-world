@@ -14,7 +14,7 @@ export const Textarea = React.forwardRef<
       ref={ref}
       aria-label={typeof ariaLabel === "string" ? text(ariaLabel) : ariaLabel}
       className={cn(
-        "min-h-24 w-full rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-sm leading-6 text-[var(--ink)] outline-none transition-colors focus:border-[var(--accent)]/45 focus:ring-2 focus:ring-[var(--accent)]/12 disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:opacity-70",
+        "min-h-24 w-full rounded-xl border border-[rgba(15,23,42,0.06)] bg-[rgba(255,255,255,0.92)] px-4 py-3 text-sm leading-7 text-[var(--ink)] shadow-[0_1px_2px_rgba(15,23,42,0.02)] outline-none transition-colors focus:border-[var(--accent)]/22 focus:ring-2 focus:ring-[var(--accent)]/10 disabled:cursor-not-allowed disabled:bg-[var(--surface-muted)] disabled:opacity-70",
         className,
       )}
       placeholder={typeof placeholder === "string" ? text(placeholder) : placeholder}

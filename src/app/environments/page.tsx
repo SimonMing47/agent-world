@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listBusinessTeams, listExecutionEnvironments } from "@/server/queries";
 
 function defaultEnvironment(businessTeamId: string) {
@@ -45,9 +46,13 @@ function defaultEnvironment(businessTeamId: string) {
   };
 }
 
-export default function EnvironmentsPage() {
-  const environments = listExecutionEnvironments();
-  const businessTeams = listBusinessTeams();
+export default async function EnvironmentsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const environments = listExecutionEnvironments().filter((environment) =>
+    visibleBusinessTeamIds.has(environment.businessTeamId),
+  );
   const businessTeamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listTeamAssetGrants, listTeamMembers } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -41,9 +42,11 @@ export default async function TeamAssetsPage({
   searchParams?: Promise<{ teamId?: string }>;
 }) {
   const params = await searchParams;
-  const grants = listTeamAssetGrants();
-  const members = listTeamMembers();
-  const businessTeams = listBusinessTeams();
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const grants = listTeamAssetGrants().filter((grant) => visibleBusinessTeamIds.has(grant.businessTeamId));
+  const members = listTeamMembers().filter((member) => visibleBusinessTeamIds.has(member.businessTeamId));
   const selectedTeamId = params?.teamId ?? "";
   const selectedTeam = businessTeams.find((team) => team.id === selectedTeamId);
   const visibleGrants = selectedTeam ? grants.filter((grant) => grant.businessTeamId === selectedTeam.id) : grants;

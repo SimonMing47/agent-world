@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import {
   bindKnowledgeSpace,
   createKnowledgeSpace,
@@ -7,18 +8,40 @@ import {
   listKnowledgeSpaces,
   upsertKnowledgeSpace,
 } from "@/server/knowledge-core";
+import { listAgentTeams, listTaskBlueprints } from "@/server/queries";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export function GET() {
+function resolveSpaceBusinessTeamId(space: { businessTeamId?: string | null; agentTeamId?: string | null }) {
+  if (space.businessTeamId) return space.businessTeamId;
+  if (!space.agentTeamId) return null;
+  return listAgentTeams().find((team) => team.id === space.agentTeamId)?.businessTeamId ?? null;
+}
+
+function resolveBindingTargetBusinessTeamId(targetType: string, targetId: string) {
+  if (targetType === "business_team") return targetId;
+  if (targetType === "agent_team") return listAgentTeams().find((team) => team.id === targetId)?.businessTeamId ?? null;
+  if (targetType === "task_blueprint") {
+    return listTaskBlueprints().find((blueprint) => blueprint.id === targetId)?.ownerBusinessTeamId ?? null;
+  }
+  return null;
+}
+
+export async function GET() {
+  const authContext = await getRequestAuthContext();
+  const spaces = listKnowledgeSpaces().filter((space) =>
+    canAccessBusinessTeam(authContext, resolveSpaceBusinessTeamId(space), { allowGlobal: space.visibility === "global" }),
+  );
+  const visibleSpaceIds = new Set(spaces.map((space) => space.id));
   return NextResponse.json({
-    spaces: listKnowledgeSpaces(),
-    bindings: listKnowledgeSpaceBindings(),
+    spaces,
+    bindings: listKnowledgeSpaceBindings().filter((binding) => visibleSpaceIds.has(binding.knowledgeSpaceId)),
   });
 }
 
 export async function POST(request: Request) {
+  const authContext = await getRequestAuthContext();
   const body = (await request.json().catch(() => ({}))) as {
     action?: "create_space" | "bind_space";
     name?: string;
@@ -47,6 +70,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    const space = listKnowledgeSpaces().find((item) => item.id === body.knowledgeSpaceId);
+    requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(space ?? {}), {
+      allowGlobal: space?.visibility === "global",
+    });
+    requireBusinessTeamAccess(authContext, resolveBindingTargetBusinessTeamId(body.targetType, body.targetId), {
+      allowGlobal: body.targetType === "agent_definition",
+    });
 
     const binding = bindKnowledgeSpace({
       knowledgeSpaceId: body.knowledgeSpaceId,
@@ -92,6 +122,9 @@ export async function POST(request: Request) {
     retentionPolicy,
     bindToAgentTeam: Boolean(body.agentTeamId),
   };
+  requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(payload), {
+    allowGlobal: body.visibility === "global" && authContext?.user.isSystemAdmin === 1,
+  });
   const space = body.id ? upsertKnowledgeSpace(payload) : createKnowledgeSpace(payload);
 
   return NextResponse.json({ ok: true, space });
@@ -103,6 +136,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
+  const authContext = await getRequestAuthContext();
+  const space = listKnowledgeSpaces().find((item) => item.id === body.id);
+  requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(space ?? {}), {
+    allowGlobal: space?.visibility === "global",
+  });
   deleteKnowledgeSpace(body.id);
   return NextResponse.json({ ok: true });
 }

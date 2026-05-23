@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getSettingsSnapshot } from "@/server/queries";
 
 function parseConfig(value: string) {
@@ -74,10 +76,23 @@ function defaultBinding() {
 }
 
 export default function RuntimeBindingsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
+  const tenantSpaceOptions = snapshot.tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
   const providerOptions = snapshot.providers.map((provider) => ({ id: provider.id, name: provider.name }));
   const adapterOptions = snapshot.providerAdapters.map((adapter) => ({ id: adapter.id, name: adapter.name }));
   const businessTeamOptions = snapshot.businessTeams.map((team) => ({ id: team.id, name: team.name }));
+  const defaultTenantSpaceId = tenantSpaceOptions[0]?.id ?? "";
+  const initialBinding = {
+    ...defaultBinding(),
+    tenantSpaceId: defaultTenantSpaceId,
+    adapterDefinitionId: adapterOptions[0]?.id ?? "builtin-agent-runtime",
+    businessTeamId: businessTeamOptions[0]?.id ?? null,
+    defaultProviderProfileId: providerOptions[0]?.id ?? null,
+    workspaceRoot: process.cwd(),
+  };
 
   return (
     <div className="space-y-6">
@@ -86,8 +101,8 @@ export default function RuntimeBindingsPage() {
         title="ui.generated.c94a82a5175"
         description="ui.generated.c88de2a0e95"
         badges={[
-          { label: <>{snapshot.providerRuntimeBindings.length} ui.common.count.runtimeBindings</>, variant: "accent" },
-          { label: <>ui.common.enabled {snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}</>, variant: "success" },
+          { label: `${snapshot.providerRuntimeBindings.length} ${t("ui.common.count.runtimeBindings", "个执行配置")}`, variant: "accent" },
+          { label: `${t("ui.common.enabled", "启用")} ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
         ]}
       />
 
@@ -110,22 +125,23 @@ export default function RuntimeBindingsPage() {
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  ui.generated.c189e8fb772
+                  {t("ui.generated.c189e8fb772", "新增执行配置")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>ui.generated.c189e8fb772</DialogTitle>
-                  <DialogDescription>ui.generated.cf3fd2c809a</DialogDescription>
+                  <DialogTitle>{t("ui.generated.c189e8fb772", "新增执行配置")}</DialogTitle>
+                  <DialogDescription>{t("ui.generated.cf3fd2c809a", "绑定团队默认运行时、模型服务与工作目录。")}</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <ProviderRuntimeBindingForm
                     embedded
-                    title="ui.generated.c189e8fb772"
+                    title={t("ui.generated.c189e8fb772", "新增执行配置")}
+                    tenantSpaceOptions={tenantSpaceOptions}
                     providerOptions={providerOptions}
                     adapterOptions={adapterOptions}
                     businessTeamOptions={businessTeamOptions}
-                    binding={defaultBinding()}
+                    binding={initialBinding}
                   />
                 </DialogBody>
               </DialogContent>
@@ -136,12 +152,12 @@ export default function RuntimeBindingsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>ui.generated.c8e175e7aa9</DataTableHead>
-                <DataTableHead>ui.generated.c26f30fd79b</DataTableHead>
-                <DataTableHead>ui.generated.cbff226d7bb</DataTableHead>
-                <DataTableHead>ui.generated.c86e118291e</DataTableHead>
-                <DataTableHead>ui.generated.c62e951a692</DataTableHead>
-                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+                <DataTableHead>{t("ui.generated.c8e175e7aa9", "执行配置")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c26f30fd79b", "业务团队")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.cbff226d7bb", "默认模型服务")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c86e118291e", "Base URL / 命令")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
+                <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -215,6 +231,7 @@ export default function RuntimeBindingsPage() {
                               <ProviderRuntimeBindingForm
                                 embedded
                                 title="ui.generated.ca14179b9c6"
+                                tenantSpaceOptions={tenantSpaceOptions}
                                 providerOptions={providerOptions}
                                 adapterOptions={adapterOptions}
                                 businessTeamOptions={businessTeamOptions}

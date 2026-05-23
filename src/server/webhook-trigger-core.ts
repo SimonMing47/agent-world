@@ -140,7 +140,7 @@ export function buildWebhookTaskInput(pathKey: string, payload: unknown, request
     comment_api_url:
       firstString(payload, [
         ["agentworld", "commentApiUrl"],
-        ["review", "commentApiUrl"],
+        ["inspection", "commentApiUrl"],
         ["commentApiUrl"],
       ]) ?? null,
     raw_payload: payload,
