@@ -24,9 +24,11 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { canAccessBusinessTeam, getRequestAuthContext } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import {
   getTaskBlueprintEditorOptions,
   getTaskBlueprintsSnapshot,
@@ -103,6 +105,9 @@ export default async function TaskBlueprintsPage({
 }: {
   searchParams?: Promise<{ teamId?: string }>;
 }) {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const params = await searchParams;
   const authContext = await getRequestAuthContext();
   const snapshot = getTaskBlueprintsSnapshot();
@@ -127,9 +132,6 @@ export default async function TaskBlueprintsPage({
       .map((blueprint) => blueprint.id),
   );
   const visibleBlueprints = snapshot.blueprints.filter((blueprint) => visibleBlueprintIds.has(blueprint.id));
-  const visibleFindingTotal = snapshot.findingDashboard.byBusinessTeam
-    .filter((item) => canAccessBusinessTeam(authContext, item.businessTeamId))
-    .reduce((sum, item) => sum + item.count, 0);
   const baseDefaultBlueprint = defaultBlueprint();
   const defaultNewBlueprint = {
     ...baseDefaultBlueprint,
@@ -164,11 +166,6 @@ export default async function TaskBlueprintsPage({
             label: "ui.generated.c549d54135d",
             value: visibleBlueprints.filter((item) => item.environmentName !== "ui.generated.c304b35fa0b").length,
             detail: "ui.generated.c3fd83f822a",
-          },
-          {
-            label: "ui.generated.cb8c4d70c66",
-            value: visibleFindingTotal,
-            detail: "ui.generated.cd6f1ab3e5c",
           },
         ]}
       />
@@ -257,7 +254,7 @@ export default async function TaskBlueprintsPage({
                     <DataTableCell>
                       <div>{blueprint.environmentName}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {selector.executionPath ? <>ui.common.pathPrefix {String(selector.executionPath)}</> : "ui.generated.c4202f60d95"}
+                        {selector.executionPath ? <>{t("ui.common.pathPrefix", "路径")} {String(selector.executionPath)}</> : "ui.generated.c4202f60d95"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -270,7 +267,7 @@ export default async function TaskBlueprintsPage({
                         </span>
                       </div>
                       <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                        ui.generated.c94f172d02f {publishers.length ? publishers.join(", ") : "dashboard"}
+                        {t("ui.generated.c94f172d02f", "发布")} {publishers.length ? publishers.join(", ") : "dashboard"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(raw.updatedAt)}</DataTableCell>

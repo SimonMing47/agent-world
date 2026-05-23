@@ -50,7 +50,7 @@ export function DataTableRow({
   children: React.ReactNode;
 }) {
   return (
-    <tr className={cn("border-b border-[var(--line)] transition-colors hover:bg-[var(--surface-subtle)]/68 focus-within:bg-[var(--surface-subtle)]/68", className)}>
+    <tr className={cn("border-b border-[var(--line)] transition-colors hover:bg-[var(--surface-subtle)]/78 focus-within:bg-[var(--surface-subtle)]/78", className)}>
       {children}
     </tr>
   );
@@ -69,13 +69,16 @@ export function DataTableHead({
 
   return (
     <th
+      suppressHydrationWarning
       className={cn(
-        "border-b border-[var(--line)] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--ink-subtle)]",
+        "border-b border-[var(--line)] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--ink-subtle)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}
     >
-      {localizeNode(children, text)}
+      <span suppressHydrationWarning className="contents">
+        {localizeNode(children, text)}
+      </span>
     </th>
   );
 }
@@ -93,13 +96,16 @@ export function DataTableCell({
 
   return (
     <td
+      suppressHydrationWarning
       className={cn(
-        "px-4 py-4 align-top text-sm text-[var(--ink-muted)]",
+        "px-4 py-4 align-top text-sm leading-6 text-[var(--ink-muted)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",
         className,
       )}
     >
-      {localizeNode(children, text)}
+      <span suppressHydrationWarning className="contents">
+        {localizeNode(children, text)}
+      </span>
     </td>
   );
 }

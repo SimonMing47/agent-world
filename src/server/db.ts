@@ -945,6 +945,50 @@ function archiveIncompatibleDatabaseIfNeeded() {
 
 let database: DatabaseSyncType | null = null;
 
+const builtInProviderAdapterDefinitions: Array<{
+  id: string;
+  name: string;
+  adapterType: string;
+  entryRef: string;
+  version: string;
+  lifecycle: string;
+  capabilitiesJson: string;
+  configSchemaJson: string;
+  secretRefsJson: string;
+  permissionRefsJson: string;
+  healthStatus: string;
+}> = [
+  {
+    id: "builtin-agent-runtime",
+    name: "Unified Agent Runtime",
+    adapterType: "embedded",
+    entryRef: "internal://runtime/pi",
+    version: "1.0.0",
+    lifecycle: "general_availability",
+    capabilitiesJson: JSON.stringify(
+      ["session.create", "event.stream", "message.send", "session.cancel", "artifact.collect", "runtime.discover"],
+      null,
+      2,
+    ),
+    configSchemaJson: JSON.stringify(
+      {
+        type: "object",
+        properties: {
+          defaultModel: { type: "string" },
+          approvalMode: { enum: ["allow", "ask", "deny", "manual"] },
+          eventContract: { type: "string" },
+          env: { type: "object" },
+        },
+      },
+      null,
+      2,
+    ),
+    secretRefsJson: JSON.stringify(["env:*"], null, 2),
+    permissionRefsJson: JSON.stringify(["tool.read", "tool.execute", "memory.read"], null, 2),
+    healthStatus: "healthy",
+  },
+];
+
 function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "agent_definitions", "harness_config_json")) {
     db.exec(
@@ -1015,6 +1059,34 @@ function ensureAgentTeamCatalogColumns(db: DatabaseSyncType) {
   }
 }
 
+function ensureBuiltInProviderAdapterDefinitions(db: DatabaseSyncType) {
+  for (const adapter of builtInProviderAdapterDefinitions) {
+    const current = db
+      .prepare("SELECT id FROM provider_adapter_definitions WHERE id = ?")
+      .get(adapter.id) as { id: string } | undefined;
+    if (current) continue;
+
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO provider_adapter_definitions (id, name, adapter_type, entry_ref, version, lifecycle, capabilities_json, config_schema_json, secret_refs_json, permission_refs_json, health_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run(
+      adapter.id,
+      adapter.name,
+      adapter.adapterType,
+      adapter.entryRef,
+      adapter.version,
+      adapter.lifecycle,
+      adapter.capabilitiesJson,
+      adapter.configSchemaJson,
+      adapter.secretRefsJson,
+      adapter.permissionRefsJson,
+      adapter.healthStatus,
+      now,
+      now,
+    );
+  }
+}
+
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -1028,6 +1100,7 @@ export function getDb() {
     ensureOpenVikingKnowledgeColumns(database);
     ensureSkillGovernanceColumns(database);
     ensureRepositoryProfileActivityIndex(database);
+    ensureBuiltInProviderAdapterDefinitions(database);
   }
 
   return database;

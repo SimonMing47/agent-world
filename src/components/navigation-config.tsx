@@ -44,7 +44,6 @@ export const navigationGroups: NavGroup[] = [
       { href: "/interactions", label: "console.interactions.label", sidebarLabel: "console.interactions.sidebarLabel", description: "console.interactions.description", icon: MessageSquareMore },
       { href: "/team-wallboard", label: "nav.teamWallboard.label", sidebarLabel: "nav.teamWallboard.sidebarLabel", description: "nav.teamWallboard.description", icon: ChartNoAxesCombined },
       { href: "/agent-team-wallboard", label: "nav.agentTeamWallboard.label", sidebarLabel: "nav.agentTeamWallboard.sidebarLabel", description: "nav.agentTeamWallboard.description", icon: Activity },
-      { href: "/findings", label: "ui.generated.c3c2f7b1bc9", sidebarLabel: "ui.generated.c96a9697379", description: "ui.generated.ca528221852", icon: ShieldCheck },
     ],
   },
   {

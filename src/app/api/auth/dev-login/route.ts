@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
-import { buildAuthSessionCookieValue, signInWithDevelopmentIdentity } from "@/server/auth-core";
+import {
+  buildAuthSessionCookieValue,
+  getDevelopmentAccessSettings,
+  signInWithDevelopmentIdentity,
+} from "@/server/auth-core";
 import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const developmentAccess = getDevelopmentAccessSettings();
+  if (!developmentAccess.enabled) {
+    return NextResponse.json({ ok: false, error: uiText("developmentAccess.errors.disabled") }, { status: 403 });
+  }
+
   const body = (await request.json()) as {
     providerConfigId?: string | null;
     email: string;

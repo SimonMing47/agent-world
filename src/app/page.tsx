@@ -1,9 +1,27 @@
 import Link from "next/link";
 import { ArrowDown } from "lucide-react";
+import { redirect } from "next/navigation";
 import { AgentWorldLogo } from "@/components/agentworld-logo";
 import { uiText } from "@/lib/language-pack";
+import { getRequestAuthContext } from "@/server/auth-core";
 
-export default function EntryPage() {
+export default async function EntryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ next?: string }>;
+}) {
+  const authContext = await getRequestAuthContext();
+  const params = await searchParams;
+  const next = params?.next || "/overview";
+
+  if (authContext?.access.allowed) {
+    redirect(next);
+  }
+
+  if (authContext && !authContext.access.allowed) {
+    redirect(`/access-request?next=${encodeURIComponent(next)}`);
+  }
+
   return (
     <>
       <main className="aw-intro">
@@ -25,7 +43,11 @@ export default function EntryPage() {
             </div>
           </div>
 
-          <Link href="/overview" className="aw-intro__enter" aria-label={uiText("landing.enterLabel")}>
+          <Link
+            href={`/signin?entry=1&next=${encodeURIComponent(next)}`}
+            className="aw-intro__enter"
+            aria-label={uiText("landing.enterLabel")}
+          >
             <span className="aw-intro__enter-ring">
               <ArrowDown className="h-5 w-5" />
             </span>

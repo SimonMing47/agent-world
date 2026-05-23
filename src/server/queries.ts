@@ -62,9 +62,7 @@ import {
 } from "@/server/agent-orchestration-core";
 import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
 import {
-  buildFindingDashboard,
   ensureTaskRunSummaryFinding,
-  summarizeFinding,
 } from "@/server/finding-core";
 import {
   buildTaskRunKnowledgeRetrieval,
@@ -753,11 +751,6 @@ export function getTaskBlueprintsSnapshot() {
       }),
     ),
     providerAdapters,
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns,
-      businessTeams,
-    }),
   };
 }
 
@@ -1260,12 +1253,6 @@ export function getDashboardSnapshot() {
       }),
     ),
     task_runs,
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns: task_runs,
-      businessTeams: business_teams,
-    }),
-    findings: findings.slice(0, 8).map(summarizeFinding),
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
@@ -1320,7 +1307,6 @@ export function getWallboardSnapshot() {
   const business_teams = listBusinessTeams();
   const runtimes = listRuntimeEndpoints();
   const schedules = listScheduleTemplates();
-  const findings = listFindings();
 
   return {
     activeTaskRuns: task_runs.filter((taskRun) => ["running", "awaiting"].includes(taskRun.status)),
@@ -1334,11 +1320,6 @@ export function getWallboardSnapshot() {
       schedules,
       teams,
       business_teams,
-    }),
-    findingDashboard: buildFindingDashboard({
-      findings,
-      taskRuns: task_runs,
-      businessTeams: business_teams,
     }),
   };
 }

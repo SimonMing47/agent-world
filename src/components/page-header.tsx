@@ -23,21 +23,21 @@ export function PageHeader({
   const text = useLanguageText();
 
   return (
-    <header className={cn("space-y-3 pb-2", className)}>
+    <header className={cn("space-y-2 pb-1", className)}>
       {eyebrow ? (
-        <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--ink-subtle)]">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-subtle)]">
           {text(eyebrow)}
         </div>
       ) : null}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-3xl">
-          <h1 className="text-[30px] font-semibold tracking-normal text-[var(--ink)] sm:text-[34px]">
+          <h1 className="text-[30px] font-semibold tracking-[-0.04em] text-[var(--ink)] sm:text-[36px]">
             {text(title)}
           </h1>
-          {description ? <p className="mt-2 text-sm leading-7 text-[var(--ink-muted)]">{text(description)}</p> : null}
+          {description ? <p className="mt-1.5 text-[12px] leading-6 text-[var(--ink-subtle)]">{text(description)}</p> : null}
         </div>
         {badges?.length || action ? (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             {badges?.map((badge, index) => (
               <Badge key={`${badge.label}-${index}`} variant={badge.variant}>
                 {localizeNode(badge.label, text)}

@@ -23,9 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { translateVisibility, translateWorkflowType, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -121,6 +123,9 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
 }
 
 export default async function AgentTeamsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const authContext = await getRequestAuthContext();
   const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
   const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
@@ -263,7 +268,7 @@ export default async function AgentTeamsPage() {
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{teamMembers.length} ui.generated.ce8bf2e8cb2</div>
+                      <div>{teamMembers.length} {t("ui.generated.ce8bf2e8cb2", "个成员")}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {roleSummary || "ui.generated.caf1c75f2b4"}
                       </div>

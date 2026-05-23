@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PencilLine, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -64,6 +65,7 @@ export function KnowledgeSpaceForm({
   triggerLabel?: string;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const isEdit = Boolean(space?.id);
@@ -72,7 +74,7 @@ export function KnowledgeSpaceForm({
     agentTeams.find((team) => team.id === space?.agentTeamId)?.businessTeamId ??
     "";
   const [spaceType, setSpaceType] = useState(space?.spaceType ?? "team");
-  const [tenantSpaceId, setTenantSpaceId] = useState(space?.tenantSpaceId ?? "");
+  const [tenantSpaceId, setTenantSpaceId] = useState(space?.tenantSpaceId ?? tenantSpaces[0]?.id ?? "");
   const [businessTeamId, setBusinessTeamId] = useState(initialBusinessTeamId);
   const availableAgentTeams = useMemo(
     () => agentTeams.filter((team) => !businessTeamId || team.businessTeamId === businessTeamId),
@@ -114,28 +116,26 @@ export function KnowledgeSpaceForm({
       <DialogTrigger asChild>
         <Button variant={isEdit ? "secondary" : "primary"} size={isEdit ? "sm" : "md"}>
           {isEdit ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {triggerLabel ?? (isEdit ? "ui.generated.ca7f814c0a4" : "ui.generated.ce8ee721172")}
+          {triggerLabel ?? (isEdit ? text("actions.edit") : text("actions.create"))}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "ui.generated.cf0358f24e2" : "ui.generated.ce8ee721172"}</DialogTitle>
-          <DialogDescription>
-            ui.generated.c5a59ef27cc
-          </DialogDescription>
+          <DialogTitle>{isEdit ? text("actions.edit") : text("actions.create")}</DialogTitle>
+          <DialogDescription>{text("knowledge.page.description")}</DialogDescription>
         </DialogHeader>
         <DialogBody>
           <form action={submit} className="grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldGroup label="ui.generated.c1be7ae4fc2">
-                <Input name="name" required defaultValue={space?.name} placeholder="ui.generated.cb96b5b40e4" />
+              <FieldGroup label={text("common.fields.name", "名称")}>
+                <Input name="name" required defaultValue={space?.name} placeholder={text("common.placeholders.name", "输入名称")} />
               </FieldGroup>
-              <FieldGroup label="ui.generated.c3537d5ef90">
-                <Input name="slug" defaultValue={space?.slug} placeholder="ui.generated.c3537d5ef90" />
+              <FieldGroup label="Slug">
+                <Input name="slug" defaultValue={space?.slug} placeholder="slug" />
               </FieldGroup>
-              <FieldGroup label="ui.generated.c3db35d2741">
+              <FieldGroup label={text("terminology.tenantSpace")}>
                 <Select value={tenantSpaceId} onChange={(event) => setTenantSpaceId(event.target.value)}>
-                  <option value="">ui.generated.ca5644f4bbf</option>
+                  <option value="">{text("common.select.placeholder", "请选择")}</option>
                   {tenantSpaces.map((spaceOption) => (
                     <option key={spaceOption.id} value={spaceOption.id}>
                       {spaceOption.name}
@@ -143,17 +143,17 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="ui.generated.cf0346e5ccd">
+              <FieldGroup label={text("knowledge.fields.spaceType", "知识空间类型")}>
                 <Select value={spaceType} onChange={(event) => setSpaceType(event.target.value)}>
-                  <option value="global">ui.generated.ca5644f4bbf</option>
-                  <option value="team">ui.generated.c21d7042ff0</option>
-                  <option value="project">ui.generated.c22336e6b89</option>
-                  <option value="agent_team">ui.generated.c70f970c1fc</option>
+                  <option value="global">{text("ui.common.knowledgeType.global", "全局")}</option>
+                  <option value="team">{text("ui.common.knowledgeType.team", "团队")}</option>
+                  <option value="project">{text("ui.common.knowledgeType.project", "项目")}</option>
+                  <option value="agent_team">{text("ui.common.knowledgeType.agentTeam", "Agent 团队")}</option>
                 </Select>
               </FieldGroup>
-              <FieldGroup label="ui.generated.c2b90028ff3">
+              <FieldGroup label={text("terminology.businessTeam")}>
                 <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
-                  <option value="">ui.generated.ca5644f4bbf</option>
+                  <option value="">{text("common.select.placeholder", "请选择")}</option>
                   {businessTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -161,9 +161,9 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="ui.generated.c70f970c1fc">
+              <FieldGroup label={text("terminology.agentTeam")}>
                 <Select name="agentTeamId" disabled={spaceType !== "agent_team"} defaultValue={space?.agentTeamId ?? ""}>
-                  <option value="">ui.generated.c9a0ee40403</option>
+                  <option value="">{text("common.select.none", "不绑定")}</option>
                   {availableAgentTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -171,33 +171,33 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="ui.generated.cc7e9d69ec3">
-                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder="ui.generated.cc7e9d69ec3" />
+              <FieldGroup label={text("knowledge.fields.projectKey", "项目标识")}>
+                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder={text("knowledge.fields.projectKey", "项目标识")} />
               </FieldGroup>
-              <FieldGroup label="ui.generated.c747b74cec9">
+              <FieldGroup label={text("common.fields.visibility", "可见性")}>
                 <Select name="visibility" defaultValue={space?.visibility ?? (spaceType === "global" ? "global" : "team")}>
-                  <option value="global">ui.generated.cdab54dd8bb</option>
-                  <option value="team">ui.generated.c2fb77afec8</option>
-                  <option value="private">ui.generated.c6858674b88</option>
+                  <option value="global">{text("labels.visibility.global")}</option>
+                  <option value="team">{text("labels.visibility.team")}</option>
+                  <option value="private">{text("labels.visibility.private")}</option>
                 </Select>
               </FieldGroup>
-              <FieldGroup label="ui.generated.c62e951a692">
+              <FieldGroup label={text("common.fields.status", "状态")}>
                 <Select name="status" defaultValue={space?.status ?? "active"}>
-                  <option value="active">ui.generated.cd4e9ca3dd4</option>
-                  <option value="paused">ui.generated.cd989e55188</option>
-                  <option value="archived">ui.generated.cddfde75bec</option>
+                  <option value="active">{text("labels.status.active")}</option>
+                  <option value="paused">{text("labels.status.paused")}</option>
+                  <option value="archived">{text("labels.status.archived")}</option>
                 </Select>
               </FieldGroup>
             </div>
-            <FieldGroup label="ui.generated.c412f54dc38">
+            <FieldGroup label={text("common.fields.description", "说明")}>
               <Textarea
                 name="description"
                 rows={4}
                 defaultValue={space?.description}
-                placeholder="ui.generated.c1bb4774122"
+                placeholder={text("common.placeholders.description", "补充用途、边界与约束")}
               />
             </FieldGroup>
-            <FieldGroup label="ui.generated.c912c81fea0">
+            <FieldGroup label={text("knowledge.fields.retentionPolicy", "归档策略")}>
               <Textarea
                 name="retentionPolicyJson"
                 rows={4}
@@ -207,10 +207,10 @@ export function KnowledgeSpaceForm({
             </FieldGroup>
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setOpen(false)}>
-                ui.generated.c4d0b4688c7
+                {text("actions.cancel")}
               </Button>
               <Button type="submit" variant="primary" disabled={pending}>
-                {pending ? "ui.generated.ca032e8fdda" : "ui.generated.cfadf24dbc5"}
+                {pending ? text("actions.saving") : text("actions.save")}
               </Button>
             </div>
           </form>

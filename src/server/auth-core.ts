@@ -1,6 +1,7 @@
 import { addDays } from "date-fns";
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { getAuthAdapter, listAuthAdapterCatalog, type NormalizedEnterpriseIdentity } from "@/server/auth-adapter-core";
 import {
   execute,
@@ -21,6 +22,7 @@ export { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 
 const AUTH_SESSION_COOKIE = "agentworld_session";
 const IDENTITY_ACCESS_SETTINGS_KEY = "identity_access_settings";
+const DEVELOPMENT_ACCESS_SETTINGS_KEY = "development_access_settings";
 
 function nowIso() {
   return new Date().toISOString();
@@ -62,6 +64,14 @@ function parseJsonArray(value: string | null | undefined) {
 export type IdentityAccessSettings = {
   adminContactEmail: string;
   requestMessage: string;
+};
+
+export type DevelopmentAccessSettings = {
+  enabled: boolean;
+  autoEnter: boolean;
+  name: string;
+  email: string;
+  title: string;
 };
 
 export type AuthContext = {
@@ -233,6 +243,45 @@ export function upsertIdentityAccessSettings(input: Partial<IdentityAccessSettin
     nowIso(),
   );
   return getIdentityAccessSettings();
+}
+
+export function getDevelopmentAccessSettings(): DevelopmentAccessSettings {
+  const current = queryOne<SystemSetting>("SELECT * FROM system_settings WHERE key = ?", DEVELOPMENT_ACCESS_SETTINGS_KEY);
+  const parsed = parseJsonRecord(current?.valueJson);
+  return {
+    enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : true,
+    autoEnter: typeof parsed.autoEnter === "boolean" ? parsed.autoEnter : false,
+    name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name : "Development Administrator",
+    email:
+      typeof parsed.email === "string" && parsed.email.trim()
+        ? parsed.email.trim().toLowerCase()
+        : "dev-admin@agentworld.local",
+    title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : "System Administrator",
+  };
+}
+
+export function upsertDevelopmentAccessSettings(
+  input: Partial<DevelopmentAccessSettings>,
+  updatedBy = "system",
+) {
+  const current = getDevelopmentAccessSettings();
+  execute(
+    "INSERT OR REPLACE INTO system_settings (key, value_json, updated_by, updated_at) VALUES (?, ?, ?, ?)",
+    DEVELOPMENT_ACCESS_SETTINGS_KEY,
+    normalizeJson(
+      {
+        enabled: input.enabled ?? current.enabled,
+        autoEnter: input.autoEnter ?? current.autoEnter,
+        name: input.name ?? current.name,
+        email: input.email ?? current.email,
+        title: input.title ?? current.title,
+      },
+      {},
+    ),
+    updatedBy,
+    nowIso(),
+  );
+  return getDevelopmentAccessSettings();
 }
 
 function teamIsWithinRuleScope(args: {
@@ -411,6 +460,23 @@ export function signInWithDevelopmentIdentity(input: {
   };
 }
 
+export function signInWithDevelopmentAccess() {
+  const settings = getDevelopmentAccessSettings();
+  if (!settings.enabled) {
+    throw new Error("developmentAccess.errors.disabled");
+  }
+  return signInWithDevelopmentIdentity({
+    email: settings.email,
+    name: settings.name,
+    title: settings.title,
+    employeeNo: "DEV-ADMIN",
+    isSystemAdmin: true,
+    businessTeamIds: [],
+    primaryBusinessTeamId: null,
+    requestedBy: "development_access",
+  });
+}
+
 export function revokeAuthSession(sessionToken: string) {
   execute(
     "UPDATE auth_sessions SET status = 'revoked', updated_at = ?, last_seen_at = ? WHERE session_token = ?",
@@ -464,11 +530,11 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
   };
 }
 
-export async function getRequestAuthContext() {
+export const getRequestAuthContext = cache(async function getRequestAuthContext() {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get(AUTH_SESSION_COOKIE)?.value;
   return getAuthContextBySessionToken(sessionToken);
-}
+});
 
 export function canAccessBusinessTeam(
   authContext: AuthContext | null,
