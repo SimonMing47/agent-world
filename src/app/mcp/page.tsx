@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listMcpServers } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -35,9 +36,12 @@ function parseTools(value: string) {
   }
 }
 
-export default function McpPage() {
-  const servers = listMcpServers();
-  const businessTeams = listBusinessTeams();
+export default async function McpPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const servers = listMcpServers().filter((server) =>
+    canAccessBusinessTeam(authContext, server.businessTeamId, { allowGlobal: true }),
+  );
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (

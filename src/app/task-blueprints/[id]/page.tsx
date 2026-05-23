@@ -52,12 +52,6 @@ function effectVariant(effect: string): BadgeVariant {
   return "neutral";
 }
 
-function severityVariant(severity: string): BadgeVariant {
-  if (["critical", "high"].includes(severity)) return "danger";
-  if (severity === "medium") return "warning";
-  return "neutral";
-}
-
 function formatTrigger(trigger: Record<string, unknown>) {
   if (trigger.type === "webhook") return `Webhook · ${String(trigger.event ?? trigger.webhookPathKey ?? "")}`;
   if (trigger.type === "cron") return `Cron · ${String(trigger.expression ?? "")}`;
@@ -145,7 +139,6 @@ export default async function TaskBlueprintDetailPage({
       <SummaryStrip
         items={[
           { label: "ui.generated.c648c5a6b11", value: detail.recentRuns.length, detail: "ui.generated.cdef121b0f4" },
-          { label: "Finding", value: detail.findings.length, detail: "ui.generated.cae46ffbfd5" },
           { label: "ui.generated.c95f4519aab", value: detail.permissionPreview.rules.length, detail: <>ui.common.detail.defaultModePrefix {detail.permissionPreview.defaultMode}</> },
           { label: "ui.generated.c6fcb629b38", value: detail.runPlan.nodeCount, detail: detail.runPlan.strategy },
         ]}
@@ -366,51 +359,6 @@ export default async function TaskBlueprintDetailPage({
                         <DataTableCell>{run.requestedBy}</DataTableCell>
                         <DataTableCell align="right">${run.costActual}</DataTableCell>
                         <DataTableCell>{formatDateTime(run.createdAt)}</DataTableCell>
-                      </DataTableRow>
-                    ))}
-                  </DataTableBody>
-                </DataTable>
-              )}
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader
-              eyebrow="ui.generated.c97ea95eadd"
-              title="ui.generated.c8019b92deb"
-              description="ui.generated.caf909a93a3"
-            />
-            <PanelBody>
-              {detail.findings.length === 0 ? (
-                <EmptyState>ui.generated.cda2c65a52c</EmptyState>
-              ) : (
-                <DataTable>
-                  <DataTableHeader>
-                    <DataTableRow>
-                      <DataTableHead>ui.generated.c2fb49eec39</DataTableHead>
-                      <DataTableHead>ui.generated.c9272e8abe5</DataTableHead>
-                      <DataTableHead>ui.generated.ced9f6d4d8e</DataTableHead>
-                      <DataTableHead>ui.generated.cbcd2a00caf</DataTableHead>
-                      <DataTableHead align="right">ui.generated.cb78c2dc2e2</DataTableHead>
-                      <DataTableHead>ui.generated.c62e951a692</DataTableHead>
-                    </DataTableRow>
-                  </DataTableHeader>
-                  <DataTableBody>
-                    {detail.findings.map((finding) => (
-                      <DataTableRow key={finding.id}>
-                        <DataTableCell className="max-w-[360px]">
-                          <div className="font-medium text-[var(--ink)]">{finding.title}</div>
-                          <div className="mt-1 line-clamp-2 text-sm leading-5 text-[var(--ink-muted)]">
-                            {finding.description}
-                          </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <Badge variant={severityVariant(finding.severity)}>{finding.severity}</Badge>
-                        </DataTableCell>
-                        <DataTableCell>{finding.category}</DataTableCell>
-                        <DataTableCell>{finding.sourceAgent}</DataTableCell>
-                        <DataTableCell align="right">{Math.round(finding.confidence * 100)}%</DataTableCell>
-                        <DataTableCell>{finding.status}</DataTableCell>
                       </DataTableRow>
                     ))}
                   </DataTableBody>

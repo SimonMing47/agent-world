@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { translateStatus } from "@/lib/presentation";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listAccessGrants, listAgentTeams, listBusinessTeams } from "@/server/queries";
 
 function parseRecord(value: string) {
@@ -34,10 +35,17 @@ function parseRecord(value: string) {
   }
 }
 
-export default function AccessGrantsPage() {
-  const accessGrants = listAccessGrants();
-  const agentTeams = listAgentTeams();
-  const businessTeams = listBusinessTeams();
+export default async function AccessGrantsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
+  const visibleAgentTeamIds = new Set(agentTeams.map((team) => team.id));
+  const accessGrants = listAccessGrants().filter(
+    (grant) =>
+      visibleBusinessTeamIds.has(grant.consumerBusinessTeamId) ||
+      visibleAgentTeamIds.has(grant.providerTeamId),
+  );
   const agentTeamOptions = agentTeams.map((team) => ({ id: team.id, name: team.name }));
   const businessTeamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 

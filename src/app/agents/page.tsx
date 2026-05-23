@@ -30,6 +30,7 @@ import {
   buildDefaultAgentHarnessConfig,
   buildDefaultAgentPermissionPolicy,
 } from "@/server/agent-harness-core";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import {
   listAgentDefinitions,
   listAgentDefinitionShares,
@@ -47,12 +48,21 @@ function parseStringArray(value: string) {
   }
 }
 
-export default function AgentsPage() {
-  const definitions = listAgentDefinitions();
-  const shares = listAgentDefinitionShares();
-  const businessTeams = listBusinessTeams();
+export default async function AgentsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const shares = listAgentDefinitionShares().filter((share) => visibleBusinessTeamIds.has(share.businessTeamId));
+  const sharedDefinitionIds = new Set(shares.map((share) => share.agentDefinitionId));
+  const definitions = listAgentDefinitions().filter((definition) =>
+    definition.visibility === "global" ||
+    sharedDefinitionIds.has(definition.id) ||
+    canAccessBusinessTeam(authContext, definition.ownerBusinessTeamId, { allowGlobal: true }),
+  );
   const providers = listProviders();
-  const runtimeBindings = listProviderRuntimeBindings();
+  const runtimeBindings = listProviderRuntimeBindings().filter((binding) =>
+    canAccessBusinessTeam(authContext, binding.businessTeamId, { allowGlobal: true }),
+  );
 
   return (
     <div className="space-y-6">

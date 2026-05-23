@@ -8,32 +8,36 @@ export function SummaryStrip({
   className,
   gridClassName = "sm:grid-cols-2 xl:grid-cols-4",
 }: {
-  items: Array<{ label: React.ReactNode; value: React.ReactNode; detail?: React.ReactNode }>;
+  items: Array<{ label: React.ReactNode; value: React.ReactNode; detail?: React.ReactNode; tone?: "default" | "accent" }>;
   className?: string;
   gridClassName?: string;
 }) {
   const text = useLanguageText();
 
   return (
-    <section className={cn("overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]", className)}>
+    <section className={cn("overflow-hidden", className)}>
       <div className={cn("grid", gridClassName)}>
         {items.map((item, index) => (
           <div
             key={index}
             className={cn(
-              "px-5 py-4",
-              index !== items.length - 1 && "border-b border-[var(--line)] sm:border-b-0 xl:border-r",
+              "px-2 py-2 sm:px-4",
+              index !== items.length - 1 && "border-b border-[var(--line)]/70 sm:border-b-0 xl:border-r xl:border-[var(--line)]/70",
             )}
-          >
-            <div className="text-xs font-medium text-[var(--ink-subtle)]">
-              {localizeNode(item.label, text)}
-            </div>
-            <div className="mt-2 text-[26px] font-semibold leading-none text-[var(--ink)]">{item.value}</div>
-            {item.detail ? (
-              <div className="mt-1.5 text-sm text-[var(--ink-muted)]">
-                {localizeNode(item.detail, text)}
+            >
+              <div className="aw-hero-metric">
+              <div suppressHydrationWarning className="aw-hero-metric__label">
+                {localizeNode(item.label, text)}
               </div>
-            ) : null}
+              <div suppressHydrationWarning className="aw-hero-metric__value" data-tone={item.tone === "accent" ? "accent" : "default"}>
+                {item.value}
+              </div>
+              {item.detail ? (
+                <div suppressHydrationWarning className="aw-hero-metric__detail">
+                  {localizeNode(item.detail, text)}
+                </div>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>

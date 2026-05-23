@@ -14,7 +14,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]",
+        "overflow-hidden rounded-[26px] border border-white/54 bg-[var(--surface)] shadow-none backdrop-blur-xl",
         className,
       )}
       {...props}
@@ -38,15 +38,15 @@ export function PanelHeader({
   const text = useLanguageText();
 
   return (
-    <div className="flex flex-col gap-4 border-b border-[var(--line)] bg-[var(--surface-subtle)] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-4 border-b border-[var(--line)] bg-transparent px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
       <div>
         {eyebrow ? (
-          <div className="text-xs font-medium text-[var(--ink-subtle)]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-subtle)]">
             {text(eyebrow)}
           </div>
         ) : null}
-        <h3 className="mt-1 text-[15px] font-semibold text-[var(--ink)]">{text(title)}</h3>
-        {description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">{localizeNode(description, text)}</p> : null}
+        <h3 className="mt-1 text-[18px] font-semibold tracking-[-0.03em] text-[var(--ink)]">{text(title)}</h3>
+        {description ? <p className="mt-1 max-w-3xl text-[12px] leading-6 text-[var(--ink-subtle)]">{localizeNode(description, text)}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -60,5 +60,5 @@ export function PanelBody({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <div className={cn("px-5 py-4", className)}>{children}</div>;
+  return <div className={cn("px-6 py-5", className)}>{children}</div>;
 }

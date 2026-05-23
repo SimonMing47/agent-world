@@ -12,7 +12,7 @@ export function TooltipContent({ children }: { children: React.ReactNode }) {
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
         sideOffset={8}
-        className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1.5 text-xs text-[var(--ink)]"
+        className="max-w-[280px] rounded-2xl border border-white/70 bg-[rgba(255,255,255,0.96)] px-3 py-2 text-xs leading-6 text-[var(--ink)] shadow-[var(--shadow-medium)] backdrop-blur-xl"
       >
         {children}
       </TooltipPrimitive.Content>

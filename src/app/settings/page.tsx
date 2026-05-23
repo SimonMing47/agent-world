@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DevelopmentAccessSettingsForm } from "@/components/development-access-settings-form";
 import { LanguagePackSettingsForm } from "@/components/language-pack-settings-form";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,19 @@ import {
 } from "@/components/ui/data-table";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
+import { getDevelopmentAccessSettings } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getSettingsSnapshot } from "@/server/queries";
 
 const systemEntries = [
+  {
+    name: "developmentAccess.settings.title",
+    href: "#development-access",
+    group: "ui.generated.c918a0a7cf1",
+    scope: "developmentAccess.scope.label",
+    description: "developmentAccess.settings.description",
+  },
   {
     name: "ui.common.resources.languagePack",
     href: "#language-pack",
@@ -63,6 +74,13 @@ const systemEntries = [
     group: "ui.generated.cfad8b39e99",
     scope: "OpenViking",
     description: "ui.generated.c35200d5ff0",
+  },
+  {
+    name: "identityAccess.page.title",
+    href: "/identity-access",
+    group: "ui.generated.cfad8b39e99",
+    scope: "identityAccess.scope.label",
+    description: "identityAccess.page.description",
   },
   {
     name: "ui.common.resources.runtimeBinding",
@@ -118,7 +136,11 @@ const systemEntries = [
 const systemEntryGroups = ["ui.generated.c918a0a7cf1", "ui.generated.cfad8b39e99", "ui.generated.c2e03739792"] as const;
 
 export default function SettingsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
+  const developmentAccessSetting = getDevelopmentAccessSettings();
 
   return (
     <div className="space-y-6">
@@ -127,8 +149,8 @@ export default function SettingsPage() {
         title="ui.generated.c3c71dca8a0"
         description="ui.generated.cb2d089ae22"
         badges={[
-          { label: <>{snapshot.providers.length} ui.common.count.modelServices</>, variant: "accent" },
-          { label: <>{snapshot.environments.length} ui.common.count.environments</>, variant: "neutral" },
+          { label: `${snapshot.providers.length} ${t("ui.common.count.modelServices", "个模型服务")}`, variant: "accent" },
+          { label: `${snapshot.environments.length} ${t("ui.common.count.environments", "个执行环境")}`, variant: "neutral" },
         ]}
       />
 
@@ -140,6 +162,17 @@ export default function SettingsPage() {
           { label: "ui.generated.c971c6e5190", value: snapshot.taskBlueprints.length, detail: "ui.generated.c26f30fd79b" },
         ]}
       />
+
+      <Panel id="development-access">
+        <PanelHeader
+          eyebrow="developmentAccess.scope.label"
+          title="developmentAccess.settings.title"
+          description="developmentAccess.settings.description"
+        />
+        <PanelBody>
+          <DevelopmentAccessSettingsForm setting={developmentAccessSetting} />
+        </PanelBody>
+      </Panel>
 
       <Panel id="language-pack">
         <PanelHeader
@@ -163,10 +196,10 @@ export default function SettingsPage() {
             <DataTable>
               <DataTableHeader>
                 <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>ui.generated.cc1bebd4ab3</DataTableHead>
-                  <DataTableHead>ui.generated.c785b52eb97</DataTableHead>
-                  <DataTableHead>ui.generated.c26670dda42</DataTableHead>
-                  <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+                  <DataTableHead>{t("ui.generated.cc1bebd4ab3", "配置项")}</DataTableHead>
+                  <DataTableHead>{t("ui.generated.c785b52eb97", "作用域")}</DataTableHead>
+                  <DataTableHead>{t("ui.generated.c26670dda42", "说明")}</DataTableHead>
+                  <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
               <DataTableBody>
@@ -177,7 +210,7 @@ export default function SettingsPage() {
                     <DataTableCell>{entry.description}</DataTableCell>
                     <DataTableCell align="right">
                       <Button asChild size="sm" variant="ghost">
-                        <Link href={entry.href}>ui.generated.c65fc81e161</Link>
+                        <Link href={entry.href}>{t("ui.generated.c65fc81e161", "打开")}</Link>
                       </Button>
                     </DataTableCell>
                   </DataTableRow>

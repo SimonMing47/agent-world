@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useLanguageText } from "@/components/language-pack-provider";
+import { Button } from "@/components/ui/button";
 
 export function RuntimeDiscoveryButton() {
   const router = useRouter();
@@ -12,8 +13,10 @@ export function RuntimeDiscoveryButton() {
 
   return (
     <div className="flex items-center gap-3">
-      <button
+      <Button
         type="button"
+        variant="primary"
+        size="sm"
         onClick={async () => {
           setPending(true);
           setMessage(null);
@@ -29,11 +32,11 @@ export function RuntimeDiscoveryButton() {
             setPending(false);
           }
         }}
-        className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-[var(--canvas)] transition hover:opacity-90 disabled:opacity-60"
+        className="rounded-full px-4"
         disabled={pending}
       >
         {pending ? "ui.generated.c6336f539ff" : "ui.generated.cb5a56eb61f"}
-      </button>
+      </Button>
       {message ? (
         <p className="text-sm text-[var(--ink-muted)]">{message}</p>
       ) : null}

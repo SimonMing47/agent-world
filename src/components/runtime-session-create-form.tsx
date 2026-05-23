@@ -41,22 +41,31 @@ type RuntimeSessionCreateFormProps = {
     harnessConfigJson: string;
     permissionPolicyJson: string;
   }>;
+  initialMode?: "single_agent" | "agent_team";
 };
 
 export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const defaultMode = props.initialMode ?? "single_agent";
+  const defaultTenantSpaceId = props.tenantSpaces[0]?.id ?? "";
+  const defaultBusinessTeamId = props.businessTeams[0]?.id ?? "";
+  const defaultRuntimeBindingId = props.runtimeBindings[0]?.id ?? "";
+  const defaultProviderProfileId =
+    props.runtimeBindings[0]?.defaultProviderProfileId ?? props.providerProfiles[0]?.id ?? "";
+  const defaultProviderModel =
+    props.providerProfiles.find((provider) => provider.id === defaultProviderProfileId)?.defaultModel ?? "";
   const [form, setForm] = useState({
-    tenantSpaceId: "",
-    businessTeamId: "",
+    tenantSpaceId: defaultTenantSpaceId,
+    businessTeamId: defaultBusinessTeamId,
     title: "",
-    mode: "single_agent",
+    mode: defaultMode as "single_agent" | "agent_team",
     agentDefinitionId: "",
-    runtimeBindingId: "",
-    providerProfileId: "",
+    runtimeBindingId: defaultRuntimeBindingId,
+    providerProfileId: defaultProviderProfileId,
     agentTeamId: "",
-    model: "",
+    model: defaultProviderModel,
     systemPrompt: "",
   });
 
@@ -143,14 +152,15 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
         <FieldGroup label="ui.generated.ced0eea8f20">
           <Select
             value={form.mode}
-            onChange={(event) =>
+            onChange={(event) => {
+              const nextMode = event.target.value as "single_agent" | "agent_team";
               setForm({
                 ...form,
-                mode: event.target.value,
-                agentTeamId: event.target.value === "agent_team" ? form.agentTeamId : "",
-                agentDefinitionId: event.target.value === "single_agent" ? form.agentDefinitionId : "",
-              })
-            }
+                mode: nextMode,
+                agentTeamId: nextMode === "agent_team" ? form.agentTeamId : "",
+                agentDefinitionId: nextMode === "single_agent" ? form.agentDefinitionId : "",
+              });
+            }}
           >
               <option value="single_agent">ui.generated.c20b7e967a5</option>
               <option value="agent_team">ui.generated.c70f970c1fc</option>
@@ -200,6 +210,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
               });
             }}
           >
+            <option value="">ui.generated.ca5644f4bbf</option>
             {props.runtimeBindings.map((binding) => (
               <option key={binding.id} value={binding.id}>
                 {binding.name}
@@ -219,6 +230,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
               });
             }}
           >
+            <option value="">ui.generated.ca5644f4bbf</option>
             {props.providerProfiles.map((provider) => (
               <option key={provider.id} value={provider.id}>
                 {provider.name}

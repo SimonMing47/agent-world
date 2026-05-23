@@ -180,13 +180,13 @@ Agent 层的需求逐步收敛为：
 
 CodeHub 相关的高信号提示词是：
 
-“上面给出的 CodeHub skill 不要直接硬编码进主干，要把它拆成插件能力，包括 Repository Connector、Review Publisher、Webhook Parser、Tool Bundle，并通过插件机制导入，让不同企业代码平台都能按这个方式扩展。”
+“上面给出的 CodeHub skill 不要直接硬编码进主干，要把它拆成插件能力，包括 Repository Connector、Comment Publisher、Webhook Parser、Tool Bundle，并通过插件机制导入，让不同企业代码平台都能按这个方式扩展。”
 
 这条提示词的稳定约束是：
 
 - CodeHub 只能作为插件样例。
 - API 能力进插件。
-- 检视逻辑和评审规则进 Skill / Knowledge。
+- 检视逻辑和检查规则进 Skill / Knowledge。
 - 密钥必须走平台 secret ref，不读取本地私有文件。
 
 ## 14. 数据治理与无预置数据提示词
@@ -259,13 +259,63 @@ CodeHub 相关的高信号提示词是：
 
 “请围绕 Task Blueprint 推进任务定义，不要新增第二套任务模型；manual、schedule、webhook 都要落在同一个蓝图结构里。”
 
+## 19. 面向高质量交付的提示词强化
+
+如果目标是让 AgentWorld 在严格交付场景里表现更稳定，不应该把额外的评价逻辑做进产品，而应该把关键要求沉淀成稳定的工程执行规范。可以直接复用下面这组提示词。
+
+### 19.1 代码规范与复杂度控制提示词
+
+“请不要新增演示型页面或额外的展示面板，直接优化仓库质量。优先处理超大文件、职责混杂、重复拼装 JSON、表单默认值分散、权限与配置解析重复等复杂度问题。修改后必须补齐对应的审计脚本或校验入口，让复杂度治理成为持续机制，而不是一次性人工修补。”
+
+这条提示词的目标是：
+
+- 优先减少大文件和高耦合模块的继续膨胀。
+- 把复杂度问题显式暴露出来，而不是隐藏在实现里。
+- 用 audit 脚本和提交前检查约束代码规范。
+
+### 19.2 AI 工具使用频率与深度提示词
+
+“请把 AI 工具使用能力体现在平台设计、提示词资产和执行轨迹里，而不是写成宣传文案。优化 Agent、Agent Team、Task Blueprint、Skill、Knowledge 的提示词模板，要求任务执行时明确体现：计划分解、工具选择依据、证据引用、结果汇总、失败回退、自检复核、人工介入点。”
+
+这条提示词的稳定要求是：
+
+- 提示词资产要引导 Agent 先规划、再调用工具、再归纳证据。
+- 不是只要求‘会调模型’，而是要求‘能形成完整工具链执行闭环’。
+- 交互工作台和任务空间的轨迹要能体现工具使用深度。
+
+### 19.3 基础安全检验提示词
+
+“请从基础安全基线出发优化系统：密钥只保留 secret ref；Webhook 必须支持 secret 校验；插件不能读取本地私有 secret 文件；敏感输出必须脱敏；仓库内增加安全审计脚本，检查危险执行、原始 HTML 注入、硬编码密钥、私钥材料和越权 secret 访问路径。”
+
+这条提示词要求：
+
+- 安全基线要沉淀为仓库脚本和实现约束。
+- 插件、Webhook、Provider、Connector、Codebase 的 secret 使用要统一收口。
+- 敏感信息治理不能靠约定，要靠检查。
+
+### 19.4 交付自检提示词
+
+“每个阶段完成后，不要只看页面是否能打开；必须跑 typecheck、lint、build、i18n audit、config data audit、quality audit、security audit，并把结果反映到 README 或交付文档中。”
+
+这条提示词要求：
+
+- 自检成为交付的一部分。
+- 交付说明和工程基线保持同步。
+- 质量与安全检查不依赖人工记忆。
+
+## 20. 最小执行模板
+
+后续如果要继续推进高质量交付，可以直接用下面这段提示词作为起点：
+
+“请基于当前 AgentWorld 仓库继续推进，但不要把额外的评价概念做进产品。优先从四个方向优化：第一，代码规范与复杂度控制，减少超大模块继续膨胀并补齐仓库级审计脚本；第二，AI 工具使用深度，把计划分解、工具调用、证据引用、自检复核和人工介入点沉淀进提示词资产与执行轨迹；第三，基础安全检验，统一 secret ref、Webhook secret 校验、敏感输出脱敏和插件权限边界；第四，交付自检，把 typecheck、lint、build、i18n、config-data、quality、security 全部纳入常规检查。修改后同步更新 README 和相关设计文档。” 
+
 ### 18.7 插件化提示词
 
 “请把外部系统接入都沉淀成插件扩展点，不允许为特定代码平台、邮件系统、IM 系统或 Webhook 源修改主干业务逻辑。”
 
 ### 18.8 CodeHub 提示词
 
-“请把 CodeHub 能力实现为插件样例，拆成 repository connector、webhook parser、review publisher、tool bundle，通过 manifest 和 SDK 导入，不要写死在主干 case 里。”
+“请把 CodeHub 能力实现为插件样例，拆成 repository connector、webhook parser、comment publisher、tool bundle，通过 manifest 和 SDK 导入，不要写死在主干 case 里。”
 
 ### 18.9 数据治理提示词
 

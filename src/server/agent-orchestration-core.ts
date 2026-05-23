@@ -50,6 +50,13 @@ export type AgentTeamRunPlan = {
   splitStrategy?: string;
 };
 
+export type TaskRunNodeSpec = {
+  nodeKey: string;
+  agentId: string;
+  dependsOn?: string[];
+  input?: Record<string, unknown>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
@@ -272,6 +279,65 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
         tool: parsed.aggregation?.tool ?? "finding.aggregate",
         method: parsed.aggregation?.method ?? "deduplicate_rank_and_publish",
       },
+    },
+  ];
+}
+
+export function synthesizeTeamNodes(team: AgentTeam, agents: Agent[]): TaskRunNodeSpec[] {
+  const teamAgents = agents.filter((agent) => agent.teamId === team.id);
+  const leader = team.leaderAgentId
+    ? teamAgents.find((agent) => agent.id === team.leaderAgentId) ?? null
+    : null;
+  const specialist =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "specialist") ??
+    teamAgents[0] ??
+    null;
+  const executor =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "executor") ??
+    specialist;
+  const inspector =
+    teamAgents.find((agent) => agent.role.toLowerCase() === "inspector") ??
+    teamAgents[teamAgents.length - 1] ??
+    null;
+
+  if (!leader && !specialist && !inspector) return [];
+
+  if (team.workflowType === "single") {
+    const singleAgent = leader ?? specialist ?? inspector;
+    if (!singleAgent) return [];
+    return [
+      {
+        nodeKey: "single",
+        agentId: singleAgent.id,
+        dependsOn: [],
+        input: { action: "analyze", tool: "memory.read" },
+      },
+    ];
+  }
+
+  const defaultLeader = leader ?? specialist ?? inspector;
+  const defaultSpecialist = executor ?? specialist ?? leader ?? inspector;
+  const defaultInspector = inspector ?? leader ?? specialist;
+  if (!defaultLeader || !defaultSpecialist || !defaultInspector) return [];
+
+  return [
+    {
+      nodeKey: "plan",
+      agentId: defaultLeader.id,
+      dependsOn: [],
+      input: { action: "plan", tool: "memory.read" },
+    },
+    {
+      nodeKey: "execute",
+      agentId: defaultSpecialist.id,
+      dependsOn: ["plan"],
+      input: { action: "execute", tool: "repo.read" },
+    },
+    {
+      nodeKey: "finalize",
+      agentId: defaultInspector.id,
+      dependsOn: ["execute"],
+      input: { action: "finalize", tool: "repo.write" },
     },
   ];
 }

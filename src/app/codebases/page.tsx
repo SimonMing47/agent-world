@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listCodebaseOperatorTokens, listCodebases } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -36,10 +37,13 @@ function parsePermissions(value: string) {
   }
 }
 
-export default function CodebasesPage() {
-  const codebases = listCodebases();
-  const tokens = listCodebaseOperatorTokens();
-  const businessTeams = listBusinessTeams();
+export default async function CodebasesPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
+  const codebases = listCodebases().filter((codebase) => visibleBusinessTeamIds.has(codebase.businessTeamId));
+  const visibleCodebaseIds = new Set(codebases.map((codebase) => codebase.id));
+  const tokens = listCodebaseOperatorTokens().filter((token) => visibleCodebaseIds.has(token.codebaseId));
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
   const codebaseOptions = codebases.map((codebase) => ({ id: codebase.id, name: codebase.name }));
 

@@ -4,7 +4,7 @@ import {
   execute,
   queryAll,
   queryOne,
-  type CodeReviewSkill,
+  type InspectionSkill,
   type ProviderProfile,
   type ProviderRuntimeBinding,
 } from "@/server/db";
@@ -98,16 +98,16 @@ function resolveDefaultProviderRuntime() {
 }
 
 export function listSkills() {
-  return queryAll<CodeReviewSkill>("SELECT * FROM code_review_skills ORDER BY layer ASC, name ASC");
+  return queryAll<InspectionSkill>("SELECT * FROM inspection_skills ORDER BY layer ASC, name ASC");
 }
 
 export function upsertSkill(input: SkillDraft) {
   const id = input.id || randomUUID();
-  const current = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", id);
+  const current = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", id);
   const createdAt = current?.createdAt ?? nowIso();
   const heuristics = JSON.stringify(parseJsonRecord(input.heuristicsJson), null, 2);
   execute(
-    "INSERT OR REPLACE INTO code_review_skills (id, owner_business_team_id, name, layer, description, tags_json, visibility, viking_uri, is_enabled, prompt_md, heuristics_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR REPLACE INTO inspection_skills (id, owner_business_team_id, name, layer, description, tags_json, visibility, viking_uri, is_enabled, prompt_md, heuristics_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
     input.ownerBusinessTeamId ?? current?.ownerBusinessTeamId ?? null,
     input.name,
@@ -123,11 +123,11 @@ export function upsertSkill(input: SkillDraft) {
     nowIso(),
   );
 
-  return queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", id);
+  return queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", id);
 }
 
 export async function syncSkillToOpenViking(skillId: string) {
-  const skill = queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skillId);
+  const skill = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
   if (!skill) throw new Error(uiText("ui.generated.cd4fe99088a"));
 
   const result = await writeLayeredKnowledge({
@@ -157,8 +157,8 @@ export async function syncSkillToOpenViking(skillId: string) {
     ].join("\n"),
   });
 
-  execute("UPDATE code_review_skills SET viking_uri = ?, updated_at = ? WHERE id = ?", result.vikingUri, nowIso(), skill.id);
-  return { ...result, skill: queryOne<CodeReviewSkill>("SELECT * FROM code_review_skills WHERE id = ?", skill.id) };
+  execute("UPDATE inspection_skills SET viking_uri = ?, updated_at = ? WHERE id = ?", result.vikingUri, nowIso(), skill.id);
+  return { ...result, skill: queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skill.id) };
 }
 
 export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizationGoal?: string }) {

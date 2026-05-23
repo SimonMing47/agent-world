@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { listConnectors } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
@@ -35,9 +36,12 @@ function parseCapabilities(value: string) {
   }
 }
 
-export default function ConnectorsPage() {
-  const connectors = listConnectors();
-  const businessTeams = listBusinessTeams();
+export default async function ConnectorsPage() {
+  const authContext = await getRequestAuthContext();
+  const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
+  const connectors = listConnectors().filter((connector) =>
+    canAccessBusinessTeam(authContext, connector.businessTeamId, { allowGlobal: true }),
+  );
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (

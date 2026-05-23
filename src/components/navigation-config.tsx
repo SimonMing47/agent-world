@@ -11,6 +11,7 @@ import {
   KeyRound,
   Globe,
   LayoutDashboard,
+  MessageSquareMore,
   Network,
   Plug,
   ScrollText,
@@ -39,10 +40,10 @@ export const navigationGroups: NavGroup[] = [
   {
     title: "ui.generated.cc122e1758c",
     items: [
-      { href: "/", label: "ui.generated.c5219bd1bbc", sidebarLabel: "ui.generated.cf0e2bbbacc", description: "ui.generated.cc1ecf48bb4", icon: LayoutDashboard },
-      { href: "/team-wallboard", label: "ui.generated.c40b17f7982", sidebarLabel: "ui.generated.c21d7042ff0", description: "ui.generated.c89b53fa03e", icon: ChartNoAxesCombined },
-      { href: "/agent-team-wallboard", label: "ui.generated.c0309379742", sidebarLabel: "ui.generated.cd4f6dd33b7", description: "ui.generated.c24430ad429", icon: Activity },
-      { href: "/findings", label: "ui.generated.c3c2f7b1bc9", sidebarLabel: "ui.generated.c96a9697379", description: "ui.generated.ca528221852", icon: ShieldCheck },
+      { href: "/overview", label: "ui.generated.c5219bd1bbc", sidebarLabel: "ui.generated.cf0e2bbbacc", description: "ui.generated.cc1ecf48bb4", icon: LayoutDashboard },
+      { href: "/interactions", label: "console.interactions.label", sidebarLabel: "console.interactions.sidebarLabel", description: "console.interactions.description", icon: MessageSquareMore },
+      { href: "/team-wallboard", label: "nav.teamWallboard.label", sidebarLabel: "nav.teamWallboard.sidebarLabel", description: "nav.teamWallboard.description", icon: ChartNoAxesCombined },
+      { href: "/agent-team-wallboard", label: "nav.agentTeamWallboard.label", sidebarLabel: "nav.agentTeamWallboard.sidebarLabel", description: "nav.agentTeamWallboard.description", icon: Activity },
     ],
   },
   {
@@ -71,6 +72,7 @@ export const navigationGroups: NavGroup[] = [
       { href: "/connectors", label: "ui.generated.c2e8b3a3fbd", sidebarLabel: "ui.generated.cc2dd028659", description: "ui.generated.cda19037130", icon: Plug },
       { href: "/codebases", label: "ui.generated.c30a4255f18", sidebarLabel: "Codebase", description: "ui.generated.c53f720768a", icon: Code2 },
       { href: "/knowledge", label: "ui.generated.c053fc4ecbf", sidebarLabel: "ui.generated.c1dda51f9e3", description: "ui.generated.c572ffec9e5", icon: BookOpen },
+      { href: "/identity-access", label: "identityAccess.nav.label", sidebarLabel: "identityAccess.nav.sidebarLabel", description: "identityAccess.nav.description", icon: ShieldCheck },
       { href: "/settings", label: "ui.generated.c3c71dca8a0", sidebarLabel: "ui.generated.c1a1f6dff78", description: "ui.generated.cc133a25a4a", icon: Settings },
     ],
   },

@@ -45,6 +45,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - 块式任务编排：任务蓝图编辑器支持通过界面添加 Agent 执行、Agent 团队执行、脚本 Hook、HTTP Hook、通知 Hook 等执行块；块的依赖、工具、动作、脚本、URL、通知通道和 Payload 模板都会落库到 `agent_team_run_plan_json`，实例化后生成 TaskRunNode 和事件流。
 - Finding 治理：`/findings`，支持对代码检视、安全检视和其他任务产出的标准化 Finding 做误报、忽略、修复、发布状态跟踪，并可编辑证据、建议和分类。
 - 团队治理：`/business-teams`、`/team-members`、`/team-permissions`、`/team-assets`，支持组织结构、成员、权限和团队资产治理；团队成员支持从 Excel 复制粘贴批量导入。
+- 身份与访问：`/signin`、`/access-request`、`/identity-access` 提供通用企业级登录入口层、团队白名单闸门、员工身份同步视图和访问申请处理；当前内置 Development Preview 入口用于联调，后续企业可在同一套适配器接口上接入自有 SSO。
 - 基础配置：`/runtimes`、`/skills`、`/mcp`、`/connectors`、`/codebases`、`/knowledge`、`/settings`。Skill 可归属团队、打标签、优化润色并同步到 OpenViking；MCP 管理 server/transport/tool allowlist；Connector 管理 IM、邮件、Web Push；Codebase 管理代码仓和多个操作者 token；系统配置页继续提供执行环境、Webhook 和模型执行配置等长尾入口。
 - 任务蓝图 API：`GET /api/task-blueprints`、`POST /api/task-blueprints`、`PATCH /api/task-blueprints/:id`、`DELETE /api/task-blueprints/:id`、`POST /api/task-blueprints/:id/submit`、`POST /api/task-blueprints/scheduler/tick`、`GET /api/task-blueprints/:id/permission-preview`。
 - 任务模板和定时模板只作为兼容视图存在，主读取路径由 `task_blueprints` 派生，避免 `task_templates` / `schedule_templates` 形成第二套任务模型。
@@ -56,6 +57,7 @@ AgentWorld 的主线不是再包装一个聊天框，而是建立团队级 Agent
 - Finding API：`GET /api/findings`、`POST /api/findings`、`PATCH /api/findings`、`DELETE /api/findings`。
 - Agent 定义 API：`GET /api/agent-definitions`、`POST /api/agent-definitions`、`PATCH /api/agent-definitions`、`POST /api/agent-definitions/optimize`、`POST /api/agent-definitions/test`。
 - 基础配置 API：`/api/provider-profiles`、`/api/provider-runtime-bindings`、`/api/skills`、`/api/mcp-servers`、`/api/connectors`、`/api/codebases`、`/api/environments`、`/api/webhooks`、`/api/knowledge/spaces`、`/api/knowledge/entries`，均按资源方式支持查询、新增、编辑和删除。
+- 身份与访问 API：`/api/auth/dev-login`、`/api/auth/logout`、`/api/auth/session`、`/api/auth/providers`、`/api/access-whitelist`、`/api/access-requests`、`/api/identity-access/settings`。系统管理员通过这些资源接口管理通用 SSO 入口、团队白名单和访问申请；非白名单员工只会看到访问申请入口，不会直接进入系统内容。
 - 通用设置 API：`GET/PUT /api/system-settings/language-pack`，用于读取和保存当前语言包、术语和短语覆盖。
 - 团队治理 API：`/api/tenant-spaces`、`/api/business-teams`、`/api/team-members`、`/api/team-permissions`、`/api/team-assets`、`/api/execution-policies`、`/api/service-catalog`、`/api/access-grants`，均按资源方式支持查询、新增、编辑和删除。
 - Webhook 入口：`GET /api/webhooks/:pathKey`、`POST /api/webhooks/:pathKey`。保存 Webhook 类型任务蓝图时会按 `trigger.webhookPathKey` 自动创建或更新对应 endpoint，外部系统可以直接调用自定义路径调入任务。
@@ -106,10 +108,19 @@ http://localhost:7369
 
 ```bash
 pnpm config-data:audit
+pnpm quality:audit
+pnpm security:audit
 pnpm typecheck
 pnpm lint
 pnpm build
 ```
+
+工程交付基线：
+
+- `config-data:audit`：检查是否有可配置业务数据被 seed、首条默认值或示例 case 写回主干。
+- `i18n:audit`：检查是否把中文文案直接写回 `src`，绕过语言包。
+- `quality:audit`：输出仓库复杂度热点、`TODO/FIXME`、`any` 和 `eslint-disable` 使用情况，避免大文件和临时性代码继续扩张。
+- `security:audit`：检查危险执行、原始 HTML 注入、私钥材料、硬编码密钥和本地 secret 文件兜底等基础安全风险。
 
 生产启动：
 
@@ -278,7 +289,7 @@ plugins/official/<plugin-id>/plugin.json
 - `official.codehub`
   - Repository Connector
   - Webhook Parser
-  - Merge Request Review Publisher
+  - Merge Request Comment Publisher
   - Tool Bundle
 
 插件运行时 SDK 位于：
@@ -318,7 +329,7 @@ Webhook 把 MR diff 给到系统后，会先进入用户配置的任务蓝图，
 - Webhook endpoint。
 - 任务蓝图。
 
-CodeHub 类型的任务蓝图会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Review Publisher 生成或回写 MR 评论。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
+CodeHub 类型的任务蓝图会使用插件 Webhook Parser 标准化 MR 输入，使用插件 Comment Publisher 生成或回写 MR 评论。CodeHub 插件只能通过 SDK 的 `resolveSecretRef` 和 `requestPermission` 使用密钥与代码仓能力，不读取 `~/.config/opencode` 等本地文件。这样企业代码检视是配置和插件导入结果，不是主干硬编码分支。
 
 ### 每日全量安全检视
 

@@ -70,22 +70,22 @@ Skill 是可版本化能力单元：
 apiVersion: agentworld.io/v1
 kind: Skill
 metadata:
-  id: skill-code-review-security
+  id: skill-code-inspection-security
   name: 代码安全检视 Skill
   version: 1.0.0
 spec:
-  uri: viking://agent/skills/agentworld/code-review/security
-  domain: code-review
-  inputContractRef: schema-code-review-input
+  uri: viking://agent/skills/agentworld/code-inspection/security
+  domain: code-inspection
+  inputContractRef: schema-code-inspection-input
   outputContractRef: schema-finding-list
   promptSections:
     - objective
     - method
     - evidence-policy
   findingTaxonomyRefs:
-    - code-review-security
+    - code-inspection-security
   examplesRef:
-    uri: viking://resources/agentworld/code-review/examples/security
+    uri: viking://resources/agentworld/code-inspection/examples/security
 ```
 
 Skill 必须声明输入输出契约、适用领域、Finding 分类和版本。Skill 内容可以存储在 OpenViking，平台注册表保存索引和权限元数据。
@@ -95,12 +95,12 @@ Skill 必须声明输入输出契约、适用领域、Finding 分类和版本。
 ```yaml
 memory:
   readScopes:
-    - viking://resources/agentworld/code-review/repositories
-    - viking://agent/skills/agentworld/code-review/security
+    - viking://resources/agentworld/code-inspection/repositories
+    - viking://agent/skills/agentworld/code-inspection/security
   writeScopes:
-    - viking://user/memories/agentworld/code-review/feedback
+    - viking://user/memories/agentworld/code-inspection/feedback
   skillRefs:
-    - skill-code-review-security@1.0.0
+    - skill-code-inspection-security@1.0.0
   retrieval:
     mode: scoped-summary
     maxItems: 12
@@ -132,10 +132,10 @@ memory:
 Finding 处理结果应写入用户记忆空间：
 
 ```text
-viking://user/memories/agentworld/code-review/feedback/correct
-viking://user/memories/agentworld/code-review/feedback/incorrect
-viking://user/memories/agentworld/code-review/feedback/unclear
-viking://user/memories/agentworld/code-review/feedback/accepted-risk
+viking://user/memories/agentworld/code-inspection/feedback/correct
+viking://user/memories/agentworld/code-inspection/feedback/incorrect
+viking://user/memories/agentworld/code-inspection/feedback/unclear
+viking://user/memories/agentworld/code-inspection/feedback/accepted-risk
 ```
 
 写回内容应包含 Finding 引用、人工判断、证据摘要、适用范围、时间和处理人引用。不得写入未脱敏 Secret、私钥或访问令牌。
@@ -162,7 +162,7 @@ OpenViking 远端不可用时：
 
 降级状态必须进入 TaskRun 可靠性状态机和看板。
 
-## 12. 验收标准
+## 12. 完成条件
 
 - 所有记忆地址使用 `viking://` URI。
 - TaskBlueprint 可声明读写范围和 Skill 引用。

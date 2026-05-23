@@ -804,7 +804,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
             {!isPinnedToBottom ? (
               <button
                 type="button"
-                className="sticky bottom-3 left-full z-10 ml-auto flex w-fit items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--ink)] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35"
+                className="sticky bottom-3 left-full z-10 ml-auto flex w-fit items-center gap-2 rounded-full border border-[rgba(15,23,42,0.14)] bg-[linear-gradient(180deg,#232936_0%,#141922_100%)] px-3 py-2 text-xs font-medium text-white shadow-[0_14px_28px_rgba(15,17,21,0.16),0_0_0_1px_rgba(255,255,255,0.07)_inset] transition-[background,border-color,box-shadow] hover:border-[rgba(9,199,232,0.28)] hover:bg-[linear-gradient(180deg,#2a3140_0%,#181d27_100%)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/35"
                 onClick={() => scrollToLatest("smooth")}
               >
                 <ArrowDown className="h-4 w-4" />

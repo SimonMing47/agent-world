@@ -909,7 +909,7 @@ export function TaskBlueprintEditor({
           <Input
             value={form.triggerWebhookPathKey}
             onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
-            placeholder="shield-review"
+            placeholder="shield-inspection"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.c6859f82ab2">
@@ -987,7 +987,7 @@ export function TaskBlueprintEditor({
           <Input
             value={form.sandboxRef}
             onChange={(event) => setForm({ ...form, sandboxRef: event.target.value })}
-            placeholder="sandbox:security-review"
+            placeholder="sandbox:security-inspection"
           />
         </FieldGroup>
         <FieldGroup label="ui.generated.ce869b36d04" className="md:col-span-2">

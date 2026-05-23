@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync as DatabaseSyncType, SQLInputValue } from "node:sqlite";
+import { schemaSql } from "@/server/db-schema";
 
 type Row = Record<string, unknown>;
 const { DatabaseSync } = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
@@ -60,6 +61,92 @@ export type TeamMember = {
   title: string;
   status: string;
   source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthProviderConfig = {
+  id: string;
+  tenantSpaceId: string | null;
+  name: string;
+  adapterKey: string;
+  status: string;
+  issuerUrl: string;
+  authorizeUrl: string;
+  tokenUrl: string;
+  userinfoUrl: string;
+  jwksUrl: string;
+  clientId: string;
+  clientSecretRef: string;
+  scopesJson: string;
+  mappingJson: string;
+  configJson: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type IdentityUser = {
+  id: string;
+  tenantSpaceId: string | null;
+  authProviderConfigId: string | null;
+  externalUserId: string;
+  employeeNo: string;
+  email: string;
+  name: string;
+  avatarUrl: string;
+  title: string;
+  status: string;
+  isSystemAdmin: number;
+  primaryBusinessTeamId: string | null;
+  profileJson: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string;
+};
+
+export type IdentityUserBusinessTeamMembership = {
+  id: string;
+  userId: string;
+  businessTeamId: string;
+  membershipSource: string;
+  sourceRef: string;
+  roleTitle: string;
+  isPrimary: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AuthSession = {
+  id: string;
+  userId: string;
+  authProviderConfigId: string | null;
+  sessionToken: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lastSeenAt: string;
+};
+
+export type AccessWhitelistRule = {
+  id: string;
+  tenantSpaceId: string | null;
+  businessTeamId: string;
+  allowDescendants: number;
+  note: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AccessRequest = {
+  id: string;
+  authProviderConfigId: string | null;
+  email: string;
+  name: string;
+  requestedBusinessTeamHint: string;
+  requestNote: string;
+  status: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -487,7 +574,7 @@ export type RepositoryProfile = {
   name: string;
   provider: string;
   branch: string;
-  activityScore: number;
+  activityIndex: number;
   lastTaskRunCount: number;
 };
 
@@ -641,7 +728,7 @@ export type ProviderAdapterDefinition = {
   updatedAt: string;
 };
 
-export type CodeReviewSkill = {
+export type InspectionSkill = {
   id: string;
   ownerBusinessTeamId: string | null;
   name: string;
@@ -716,7 +803,7 @@ export type KnowledgeSpaceBinding = {
   createdAt: string;
 };
 
-export type MergeRequestReview = {
+export type MergeRequestComment = {
   id: string;
   webhookId: string;
   platform: string;
@@ -739,9 +826,9 @@ export type MergeRequestReview = {
   completedAt: string | null;
 };
 
-export type ReviewFinding = {
+export type InspectionFinding = {
   id: string;
-  reviewId: string;
+  inspectionId: string;
   skillId: string;
   knowledgeLayer: string;
   severity: string;
@@ -774,10 +861,10 @@ export type Finding = {
   updatedAt: string;
 };
 
-export type ReviewFeedback = {
+export type InspectionFeedback = {
   id: string;
   findingId: string;
-  reviewId: string;
+  inspectionId: string;
   token: string;
   verdict: string;
   note: string | null;
@@ -856,789 +943,51 @@ function archiveIncompatibleDatabaseIfNeeded() {
   fs.renameSync(DB_PATH, `${DB_PATH}.legacy-${timestamp}.bak`);
 }
 
-const schemaSql = `
-PRAGMA foreign_keys = ON;
-
-CREATE TABLE IF NOT EXISTS tenant_spaces (
-  id TEXT PRIMARY KEY,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  owner_user_id TEXT NOT NULL,
-  status TEXT NOT NULL,
-  quota_limit_json TEXT NOT NULL,
-  model_whitelist_json TEXT NOT NULL,
-  global_guardrails_json TEXT NOT NULL,
-  default_execution_policy_id TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS system_settings (
-  key TEXT PRIMARY KEY,
-  value_json TEXT NOT NULL,
-  updated_by TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS business_teams (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  parent_business_team_id TEXT,
-  slug TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  owner_user_id TEXT NOT NULL,
-  status TEXT NOT NULL,
-  balance REAL NOT NULL,
-  credit_limit REAL NOT NULL,
-  private_tool_refs_json TEXT NOT NULL,
-  private_memory_namespace TEXT NOT NULL,
-  policy_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS team_members (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT NOT NULL,
-  employee_no TEXT NOT NULL,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  role TEXT NOT NULL,
-  title TEXT NOT NULL,
-  status TEXT NOT NULL,
-  source TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS team_permission_grants (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  member_id TEXT,
-  principal_type TEXT NOT NULL,
-  role_key TEXT NOT NULL,
-  resource_type TEXT NOT NULL,
-  resource_scope TEXT NOT NULL,
-  actions_json TEXT NOT NULL,
-  effect TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS team_asset_grants (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  member_id TEXT,
-  asset_type TEXT NOT NULL,
-  asset_id TEXT NOT NULL,
-  asset_name TEXT NOT NULL,
-  permission_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS execution_policies (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT,
-  business_team_id TEXT,
-  team_id TEXT,
-  name TEXT NOT NULL,
-  system_instruction TEXT NOT NULL,
-  tool_policy_json TEXT NOT NULL,
-  approval_policy_json TEXT NOT NULL,
-  budget_policy_json TEXT NOT NULL,
-  output_policy_json TEXT NOT NULL,
-  security_policy_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS agent_teams (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  slug TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL,
-  leader_agent_id TEXT,
-  workflow_type TEXT NOT NULL,
-  orchestration_prompt TEXT NOT NULL DEFAULT '',
-  workflow_definition_json TEXT NOT NULL DEFAULT '{}',
-  input_schema_json TEXT NOT NULL,
-  output_schema_json TEXT NOT NULL,
-  max_concurrency INTEGER NOT NULL,
-  timeout_ms INTEGER NOT NULL,
-  success_rate_threshold REAL NOT NULL,
-  pricing_model_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  default_execution_policy_id TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL DEFAULT ''
-);
-
-CREATE TABLE IF NOT EXISTS agents (
-  id TEXT PRIMARY KEY,
-  team_id TEXT NOT NULL,
-  slug TEXT NOT NULL,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  persona_prompt TEXT NOT NULL,
-  model TEXT NOT NULL,
-  short_term_window INTEGER NOT NULL,
-  rag_config_json TEXT NOT NULL,
-  tool_bindings_json TEXT NOT NULL,
-  memory_scope TEXT NOT NULL,
-  safety_policy_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS agent_team_members (
-  id TEXT PRIMARY KEY,
-  team_id TEXT NOT NULL,
-  agent_definition_id TEXT NOT NULL,
-  member_role TEXT NOT NULL,
-  work_instruction TEXT NOT NULL,
-  position INTEGER NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS agent_team_shares (
-  id TEXT PRIMARY KEY,
-  agent_team_id TEXT NOT NULL,
-  business_team_id TEXT NOT NULL,
-  access_level TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS agent_definitions (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  owner_business_team_id TEXT,
-  owner_user_id TEXT NOT NULL,
-  source_agent_id TEXT,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  description TEXT NOT NULL,
-  system_prompt TEXT NOT NULL,
-  model TEXT NOT NULL,
-  default_provider_profile_id TEXT,
-  default_runtime_binding_id TEXT,
-  tool_bindings_json TEXT NOT NULL,
-  harness_config_json TEXT NOT NULL,
-  permission_policy_json TEXT NOT NULL,
-  memory_scope TEXT NOT NULL,
-  tags_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  status TEXT NOT NULL,
-  validation_status TEXT NOT NULL,
-  last_validated_at TEXT,
-  last_validation_summary TEXT,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS agent_definition_shares (
-  id TEXT PRIMARY KEY,
-  agent_definition_id TEXT NOT NULL,
-  business_team_id TEXT NOT NULL,
-  access_level TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS provider_profiles (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  base_url TEXT NOT NULL,
-  api_style TEXT NOT NULL,
-  default_model TEXT NOT NULL,
-  models_json TEXT NOT NULL,
-  api_key_ref TEXT NOT NULL,
-  config_json TEXT NOT NULL,
-  is_enabled INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS runtime_endpoints (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT,
-  name TEXT NOT NULL,
-  base_url TEXT NOT NULL,
-  runtime_kind TEXT NOT NULL,
-  health_status TEXT NOT NULL,
-  agent_catalog_json TEXT NOT NULL,
-  provider_catalog_json TEXT NOT NULL,
-  concurrency_limit INTEGER NOT NULL,
-  active_run_count INTEGER NOT NULL,
-  last_discovered_at TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS provider_runtime_bindings (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT,
-  adapter_definition_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  runtime_kind TEXT NOT NULL,
-  base_url TEXT NOT NULL,
-  command TEXT NOT NULL,
-  workspace_root TEXT NOT NULL,
-  default_provider_profile_id TEXT,
-  api_key_ref TEXT NOT NULL,
-  config_json TEXT NOT NULL,
-  is_enabled INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS access_grants (
-  id TEXT PRIMARY KEY,
-  provider_team_id TEXT NOT NULL,
-  consumer_business_team_id TEXT NOT NULL,
-  pricing_model_json TEXT NOT NULL,
-  sla_json TEXT NOT NULL,
-  access_scope_json TEXT NOT NULL,
-  service_account_ref TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS service_catalog_listings (
-  id TEXT PRIMARY KEY,
-  team_id TEXT NOT NULL,
-  resume_json TEXT NOT NULL,
-  recruitment_mode TEXT NOT NULL,
-  tags_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS schedule_templates (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  schedule_kind TEXT NOT NULL,
-  cadence TEXT NOT NULL,
-  next_run_at TEXT,
-  input_payload_json TEXT NOT NULL,
-  is_enabled INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS task_templates (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  case_key TEXT NOT NULL,
-  plugin_id TEXT,
-  team_id TEXT NOT NULL,
-  environment_id TEXT,
-  planner_mode TEXT NOT NULL,
-  summary TEXT NOT NULL,
-  input_schema_json TEXT NOT NULL,
-  default_input_json TEXT NOT NULL,
-  memory_layers_json TEXT NOT NULL,
-  output_targets_json TEXT NOT NULL,
-  nodes_json TEXT NOT NULL,
-  webhook_parser_ref TEXT,
-  visibility TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS task_blueprints (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  owner_business_team_id TEXT NOT NULL,
-  team_id TEXT NOT NULL,
-  environment_id TEXT,
-  provider_adapter_id TEXT NOT NULL,
-  version INTEGER NOT NULL,
-  status TEXT NOT NULL,
-  trigger_json TEXT NOT NULL,
-  input_schema_json TEXT NOT NULL,
-  environment_selector_json TEXT NOT NULL,
-  agent_team_run_plan_json TEXT NOT NULL,
-  memory_policy_json TEXT NOT NULL,
-  provider_policy_json TEXT NOT NULL,
-  permission_policy_json TEXT NOT NULL,
-  result_schema_json TEXT NOT NULL,
-  output_policy_json TEXT NOT NULL,
-  dashboard_policy_json TEXT NOT NULL,
-  execution_policy_json TEXT NOT NULL,
-  archive_policy_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS task_runs (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT NOT NULL,
-  team_id TEXT NOT NULL,
-  blueprint_id TEXT,
-  blueprint_version INTEGER NOT NULL DEFAULT 0,
-  idempotency_key TEXT,
-  parent_task_run_id TEXT,
-  run_state TEXT NOT NULL DEFAULT 'running',
-  environment_snapshot_id TEXT,
-  permission_snapshot_json TEXT NOT NULL DEFAULT '{}',
-  agent_team_run_plan_json TEXT NOT NULL DEFAULT '{}',
-  execution_policy_json TEXT NOT NULL DEFAULT '{}',
-  access_grant_id TEXT,
-  source_type TEXT NOT NULL,
-  source_ref TEXT,
-  status TEXT NOT NULL,
-  priority INTEGER NOT NULL,
-  input_payload_json TEXT NOT NULL,
-  output_payload_json TEXT,
-  cost_estimate REAL NOT NULL,
-  cost_actual REAL NOT NULL,
-  trace_id TEXT NOT NULL,
-  requested_by TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  completed_at TEXT
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_task_runs_blueprint_idempotency
-ON task_runs (blueprint_id, idempotency_key)
-WHERE blueprint_id IS NOT NULL AND idempotency_key IS NOT NULL;
-
-CREATE TABLE IF NOT EXISTS task_run_plans (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  planner_mode TEXT NOT NULL,
-  dag_json TEXT NOT NULL,
-  summary TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS task_run_nodes (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  plan_id TEXT NOT NULL,
-  node_key TEXT NOT NULL,
-  agent_id TEXT NOT NULL,
-  depends_on_json TEXT NOT NULL,
-  input_json TEXT NOT NULL,
-  output_json TEXT,
-  status TEXT NOT NULL,
-  attempt_count INTEGER NOT NULL,
-  max_attempts INTEGER NOT NULL,
-  started_at TEXT,
-  completed_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS trace_spans (
-  id TEXT PRIMARY KEY,
-  trace_id TEXT NOT NULL,
-  parent_span_id TEXT,
-  task_run_id TEXT NOT NULL,
-  node_id TEXT,
-  kind TEXT NOT NULL,
-  status TEXT NOT NULL,
-  started_at TEXT NOT NULL,
-  ended_at TEXT,
-  attributes_json TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS event_logs (
-  id TEXT PRIMARY KEY,
-  trace_id TEXT NOT NULL,
-  task_run_id TEXT NOT NULL,
-  node_id TEXT,
-  seq INTEGER NOT NULL,
-  phase TEXT NOT NULL,
-  fold_group TEXT NOT NULL,
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  metadata_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS task_events (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  agent_run_id TEXT,
-  event_type TEXT NOT NULL,
-  event_time TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  payload_json TEXT NOT NULL,
-  raw_payload_ref TEXT,
-  parent_event_id TEXT
-);
-
-CREATE TABLE IF NOT EXISTS task_run_interventions (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  node_id TEXT,
-  kind TEXT NOT NULL,
-  status TEXT NOT NULL,
-  requested_action TEXT NOT NULL,
-  resolution_note TEXT,
-  requested_at TEXT NOT NULL,
-  resolved_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS runtime_sessions (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT NOT NULL,
-  agent_team_id TEXT,
-  agent_definition_id TEXT,
-  runtime_binding_id TEXT NOT NULL,
-  provider_profile_id TEXT NOT NULL,
-  mode TEXT NOT NULL,
-  title TEXT NOT NULL,
-  system_prompt TEXT NOT NULL,
-  model TEXT NOT NULL,
-  status TEXT NOT NULL,
-  last_error TEXT,
-  created_by TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS runtime_session_messages (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  actor_type TEXT NOT NULL,
-  actor_id TEXT,
-  actor_name TEXT NOT NULL,
-  role TEXT NOT NULL,
-  content_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  turn_index INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS runtime_session_events (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  message_id TEXT,
-  actor_id TEXT,
-  actor_name TEXT,
-  event_type TEXT NOT NULL,
-  payload_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS repository_profiles (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  provider TEXT NOT NULL,
-  branch TEXT NOT NULL,
-  activity_score INTEGER NOT NULL,
-  last_task_run_count INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS developer_profiles (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  focus TEXT NOT NULL,
-  last_active_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS mcp_servers (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT,
-  name TEXT NOT NULL,
-  transport TEXT NOT NULL,
-  command TEXT NOT NULL,
-  url TEXT NOT NULL,
-  auth_ref TEXT NOT NULL,
-  tool_allowlist_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  last_health_status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS connector_profiles (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT,
-  name TEXT NOT NULL,
-  connector_type TEXT NOT NULL,
-  provider TEXT NOT NULL,
-  endpoint TEXT NOT NULL,
-  secret_ref TEXT NOT NULL,
-  capabilities_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS codebase_profiles (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  provider TEXT NOT NULL,
-  repository_url TEXT NOT NULL,
-  default_branch TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS codebase_operator_tokens (
-  id TEXT PRIMARY KEY,
-  codebase_id TEXT NOT NULL,
-  operator_name TEXT NOT NULL,
-  token_ref TEXT NOT NULL,
-  role TEXT NOT NULL,
-  permission_json TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS execution_environments (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  repository_provider TEXT NOT NULL,
-  repository_name TEXT NOT NULL,
-  repository_url TEXT NOT NULL,
-  default_branch TEXT NOT NULL,
-  executor_ref TEXT NOT NULL,
-  private_key_ref TEXT NOT NULL,
-  working_directory TEXT NOT NULL,
-  sandbox_profile_json TEXT NOT NULL,
-  memory_layer_refs_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS environment_templates (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  environment_type TEXT NOT NULL,
-  repository_selector_json TEXT NOT NULL,
-  executor_policy_json TEXT NOT NULL,
-  secret_bindings_json TEXT NOT NULL,
-  workspace_policy_json TEXT NOT NULL,
-  sandbox_policy_json TEXT NOT NULL,
-  memory_defaults_json TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  status TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS environment_snapshots (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  template_id TEXT,
-  environment_id TEXT,
-  snapshot_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS webhook_endpoints (
-  id TEXT PRIMARY KEY,
-  business_team_id TEXT NOT NULL,
-  team_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  path_key TEXT NOT NULL,
-  method TEXT NOT NULL,
-  request_schema_json TEXT NOT NULL,
-  secret_hint TEXT NOT NULL,
-  is_enabled INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS plugin_manifests (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  version TEXT NOT NULL,
-  capability TEXT NOT NULL,
-  lifecycle TEXT NOT NULL,
-  mount_point TEXT NOT NULL,
-  config_schema TEXT NOT NULL,
-  required_secret_refs_json TEXT NOT NULL,
-  permissions_json TEXT NOT NULL,
-  health_check TEXT NOT NULL,
-  extension_only INTEGER NOT NULL,
-  source TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS provider_adapter_definitions (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  adapter_type TEXT NOT NULL,
-  entry_ref TEXT NOT NULL,
-  version TEXT NOT NULL,
-  lifecycle TEXT NOT NULL,
-  capabilities_json TEXT NOT NULL,
-  config_schema_json TEXT NOT NULL,
-  secret_refs_json TEXT NOT NULL,
-  permission_refs_json TEXT NOT NULL,
-  health_status TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS code_review_skills (
-  id TEXT PRIMARY KEY,
-  owner_business_team_id TEXT,
-  name TEXT NOT NULL,
-  layer TEXT NOT NULL,
-  description TEXT NOT NULL,
-  tags_json TEXT NOT NULL DEFAULT '[]',
-  visibility TEXT NOT NULL DEFAULT 'team',
-  viking_uri TEXT,
-  is_enabled INTEGER NOT NULL DEFAULT 1,
-  prompt_md TEXT NOT NULL,
-  heuristics_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
-  id TEXT PRIMARY KEY,
-  knowledge_space_id TEXT,
-  layer TEXT NOT NULL,
-  scope_key TEXT NOT NULL,
-  skill_id TEXT,
-  viking_uri TEXT NOT NULL,
-  title TEXT NOT NULL,
-  content_md TEXT NOT NULL,
-  metadata_json TEXT NOT NULL,
-  source_type TEXT NOT NULL,
-  sync_status TEXT NOT NULL,
-  sync_error TEXT,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS knowledge_layers (
-  id TEXT PRIMARY KEY,
-  layer_key TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  scope TEXT NOT NULL,
-  viking_uri TEXT NOT NULL,
-  parent_uri TEXT,
-  description TEXT NOT NULL,
-  load_order INTEGER NOT NULL,
-  retention_policy_json TEXT NOT NULL,
-  is_enabled INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS knowledge_spaces (
-  id TEXT PRIMARY KEY,
-  tenant_space_id TEXT NOT NULL,
-  business_team_id TEXT,
-  agent_team_id TEXT,
-  project_key TEXT,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  space_type TEXT NOT NULL,
-  viking_uri TEXT NOT NULL,
-  description TEXT NOT NULL,
-  visibility TEXT NOT NULL,
-  status TEXT NOT NULL,
-  retention_policy_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS knowledge_space_bindings (
-  id TEXT PRIMARY KEY,
-  knowledge_space_id TEXT NOT NULL,
-  target_type TEXT NOT NULL,
-  target_id TEXT NOT NULL,
-  access_level TEXT NOT NULL,
-  load_order INTEGER NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS merge_request_reviews (
-  id TEXT PRIMARY KEY,
-  webhook_id TEXT NOT NULL,
-  platform TEXT NOT NULL,
-  repository_slug TEXT NOT NULL,
-  repository_clone_url TEXT,
-  mr_iid TEXT NOT NULL,
-  mr_title TEXT NOT NULL,
-  mr_url TEXT,
-  source_branch TEXT,
-  target_branch TEXT,
-  commit_sha TEXT,
-  author TEXT,
-  status TEXT NOT NULL,
-  diff_status TEXT NOT NULL,
-  comment_status TEXT NOT NULL,
-  comment_url TEXT,
-  comment_markdown TEXT,
-  callback_base_url TEXT,
-  created_at TEXT NOT NULL,
-  completed_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS review_findings (
-  id TEXT PRIMARY KEY,
-  review_id TEXT NOT NULL,
-  skill_id TEXT NOT NULL,
-  knowledge_layer TEXT NOT NULL,
-  severity TEXT NOT NULL,
-  file_path TEXT,
-  line_number INTEGER,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  suggestion TEXT,
-  feedback_token TEXT NOT NULL UNIQUE,
-  feedback_state TEXT NOT NULL DEFAULT 'pending',
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS findings (
-  id TEXT PRIMARY KEY,
-  task_run_id TEXT NOT NULL,
-  source_agent TEXT NOT NULL,
-  category TEXT NOT NULL,
-  severity TEXT NOT NULL,
-  confidence REAL NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  evidence_json TEXT NOT NULL,
-  recommendation TEXT NOT NULL,
-  skill_refs_json TEXT NOT NULL,
-  fingerprint TEXT NOT NULL,
-  status TEXT NOT NULL,
-  publication_json TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS review_feedback (
-  id TEXT PRIMARY KEY,
-  finding_id TEXT NOT NULL,
-  review_id TEXT NOT NULL,
-  token TEXT NOT NULL,
-  verdict TEXT NOT NULL,
-  note TEXT,
-  source_ip TEXT,
-  knowledge_uri TEXT,
-  created_at TEXT NOT NULL
-);
-`;
-
 let database: DatabaseSyncType | null = null;
+
+const builtInProviderAdapterDefinitions: Array<{
+  id: string;
+  name: string;
+  adapterType: string;
+  entryRef: string;
+  version: string;
+  lifecycle: string;
+  capabilitiesJson: string;
+  configSchemaJson: string;
+  secretRefsJson: string;
+  permissionRefsJson: string;
+  healthStatus: string;
+}> = [
+  {
+    id: "builtin-agent-runtime",
+    name: "Unified Agent Runtime",
+    adapterType: "embedded",
+    entryRef: "internal://runtime/pi",
+    version: "1.0.0",
+    lifecycle: "general_availability",
+    capabilitiesJson: JSON.stringify(
+      ["session.create", "event.stream", "message.send", "session.cancel", "artifact.collect", "runtime.discover"],
+      null,
+      2,
+    ),
+    configSchemaJson: JSON.stringify(
+      {
+        type: "object",
+        properties: {
+          defaultModel: { type: "string" },
+          approvalMode: { enum: ["allow", "ask", "deny", "manual"] },
+          eventContract: { type: "string" },
+          env: { type: "object" },
+        },
+      },
+      null,
+      2,
+    ),
+    secretRefsJson: JSON.stringify(["env:*"], null, 2),
+    permissionRefsJson: JSON.stringify(["tool.read", "tool.execute", "memory.read"], null, 2),
+    healthStatus: "healthy",
+  },
+];
 
 function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "agent_definitions", "harness_config_json")) {
@@ -1675,18 +1024,26 @@ function ensureOpenVikingKnowledgeColumns(db: DatabaseSyncType) {
 }
 
 function ensureSkillGovernanceColumns(db: DatabaseSyncType) {
-  if (!tableHasColumn(db, "code_review_skills", "owner_business_team_id")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN owner_business_team_id TEXT");
+  if (!tableHasColumn(db, "inspection_skills", "owner_business_team_id")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN owner_business_team_id TEXT");
   }
-  if (!tableHasColumn(db, "code_review_skills", "tags_json")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'");
+  if (!tableHasColumn(db, "inspection_skills", "tags_json")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN tags_json TEXT NOT NULL DEFAULT '[]'");
   }
-  if (!tableHasColumn(db, "code_review_skills", "visibility")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN visibility TEXT NOT NULL DEFAULT 'team'");
+  if (!tableHasColumn(db, "inspection_skills", "visibility")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN visibility TEXT NOT NULL DEFAULT 'team'");
   }
-  if (!tableHasColumn(db, "code_review_skills", "viking_uri")) {
-    db.exec("ALTER TABLE code_review_skills ADD COLUMN viking_uri TEXT");
+  if (!tableHasColumn(db, "inspection_skills", "viking_uri")) {
+    db.exec("ALTER TABLE inspection_skills ADD COLUMN viking_uri TEXT");
   }
+}
+
+function ensureRepositoryProfileActivityIndex(db: DatabaseSyncType) {
+  if (tableHasColumn(db, "repository_profiles", "activity_index")) return;
+  if (!tableHasColumn(db, "repository_profiles", "activity_score")) return;
+
+  db.exec("ALTER TABLE repository_profiles ADD COLUMN activity_index INTEGER NOT NULL DEFAULT 0");
+  db.exec("UPDATE repository_profiles SET activity_index = activity_score WHERE activity_index = 0");
 }
 
 function ensureAgentTeamCatalogColumns(db: DatabaseSyncType) {
@@ -1702,6 +1059,34 @@ function ensureAgentTeamCatalogColumns(db: DatabaseSyncType) {
   }
 }
 
+function ensureBuiltInProviderAdapterDefinitions(db: DatabaseSyncType) {
+  for (const adapter of builtInProviderAdapterDefinitions) {
+    const current = db
+      .prepare("SELECT id FROM provider_adapter_definitions WHERE id = ?")
+      .get(adapter.id) as { id: string } | undefined;
+    if (current) continue;
+
+    const now = new Date().toISOString();
+    db.prepare(
+      "INSERT INTO provider_adapter_definitions (id, name, adapter_type, entry_ref, version, lifecycle, capabilities_json, config_schema_json, secret_refs_json, permission_refs_json, health_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run(
+      adapter.id,
+      adapter.name,
+      adapter.adapterType,
+      adapter.entryRef,
+      adapter.version,
+      adapter.lifecycle,
+      adapter.capabilitiesJson,
+      adapter.configSchemaJson,
+      adapter.secretRefsJson,
+      adapter.permissionRefsJson,
+      adapter.healthStatus,
+      now,
+      now,
+    );
+  }
+}
+
 export function getDb() {
   if (!database) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -1714,6 +1099,8 @@ export function getDb() {
     ensureRuntimeSessionAgentDefinitionColumn(database);
     ensureOpenVikingKnowledgeColumns(database);
     ensureSkillGovernanceColumns(database);
+    ensureRepositoryProfileActivityIndex(database);
+    ensureBuiltInProviderAdapterDefinitions(database);
   }
 
   return database;
