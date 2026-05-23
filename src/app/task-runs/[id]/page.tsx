@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { DeleteResourceButton } from "@/components/delete-resource-button";
-import { FindingForm } from "@/components/finding-form";
 import { PageHeader } from "@/components/page-header";
 import { TaskRunOpsConsole } from "@/components/task-run-ops-console";
 import { Badge } from "@/components/ui/badge";
@@ -45,13 +43,6 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
   if (["awaiting", "waiting_approval", "pending"].includes(status)) return "warning";
   if (["running", "queued", "preparing_environment", "publishing_output"].includes(status)) return "accent";
   if (["succeeded", "completed", "approved", "healthy"].includes(status)) return "success";
-  return "neutral";
-}
-
-function severityVariant(severity: string): "neutral" | "accent" | "success" | "warning" | "danger" {
-  if (severity === "critical" || severity === "high") return "danger";
-  if (severity === "medium") return "warning";
-  if (severity === "low") return "accent";
   return "neutral";
 }
 
@@ -128,11 +119,6 @@ export default async function TaskRunDetailPage({
             label: "ui.generated.ce840cd6f1e",
             value: detail.nodes.length,
             detail: <>{detail.executionInsights?.metrics.throughput ? formatPercent(detail.executionInsights.metrics.throughput) : "0%"} ui.common.completed</>,
-          },
-          {
-            label: "Finding",
-            value: detail.kernel.findings.length,
-            detail: detail.kernel.findings.length > 0 ? "ui.generated.cb9c1fbac56" : "ui.generated.ca98031c097",
           },
           {
             label: "ui.generated.c5354b098e2",
@@ -295,81 +281,6 @@ export default async function TaskRunDetailPage({
             </PanelBody>
           </Panel>
 
-          <Panel>
-            <PanelHeader eyebrow="ui.generated.c97ea95eadd" title="ui.generated.c9db12d6e34" description="ui.generated.c5f46a35e71" />
-            <PanelBody className="p-0">
-              <DataTable>
-                <DataTableHeader>
-                  <DataTableRow>
-                    <DataTableHead>Finding</DataTableHead>
-                    <DataTableHead>ui.generated.c9272e8abe5</DataTableHead>
-                    <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
-                    <DataTableHead align="right">ui.generated.cb78c2dc2e2</DataTableHead>
-                    <DataTableHead>ui.generated.c62e951a692</DataTableHead>
-                    <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
-                  </DataTableRow>
-                </DataTableHeader>
-                <DataTableBody>
-                  {detail.kernel.findings.map((finding) => (
-                    <DataTableRow key={finding.id}>
-                      <DataTableCell className="max-w-[560px]">
-                        <div className="font-medium text-[var(--ink)]">{finding.title}</div>
-                        <div className="mt-1 leading-6">{finding.description}</div>
-                        <div className="mt-2 text-xs text-[var(--ink-muted)]">ui.generated.caeb9400518 {finding.recommendation}</div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <Badge variant={severityVariant(finding.severity)}>
-                          {finding.severity} · {finding.category}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell>{finding.sourceAgent}</DataTableCell>
-                      <DataTableCell align="right">{formatPercent(finding.confidence)}</DataTableCell>
-                      <DataTableCell>
-                        <Badge variant={statusVariant(finding.status)}>{translateStatus(finding.status)}</Badge>
-                      </DataTableCell>
-                      <DataTableCell align="right">
-                        <div className="flex justify-end gap-2">
-                          <FindingForm
-                            finding={{
-                              id: finding.id,
-                              taskRunId: finding.taskRunId,
-                              sourceAgent: finding.sourceAgent,
-                              category: finding.category,
-                              severity: finding.severity,
-                              confidence: finding.confidence,
-                              title: finding.title,
-                              description: finding.description,
-                              evidenceJson: JSON.stringify(finding.evidence, null, 2),
-                              recommendation: finding.recommendation,
-                              skillRefsJson: JSON.stringify(finding.skillRefs, null, 2),
-                              status: finding.status,
-                              publicationJson: JSON.stringify(finding.publication, null, 2),
-                            }}
-                            triggerLabel="ui.generated.ca7f814c0a4"
-                          />
-                          <DeleteResourceButton
-                            endpoint="/api/findings"
-                            id={finding.id}
-                            confirmParams={{ resource: "ui.common.resources.finding", name: finding.title }}
-                          />
-                        </div>
-                      </DataTableCell>
-                    </DataTableRow>
-                  ))}
-                  {detail.kernel.findings.length === 0 ? (
-                    <DataTableRow>
-                      <DataTableCell>ui.generated.cb8dfd045cc</DataTableCell>
-                      <DataTableCell>{" "}</DataTableCell>
-                      <DataTableCell>{" "}</DataTableCell>
-                      <DataTableCell>{" "}</DataTableCell>
-                      <DataTableCell>{" "}</DataTableCell>
-                      <DataTableCell>{" "}</DataTableCell>
-                    </DataTableRow>
-                  ) : null}
-                </DataTableBody>
-              </DataTable>
-            </PanelBody>
-          </Panel>
         </main>
 
         <aside className="space-y-6">

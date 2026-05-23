@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, CircleDot, Eye, FolderSearch, Search, Sparkles } from "lucide-react";
+import { CircleDot, Eye, FolderSearch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
@@ -25,14 +25,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
-import { uiText } from "@/lib/language-pack";
+import { Panel, PanelHeader } from "@/components/ui/panel";
+import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { formatBytes, formatDateTime } from "@/lib/utils";
 import {
   canAccessBusinessTeam,
   filterBusinessTeamsForAuthContext,
   getRequestAuthContext,
 } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listLayeredKnowledge, getKnowledgeManagementSnapshot } from "@/server/openviking-core";
 import {
@@ -124,20 +126,23 @@ function EmptyTableState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="px-4 py-10">
-      <div className="rounded-[24px] bg-[rgba(255,255,255,0.82)] px-6 py-9 text-center shadow-[var(--shadow-soft)] ring-1 ring-black/4">
+    <div className="px-4 py-8">
+      <div className="aw-compact-empty">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-[18px] bg-white text-[var(--ink)] shadow-[var(--shadow-soft)]">
           <FolderSearch className="h-5 w-5" />
         </div>
-        <div className="mt-4 text-sm font-semibold text-[var(--ink)]">{title}</div>
-        <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-[var(--ink-muted)]">{description}</p>
-        {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+        <div className="aw-compact-empty__title">{title}</div>
+        <p className="aw-compact-empty__description">{description}</p>
+        {action ? <div className="pt-1">{action}</div> : null}
       </div>
     </div>
   );
 }
 
 export default async function KnowledgePage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const authContext = await getRequestAuthContext();
   const [snapshot, rawSpaces, rawBindings, tenantSpaces, rawBusinessTeams, rawAgentTeams, rawAgentDefinitions, rawTaskBlueprints, rawEntries] =
     await Promise.all([
@@ -231,7 +236,7 @@ export default async function KnowledgePage() {
             label: snapshot.health.ok ? "knowledge.status.connected" : "knowledge.status.degraded",
             variant: snapshot.health.ok ? "success" : "warning",
           },
-          { label: <>{spaces.length} ui.common.count.knowledgeSpaces</>, variant: "accent" },
+          { label: `${spaces.length} ${t("ui.common.count.knowledgeSpaces", "个知识空间")}`, variant: "accent" },
         ]}
         action={
           <div className="flex flex-wrap gap-2">
@@ -247,43 +252,39 @@ export default async function KnowledgePage() {
         }
       />
 
-      <Panel>
-        <PanelBody className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[22px] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">knowledge.metrics.spaceCount</div>
-            <div className="mt-3 text-[40px] font-light leading-none text-[var(--ink)]">{spaces.length}</div>
-            <div className="mt-2 text-sm text-[var(--ink-muted)]">
-              {uiText("knowledge.metrics.spaceCountDetail", undefined, {
-                count: businessTeams.filter((team) => spaces.some((space) => space.businessTeamId === team.id)).length,
-              })}
-            </div>
-          </div>
-          <div className="rounded-[22px] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">knowledge.metrics.entryCount</div>
-            <div className="mt-3 text-[40px] font-light leading-none text-[var(--ink)]">{allEntries.length}</div>
-            <div className="mt-2 text-sm text-[var(--ink-muted)]">
-              {uiText("knowledge.metrics.entryCountDetail", undefined, { count: todayEntryCount })}
-            </div>
-          </div>
-          <div className="rounded-[22px] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">knowledge.metrics.capacity</div>
-            <div className="mt-3 text-[40px] font-light leading-none text-[var(--ink)]">{formatBytes(totalBytes)}</div>
-            <div className="mt-2 text-sm text-[var(--ink-muted)]">knowledge.metrics.capacityDetail</div>
-          </div>
-          <div className="rounded-[22px] bg-white p-5 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">
-              <CircleDot className={`h-4 w-4 ${snapshot.health.ok ? "text-[#16a34a]" : "text-[var(--warning)]"}`} />
-              knowledge.metrics.consumerCount
-            </div>
-            <div className="mt-3 text-[40px] font-light leading-none text-[var(--ink)]">{uniqueConsumers}</div>
-            <div className="mt-2 text-sm text-[var(--ink-muted)]">
-              {uiText("knowledge.metrics.consumerCountDetail", undefined, {
-                status: snapshot.process.status || "offline",
-              })}
-            </div>
-          </div>
-        </PanelBody>
-      </Panel>
+      <SummaryStrip
+        items={[
+          {
+            label: "knowledge.metrics.spaceCount",
+            value: spaces.length,
+            detail: t("knowledge.metrics.spaceCountDetail", undefined, {
+              count: businessTeams.filter((team) => spaces.some((space) => space.businessTeamId === team.id)).length,
+            }),
+          },
+          {
+            label: "knowledge.metrics.entryCount",
+            value: allEntries.length,
+            detail: t("knowledge.metrics.entryCountDetail", undefined, { count: todayEntryCount }),
+          },
+          {
+            label: "knowledge.metrics.capacity",
+            value: formatBytes(totalBytes),
+            detail: "knowledge.metrics.capacityDetail",
+          },
+          {
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <CircleDot className={`h-3.5 w-3.5 ${snapshot.health.ok ? "text-[#16a34a]" : "text-[var(--warning)]"}`} />
+                knowledge.metrics.consumerCount
+              </span>
+            ),
+            value: uniqueConsumers,
+            detail: t("knowledge.metrics.consumerCountDetail", undefined, {
+              status: snapshot.process.status || "offline",
+            }),
+          },
+        ]}
+      />
 
       <Panel>
         <PanelHeader
@@ -307,7 +308,7 @@ export default async function KnowledgePage() {
             <DataTableBody>
               {spaces.map((space) => {
                 const teamName = space.businessTeamId ? businessTeamById.get(space.businessTeamId)?.name : null;
-                const tenantName = tenantNameById.get(space.tenantSpaceId) ?? uiText("overview.common.empty");
+                const tenantName = tenantNameById.get(space.tenantSpaceId) ?? t("overview.common.empty");
                 const agentTeamName = space.agentTeamId ? agentTeamById.get(space.agentTeamId)?.name : null;
                 const consumers = (consumerGroups.get(space.id) ?? []).sort((left, right) => left.loadOrder - right.loadOrder);
                 return (
@@ -316,7 +317,7 @@ export default async function KnowledgePage() {
                       <div className="font-semibold text-[var(--ink)]">{space.name}</div>
                       <div className="mt-1 text-xs text-[var(--ink-subtle)]">{tenantName}</div>
                       <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
-                        {teamName ?? agentTeamName ?? space.projectKey ?? uiText("knowledge.spaces.unscoped")}
+                        {teamName ?? agentTeamName ?? space.projectKey ?? t("knowledge.spaces.unscoped")}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -338,7 +339,7 @@ export default async function KnowledgePage() {
                           ))}
                           {consumers.length > 3 ? (
                             <Badge variant="neutral">
-                              {uiText("knowledge.spaces.moreConsumers", undefined, { count: consumers.length - 3 })}
+                              {t("knowledge.spaces.moreConsumers", undefined, { count: consumers.length - 3 })}
                             </Badge>
                           ) : null}
                         </div>
@@ -374,9 +375,9 @@ export default async function KnowledgePage() {
                                   { label: "ui.generated.c62e951a692", value: statusLabel(space.status) },
                                   { label: "knowledge.spaces.columns.entries", value: String(entriesBySpaceId.get(space.id) ?? 0) },
                                   { label: "knowledge.spaces.columns.uri", value: <span className="break-all font-mono text-xs">{space.vikingUri}</span> },
-                                  { label: "knowledge.spaces.ownerTeam", value: teamName ?? uiText("overview.common.empty") },
-                                  { label: "ui.generated.c70f970c1fc", value: agentTeamName ?? uiText("overview.common.empty") },
-                                  { label: "ui.generated.cc7e9d69ec3", value: space.projectKey ?? uiText("overview.common.empty") },
+                                  { label: "knowledge.spaces.ownerTeam", value: teamName ?? t("overview.common.empty") },
+                                  { label: "ui.generated.c70f970c1fc", value: agentTeamName ?? t("overview.common.empty") },
+                                  { label: "ui.generated.cc7e9d69ec3", value: space.projectKey ?? t("overview.common.empty") },
                                 ]}
                               />
                               <div className="rounded-[20px] bg-[rgba(245,245,247,0.92)] px-5 py-5 ring-1 ring-black/4">
@@ -392,7 +393,7 @@ export default async function KnowledgePage() {
                                 </div>
                               </div>
                               <div className="rounded-[20px] bg-[rgba(245,245,247,0.92)] px-5 py-5 text-sm leading-7 text-[var(--ink-muted)] ring-1 ring-black/4">
-                                {space.description || uiText("knowledge.spaces.noDescription")}
+                                {space.description || t("knowledge.spaces.noDescription")}
                               </div>
                             </DialogBody>
                           </DialogContent>
@@ -418,8 +419,8 @@ export default async function KnowledgePage() {
           </DataTable>
         ) : (
           <EmptyTableState
-            title={uiText("knowledge.spaces.emptyTitle")}
-            description={uiText("knowledge.spaces.emptyDescription")}
+            title={t("knowledge.spaces.emptyTitle")}
+            description={t("knowledge.spaces.emptyDescription")}
             action={
               <KnowledgeSpaceForm
                 tenantSpaces={visibleTenantSpaces.map((space) => ({ id: space.id, name: space.name }))}
@@ -496,11 +497,11 @@ export default async function KnowledgePage() {
                                 columnsClassName="sm:grid-cols-2"
                                 items={[
                                   { label: "ID", value: entry.id },
-                                  { label: "knowledge.entries.columns.space", value: space?.name ?? uiText("knowledge.entries.unassignedSpace") },
+                                  { label: "knowledge.entries.columns.space", value: space?.name ?? t("knowledge.entries.unassignedSpace") },
                                   { label: "ui.generated.c7895e237ab", value: entry.layer },
                                   { label: "Scope", value: entry.scopeKey },
                                   { label: "ui.generated.cc63f79e636", value: entry.sourceType },
-                                  { label: "knowledge.entries.columns.sync", value: uiText(syncStatusLabel(entry.syncStatus)) },
+                                  { label: "knowledge.entries.columns.sync", value: t(syncStatusLabel(entry.syncStatus)) },
                                   { label: "knowledge.entries.columns.uri", value: <span className="break-all font-mono text-xs">{entry.vikingUri}</span> },
                                   {
                                     label: "ui.generated.cdb9e375556",
@@ -533,8 +534,8 @@ export default async function KnowledgePage() {
           </DataTable>
         ) : (
           <EmptyTableState
-            title={uiText("knowledge.entries.emptyTitle")}
-            description={uiText("knowledge.entries.emptyDescription")}
+            title={t("knowledge.entries.emptyTitle")}
+            description={t("knowledge.entries.emptyDescription")}
             action={
               <KnowledgeEntryForm
                 spaces={spaces.map((space) => ({ id: space.id, name: space.name }))}
@@ -543,36 +544,6 @@ export default async function KnowledgePage() {
             }
           />
         )}
-      </Panel>
-
-      <Panel>
-        <PanelBody className="grid gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: Search,
-              title: uiText("knowledge.hints.testTitle"),
-              description: uiText("knowledge.hints.testDescription"),
-            },
-            {
-              icon: BookOpen,
-              title: uiText("knowledge.hints.bindingTitle"),
-              description: uiText("knowledge.hints.bindingDescription"),
-            },
-            {
-              icon: Sparkles,
-              title: uiText("knowledge.hints.skillTitle"),
-              description: uiText("knowledge.hints.skillDescription"),
-            },
-          ].map((item) => (
-            <div key={item.title} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[var(--ink)] shadow-sm">
-                <item.icon className="h-4.5 w-4.5" />
-              </div>
-              <div className="mt-4 text-sm font-semibold text-[var(--ink)]">{item.title}</div>
-              <p className="mt-2 text-sm leading-7 text-[var(--ink-muted)]">{item.description}</p>
-            </div>
-          ))}
-        </PanelBody>
       </Panel>
     </div>
   );

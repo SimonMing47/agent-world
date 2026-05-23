@@ -42,7 +42,7 @@ export default async function RootLayout({
   const authContext = await getRequestAuthContext();
   if (!publicPaths.has(pathname)) {
     if (!authContext) {
-      redirect(`/signin?next=${encodeURIComponent(pathname)}`);
+      redirect(`/?next=${encodeURIComponent(pathname)}`);
     }
     if (!authContext.access.allowed) {
       redirect(`/access-request?next=${encodeURIComponent(pathname)}`);

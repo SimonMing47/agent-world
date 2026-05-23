@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { LanguagePack } from "@/lib/language-pack";
 
-const SIDEBAR_STORAGE_KEY = "agentworld.sidebar.collapsed";
+const SIDEBAR_STORAGE_KEY = "agentworld.sidebar.collapsed.v2";
 const SIDEBAR_EVENT = "agentworld:sidebar-collapsed-change";
 
 function subscribeToSidebarPreference(callback: () => void) {
@@ -35,10 +35,10 @@ function subscribeToSidebarPreference(callback: () => void) {
 
 function getSidebarSnapshot() {
   if (typeof window === "undefined") {
-    return false;
+    return true;
   }
-
-  return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1";
+  const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
+  return stored === null ? true : stored === "1";
 }
 
 export function AppShell({
@@ -85,7 +85,7 @@ function AppShellContentWithUser({
   const pathname = usePathname();
   const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
   const text = useLanguageText();
-  const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => false);
+  const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (pathname === "/" || pathname === "/signin" || pathname === "/access-request") {
@@ -103,7 +103,7 @@ function AppShellContentWithUser({
         <div className="flex h-full">
           <aside
             className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] backdrop-blur-2xl transition-[width] duration-200 lg:block ${
-              collapsed ? "w-[72px]" : "w-[260px]"
+              collapsed ? "w-[68px]" : "w-[214px]"
             }`}
           >
             <SidebarNav
@@ -113,8 +113,8 @@ function AppShellContentWithUser({
           </aside>
 
           <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[rgba(245,245,247,0.8)] backdrop-blur-2xl">
-              <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+            <header className="z-30 shrink-0 border-b border-[var(--line)] bg-[rgba(245,245,247,0.72)] backdrop-blur-2xl">
+              <div className="flex h-14 items-center gap-3 px-5 sm:px-6 lg:px-8">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                   <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="lg:hidden">
@@ -137,7 +137,7 @@ function AppShellContentWithUser({
                 </Button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-[var(--ink)]">{text(currentNav.label)}</div>
+                  <div className="truncate text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text(currentNav.label)}</div>
                 </div>
 
                 {currentUser ? <CurrentUserMenu user={currentUser} /> : null}
@@ -145,7 +145,7 @@ function AppShellContentWithUser({
             </header>
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-              <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-8 px-4 py-7 sm:px-6 lg:px-8">
+              <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-8 px-5 py-7 sm:px-6 lg:px-8">
                 {children}
               </div>
             </main>

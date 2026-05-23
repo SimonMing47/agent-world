@@ -17,12 +17,6 @@ export async function GET() {
         listTaskBlueprints().find((raw) => raw.id === blueprint.id)?.ownerBusinessTeamId,
       ),
     ),
-    findingDashboard: {
-      ...snapshot.findingDashboard,
-      byBusinessTeam: snapshot.findingDashboard.byBusinessTeam.filter((item) =>
-        canAccessBusinessTeam(authContext, item.businessTeamId),
-      ),
-    },
   });
 }
 

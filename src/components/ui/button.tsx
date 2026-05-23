@@ -7,14 +7,15 @@ import { localizeNode, useLanguageText } from "@/components/language-pack-provid
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/24 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[12px] text-sm font-medium transition-[background,color,border-color,box-shadow,transform] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/24 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-[var(--accent)] text-white hover:bg-[var(--accent-strong)]",
+        primary:
+          "border border-[rgba(15,23,42,0.14)] bg-[linear-gradient(180deg,#232936_0%,#141922_100%)] text-white shadow-[0_14px_34px_rgba(15,17,21,0.16),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:border-[rgba(9,199,232,0.28)] hover:bg-[linear-gradient(180deg,#2a3140_0%,#181d27_100%)]",
         secondary:
-          "border border-[rgba(15,23,42,0.06)] bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-soft)] hover:bg-[var(--surface-subtle)]",
-        ghost: "text-[var(--ink-muted)] hover:bg-[rgba(15,23,42,0.04)] hover:text-[var(--ink)]",
+          "border border-[var(--line)] bg-[rgba(255,255,255,0.68)] text-[var(--ink)] shadow-none hover:bg-[rgba(255,255,255,0.92)]",
+        ghost: "text-[var(--ink-muted)] hover:bg-[rgba(15,23,42,0.03)] hover:text-[var(--ink)]",
         danger: "bg-[var(--danger)] text-white hover:opacity-95",
       },
       size: {

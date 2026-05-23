@@ -3,6 +3,7 @@
 import { PencilLine, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,6 +46,7 @@ export function KnowledgeEntryForm({
   triggerLabel?: string;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -55,8 +57,8 @@ export function KnowledgeEntryForm({
     layer: entry?.layer ?? "manual",
     scopeKey: entry?.scopeKey ?? "manual",
     skillId: entry?.skillId ?? "",
-    title: entry?.title ?? "ui.generated.c1880d5bbcc",
-    contentMd: entry?.contentMd ?? "ui.generated.c14408d6be9",
+    title: entry?.title ?? "",
+    contentMd: entry?.contentMd ?? "",
     metadataJson: entry?.metadataJson ?? "{}",
     sourceType: entry?.sourceType ?? "manual",
   });
@@ -92,14 +94,14 @@ export function KnowledgeEntryForm({
       <DialogTrigger asChild>
         <Button variant={isEdit ? "ghost" : "secondary"} size={isEdit ? "sm" : "md"}>
           {isEdit ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {triggerLabel ?? (isEdit ? "ui.generated.ca7f814c0a4" : "ui.generated.c1880d5bbcc")}
+          {triggerLabel ? text(triggerLabel) : isEdit ? text("ui.generated.ca7f814c0a4") : text("ui.generated.c1880d5bbcc")}
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[min(96vw,980px)]">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "ui.generated.caaae11cf1f" : "ui.generated.c1880d5bbcc"}</DialogTitle>
+          <DialogTitle>{isEdit ? text("ui.generated.caaae11cf1f") : text("ui.generated.c1880d5bbcc")}</DialogTitle>
           <DialogDescription>
-            ui.generated.c61daf548b0
+            {text("ui.generated.c61daf548b0")}
           </DialogDescription>
         </DialogHeader>
         <DialogBody>
@@ -154,13 +156,13 @@ export function KnowledgeEntryForm({
             </FieldGroup>
           </div>
           <div className="mt-5 flex items-center justify-between gap-3">
-            {message ? <div className="text-sm text-[var(--danger)]">{message}</div> : <div />}
+            {message ? <div className="text-sm text-[var(--danger)]">{text(message)}</div> : <div />}
             <div className="flex gap-2">
               <Button type="button" onClick={() => setOpen(false)}>
-                ui.generated.c4d0b4688c7
+                {text("ui.generated.c4d0b4688c7")}
               </Button>
               <Button type="button" variant="primary" onClick={save} disabled={pending}>
-                {pending ? "ui.generated.ca032e8fdda" : "ui.generated.cfadf24dbc5"}
+                {pending ? text("ui.generated.ca032e8fdda") : text("ui.generated.cfadf24dbc5")}
               </Button>
             </div>
           </div>

@@ -26,6 +26,7 @@ type ProviderRuntimeBindingFormProps = {
     isEnabled: number;
   };
   title: string;
+  tenantSpaceOptions: Array<{ id: string; name: string }>;
   providerOptions: Array<{ id: string; name: string }>;
   adapterOptions: Array<{ id: string; name: string }>;
   businessTeamOptions: Array<{ id: string; name: string }>;
@@ -53,7 +54,9 @@ function parseConfig(value: string) {
 export function ProviderRuntimeBindingForm({
   binding,
   title,
+  tenantSpaceOptions,
   providerOptions,
+  adapterOptions,
   businessTeamOptions,
   embedded = false,
   onSaved,
@@ -62,11 +65,13 @@ export function ProviderRuntimeBindingForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const parsedConfig = parseConfig(binding.configJson);
+  const resolvedAdapterDefinitionId =
+    binding.adapterDefinitionId || adapterOptions[0]?.id || "builtin-agent-runtime";
   const [form, setForm] = useState({
     id: binding.id,
     tenantSpaceId: binding.tenantSpaceId,
     businessTeamId: binding.businessTeamId ?? "",
-    adapterDefinitionId: binding.adapterDefinitionId,
+    adapterDefinitionId: resolvedAdapterDefinitionId,
     name: binding.name,
     runtimeKind: binding.runtimeKind,
     baseUrl: binding.baseUrl,
@@ -163,6 +168,19 @@ export function ProviderRuntimeBindingForm({
       {embedded ? <div className="flex justify-end">{enabledControl}</div> : null}
       <div className={embedded ? "space-y-4" : ""}>
         <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label="ui.generated.c3db35d2741">
+            <Select
+              value={form.tenantSpaceId}
+              onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}
+            >
+              <option value="">ui.generated.ca5644f4bbf</option>
+              {tenantSpaceOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
           <FieldGroup label="ui.generated.c26f30fd79b">
             <Select
               value={form.businessTeamId}
@@ -170,6 +188,18 @@ export function ProviderRuntimeBindingForm({
             >
               <option value="">ui.generated.ce0523a661c</option>
               {businessTeamOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label="ui.generated.cbc56f948bb">
+            <Select
+              value={form.adapterDefinitionId}
+              onChange={(event) => setForm({ ...form, adapterDefinitionId: event.target.value })}
+            >
+              {adapterOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
                 </option>

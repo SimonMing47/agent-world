@@ -105,6 +105,7 @@ function SettingsForm({
   };
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState(settings);
@@ -139,10 +140,10 @@ function SettingsForm({
       </FieldGroup>
       <div className="lg:col-span-2 flex items-center justify-between gap-3">
         <div className="text-sm text-[var(--ink-muted)]">
-          {message ?? "identityAccess.settings.footerHint"}
+          {message ?? text("identityAccess.settings.footerHint")}
         </div>
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "identityAccess.common.saving" : "identityAccess.settings.save"}
+          {isSaving ? text("identityAccess.common.saving") : text("identityAccess.settings.save")}
         </Button>
       </div>
     </div>
@@ -157,6 +158,7 @@ function ProviderForm({
   provider?: Provider;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -268,10 +270,10 @@ function ProviderForm({
       </div>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm text-[var(--ink-muted)]">
-          {message ?? "identityAccess.providers.footerHint"}
+          {message ?? text("identityAccess.providers.footerHint")}
         </div>
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "identityAccess.common.saving" : "identityAccess.providers.save"}
+          {isSaving ? text("identityAccess.common.saving") : text("identityAccess.providers.save")}
         </Button>
       </div>
     </div>
@@ -286,6 +288,7 @@ function WhitelistForm({
   rule?: WhitelistRule;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -315,7 +318,7 @@ function WhitelistForm({
       <div className="grid gap-3 md:grid-cols-2">
         <FieldGroup label="identityAccess.whitelist.fields.team">
           <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
-            <option value="">identityAccess.whitelist.teamPlaceholder</option>
+            <option value="">{text("identityAccess.whitelist.teamPlaceholder")}</option>
             {teams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
@@ -339,12 +342,12 @@ function WhitelistForm({
           checked={Boolean(form.allowDescendants)}
           onChange={(event) => setForm({ ...form, allowDescendants: event.target.checked ? 1 : 0 })}
         />
-        identityAccess.whitelist.allowDescendants
+        {text("identityAccess.whitelist.allowDescendants")}
       </label>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm text-[var(--ink-muted)]">{message ?? "identityAccess.whitelist.footerHint"}</div>
+        <div className="text-sm text-[var(--ink-muted)]">{message ?? text("identityAccess.whitelist.footerHint")}</div>
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "identityAccess.common.saving" : "identityAccess.whitelist.save"}
+          {isSaving ? text("identityAccess.common.saving") : text("identityAccess.whitelist.save")}
         </Button>
       </div>
     </div>
@@ -356,6 +359,7 @@ function AccessRequestReview({
 }: {
   request: AccessRequest;
 }) {
+  const text = useLanguageText();
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -405,7 +409,7 @@ function AccessRequestReview({
       </div>
       <div className="flex justify-end">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "identityAccess.common.saving" : "identityAccess.requests.save"}
+          {isSaving ? text("identityAccess.common.saving") : text("identityAccess.requests.save")}
         </Button>
       </div>
     </div>
@@ -453,7 +457,7 @@ export function IdentityAccessConsole({
           { label: "identityAccess.summary.requests", value: accessRequests.filter((request) => request.status === "open").length },
         ].map((item) => (
           <div key={item.label} className="rounded-[22px] bg-white px-5 py-5 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{item.label}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text(item.label)}</div>
             <div className="mt-3 text-[40px] font-light leading-none text-[var(--ink)]">{item.value}</div>
           </div>
         ))}
@@ -462,8 +466,8 @@ export function IdentityAccessConsole({
       <div className="rounded-[24px] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold text-[var(--ink)]">identityAccess.settings.title</div>
-            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">identityAccess.settings.description</div>
+            <div className="text-lg font-semibold text-[var(--ink)]">{text("identityAccess.settings.title")}</div>
+            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">{text("identityAccess.settings.description")}</div>
           </div>
           <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(29,78,216,0.08)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
             <Shield className="h-3.5 w-3.5" />
@@ -478,17 +482,17 @@ export function IdentityAccessConsole({
       <div className="rounded-[24px] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold text-[var(--ink)]">identityAccess.providers.title</div>
-            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">identityAccess.providers.description</div>
+            <div className="text-lg font-semibold text-[var(--ink)]">{text("identityAccess.providers.title")}</div>
+            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">{text("identityAccess.providers.description")}</div>
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button type="button" variant="secondary"><Plus className="h-4 w-4" />identityAccess.providers.add</Button>
+              <Button type="button" variant="secondary"><Plus className="h-4 w-4" />{text("identityAccess.providers.add")}</Button>
             </DialogTrigger>
             <DialogContent className="w-[min(96vw,980px)]">
               <DialogHeader>
-                <DialogTitle>identityAccess.providers.dialogTitle</DialogTitle>
-                <DialogDescription>identityAccess.providers.dialogDescription</DialogDescription>
+                <DialogTitle>{text("identityAccess.providers.dialogTitle")}</DialogTitle>
+                <DialogDescription>{text("identityAccess.providers.dialogDescription")}</DialogDescription>
               </DialogHeader>
               <DialogBody>
                 <ProviderForm adapters={adapters} />
@@ -546,17 +550,17 @@ export function IdentityAccessConsole({
       <div className="rounded-[24px] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-lg font-semibold text-[var(--ink)]">identityAccess.whitelist.title</div>
-            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">identityAccess.whitelist.description</div>
+            <div className="text-lg font-semibold text-[var(--ink)]">{text("identityAccess.whitelist.title")}</div>
+            <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">{text("identityAccess.whitelist.description")}</div>
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button type="button" variant="secondary"><Plus className="h-4 w-4" />identityAccess.whitelist.add</Button>
+              <Button type="button" variant="secondary"><Plus className="h-4 w-4" />{text("identityAccess.whitelist.add")}</Button>
             </DialogTrigger>
             <DialogContent className="w-[min(94vw,760px)]">
               <DialogHeader>
-                <DialogTitle>identityAccess.whitelist.dialogTitle</DialogTitle>
-                <DialogDescription>identityAccess.whitelist.dialogDescription</DialogDescription>
+                <DialogTitle>{text("identityAccess.whitelist.dialogTitle")}</DialogTitle>
+                <DialogDescription>{text("identityAccess.whitelist.dialogDescription")}</DialogDescription>
               </DialogHeader>
               <DialogBody>
                 <WhitelistForm teams={teams} />
@@ -612,8 +616,8 @@ export function IdentityAccessConsole({
         <div className="rounded-[24px] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-lg font-semibold text-[var(--ink)]">identityAccess.identities.title</div>
-              <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">identityAccess.identities.description</div>
+              <div className="text-lg font-semibold text-[var(--ink)]">{text("identityAccess.identities.title")}</div>
+              <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">{text("identityAccess.identities.description")}</div>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.05)] px-3 py-1 text-xs font-semibold text-[var(--ink-subtle)]">
               <Users className="h-3.5 w-3.5" />
@@ -648,8 +652,8 @@ export function IdentityAccessConsole({
         </div>
 
         <div className="rounded-[24px] bg-white p-6 shadow-[var(--shadow-soft)] ring-1 ring-black/4">
-          <div className="text-lg font-semibold text-[var(--ink)]">identityAccess.requests.title</div>
-          <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">identityAccess.requests.description</div>
+          <div className="text-lg font-semibold text-[var(--ink)]">{text("identityAccess.requests.title")}</div>
+          <div className="mt-1 text-sm leading-7 text-[var(--ink-muted)]">{text("identityAccess.requests.description")}</div>
           <div className="mt-6 overflow-hidden rounded-[20px]">
             <DataTable>
               <DataTableHeader>
