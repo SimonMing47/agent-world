@@ -14,6 +14,7 @@
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white"></a>
   <a href="https://www.sqlite.org/"><img alt="SQLite" src="https://img.shields.io/badge/SQLite-local%20first-003B57?logo=sqlite&logoColor=white"></a>
   <a href="https://pnpm.io/"><img alt="pnpm" src="https://img.shields.io/badge/pnpm-workflow-F69220?logo=pnpm&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="OpenViking" src="https://img.shields.io/badge/OpenViking-knowledge%20base-111827">
   <img alt="Status" src="https://img.shields.io/badge/status-active%20development-16A34A">
 </p>
@@ -316,4 +317,4 @@ Key console routes:
 
 ## License
 
-This repository does not currently declare an open-source license. Add a `LICENSE` file before distributing or accepting external contributions under a formal open-source model.
+AgentWorld is licensed under the [MIT License](LICENSE).

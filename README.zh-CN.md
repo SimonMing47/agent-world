@@ -14,6 +14,7 @@
   <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white"></a>
   <a href="https://www.sqlite.org/"><img alt="SQLite" src="https://img.shields.io/badge/SQLite-local%20first-003B57?logo=sqlite&logoColor=white"></a>
   <a href="https://pnpm.io/"><img alt="pnpm" src="https://img.shields.io/badge/pnpm-workflow-F69220?logo=pnpm&logoColor=white"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
   <img alt="OpenViking" src="https://img.shields.io/badge/OpenViking-knowledge%20base-111827">
   <img alt="Status" src="https://img.shields.io/badge/status-active%20development-16A34A">
 </p>
@@ -316,4 +317,4 @@ data                        本地运行数据，git 忽略
 
 ## 许可证
 
-当前仓库尚未声明开源许可证。在正式分发或接受外部贡献前，需要添加 `LICENSE` 文件。
+AgentWorld 使用 [MIT License](LICENSE) 开源许可证。
