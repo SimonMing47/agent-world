@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { DevelopmentAccessSettingsForm } from "@/components/development-access-settings-form";
+import { KnowledgeBaseSettingsForm } from "@/components/knowledge-base-settings-form";
 import { LanguagePackSettingsForm } from "@/components/language-pack-settings-form";
 import { PageHeader } from "@/components/page-header";
+import {
+  SettingsCollapsiblePanel,
+  SettingsConfigLayout,
+  type SettingsNavItem,
+} from "@/components/settings-config-layout";
 import { Button } from "@/components/ui/button";
 import {
   DataTable,
@@ -11,10 +17,10 @@ import {
   DataTableHeader,
   DataTableRow,
 } from "@/components/ui/data-table";
-import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateWithPack } from "@/lib/language-pack";
 import { getDevelopmentAccessSettings } from "@/server/auth-core";
+import { getKnowledgeBaseSettings, getOpenVikingModelDefaults } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getSettingsSnapshot } from "@/server/queries";
 
@@ -32,6 +38,13 @@ const systemEntries = [
     group: "ui.generated.c918a0a7cf1",
     scope: "ui.generated.c71d6a654d0",
     description: "ui.generated.c8f35d729e3",
+  },
+  {
+    name: "知识库配置",
+    href: "#knowledge-base",
+    group: "ui.generated.c918a0a7cf1",
+    scope: "OpenViking",
+    description: "配置默认知识库后端、OpenViking 连接、内容理解知识底座和检索索引参数。",
   },
   {
     name: "ui.common.resources.providerProfile",
@@ -135,12 +148,72 @@ const systemEntries = [
 
 const systemEntryGroups = ["ui.generated.c918a0a7cf1", "ui.generated.cfad8b39e99", "ui.generated.c2e03739792"] as const;
 
+const systemGroupPanels: Record<typeof systemEntryGroups[number], {
+  id: string;
+  title: string;
+  description: string;
+}> = {
+  "ui.generated.c918a0a7cf1": {
+    id: "general-settings",
+    title: "通用设置",
+    description: "开发模式、语言包、知识库等系统级入口。",
+  },
+  "ui.generated.cfad8b39e99": {
+    id: "resource-settings",
+    title: "资源配置",
+    description: "模型、Skill、MCP、连接器、Codebase 和知识库资源入口。",
+  },
+  "ui.generated.c2e03739792": {
+    id: "runtime-governance-settings",
+    title: "运行治理",
+    description: "运行绑定、环境、Webhook、策略、租户和服务目录入口。",
+  },
+};
+
+const settingsNavItems: SettingsNavItem[] = [
+  {
+    id: "knowledge-base",
+    label: "知识库配置",
+    description: "OpenViking 连接、启动、内容理解知识底座和检索索引参数。",
+    meta: "OpenViking",
+  },
+  {
+    id: "development-access",
+    label: "developmentAccess.settings.title",
+    description: "developmentAccess.settings.description",
+    meta: "开发",
+  },
+  {
+    id: "language-pack",
+    label: "ui.common.resources.languagePack",
+    description: "界面文字、术语和语言包覆盖。",
+    meta: "语言",
+  },
+  {
+    id: "general-settings",
+    label: "通用设置",
+    description: "系统常用配置入口。",
+  },
+  {
+    id: "resource-settings",
+    label: "资源配置",
+    description: "模型服务和平台资源入口。",
+  },
+  {
+    id: "runtime-governance-settings",
+    label: "运行治理",
+    description: "运行环境、Webhook 和治理策略。",
+  },
+];
+
 export default function SettingsPage() {
   const languagePack = getActiveLanguagePack();
   const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
     translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
   const developmentAccessSetting = getDevelopmentAccessSettings();
+  const knowledgeBaseSetting = getKnowledgeBaseSettings();
+  const openVikingModelDefaults = getOpenVikingModelDefaults();
 
   return (
     <div className="space-y-6">
@@ -151,6 +224,7 @@ export default function SettingsPage() {
         badges={[
           { label: `${snapshot.providers.length} ${t("ui.common.count.modelServices", "个模型服务")}`, variant: "accent" },
           { label: `${snapshot.environments.length} ${t("ui.common.count.environments", "个执行环境")}`, variant: "neutral" },
+          { label: knowledgeBaseSetting.provider === "openviking" ? "OpenViking" : knowledgeBaseSetting.provider, variant: "neutral" },
         ]}
       />
 
@@ -163,63 +237,90 @@ export default function SettingsPage() {
         ]}
       />
 
-      <Panel id="development-access">
-        <PanelHeader
+      <SettingsConfigLayout items={settingsNavItems}>
+        <SettingsCollapsiblePanel
+          id="knowledge-base"
+          eyebrow="系统配置"
+          title="知识库配置"
+          description="默认知识库为 OpenViking；这里统一管理知识读写、同步、本地进程启动、内容理解知识底座和检索索引配置。"
+          meta="OpenViking"
+        >
+          <KnowledgeBaseSettingsForm
+            setting={knowledgeBaseSetting}
+            modelDefaults={openVikingModelDefaults}
+            providerOptions={snapshot.providers.map((provider) => ({
+              id: provider.id,
+              name: provider.name,
+              apiStyle: provider.apiStyle,
+              baseUrl: provider.baseUrl,
+              defaultModel: provider.defaultModel,
+              apiKeyRef: provider.apiKeyRef,
+              configJson: provider.configJson,
+              isEnabled: provider.isEnabled,
+            }))}
+          />
+        </SettingsCollapsiblePanel>
+
+        <SettingsCollapsiblePanel
+          id="development-access"
           eyebrow="developmentAccess.scope.label"
           title="developmentAccess.settings.title"
           description="developmentAccess.settings.description"
-        />
-        <PanelBody>
+          meta="开发入口"
+        >
           <DevelopmentAccessSettingsForm setting={developmentAccessSetting} />
-        </PanelBody>
-      </Panel>
+        </SettingsCollapsiblePanel>
 
-      <Panel id="language-pack">
-        <PanelHeader
+        <SettingsCollapsiblePanel
+          id="language-pack"
           eyebrow="ui.generated.c918a0a7cf1"
           title="ui.generated.ce13af2e292"
           description="ui.generated.c2ef0fab9c9"
-        />
-        <PanelBody>
+          meta="语言"
+        >
           <LanguagePackSettingsForm setting={snapshot.languagePackSetting} />
-        </PanelBody>
-      </Panel>
+        </SettingsCollapsiblePanel>
 
-      {systemEntryGroups.map((group) => (
-        <Panel key={group}>
-          <PanelHeader
-            eyebrow="ui.generated.cf84ec364a6"
-            title={group}
-            description={group === "ui.generated.cfad8b39e99" ? "ui.generated.c328dd8d617" : "ui.generated.c8109a3b527"}
-          />
-          <PanelBody className="p-0">
-            <DataTable>
-              <DataTableHeader>
-                <DataTableRow className="hover:bg-transparent">
-                  <DataTableHead>{t("ui.generated.cc1bebd4ab3", "配置项")}</DataTableHead>
-                  <DataTableHead>{t("ui.generated.c785b52eb97", "作用域")}</DataTableHead>
-                  <DataTableHead>{t("ui.generated.c26670dda42", "说明")}</DataTableHead>
-                  <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
-                </DataTableRow>
-              </DataTableHeader>
-              <DataTableBody>
-                {systemEntries.filter((entry) => entry.group === group).map((entry) => (
-                  <DataTableRow key={entry.href}>
-                    <DataTableCell className="font-semibold text-[var(--ink)]">{entry.name}</DataTableCell>
-                    <DataTableCell>{entry.scope}</DataTableCell>
-                    <DataTableCell>{entry.description}</DataTableCell>
-                    <DataTableCell align="right">
-                      <Button asChild size="sm" variant="ghost">
-                        <Link href={entry.href}>{t("ui.generated.c65fc81e161", "打开")}</Link>
-                      </Button>
-                    </DataTableCell>
+        {systemEntryGroups.map((group) => {
+          const panel = systemGroupPanels[group];
+
+          return (
+            <SettingsCollapsiblePanel
+              key={group}
+              id={panel.id}
+              eyebrow="ui.generated.cf84ec364a6"
+              title={panel.title}
+              description={panel.description}
+              bodyClassName="p-0"
+            >
+              <DataTable>
+                <DataTableHeader>
+                  <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>{t("ui.generated.cc1bebd4ab3", "配置项")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c785b52eb97", "作用域")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c26670dda42", "说明")}</DataTableHead>
+                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
                   </DataTableRow>
-                ))}
-              </DataTableBody>
-            </DataTable>
-          </PanelBody>
-        </Panel>
-      ))}
+                </DataTableHeader>
+                <DataTableBody>
+                  {systemEntries.filter((entry) => entry.group === group).map((entry) => (
+                    <DataTableRow key={entry.href}>
+                      <DataTableCell className="font-semibold text-[var(--ink)]">{entry.name}</DataTableCell>
+                      <DataTableCell>{entry.scope}</DataTableCell>
+                      <DataTableCell>{entry.description}</DataTableCell>
+                      <DataTableCell align="right">
+                        <Button asChild size="sm" variant="ghost">
+                          <Link href={entry.href}>{t("ui.generated.c65fc81e161", "打开")}</Link>
+                        </Button>
+                      </DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            </SettingsCollapsiblePanel>
+          );
+        })}
+      </SettingsConfigLayout>
     </div>
   );
 }

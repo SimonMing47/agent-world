@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { PencilLine, Plus } from "lucide-react";
+import { AlertTriangle, PencilLine, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,7 @@ export function KnowledgeSpaceForm({
   const text = useLanguageText();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isEdit = Boolean(space?.id);
   const initialBusinessTeamId =
     space?.businessTeamId ??
@@ -83,6 +84,7 @@ export function KnowledgeSpaceForm({
 
   async function submit(formData: FormData) {
     setPending(true);
+    setErrorMessage(null);
     try {
       const response = await fetch("/api/knowledge/spaces", {
         method: "POST",
@@ -91,28 +93,37 @@ export function KnowledgeSpaceForm({
           action: "create_space",
           id: space?.id,
           tenantSpaceId: tenantSpaceId || null,
-          name: String(formData.get("name") ?? ""),
-          slug: String(formData.get("slug") ?? ""),
+          name: String(formData.get("name") ?? "").trim(),
+          slug: String(formData.get("slug") ?? "").trim() || undefined,
           spaceType,
           businessTeamId: spaceType === "global" ? null : businessTeamId || null,
           agentTeamId: spaceType === "agent_team" ? String(formData.get("agentTeamId") ?? "") || null : null,
-          projectKey: spaceType === "project" ? String(formData.get("projectKey") ?? "") || null : null,
+          projectKey: spaceType === "project" ? String(formData.get("projectKey") ?? "").trim() || null : null,
           description: String(formData.get("description") ?? ""),
           visibility: String(formData.get("visibility") ?? "team"),
           status: String(formData.get("status") ?? "active"),
-          retentionPolicyJson: String(formData.get("retentionPolicyJson") ?? "{}"),
+          retentionPolicyJson: String(formData.get("retentionPolicyJson") ?? "").trim() || "{}",
         }),
       });
-      if (!response.ok) throw new Error("save failed");
+      const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? "保存空间失败");
       setOpen(false);
       router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "保存空间失败");
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setErrorMessage(null);
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant={isEdit ? "secondary" : "primary"} size={isEdit ? "sm" : "md"}>
           {isEdit ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
@@ -205,6 +216,18 @@ export function KnowledgeSpaceForm({
                 placeholder="{}"
               />
             </FieldGroup>
+            {errorMessage ? (
+              <div
+                className="flex items-start gap-3 rounded-2xl border border-[#fecaca] bg-[#fff1f2] px-4 py-3 text-sm text-[#9f1239]"
+                role="alert"
+              >
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-semibold">保存空间失败</div>
+                  <div className="mt-1 leading-6">{errorMessage}</div>
+                </div>
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setOpen(false)}>
                 {text("actions.cancel")}

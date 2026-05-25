@@ -44,6 +44,37 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "") || "default";
 }
 
+function normalizeSpaceSlug(inputSlug: string | null | undefined, fallbackName: string) {
+  return slugify(inputSlug?.trim() || fallbackName);
+}
+
+function findKnowledgeSpaceBySlug(slug: string) {
+  return queryOne<{ id: string }>("SELECT id FROM knowledge_spaces WHERE slug = ?", slug);
+}
+
+function availableKnowledgeSpaceSlug(baseSlug: string, currentId?: string) {
+  let slug = baseSlug;
+  let index = 2;
+  while (true) {
+    const existing = findKnowledgeSpaceBySlug(slug);
+    if (!existing || existing.id === currentId) return slug;
+    slug = `${baseSlug}-${index}`;
+    index += 1;
+  }
+}
+
+function resolveKnowledgeSpaceSlug(input: { id?: string; slug?: string | null; name: string }) {
+  const explicitSlug = input.slug?.trim();
+  const baseSlug = normalizeSpaceSlug(explicitSlug, input.name);
+  if (!explicitSlug) return availableKnowledgeSpaceSlug(baseSlug, input.id);
+
+  const existing = findKnowledgeSpaceBySlug(baseSlug);
+  if (existing && existing.id !== input.id) {
+    throw new Error("空间标识已存在，请换一个 Slug。");
+  }
+  return baseSlug;
+}
+
 function dedupeByUri<T extends { vikingUri: string }>(items: T[]) {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -124,7 +155,7 @@ export function createKnowledgeSpace(input: {
     : null;
   const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || "";
   if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
-  const slug = slugify(input.slug ?? input.name);
+  const slug = resolveKnowledgeSpaceSlug({ slug: input.slug, name: input.name });
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
     businessTeamSlug: resolvedBusinessTeam?.slug,
@@ -216,7 +247,7 @@ export function upsertKnowledgeSpace(input: {
     : null;
   const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || current.tenantSpaceId || "";
   if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
-  const slug = slugify(input.slug ?? input.name);
+  const slug = resolveKnowledgeSpaceSlug({ id: input.id, slug: input.slug, name: input.name });
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
     businessTeamSlug: resolvedBusinessTeam?.slug,

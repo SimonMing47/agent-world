@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { editableSecretValue, isEnvSecretReference, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,13 @@ function normalizeModelList(value: string) {
   }
 }
 
+function hasEnvReference(value: unknown): boolean {
+  if (typeof value === "string") return value.trim().toLowerCase().startsWith("env:");
+  if (Array.isArray(value)) return value.some(hasEnvReference);
+  if (value && typeof value === "object") return Object.values(value).some(hasEnvReference);
+  return false;
+}
+
 export function ProviderProfileForm({
   provider,
   title,
@@ -83,6 +91,7 @@ export function ProviderProfileForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const parsedConfig = parseConfig(provider.configJson);
+  const hasLegacyApiKeyRef = isEnvSecretReference(provider.apiKeyRef);
   const [form, setForm] = useState({
     id: provider.id,
     tenantSpaceId: provider.tenantSpaceId,
@@ -91,7 +100,7 @@ export function ProviderProfileForm({
     apiStyle: provider.apiStyle,
     defaultModel: provider.defaultModel,
     modelList: normalizeModelList(provider.modelsJson),
-    apiKeyRef: provider.apiKeyRef,
+    apiKeyRef: editableSecretValue(provider.apiKeyRef),
     modelApi: typeof parsedConfig.modelApi === "string" ? parsedConfig.modelApi : "",
     supportsResponsesApi: Boolean(parsedConfig.supportsResponsesApi ?? true),
     supportsChatCompletions: Boolean(parsedConfig.supportsChatCompletions ?? true),
@@ -116,11 +125,18 @@ export function ProviderProfileForm({
     setMessage(null);
 
     try {
-      JSON.parse(form.configJson);
-      JSON.parse(form.headersJson);
+      const config = JSON.parse(form.configJson) as unknown;
+      const headers = JSON.parse(form.headersJson) as unknown;
+      if (
+        form.apiKeyRef.trim().toLowerCase().startsWith("env:") ||
+        hasEnvReference(config) ||
+        hasEnvReference(headers)
+      ) {
+        throw new Error("模型配置不再支持 env: 环境变量引用，请直接在这里填写配置值。");
+      }
     } catch {
       setIsSaving(false);
-      setMessage("ui.generated.cf09c995336");
+      setMessage("模型配置 JSON 不正确，或仍包含 env: 环境变量引用。");
       return;
     }
 
@@ -258,11 +274,19 @@ export function ProviderProfileForm({
 	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="ui.generated.c10df5dca33" className="md:col-span-2">
-            <Input
+          <FieldGroup
+            label="API Key"
+            hint={
+              hasLegacyApiKeyRef
+                ? "已检测到旧环境变量引用，请直接填写 API Key 后保存。默认隐藏，需要查看时点击显示。"
+                : "直接保存模型服务 API Key。默认隐藏，需要查看时点击显示。"
+            }
+            className="md:col-span-2"
+          >
+            <SecretInput
               value={form.apiKeyRef}
-              onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-	              placeholder="ui.common.unconfigured"
+              onChange={(value) => setForm({ ...form, apiKeyRef: value })}
+              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup

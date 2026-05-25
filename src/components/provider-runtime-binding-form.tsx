@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { editableSecretValue, isEnvSecretReference, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,13 @@ function parseConfig(value: string) {
   }
 }
 
+function hasEnvReference(value: unknown): boolean {
+  if (typeof value === "string") return value.trim().toLowerCase().startsWith("env:");
+  if (Array.isArray(value)) return value.some(hasEnvReference);
+  if (value && typeof value === "object") return Object.values(value).some(hasEnvReference);
+  return false;
+}
+
 export function ProviderRuntimeBindingForm({
   binding,
   title,
@@ -65,6 +73,7 @@ export function ProviderRuntimeBindingForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const parsedConfig = parseConfig(binding.configJson);
+  const hasLegacyApiKeyRef = isEnvSecretReference(binding.apiKeyRef);
   const resolvedAdapterDefinitionId =
     binding.adapterDefinitionId || adapterOptions[0]?.id || "builtin-agent-runtime";
   const [form, setForm] = useState({
@@ -78,7 +87,7 @@ export function ProviderRuntimeBindingForm({
     command: binding.command,
     workspaceRoot: binding.workspaceRoot,
     defaultProviderProfileId: binding.defaultProviderProfileId ?? "",
-    apiKeyRef: binding.apiKeyRef,
+    apiKeyRef: editableSecretValue(binding.apiKeyRef),
     defaultModel:
       typeof parsedConfig.defaultModel === "string" ? parsedConfig.defaultModel : "",
     approvalMode:
@@ -105,10 +114,13 @@ export function ProviderRuntimeBindingForm({
 
     try {
       JSON.parse(form.envJson);
-      JSON.parse(form.configJson);
+      const config = JSON.parse(form.configJson) as unknown;
+      if (form.apiKeyRef.trim().toLowerCase().startsWith("env:") || hasEnvReference(config)) {
+        throw new Error("运行配置不再支持 env: 环境变量引用，请直接在这里填写配置值。");
+      }
     } catch {
       setIsSaving(false);
-      setMessage("ui.generated.cf09c995336");
+      setMessage("运行配置 JSON 不正确，或仍包含 env: 环境变量引用。");
       return;
     }
 
@@ -260,11 +272,19 @@ export function ProviderRuntimeBindingForm({
 	              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
-          <FieldGroup label="ui.generated.ce3b1d54127" className="md:col-span-2">
-            <Input
+          <FieldGroup
+            label="API Key 覆盖"
+            hint={
+              hasLegacyApiKeyRef
+                ? "已检测到旧环境变量引用，请直接填写 API Key 后保存。默认隐藏，需要查看时点击显示。"
+                : "可选。直接保存该运行绑定的 API Key；默认隐藏，需要查看时点击显示。"
+            }
+            className="md:col-span-2"
+          >
+            <SecretInput
               value={form.apiKeyRef}
-              onChange={(event) => setForm({ ...form, apiKeyRef: event.target.value })}
-	              placeholder="ui.common.unconfigured"
+              onChange={(value) => setForm({ ...form, apiKeyRef: value })}
+              placeholder="ui.common.unconfigured"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.cbff226d7bb" className="md:col-span-2">

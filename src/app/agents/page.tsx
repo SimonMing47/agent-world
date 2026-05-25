@@ -1,7 +1,9 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
+import { AgentCapabilityRadar } from "@/components/agent-capability-radar";
 import { AgentDefinitionForm } from "@/components/agent-definition-form";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
+import { PixelAgentAvatar } from "@/components/pixel-agent-avatar";
 import { Button } from "@/components/ui/button";
 import {
   DataTable,
@@ -25,6 +27,8 @@ import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { formatDateTime } from "@/lib/utils";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
+import { deriveAgentCapabilityProfile } from "@/lib/agent-capability-profile";
+import { parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
 import {
   buildAgentHarnessExecutionProfile,
   buildDefaultAgentHarnessConfig,
@@ -117,25 +121,27 @@ export default async function AgentsPage() {
               <DialogContent className="w-[min(94vw,980px)]">
                 <DialogHeader>
                   <DialogTitle>ui.generated.c8c79a89d5a</DialogTitle>
-                  <DialogDescription>ui.generated.c1931bbfbde</DialogDescription>
+                  <DialogDescription>用 SOUL.md 定义 Agent 的身份、职责、边界和风格。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentDefinitionForm
                     embedded
-	                    definition={{
-	                      id: "",
-	                      tenantSpaceId: "",
-	                      ownerBusinessTeamId: null,
-	                      ownerUserId: "",
-	                      sourceAgentId: null,
-	                      slug: "",
-	                      name: "",
-	                      role: "",
-	                      description: "",
-	                      systemPrompt: "",
-	                      model: "",
-	                      defaultProviderProfileId: null,
-	                      defaultRuntimeBindingId: null,
+                    definition={{
+                      id: "",
+                      tenantSpaceId: "",
+                      ownerBusinessTeamId: null,
+                      ownerUserId: "",
+                      sourceAgentId: null,
+                      slug: "",
+                      name: "",
+                      role: "",
+                      description: "",
+                      systemPrompt: "",
+                      model: "",
+                      defaultProviderProfileId: null,
+                      defaultRuntimeBindingId: null,
+                      avatarConfigJson: "{}",
+                      capabilityProfileJson: "{}",
                       toolBindingsJson: JSON.stringify([], null, 2),
                       harnessConfigJson: JSON.stringify(buildDefaultAgentHarnessConfig(), null, 2),
                       permissionPolicyJson: JSON.stringify(buildDefaultAgentPermissionPolicy(), null, 2),
@@ -185,6 +191,23 @@ export default async function AgentsPage() {
                 const provider = providers.find((item) => item.id === definition.defaultProviderProfileId);
                 const definitionShares = shares.filter((share) => share.agentDefinitionId === definition.id);
                 const harnessProfile = buildAgentHarnessExecutionProfile(definition);
+                const avatarConfig = parsePixelAgentAvatarConfig(
+                  definition.avatarConfigJson,
+                  definition.name || definition.slug || definition.id,
+                );
+                const capabilityProfile = deriveAgentCapabilityProfile({
+                  name: definition.name,
+                  role: definition.role,
+                  description: definition.description,
+                  systemPrompt: definition.systemPrompt,
+                  toolBindings: parseStringArray(definition.toolBindingsJson),
+                  harnessConfigJson: definition.harnessConfigJson,
+                  permissionPolicyJson: definition.permissionPolicyJson,
+                  memoryScope: definition.memoryScope,
+                  tags: parseStringArray(definition.tagsJson),
+                  visibility: definition.visibility,
+                  status: definition.status,
+                });
                 const sharedTeamNames = definitionShares
                   .map((share) => businessTeams.find((team) => team.id === share.businessTeamId)?.name)
                   .filter(Boolean)
@@ -193,8 +216,13 @@ export default async function AgentsPage() {
                 return (
                   <DataTableRow key={definition.id}>
                     <DataTableCell className="min-w-[260px]">
-                      <div className="font-medium text-[var(--ink)]">{definition.name}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.role} · {translateStatus(definition.status)}</div>
+                      <div className="flex items-center gap-3">
+                        <PixelAgentAvatar config={avatarConfig} capabilityProfile={capabilityProfile} size="sm" />
+                        <div>
+                          <div className="font-medium text-[var(--ink)]">{definition.name}</div>
+                          <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.role} · {translateStatus(definition.status)}</div>
+                        </div>
+                      </div>
                     </DataTableCell>
                     <DataTableCell>
                       <div>{ownerTeam?.name ?? "ui.generated.c8c577dc72c"}</div>
@@ -229,16 +257,22 @@ export default async function AgentsPage() {
                               <DialogDescription>ui.generated.c953946d326</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
-                              <DefinitionList
-                                items={[
-                                  { label: "ui.generated.c6b26695e4d", value: definition.role },
-                                  { label: "ui.generated.c53d4919c45", value: ownerTeam?.name ?? "ui.generated.c8c577dc72c" },
-                                  { label: "ui.generated.c747b74cec9", value: translateVisibility(definition.visibility) },
-                                  { label: "ui.generated.c98fd0cbd9c", value: definition.model },
-                                  { label: "ui.generated.cbc56f948bb", value: provider?.name ?? "ui.generated.c3bf179d8d0" },
-                                  { label: "ui.generated.ce9ec85920b", value: translateStatus(definition.validationStatus) },
-                                ]}
-                              />
+                              <div className="grid gap-5 lg:grid-cols-[auto_1fr_auto]">
+                                <PixelAgentAvatar config={avatarConfig} capabilityProfile={capabilityProfile} size="lg" />
+                                <DefinitionList
+                                  items={[
+                                    { label: "ui.generated.c6b26695e4d", value: definition.role },
+                                    { label: "ui.generated.c53d4919c45", value: ownerTeam?.name ?? "ui.generated.c8c577dc72c" },
+                                    { label: "ui.generated.c747b74cec9", value: translateVisibility(definition.visibility) },
+                                    { label: "ui.generated.c98fd0cbd9c", value: definition.model },
+                                    { label: "ui.generated.cbc56f948bb", value: provider?.name ?? "ui.generated.c3bf179d8d0" },
+                                    { label: "ui.generated.ce9ec85920b", value: translateStatus(definition.validationStatus) },
+                                  ]}
+                                />
+                                <div className="flex justify-center">
+                                  <AgentCapabilityRadar profile={capabilityProfile} size="md" />
+                                </div>
+                              </div>
                               <div className="space-y-2">
                                 <div className="text-sm font-medium text-[var(--ink)]">ui.generated.ce5d671f7b9</div>
                                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--ink)]">
@@ -295,7 +329,7 @@ export default async function AgentsPage() {
                           <DialogContent className="w-[min(94vw,980px)]">
                             <DialogHeader>
                               <DialogTitle>ui.generated.c9489407cf3</DialogTitle>
-                              <DialogDescription>{definition.name}</DialogDescription>
+                              <DialogDescription>{definition.name} · SOUL.md</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <AgentDefinitionForm

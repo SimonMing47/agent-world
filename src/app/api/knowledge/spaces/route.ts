@@ -28,6 +28,23 @@ function resolveBindingTargetBusinessTeamId(targetType: string, targetId: string
   return null;
 }
 
+function textValue(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function knowledgeSpaceErrorResponse(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : "";
+  const isDuplicateSlug =
+    rawMessage.includes("空间标识已存在") || rawMessage.includes("UNIQUE constraint failed: knowledge_spaces.slug");
+  const isAccessError =
+    rawMessage.includes("Authentication required") || rawMessage.includes("access denied") || rawMessage.includes("Access denied");
+  const message = isDuplicateSlug
+    ? "空间标识已存在，请换一个名称或 Slug。"
+    : rawMessage || "保存知识空间失败，请稍后重试。";
+  const status = isAccessError ? 403 : isDuplicateSlug ? 409 : 400;
+  return NextResponse.json({ ok: false, error: message }, { status });
+}
+
 export async function GET() {
   const authContext = await getRequestAuthContext();
   const spaces = listKnowledgeSpaces().filter((space) =>
@@ -89,14 +106,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, binding });
   }
 
-  if (!body.name || !body.spaceType) {
+  const name = textValue(body.name);
+  const slug = textValue(body.slug) || undefined;
+  const retentionPolicyJson = textValue(body.retentionPolicyJson) || "{}";
+
+  if (!name || !body.spaceType) {
     return NextResponse.json({ ok: false, error: "name and spaceType are required" }, { status: 400 });
   }
 
   let retentionPolicy: Record<string, unknown> | undefined;
-  if (body.retentionPolicyJson) {
+  if (retentionPolicyJson) {
     try {
-      const parsed = JSON.parse(body.retentionPolicyJson) as unknown;
+      const parsed = JSON.parse(retentionPolicyJson) as unknown;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         return NextResponse.json({ ok: false, error: "retentionPolicyJson must be a JSON object" }, { status: 400 });
       }
@@ -109,25 +130,29 @@ export async function POST(request: Request) {
   const payload = {
     id: body.id,
     tenantSpaceId: body.tenantSpaceId ?? null,
-    name: body.name,
-    slug: body.slug,
+    name,
+    slug,
     spaceType: body.spaceType,
     businessTeamId: body.businessTeamId ?? null,
     agentTeamId: body.agentTeamId ?? null,
-    projectKey: body.projectKey ?? null,
-    description: body.description,
+    projectKey: textValue(body.projectKey) || null,
+    description: typeof body.description === "string" ? body.description : "",
     visibility: body.visibility,
     status: body.status,
-    retentionPolicyJson: body.retentionPolicyJson,
+    retentionPolicyJson,
     retentionPolicy,
     bindToAgentTeam: Boolean(body.agentTeamId),
   };
-  requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(payload), {
-    allowGlobal: body.visibility === "global" && authContext?.user.isSystemAdmin === 1,
-  });
-  const space = body.id ? upsertKnowledgeSpace(payload) : createKnowledgeSpace(payload);
+  try {
+    requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(payload), {
+      allowGlobal: body.visibility === "global" && authContext?.user.isSystemAdmin === 1,
+    });
+    const space = body.id ? upsertKnowledgeSpace(payload) : createKnowledgeSpace(payload);
 
-  return NextResponse.json({ ok: true, space });
+    return NextResponse.json({ ok: true, space });
+  } catch (error) {
+    return knowledgeSpaceErrorResponse(error);
+  }
 }
 
 export async function PATCH(request: Request) {
