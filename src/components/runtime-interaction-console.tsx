@@ -166,6 +166,19 @@ function renderUsage(content: Record<string, unknown>) {
   return typeof totalTokens === "number" ? `${totalTokens} tokens` : null;
 }
 
+function renderAssistantFinish(content: Record<string, unknown>) {
+  const stopReason = typeof content.stopReason === "string" ? content.stopReason : "";
+  if (!stopReason || stopReason === "stop") return null;
+  if (stopReason === "toolUse") return "工具调用中";
+  if (stopReason === "error") {
+    const errorMessage = typeof content.errorMessage === "string" ? content.errorMessage : "";
+    return errorMessage ? `异常：${errorMessage}` : "异常";
+  }
+  if (stopReason === "length" || stopReason === "maxTokens") return "达到输出上限";
+  if (stopReason === "cancelled") return "已取消";
+  return `响应状态：${stopReason}`;
+}
+
 function renderEventSummary(payload: Record<string, unknown>) {
   if (typeof payload.delta === "string" && payload.delta.trim()) return redactSecrets(payload.delta);
   if (typeof payload.text === "string" && payload.text.trim()) return redactSecrets(payload.text);
@@ -276,7 +289,8 @@ function buildActorActivities(
     if (
       event.eventType === "thinking_start" ||
       event.eventType === "thinking_delta" ||
-      event.eventType === "session_started"
+      event.eventType === "session_started" ||
+      event.eventType === "agent_started"
     ) {
       current.phase = "thinking";
       current.active = true;
@@ -305,7 +319,7 @@ function buildActorActivities(
       current.phase = "waiting";
       current.active = true;
       current.summary = toolName ? `ui.common.approvalPrefix ${toolName}` : "ui.generated.c793239df50";
-    } else if (event.eventType === "session_completed") {
+    } else if (event.eventType === "session_completed" || event.eventType === "agent_completed") {
       current.phase = "idle";
       current.active = false;
       current.summary = "ui.generated.c0a9ed3f757";
@@ -317,6 +331,11 @@ function buildActorActivities(
       current.phase = "idle";
       current.active = false;
       current.summary = "ui.generated.c8787872f4c";
+      current.kind = "human";
+    } else if (event.eventType === "leader_instruction_queued") {
+      current.phase = "waiting";
+      current.active = false;
+      current.summary = "已排队给 Leader";
       current.kind = "human";
     }
 
@@ -738,9 +757,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                               <span>ui.generated.cf21d6e8111 {message.content.responseModel}</span>
                             ) : null}
                             {renderUsage(message.content) ? <span>{renderUsage(message.content)}</span> : null}
-                            {typeof message.content.stopReason === "string" ? (
-                              <span>ui.generated.ce7a4d45901 {message.content.stopReason}</span>
-                            ) : null}
+                            {renderAssistantFinish(message.content) ? <span>{renderAssistantFinish(message.content)}</span> : null}
                           </div>
                         ) : null}
                         {message.role === "toolResult" && message.content.details ? (
