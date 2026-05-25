@@ -74,9 +74,15 @@ export function buildWebhookTaskInput(pathKey: string, payload: unknown, request
     request.headers.get("x-github-event") ??
     firstString(payload, [["object_kind"], ["event_name"], ["event"]]) ??
     pathKey;
+  const deliveryId =
+    request.headers.get("x-github-delivery") ??
+    request.headers.get("x-gitlab-event-uuid") ??
+    request.headers.get("x-request-id") ??
+    firstString(payload, [["delivery_id"], ["deliveryId"], ["hook", "id"], ["object_attributes", "id"]]);
 
   return {
     webhook_path_key: pathKey,
+    delivery_id: deliveryId,
     event_name: eventName,
     received_at: new Date().toISOString(),
     repo_id:
