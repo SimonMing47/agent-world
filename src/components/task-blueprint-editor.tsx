@@ -87,6 +87,14 @@ function slugifyTaskKey(value: string) {
     .slice(0, 80);
 }
 
+function slugifyWebhookPath(value: string) {
+  return slugifyTaskKey(value).replace(/_/g, "-");
+}
+
+function suggestWebhookPath(value: string) {
+  return slugifyWebhookPath(value) || `webhook-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+}
+
 function normalizeJson(value: string, fallback: string) {
   try {
     return JSON.stringify(JSON.parse(value), null, 2);
@@ -844,13 +852,26 @@ export function TaskBlueprintEditor({
           <FieldGroup label="任务名称">
             <Input
               value={form.name}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  name: event.target.value,
-                  id: current.id ? current.id : slugifyTaskKey(event.target.value),
-                }))
-              }
+              onChange={(event) => {
+                const nextName = event.target.value;
+                setForm((current) => {
+                  const nextId = current.id ? current.id : slugifyTaskKey(nextName);
+                  const currentDefaultPath = slugifyWebhookPath(current.name || current.id);
+                  const shouldSyncWebhookPath =
+                    current.triggerType === "webhook" &&
+                    (!current.triggerWebhookPathKey.trim() ||
+                      (currentDefaultPath && current.triggerWebhookPathKey === currentDefaultPath));
+
+                  return {
+                    ...current,
+                    name: nextName,
+                    id: nextId,
+                    triggerWebhookPathKey: shouldSyncWebhookPath
+                      ? suggestWebhookPath(nextName || nextId)
+                      : current.triggerWebhookPathKey,
+                  };
+                });
+              }}
               placeholder="例如：合并请求安全巡检"
             />
           </FieldGroup>
@@ -909,7 +930,17 @@ export function TaskBlueprintEditor({
           <FieldGroup label="触发方式">
             <Select
               value={form.triggerType}
-              onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
+              onChange={(event) => {
+                const nextTriggerType = event.target.value;
+                setForm((current) => ({
+                  ...current,
+                  triggerType: nextTriggerType,
+                  triggerWebhookPathKey:
+                    nextTriggerType === "webhook" && !current.triggerWebhookPathKey.trim()
+                      ? suggestWebhookPath(current.name || current.id)
+                      : current.triggerWebhookPathKey,
+                }));
+              }}
             >
               {[
                 ["webhook", "Webhook"],

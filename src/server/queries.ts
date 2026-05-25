@@ -1463,6 +1463,27 @@ function roundCurrency(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function stablePayloadValue(inputPayload: Record<string, unknown>, key: string) {
+  const value = inputPayload[key];
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  const normalized = String(value).trim();
+  return normalized && normalized !== "unknown" ? normalized : "";
+}
+
+function buildDefaultIdempotencyTemplate(sourceType: TaskRun["sourceType"], inputPayload: Record<string, unknown>) {
+  if (sourceType !== "webhook") return "${task_blueprint_id}:${run_date}";
+  if (stablePayloadValue(inputPayload, "delivery_id")) {
+    return "${task_blueprint_id}:${webhook_path_key}:delivery:${delivery_id}";
+  }
+  if (
+    stablePayloadValue(inputPayload, "repo_id") &&
+    (stablePayloadValue(inputPayload, "mr_id") || stablePayloadValue(inputPayload, "diff_ref"))
+  ) {
+    return "${task_blueprint_id}:${webhook_path_key}:${event_name}:${repo_id}:${mr_id}:${diff_ref}";
+  }
+  return "${task_blueprint_id}:${webhook_path_key}:${event_name}:${received_at}";
+}
+
 function parseJsonRecord(value: string) {
   try {
     const parsed = JSON.parse(value) as unknown;
@@ -1745,9 +1766,7 @@ export function submitTaskRunFromBlueprint(args: {
         ? executionPolicy.idempotencyKey
         : pluginIdempotencyKey
           ? "${plugin_idempotency_key}"
-          : sourceType === "webhook"
-            ? "${task_blueprint_id}:${webhook_path_key}:${delivery_id}:${event_name}:${repo_id}:${mr_id}:${diff_ref}:${received_at}"
-            : "${task_blueprint_id}:${run_date}";
+          : buildDefaultIdempotencyTemplate(sourceType, inputPayload);
   const idempotencyKey = renderTemplateValue(idempotencyTemplate, {
     task_blueprint_id: blueprint.id,
     ...inputPayload,
