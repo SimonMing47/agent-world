@@ -1,6 +1,7 @@
 {
   "name": "agentworld",
   "version": "0.1.0",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "node scripts/agentworld-next.mjs dev",
