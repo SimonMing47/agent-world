@@ -267,6 +267,8 @@ export type AgentDefinition = {
   model: string;
   defaultProviderProfileId: string | null;
   defaultRuntimeBindingId: string | null;
+  avatarConfigJson: string;
+  capabilityProfileJson: string;
   toolBindingsJson: string;
   harnessConfigJson: string;
   permissionPolicyJson: string;
@@ -758,6 +760,28 @@ export type OpenVikingKnowledgeEntry = {
   syncStatus: string;
   syncError: string | null;
   createdAt: string;
+  updatedAt: string;
+  updatedBy: string | null;
+  revision: number;
+};
+
+export type OpenVikingKnowledgeEntryVersion = {
+  id: string;
+  entryId: string;
+  revision: number;
+  knowledgeSpaceId: string | null;
+  layer: string;
+  scopeKey: string;
+  skillId: string | null;
+  vikingUri: string;
+  title: string;
+  contentMd: string;
+  metadataJson: string;
+  sourceType: string;
+  syncStatus: string;
+  syncError: string | null;
+  createdAt: string;
+  createdBy: string | null;
 };
 
 export type KnowledgeLayer = {
@@ -990,6 +1014,12 @@ const builtInProviderAdapterDefinitions: Array<{
 ];
 
 function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
+  if (!tableHasColumn(db, "agent_definitions", "avatar_config_json")) {
+    db.exec("ALTER TABLE agent_definitions ADD COLUMN avatar_config_json TEXT NOT NULL DEFAULT '{}'");
+  }
+  if (!tableHasColumn(db, "agent_definitions", "capability_profile_json")) {
+    db.exec("ALTER TABLE agent_definitions ADD COLUMN capability_profile_json TEXT NOT NULL DEFAULT '{}'");
+  }
   if (!tableHasColumn(db, "agent_definitions", "harness_config_json")) {
     db.exec(
       "ALTER TABLE agent_definitions ADD COLUMN harness_config_json TEXT NOT NULL DEFAULT '{\"approvalMode\":\"allow\",\"humanIntervention\":\"steer\",\"thinkingLevel\":\"medium\",\"maxToolCalls\":6}'",
@@ -1021,6 +1051,37 @@ function ensureOpenVikingKnowledgeColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "openviking_knowledge_entries", "knowledge_space_id")) {
     db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN knowledge_space_id TEXT");
   }
+  if (!tableHasColumn(db, "openviking_knowledge_entries", "updated_at")) {
+    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''");
+    db.exec("UPDATE openviking_knowledge_entries SET updated_at = created_at WHERE updated_at = ''");
+  }
+  if (!tableHasColumn(db, "openviking_knowledge_entries", "updated_by")) {
+    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN updated_by TEXT");
+  }
+  if (!tableHasColumn(db, "openviking_knowledge_entries", "revision")) {
+    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN revision INTEGER NOT NULL DEFAULT 1");
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS openviking_knowledge_entry_versions (
+      id TEXT PRIMARY KEY,
+      entry_id TEXT NOT NULL,
+      revision INTEGER NOT NULL,
+      knowledge_space_id TEXT,
+      layer TEXT NOT NULL,
+      scope_key TEXT NOT NULL,
+      skill_id TEXT,
+      viking_uri TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content_md TEXT NOT NULL,
+      metadata_json TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      sync_status TEXT NOT NULL,
+      sync_error TEXT,
+      created_at TEXT NOT NULL,
+      created_by TEXT,
+      UNIQUE(entry_id, revision)
+    )
+  `);
 }
 
 function ensureSkillGovernanceColumns(db: DatabaseSyncType) {

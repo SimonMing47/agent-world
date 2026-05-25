@@ -12,15 +12,29 @@ export function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Parameters<typeof upsertProviderRuntimeBinding>[0];
-  const providerRuntimeBinding = upsertProviderRuntimeBinding(body);
-  return NextResponse.json({ ok: true, providerRuntimeBinding });
+  try {
+    const body = (await request.json()) as Parameters<typeof upsertProviderRuntimeBinding>[0];
+    const providerRuntimeBinding = upsertProviderRuntimeBinding(body);
+    return NextResponse.json({ ok: true, providerRuntimeBinding });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "保存运行绑定失败" },
+      { status: 400 },
+    );
+  }
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json()) as Parameters<typeof upsertProviderRuntimeBinding>[0];
-  const providerRuntimeBinding = upsertProviderRuntimeBinding(body);
-  return NextResponse.json({ ok: true, providerRuntimeBinding });
+  try {
+    const body = (await request.json()) as Parameters<typeof upsertProviderRuntimeBinding>[0];
+    const providerRuntimeBinding = upsertProviderRuntimeBinding(body);
+    return NextResponse.json({ ok: true, providerRuntimeBinding });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "保存运行绑定失败" },
+      { status: 400 },
+    );
+  }
 }
 
 export async function DELETE(request: Request) {

@@ -2,6 +2,7 @@ import { Eye, PencilLine, Plus } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { ProviderRuntimeBindingForm } from "@/components/provider-runtime-binding-form";
+import { SecretValue } from "@/components/secret-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -203,7 +204,7 @@ export default function RuntimeBindingsPage() {
                                   { label: "ui.generated.c2b90028ff3", value: businessTeam?.name ?? "ui.generated.ce0523a661c" },
                                   { label: "ui.generated.cbff226d7bb", value: provider?.name ?? "ui.generated.c3bf179d8d0" },
                                   { label: "ui.generated.cb5bff31cdd", value: stringField(config.defaultModel, provider?.defaultModel ?? "ui.generated.c63595e95b7") },
-                                  { label: "ui.generated.c10df5dca33", value: binding.apiKeyRef || provider?.apiKeyRef || "ui.generated.c63595e95b7" },
+                                  { label: "API Key", value: <SecretValue value={binding.apiKeyRef || provider?.apiKeyRef || ""} /> },
                                   { label: "ui.generated.c1072712e57", value: stringField(config.approvalMode, "ask") },
                                   { label: "ui.generated.cc07c5b925e", value: eventContractLabel(config.eventContract) },
                                   { label: "ui.generated.c86e118291e", value: binding.baseUrl || "ui.generated.c09ceea7644" },

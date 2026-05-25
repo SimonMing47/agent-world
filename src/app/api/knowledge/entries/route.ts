@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   deleteKnowledgeEntry,
+  KnowledgeEntryConflictError,
   listLayeredKnowledge,
   upsertKnowledgeEntry,
 } from "@/server/openviking-core";
@@ -34,9 +35,20 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Parameters<typeof upsertKnowledgeEntry>[0];
     const authContext = await getRequestAuthContext();
     requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(body.knowledgeSpaceId));
-    const entry = await upsertKnowledgeEntry(body);
+    const updatedBy = authContext?.user.email || authContext?.user.name || authContext?.user.id || null;
+    const entry = await upsertKnowledgeEntry({ ...body, updatedBy });
     return NextResponse.json({ ok: true, entry });
   } catch (error) {
+    if (error instanceof KnowledgeEntryConflictError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "知识已被其他编辑者更新，请先查看最新版本后再合并。",
+          currentEntry: error.currentEntry,
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveKnowledgeEntryFailed") },
       { status: 400 },
