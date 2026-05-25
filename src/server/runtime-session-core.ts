@@ -445,7 +445,7 @@ function persistAgentEvent(args: {
         sessionId: args.sessionId,
         actorId: args.agentId,
         actorName: args.actorName,
-        eventType: "session_started",
+        eventType: "agent_started",
         payload: { actorName: args.actorName },
         createdAt,
       });
@@ -607,7 +607,7 @@ function persistAgentEvent(args: {
         sessionId: args.sessionId,
         actorId: args.agentId,
         actorName: args.actorName,
-        eventType: "session_completed",
+        eventType: "agent_completed",
         payload: {
           actorName: args.actorName,
           messageCount: args.event.messages.length,
@@ -702,6 +702,7 @@ async function runRuntimeSessionPrompt(args: {
   handle.isRunning = true;
   activeRuntimeHandles.set(args.session.id, handle);
   updateRuntimeSessionStatus(args.session.id, "running", null);
+  let completedSuccessfully = false;
 
   try {
     await piRuntimeAdapter.startSession({
@@ -740,7 +741,7 @@ async function runRuntimeSessionPrompt(args: {
         agentDefinition,
       });
     }
-    updateRuntimeSessionStatus(args.session.id, "idle", null);
+    completedSuccessfully = true;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Runtime session failed";
     insertRuntimeSessionEvent({
@@ -751,28 +752,31 @@ async function runRuntimeSessionPrompt(args: {
     updateRuntimeSessionStatus(args.session.id, "error", message);
   } finally {
     const currentHandle = activeRuntimeHandles.get(args.session.id);
+    const nextMessage = completedSuccessfully ? currentHandle?.pendingMessages.shift() : undefined;
+    if (nextMessage) {
+      insertRuntimeSessionEvent({
+        sessionId: args.session.id,
+        actorName: nextMessage.actorName,
+        eventType: "leader_instruction_dequeued",
+        payload: {
+          text: nextMessage.content,
+          turnIndex: nextMessage.turnIndex,
+        },
+      });
+      void runRuntimeSessionPrompt({
+        session: args.session,
+        runtimeBinding: args.runtimeBinding,
+        providerProfile: args.providerProfile,
+        latestUserMessage: nextMessage.content,
+        turnIndex: nextMessage.turnIndex,
+      });
+      return;
+    }
+
     if (currentHandle) {
       currentHandle.isRunning = false;
-      const nextMessage = currentHandle.pendingMessages.shift();
-      if (nextMessage) {
-        insertRuntimeSessionEvent({
-          sessionId: args.session.id,
-          actorName: nextMessage.actorName,
-          eventType: "leader_instruction_dequeued",
-          payload: {
-            text: nextMessage.content,
-            turnIndex: nextMessage.turnIndex,
-          },
-        });
-        void runRuntimeSessionPrompt({
-          session: args.session,
-          runtimeBinding: args.runtimeBinding,
-          providerProfile: args.providerProfile,
-          latestUserMessage: nextMessage.content,
-          turnIndex: nextMessage.turnIndex,
-        });
-      }
     }
+    if (completedSuccessfully) updateRuntimeSessionStatus(args.session.id, "idle", null);
   }
 }
 
@@ -997,28 +1001,41 @@ export async function submitRuntimeSessionMessage(args: {
   });
 
   const activeHandle = activeRuntimeHandles.get(session.id);
-  if (activeHandle?.isRunning) {
-    if (session.mode === "agent_team") {
-      activeHandle.pendingMessages ??= [];
-      activeHandle.pendingMessages.push({
-        content: args.content,
-        actorName: args.actorName ?? "Operator",
+  if (session.mode === "agent_team" && activeHandle?.isRunning) {
+    activeHandle.pendingMessages ??= [];
+    activeHandle.pendingMessages.push({
+      content: args.content,
+      actorName: args.actorName ?? "Operator",
+      turnIndex,
+    });
+    insertRuntimeSessionEvent({
+      sessionId: session.id,
+      actorName: args.actorName ?? "Operator",
+      eventType: "leader_instruction_queued",
+      payload: {
+        text: args.content,
         turnIndex,
-      });
-      insertRuntimeSessionEvent({
-        sessionId: session.id,
-        actorName: args.actorName ?? "Operator",
-        eventType: "leader_instruction_queued",
-        payload: {
-          text: args.content,
-          turnIndex,
-          routedTo: "leader",
-          queueDepth: activeHandle.pendingMessages.length,
-        },
-      });
-      return { accepted: true, queued: true, routedTo: "leader" };
-    }
+        routedTo: "leader",
+        queueDepth: activeHandle.pendingMessages.length,
+      },
+    });
+    return { accepted: true, queued: true, routedTo: "leader" };
+  }
 
+  if (session.mode === "agent_team" && session.status === "running" && !activeHandle?.isRunning) {
+    insertRuntimeSessionEvent({
+      sessionId: session.id,
+      actorName: "System",
+      eventType: "session_recovered_from_stale_running",
+      payload: {
+        reason: "database_status_running_without_active_runtime_handle",
+        nextTurnIndex: turnIndex,
+      },
+    });
+    updateRuntimeSessionStatus(session.id, "idle", null);
+  }
+
+  if (activeHandle?.isRunning) {
     const accepted = await piRuntimeAdapter.resumeSession({
       sessionId: session.id,
       actorName: args.actorName ?? "Operator",
