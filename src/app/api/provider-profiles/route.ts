@@ -9,15 +9,29 @@ export function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Parameters<typeof upsertProviderProfile>[0];
-  const provider = upsertProviderProfile(body);
-  return NextResponse.json({ ok: true, provider });
+  try {
+    const body = (await request.json()) as Parameters<typeof upsertProviderProfile>[0];
+    const provider = upsertProviderProfile(body);
+    return NextResponse.json({ ok: true, provider });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "保存模型服务失败" },
+      { status: 400 },
+    );
+  }
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json()) as Parameters<typeof upsertProviderProfile>[0];
-  const provider = upsertProviderProfile(body);
-  return NextResponse.json({ ok: true, provider });
+  try {
+    const body = (await request.json()) as Parameters<typeof upsertProviderProfile>[0];
+    const provider = upsertProviderProfile(body);
+    return NextResponse.json({ ok: true, provider });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "保存模型服务失败" },
+      { status: 400 },
+    );
+  }
 }
 
 export async function DELETE(request: Request) {

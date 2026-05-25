@@ -256,6 +256,8 @@ export function upsertAgentDefinition(
     | "model"
     | "defaultProviderProfileId"
     | "defaultRuntimeBindingId"
+    | "avatarConfigJson"
+    | "capabilityProfileJson"
     | "toolBindingsJson"
     | "harnessConfigJson"
     | "permissionPolicyJson"
@@ -281,7 +283,7 @@ export function upsertAgentDefinition(
 	const updatedAt = new Date().toISOString();
 
   execute(
-    "INSERT OR REPLACE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT OR REPLACE INTO agent_definitions (id, tenant_space_id, owner_business_team_id, owner_user_id, source_agent_id, slug, name, role, description, system_prompt, model, default_provider_profile_id, default_runtime_binding_id, avatar_config_json, capability_profile_json, tool_bindings_json, harness_config_json, permission_policy_json, memory_scope, tags_json, visibility, status, validation_status, last_validated_at, last_validation_summary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
 	    tenantSpaceId,
     input.ownerBusinessTeamId ?? null,
@@ -295,6 +297,8 @@ export function upsertAgentDefinition(
     input.model,
     input.defaultProviderProfileId ?? null,
     input.defaultRuntimeBindingId ?? null,
+    input.avatarConfigJson || "{}",
+    input.capabilityProfileJson || "{}",
     input.toolBindingsJson,
     input.harnessConfigJson,
     input.permissionPolicyJson,
@@ -441,6 +445,27 @@ export function listProviderRuntimeBindings() {
 export function deleteProviderRuntimeBinding(id: string) {
   execute("DELETE FROM provider_runtime_bindings WHERE id = ?", id);
   return { ok: true };
+}
+
+function assertNoEnvSecretReference(value: string, label: string) {
+  if (value.trim().toLowerCase().startsWith("env:")) {
+    throw new Error(`${label} 不再支持 env: 环境变量引用，请直接保存配置值。`);
+  }
+}
+
+function parsedConfigHasEnvReference(value: string) {
+  function walk(item: unknown): boolean {
+    if (typeof item === "string") return item.trim().toLowerCase().startsWith("env:");
+    if (Array.isArray(item)) return item.some(walk);
+    if (item && typeof item === "object") return Object.values(item).some(walk);
+    return false;
+  }
+
+  try {
+    return walk(JSON.parse(value) as unknown);
+  } catch {
+    return false;
+  }
 }
 
 export function listRuntimeEndpoints() {
@@ -660,6 +685,11 @@ export function upsertProviderProfile(
     | "isEnabled"
   >,
 ) {
+  assertNoEnvSecretReference(input.apiKeyRef, "模型服务 API Key");
+  if (parsedConfigHasEnvReference(input.configJson)) {
+    throw new Error("模型服务配置不再支持 env: 环境变量引用，请直接保存配置值。");
+  }
+
   const current = queryOne<ProviderProfile>("SELECT * FROM provider_profiles WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
   execute(
@@ -699,6 +729,11 @@ export function upsertProviderRuntimeBinding(
     | "isEnabled"
   >,
 ) {
+  assertNoEnvSecretReference(input.apiKeyRef, "运行绑定 API Key");
+  if (parsedConfigHasEnvReference(input.configJson)) {
+    throw new Error("运行绑定配置不再支持 env: 环境变量引用，请直接保存配置值。");
+  }
+
   const current = queryOne<ProviderRuntimeBinding>(
     "SELECT * FROM provider_runtime_bindings WHERE id = ?",
     input.id,

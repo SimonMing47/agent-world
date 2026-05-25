@@ -255,6 +255,8 @@ CREATE TABLE IF NOT EXISTS agent_definitions (
   model TEXT NOT NULL,
   default_provider_profile_id TEXT,
   default_runtime_binding_id TEXT,
+  avatar_config_json TEXT NOT NULL DEFAULT '{}',
+  capability_profile_json TEXT NOT NULL DEFAULT '{}',
   tool_bindings_json TEXT NOT NULL,
   harness_config_json TEXT NOT NULL,
   permission_policy_json TEXT NOT NULL,
@@ -749,7 +751,30 @@ CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
   source_type TEXT NOT NULL,
   sync_status TEXT NOT NULL,
   sync_error TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT '',
+  updated_by TEXT,
+  revision INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS openviking_knowledge_entry_versions (
+  id TEXT PRIMARY KEY,
+  entry_id TEXT NOT NULL,
+  revision INTEGER NOT NULL,
+  knowledge_space_id TEXT,
+  layer TEXT NOT NULL,
+  scope_key TEXT NOT NULL,
+  skill_id TEXT,
+  viking_uri TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content_md TEXT NOT NULL,
+  metadata_json TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  sync_status TEXT NOT NULL,
+  sync_error TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT,
+  UNIQUE(entry_id, revision)
 );
 
 CREATE TABLE IF NOT EXISTS knowledge_layers (

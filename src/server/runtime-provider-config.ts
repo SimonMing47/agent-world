@@ -54,19 +54,17 @@ export function resolveRuntimeBindingConfig(binding: ProviderRuntimeBinding): Ru
 }
 
 export function resolveSecretRef(secretRef: string) {
-  if (!secretRef) return null;
-  if (secretRef.startsWith("env:")) {
-    const envKey = secretRef.slice("env:".length).trim();
-    return process.env[envKey] ?? null;
-  }
-  return null;
+  const value = secretRef.trim();
+  if (!value || value.toLowerCase().startsWith("env:")) return null;
+  return value;
 }
 
 export function maskSecretRef(secretRef: string) {
-  if (!secretRef) return "";
-  const [prefix, rest] = secretRef.split(":", 2);
-  if (!rest) return `${prefix}:****`;
-  return `${prefix}:****/${rest.slice(-4)}`;
+  const value = secretRef.trim();
+  if (!value) return "";
+  if (value.toLowerCase().startsWith("env:")) return "env:****";
+  if (value.length <= 8) return "••••••••";
+  return `${value.slice(0, 4)}••••••••${value.slice(-4)}`;
 }
 
 export function resolveProviderApi(provider: ProviderProfile) {

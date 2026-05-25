@@ -2,6 +2,7 @@ import { Eye, PencilLine, Plus } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { ProviderProfileForm } from "@/components/provider-profile-form";
+import { SecretValue } from "@/components/secret-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -195,7 +196,7 @@ export default function AiProvidersPage() {
                                   { label: "ui.generated.c269a00cd6b", value: provider.apiStyle },
                                   { label: "Base URL", value: provider.baseUrl },
                                   { label: "ui.generated.cb5bff31cdd", value: provider.defaultModel },
-                                  { label: "ui.generated.c10df5dca33", value: provider.apiKeyRef },
+                                  { label: "API Key", value: <SecretValue value={provider.apiKeyRef} /> },
                                   { label: "ui.generated.c9a1fbe0bb9", value: String(config.contextWindow) },
                                   { label: "ui.generated.ca21133348e", value: String(config.maxTokens) },
                                   { label: "ui.generated.c62e951a692", value: provider.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188" },
