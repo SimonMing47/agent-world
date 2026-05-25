@@ -169,6 +169,34 @@ Agent 团队共享以下上下文：
 
 共享上下文必须可追溯。节点不得依赖不可记录的进程内全局状态。
 
+## 9.1 会话隔离与上下文路由
+
+多 Agent 会话不得把用户输入直接广播给全体成员。团队运行时必须以 Leader 为唯一的人类指令入口：
+
+- 用户消息先进入 Leader inbox。
+- 如果团队正在运行，新消息进入 Leader 队列，不得对所有活跃 Agent 执行 steer 或 cancel。
+- Leader 根据系统提示词、团队目标和当前用户指令生成路由计划。
+- SubAgent 默认不可见完整会话 transcript。
+- 只有当 Leader 使用成员的精确 `@handle` 时，被 @ 的 SubAgent 才会收到一个上下文包。
+- 上下文包必须包含最小必要信息，例如 Context、Task、Expected output。
+- SubAgent 之间协作同样使用 `@handle` handoff；未被 @ 的成员不会收到同伴上下文。
+- 汇总阶段由 Leader 接收 SubAgent 输出并生成面向用户的结果。
+
+运行时应区分三类上下文：
+
+```text
+leader transcript
+  人类消息、Leader 自身历史、必要的会话摘要
+
+delegation packet
+  Leader 显式 @ 某个 SubAgent 时给出的局部上下文
+
+peer handoff packet
+  SubAgent 显式 @ 另一个 SubAgent 时给出的局部上下文
+```
+
+SubAgent 调用的初始 transcript 应为空或只包含与该成员相关的受控摘要。任何跨成员上下文传递都必须通过可审计的消息、事件或上下文包完成。
+
 ## 10. 看板聚合
 
 Agent 团队编排必须向看板提供：

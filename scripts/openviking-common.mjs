@@ -77,9 +77,6 @@ export function buildServerConfig() {
         lock_timeout: 5,
         lock_expire: 300,
       },
-      task_tracker: {
-        backend: "persistent",
-      },
     },
     log: {
       level: process.env.OPENVIKING_LOG_LEVEL ?? "INFO",

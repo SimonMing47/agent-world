@@ -12,7 +12,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "border border-[rgba(15,23,42,0.14)] bg-[linear-gradient(180deg,#232936_0%,#141922_100%)] text-white shadow-[0_14px_34px_rgba(15,17,21,0.16),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:border-[rgba(9,199,232,0.28)] hover:bg-[linear-gradient(180deg,#2a3140_0%,#181d27_100%)]",
+          "border border-[rgba(15,23,42,0.16)] bg-[linear-gradient(180deg,#151b26_0%,#080b10_100%)] font-semibold !text-[rgba(255,255,255,0.97)] shadow-[0_14px_34px_rgba(15,17,21,0.2),0_0_0_1px_rgba(255,255,255,0.16)_inset] hover:border-[rgba(9,199,232,0.32)] hover:bg-[linear-gradient(180deg,#202838_0%,#0e121a_100%)]",
         secondary:
           "border border-[var(--line)] bg-[rgba(255,255,255,0.68)] text-[var(--ink)] shadow-none hover:bg-[rgba(255,255,255,0.92)]",
         ghost: "text-[var(--ink-muted)] hover:bg-[rgba(15,23,42,0.03)] hover:text-[var(--ink)]",

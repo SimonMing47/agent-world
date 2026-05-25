@@ -26,6 +26,7 @@ export type RuntimeAgentProfile = {
   name: string;
   role: string;
   personaPrompt: string;
+  mentionHandle?: string;
   harnessConfigJson?: string | null;
   permissionPolicyJson?: string | null;
 };
@@ -140,6 +141,8 @@ export interface AgentRuntimeInterface {
     sessionId: string;
     actorName: string;
     content: string;
+    targetActorId?: string | null;
+    targetActorName?: string | null;
   }): Promise<boolean>;
   streamEvents(sessionId: string): AsyncIterable<RuntimeSessionEnvelope>;
   invokeAgentNode(input: InvokeAgentNodeInput): Promise<InvokeAgentNodeResult>;
@@ -149,7 +152,7 @@ export interface AgentRuntimeInterface {
 }
 
 type SessionStreamState = {
-  agents: Set<Agent>;
+  agents: Map<string, { agent: Agent; actorId?: string | null; actorName: string }>;
   queue: RuntimeSessionEnvelope[];
   waiters: Array<(result: IteratorResult<RuntimeSessionEnvelope>) => void>;
   closed: boolean;
@@ -178,8 +181,9 @@ function buildAgentPrompt(args: {
   providerProfile: ProviderProfile;
   instructions?: string;
 }) {
+  const mentionHandle = args.agent?.mentionHandle ? `Mention handle: ${args.agent.mentionHandle}.` : "";
   const header = args.agent
-    ? `You are ${args.agent.name}. Role: ${args.agent.role}. Persona: ${args.agent.personaPrompt}`
+    ? `You are ${args.agent.name}. Role: ${args.agent.role}. ${mentionHandle} Persona: ${args.agent.personaPrompt}`
     : "You are the runtime assistant.";
   const teamContext = args.teamContext
     ? `Team: ${args.teamContext.teamName}.${args.teamContext.leaderName ? ` Leader: ${args.teamContext.leaderName}.` : ""}`
@@ -189,6 +193,71 @@ function buildAgentPrompt(args: {
   return [header, teamContext, runtimeContext, args.session.systemPrompt, args.instructions ?? ""]
     .filter(Boolean)
     .join("\n\n");
+}
+
+function slugForMention(value: string, fallback: string) {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[/|]+/g, " ")
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || fallback
+  );
+}
+
+function mentionHandleFor(agent: RuntimeAgentProfile, index: number) {
+  if (agent.mentionHandle?.trim()) return agent.mentionHandle.trim();
+  return `@${slugForMention(agent.role || agent.name, `agent-${index + 1}`)}`;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function textMentionsHandle(text: string, handle: string) {
+  return new RegExp(`(^|\\s)${escapeRegExp(handle)}(?=\\s|$|[：:，,。.;；\\n])`, "i").test(text);
+}
+
+function extractMentionPacket(text: string, handle: string) {
+  const normalized = text.trim();
+  if (!normalized || !textMentionsHandle(normalized, handle)) return null;
+
+  const paragraphs = normalized.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
+  const matchingParagraphs = paragraphs.filter((paragraph) => textMentionsHandle(paragraph, handle));
+  if (matchingParagraphs.length > 0) return matchingParagraphs.join("\n\n").slice(0, 2400);
+
+  const lines = normalized.split(/\n/);
+  const selected = new Set<number>();
+  lines.forEach((line, index) => {
+    if (!textMentionsHandle(line, handle)) return;
+    selected.add(index);
+    if (index + 1 < lines.length) selected.add(index + 1);
+    if (index + 2 < lines.length) selected.add(index + 2);
+  });
+  return [...selected]
+    .sort((left, right) => left - right)
+    .map((index) => lines[index])
+    .join("\n")
+    .trim()
+    .slice(0, 2400);
+}
+
+function workerDirectory(workers: RuntimeAgentProfile[]) {
+  if (workers.length === 0) return "No sub agents are available.";
+  return workers
+    .map((worker, index) => `${mentionHandleFor(worker, index)} - ${worker.name} (${worker.role})`)
+    .join("\n");
+}
+
+function collectMentionDelegations(text: string, workers: RuntimeAgentProfile[]) {
+  return workers
+    .map((worker, index) => {
+      const handle = mentionHandleFor(worker, index);
+      const packet = extractMentionPacket(text, handle);
+      return packet ? { worker, handle, packet } : null;
+    })
+    .filter((item): item is { worker: RuntimeAgentProfile; handle: string; packet: string } => item !== null);
 }
 
 function flattenVisibleText(message: AssistantMessage | null) {
@@ -217,7 +286,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
     if (existing) return existing;
 
     const state: SessionStreamState = {
-      agents: new Set<Agent>(),
+      agents: new Map<string, { agent: Agent; actorId?: string | null; actorName: string }>(),
       queue: [],
       waiters: [],
       closed: false,
@@ -334,17 +403,34 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
     });
   }
 
-  async resumeSession(args: { sessionId: string; actorName: string; content: string }) {
+  async resumeSession(args: {
+    sessionId: string;
+    actorName: string;
+    content: string;
+    targetActorId?: string | null;
+    targetActorName?: string | null;
+  }) {
     const state = this.getSessionState(args.sessionId);
     if (state.agents.size === 0) return false;
 
-    for (const agent of state.agents) {
-      agent.steer({
-        role: "user",
-        content: args.content,
-        timestamp: Date.now(),
-      });
+    const candidates = [...state.agents.values()];
+    const target = args.targetActorId
+      ? candidates.find((candidate) => candidate.actorId === args.targetActorId)
+      : args.targetActorName
+        ? candidates.find((candidate) => candidate.actorName === args.targetActorName)
+        : candidates.length === 1
+          ? candidates[0]
+          : null;
+
+    if (!target) {
+      return false;
     }
+
+    target.agent.steer({
+      role: "user",
+      content: args.content,
+      timestamp: Date.now(),
+    });
 
     this.emit(args.sessionId, {
       type: "runtime.session.resumed",
@@ -352,6 +438,8 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
       occurredAt: nowIso(),
       payload: {
         actorName: args.actorName,
+        targetActorId: target.actorId ?? null,
+        targetActorName: target.actorName,
       },
     });
     return true;
@@ -439,7 +527,13 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
       },
     });
 
-    state.agents.add(agent);
+    const actorName = input.agent?.name ?? "Runtime Assistant";
+    const actorKey = input.agent?.id ?? actorName;
+    state.agents.set(actorKey, {
+      agent,
+      actorId: input.agent?.id ?? null,
+      actorName,
+    });
     agent.subscribe((event) => {
       this.emit(input.session.sessionId, {
         type: "runtime.agent.event",
@@ -472,7 +566,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         thinkingText: flattenThinkingText(finalAssistant),
       } satisfies InvokeAgentNodeResult;
     } finally {
-      state.agents.delete(agent);
+      state.agents.delete(actorKey);
     }
   }
 
@@ -484,6 +578,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         : input.teamPlan.actors[0];
     const workers = input.teamPlan.actors.filter((agent) => agent.id !== leader?.id);
     const leaderName = leader?.name ?? "Team Leader";
+    const directory = workerDirectory(workers);
 
     const leaderResult = leader
       ? await this.invokeAgentNode({
@@ -491,8 +586,15 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           agent: leader,
           latestUserMessage: input.latestUserMessage,
           turnIndex: input.turnIndex,
-          instructions:
-            "First, produce a short execution plan for the team. Keep it concise and oriented toward collaboration.",
+          instructions: [
+            "You are the only team member that receives the human instruction directly.",
+            "Sub agents do not see the full session transcript. Delegate only by mentioning exact handles from the directory below.",
+            "When you need a sub agent, write a compact packet that starts with its handle and includes Context, Task, and Expected output.",
+            "If no sub agent is needed, answer the human directly and do not mention any handle.",
+            "",
+            "Available sub agents:",
+            directory,
+          ].join("\n"),
           teamContext: {
             teamName: input.teamPlan.teamName,
             leaderName,
@@ -503,39 +605,96 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         })
       : null;
 
-    const workerResults = await Promise.all(
-      workers.map((worker) =>
+    const delegations = leaderResult
+      ? collectMentionDelegations(leaderResult.assistantText, workers)
+      : [];
+
+    const initialWorkerContributions = await Promise.all(
+      delegations.map((delegation) =>
         this.invokeAgentNode({
           session: input.session,
-          agent: worker,
-          latestUserMessage: input.latestUserMessage,
+          agent: delegation.worker,
+          latestUserMessage: [
+            `${leaderName} explicitly mentioned ${delegation.handle}.`,
+            "This packet is the only task context you receive:",
+            delegation.packet,
+          ].join("\n\n"),
           turnIndex: input.turnIndex,
-          instructions: `Leader context:\n${leaderResult?.assistantText || "No leader context yet."}\n\nReturn your contribution to the team, not to the end user.`,
+          instructions: [
+            "Context isolation rule: do not assume you saw the human's full session transcript.",
+            "Use only your system prompt, your role, and the packet provided in the current message.",
+            "Return your contribution to the team, not directly to the end user.",
+            "If you need another sub agent, mention that agent's exact handle and include a small handoff packet.",
+            "",
+            "Known teammate handles:",
+            directory,
+          ].join("\n"),
           teamContext: {
             teamName: input.teamPlan.teamName,
             leaderName,
           },
-          getTranscript: input.getTranscript,
+          getTranscript: () => [],
           onAgentEvent: input.onAgentEvent,
           onRuntimeEvent: input.onRuntimeEvent,
         }),
       ),
     );
 
-    const synthesis = leader
+    const handoffContributions = (
+      await Promise.all(
+        initialWorkerContributions.flatMap((sourceResult) =>
+          collectMentionDelegations(
+            sourceResult.assistantText,
+            workers.filter((worker) => worker.id !== sourceResult.actorId),
+          ).map((handoff) =>
+            this.invokeAgentNode({
+              session: input.session,
+              agent: handoff.worker,
+              latestUserMessage: [
+                `${sourceResult.actorName} explicitly mentioned ${handoff.handle}.`,
+                "This handoff packet is the only peer context you receive:",
+                handoff.packet,
+              ].join("\n\n"),
+              turnIndex: input.turnIndex,
+              instructions: [
+                "Context isolation rule: this is a peer handoff, not the full team transcript.",
+                "Use only your system prompt, your role, and this handoff packet.",
+                "Return a concise contribution for the leader.",
+              ].join("\n"),
+              teamContext: {
+                teamName: input.teamPlan.teamName,
+                leaderName,
+              },
+              getTranscript: () => [],
+              onAgentEvent: input.onAgentEvent,
+              onRuntimeEvent: input.onRuntimeEvent,
+            }),
+          ),
+        ),
+      )
+    ).slice(0, Math.max(0, workers.length));
+
+    const workerResults = [...initialWorkerContributions, ...handoffContributions];
+
+    const synthesis = leader && workerResults.length > 0
       ? await this.invokeAgentNode({
           session: input.session,
           agent: leader,
-          latestUserMessage: input.latestUserMessage,
+          latestUserMessage: [
+            "Synthesize the current team turn for the human operator.",
+            `Human instruction:\n${input.latestUserMessage}`,
+            `Leader routing plan:\n${leaderResult?.assistantText ?? ""}`,
+            `Sub agent outputs:\n${workerResults
+              .map((worker) => `${worker.actorName}: ${worker.assistantText}`)
+              .join("\n\n")}`,
+          ].join("\n\n"),
           turnIndex: input.turnIndex,
-          instructions: `Synthesize the team discussion for the human operator.\n\nTeam messages:\n${workerResults
-            .map((worker) => `${worker.actorName}: ${worker.assistantText}`)
-            .join("\n\n")}`,
+          instructions: "Use only the current routed packets and sub agent outputs. Do not invent unseen sub agent context.",
           teamContext: {
             teamName: input.teamPlan.teamName,
             leaderName,
           },
-          getTranscript: input.getTranscript,
+          getTranscript: () => [],
           onAgentEvent: input.onAgentEvent,
           onRuntimeEvent: input.onRuntimeEvent,
         })

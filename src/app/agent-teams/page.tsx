@@ -194,7 +194,7 @@ export default async function AgentTeamsPage() {
               <DialogContent className="w-[min(96vw,1180px)]">
                 <DialogHeader>
                   <DialogTitle>ui.generated.c77ea648602</DialogTitle>
-                  <DialogDescription>ui.generated.c9a87071575</DialogDescription>
+                  <DialogDescription>用 TEAM.md 定义团队，再把成员形象摆成可点击的编队。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentTeamForm
@@ -208,6 +208,16 @@ export default async function AgentTeamsPage() {
                       id: definition.id,
                       name: definition.name,
                       role: definition.role,
+                      description: definition.description,
+                      systemPrompt: definition.systemPrompt,
+                      avatarConfigJson: definition.avatarConfigJson,
+                      toolBindingsJson: definition.toolBindingsJson,
+                      harnessConfigJson: definition.harnessConfigJson,
+                      permissionPolicyJson: definition.permissionPolicyJson,
+                      memoryScope: definition.memoryScope,
+                      tagsJson: definition.tagsJson,
+                      visibility: definition.visibility,
+                      status: definition.status,
                     }))}
                     executionPolicyOptions={executionPolicies.map((policy) => ({
                       id: policy.id,
@@ -410,7 +420,7 @@ export default async function AgentTeamsPage() {
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
                               <DialogTitle>ui.generated.ca7f814c0a4 {team.name}</DialogTitle>
-                              <DialogDescription>ui.generated.c423411c827</DialogDescription>
+                              <DialogDescription>点击成员形象配置单个 Agent，点击空白区域配置团队。</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <AgentTeamForm
@@ -437,6 +447,16 @@ export default async function AgentTeamsPage() {
                                   id: definition.id,
                                   name: definition.name,
                                   role: definition.role,
+                                  description: definition.description,
+                                  systemPrompt: definition.systemPrompt,
+                                  avatarConfigJson: definition.avatarConfigJson,
+                                  toolBindingsJson: definition.toolBindingsJson,
+                                  harnessConfigJson: definition.harnessConfigJson,
+                                  permissionPolicyJson: definition.permissionPolicyJson,
+                                  memoryScope: definition.memoryScope,
+                                  tagsJson: definition.tagsJson,
+                                  visibility: definition.visibility,
+                                  status: definition.status,
                                 }))}
                                 executionPolicyOptions={executionPolicies.map((policy) => ({
                                   id: policy.id,

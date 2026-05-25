@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { AgentWorldLogo } from "@/components/agentworld-logo";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { flatNavigation, navigationGroups } from "@/components/navigation-config";
-import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AppScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -58,9 +56,9 @@ export function SidebarNav({
   }, [pathname, router]);
 
   return (
-    <div className="agent-sidebar flex h-full flex-col">
+    <div className="agent-sidebar relative flex h-full flex-col">
       {showBrand ? (
-        <div className={cn("flex items-center justify-between border-b border-[var(--sidebar-line)] px-3 py-4", collapsed && "justify-center px-0")}>
+        <div className={cn("flex h-14 items-center justify-between border-b border-[var(--sidebar-line)] px-3", collapsed && "justify-center px-0")}>
           <div className={cn("flex min-w-0 items-center gap-3", collapsed && "justify-center")}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-white/70 bg-white/88 text-[var(--sidebar-ink)] shadow-none">
               <AgentWorldLogo className="h-5 w-5" />
@@ -70,21 +68,35 @@ export function SidebarNav({
               <div className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--sidebar-ink-softer)]">{text("ui.generated.c5bd086d22a")}</div>
             </div>
           </div>
-          {onToggleCollapse ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={onToggleCollapse}
-              className={cn(
-                "hidden h-8 w-8 border border-white/70 bg-white/88 text-[var(--sidebar-muted)] shadow-none hover:bg-white hover:text-[var(--sidebar-ink)] lg:inline-flex",
-                collapsed && "absolute opacity-0 pointer-events-none",
-              )}
-            >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
-          ) : null}
         </div>
+      ) : null}
+
+      {onToggleCollapse ? (
+        <button
+          type="button"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
+          data-sidebar-toggle="edge"
+          onClick={onToggleCollapse}
+          className="group absolute bottom-0 right-[-14px] top-14 z-30 hidden w-7 cursor-ew-resize items-stretch justify-center outline-none focus:outline-none lg:flex"
+        >
+          <span className="relative my-5 flex w-full items-center justify-center">
+            <svg
+              aria-hidden="true"
+              className={cn(
+                "h-full w-7 origin-center overflow-visible text-[rgba(100,116,139,0.58)] transition duration-200 group-hover:text-[rgba(71,85,105,0.74)] group-focus-visible:text-[rgba(71,85,105,0.74)]",
+                !collapsed && "-scale-x-100",
+              )}
+              preserveAspectRatio="none"
+              viewBox="0 0 24 1000"
+            >
+              <path
+                d="M12 0C11.56 24 11.35 70 11.35 150V438C11.35 468 8.45 482 8.45 500C8.45 518 11.35 532 11.35 562V850C11.35 930 11.56 976 12 1000C12.44 976 12.65 930 12.65 850V562C12.65 532 10.55 518 10.55 500C10.55 482 12.65 468 12.65 438V150C12.65 70 12.44 24 12 0Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+        </button>
       ) : null}
 
       <AppScrollArea className={cn("flex-1 px-2 py-3", !showBrand && "pt-4")}>

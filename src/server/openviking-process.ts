@@ -1,8 +1,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  getKnowledgeBaseSettings,
+  writeOpenVikingConfigFiles,
+} from "@/server/knowledge-base-settings";
 
-const DEFAULT_BASE_URL = "http://127.0.0.1:1933";
 const STARTUP_TIMEOUT_MS = 3500;
 
 type OpenVikingProcessState = {
@@ -20,34 +23,28 @@ const globalState = globalThis as typeof globalThis & {
   __agentWorldOpenViking?: OpenVikingProcessState;
 };
 
-function dataDir() {
-  return path.join("data", "openviking");
-}
-
 function thirdpartyBinDir() {
   return path.join("thirdparty", "openviking", "bin");
 }
 
 export function resolveOpenVikingBaseUrl() {
-  return (process.env.OPENVIKING_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+  return getKnowledgeBaseSettings().baseUrl.replace(/\/+$/, "");
 }
 
 export function resolveOpenVikingHost() {
-  return process.env.OPENVIKING_HOST ?? "127.0.0.1";
+  return getKnowledgeBaseSettings().host;
 }
 
 export function resolveOpenVikingPort() {
-  return String(process.env.OPENVIKING_PORT ?? "1933");
+  return getKnowledgeBaseSettings().port;
 }
 
 export function resolveOpenVikingConfigPath() {
-  return path.resolve(/* turbopackIgnore: true */ process.env.OPENVIKING_CONFIG_FILE ?? path.join(dataDir(), "ov.conf"));
+  return path.resolve(/* turbopackIgnore: true */ getKnowledgeBaseSettings().configPath);
 }
 
 export function resolveOpenVikingCliConfigPath() {
-  return path.resolve(
-    /* turbopackIgnore: true */ process.env.OPENVIKING_CLI_CONFIG_FILE ?? path.join(dataDir(), "ovcli.conf"),
-  );
+  return path.resolve(/* turbopackIgnore: true */ getKnowledgeBaseSettings().cliConfigPath);
 }
 
 function appendLog(state: OpenVikingProcessState, message: string) {
@@ -82,8 +79,9 @@ function isLocalBaseUrl(value: string) {
 }
 
 function resolveOpenVikingServerBin() {
+  const setting = getKnowledgeBaseSettings();
   const candidates = [
-    process.env.OPENVIKING_SERVER_BIN,
+    setting.serverBin,
     path.join(thirdpartyBinDir(), "openviking-server"),
     path.join(thirdpartyBinDir(), `openviking-server-${process.platform}-${process.arch}`),
     path.join(".venv-openviking", "bin", "openviking-server"),
@@ -97,90 +95,9 @@ function resolveOpenVikingServerBin() {
   return null;
 }
 
-function buildServerConfig() {
-  const config: Record<string, unknown> = {
-    server: {
-      host: resolveOpenVikingHost(),
-      port: Number(resolveOpenVikingPort()),
-      cors_origins: [
-        process.env.AGENTWORLD_PUBLIC_BASE_URL ?? "http://localhost:7369",
-        "http://127.0.0.1:7369",
-        "http://localhost:7369",
-      ],
-      ...(process.env.OPENVIKING_API_KEY ? { root_api_key: process.env.OPENVIKING_API_KEY } : {}),
-    },
-    storage: {
-      workspace: path.join(dataDir(), "workspace"),
-      agfs: { backend: "local" },
-      vectordb: { backend: "local" },
-      transaction: {
-        lock_timeout: 5,
-        lock_expire: 300,
-      },
-      task_tracker: { backend: "persistent" },
-    },
-    log: {
-      level: process.env.OPENVIKING_LOG_LEVEL ?? "INFO",
-      output: "stdout",
-    },
-  };
-
-  if (process.env.OPENVIKING_VLM_PROVIDER && process.env.OPENVIKING_VLM_MODEL) {
-    config.vlm = {
-      provider: process.env.OPENVIKING_VLM_PROVIDER,
-      model: process.env.OPENVIKING_VLM_MODEL,
-      ...(process.env.OPENVIKING_VLM_API_BASE ? { api_base: process.env.OPENVIKING_VLM_API_BASE } : {}),
-      ...(process.env.OPENVIKING_VLM_API_KEY ? { api_key: process.env.OPENVIKING_VLM_API_KEY } : {}),
-    };
-  }
-
-  if (process.env.OPENVIKING_EMBEDDING_PROVIDER && process.env.OPENVIKING_EMBEDDING_MODEL) {
-    config.embedding = {
-      dense: {
-        provider: process.env.OPENVIKING_EMBEDDING_PROVIDER,
-        model: process.env.OPENVIKING_EMBEDDING_MODEL,
-        ...(process.env.OPENVIKING_EMBEDDING_API_BASE ? { api_base: process.env.OPENVIKING_EMBEDDING_API_BASE } : {}),
-        ...(process.env.OPENVIKING_EMBEDDING_API_KEY ? { api_key: process.env.OPENVIKING_EMBEDDING_API_KEY } : {}),
-        ...(process.env.OPENVIKING_EMBEDDING_DIMENSION
-          ? { dimension: Number(process.env.OPENVIKING_EMBEDDING_DIMENSION) }
-          : {}),
-      },
-    };
-  }
-
-  return config;
-}
-
 export function ensureOpenVikingConfigFiles() {
-  fs.mkdirSync(dataDir(), { recursive: true });
   fs.mkdirSync(thirdpartyBinDir(), { recursive: true });
-
-  const configPath = resolveOpenVikingConfigPath();
-  if (!fs.existsSync(configPath)) {
-    fs.mkdirSync(path.dirname(configPath), { recursive: true });
-    fs.writeFileSync(configPath, `${JSON.stringify(buildServerConfig(), null, 2)}\n`);
-  }
-
-  const cliConfigPath = resolveOpenVikingCliConfigPath();
-  if (!fs.existsSync(cliConfigPath)) {
-    fs.mkdirSync(path.dirname(cliConfigPath), { recursive: true });
-    fs.writeFileSync(
-      cliConfigPath,
-      `${JSON.stringify(
-        {
-          url: resolveOpenVikingBaseUrl(),
-          timeout: Number(process.env.OPENVIKING_TIMEOUT_SECONDS ?? "60"),
-          ...(process.env.OPENVIKING_API_KEY ? { api_key: process.env.OPENVIKING_API_KEY } : {}),
-          ...(process.env.OPENVIKING_ACCOUNT ? { account: process.env.OPENVIKING_ACCOUNT } : {}),
-          ...(process.env.OPENVIKING_USER ? { user: process.env.OPENVIKING_USER } : {}),
-        },
-        null,
-        2,
-      )}\n`,
-    );
-  }
-
-  return { configPath, cliConfigPath };
+  return writeOpenVikingConfigFiles();
 }
 
 async function checkHealth(baseUrl: string, timeoutMs = 900) {
@@ -197,7 +114,10 @@ async function checkHealth(baseUrl: string, timeoutMs = 900) {
 }
 
 function shouldSkipAutoStart() {
+  const setting = getKnowledgeBaseSettings();
   return (
+    !setting.enabled ||
+    !setting.autoStart ||
     process.env.AGENTWORLD_OPENVIKING_AUTO_START === "0" ||
     process.env.NEXT_PHASE === "phase-production-build" ||
     process.env.npm_lifecycle_event === "build"

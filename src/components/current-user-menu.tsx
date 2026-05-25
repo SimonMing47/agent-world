@@ -46,22 +46,18 @@ export function CurrentUserMenu({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-3 rounded-full bg-white/80 px-2 py-1.5 shadow-[var(--shadow-soft)] ring-1 ring-black/4 transition hover:bg-white"
+          aria-label={user.name}
+          title={user.name}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/78 p-1 shadow-[var(--shadow-soft)] ring-1 ring-black/4 transition hover:bg-white"
         >
           {user.avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatarUrl} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
+            <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
           ) : (
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(29,78,216,0.1)] text-sm font-semibold text-[var(--accent)]">
+            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(29,78,216,0.1)] text-[10px] font-semibold text-[var(--accent)]">
               {user.initials}
             </span>
           )}
-          <span className="hidden min-w-0 text-left sm:block">
-            <span className="block max-w-[140px] truncate text-sm font-semibold text-[var(--ink)]">{user.name}</span>
-            <span className="block max-w-[180px] truncate text-xs text-[var(--ink-muted)]">
-              {user.primaryBusinessTeamName ?? user.title ?? user.email}
-            </span>
-          </span>
         </button>
       </DialogTrigger>
       <DialogContent className="w-[min(92vw,620px)]">

@@ -99,3 +99,16 @@ export function findNavItem(pathname: string) {
     flatNavigation[0]
   );
 }
+
+export function findNavGroup(pathname: string) {
+  const item = findNavItem(pathname);
+  return (
+    navigationGroups.find((group) => group.items.some((candidate) => candidate.href === item.href)) ??
+    (secondaryNavigation.some((candidate) => candidate.href === item.href)
+      ? {
+          title: "ui.generated.c5095009346",
+          items: secondaryNavigation,
+        }
+      : navigationGroups[0])
+  );
+}

@@ -13,34 +13,22 @@ export function AgentWorldLogo({
       className={cn("agentworld-logo", animated && "agentworld-logo-animated", className)}
     >
       <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect
-          x="10"
-          y="10"
-          width="76"
-          height="76"
-          rx="24"
-          className="agentworld-logo__frame"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          opacity="0.18"
+        <path
+          d="M78.4 34.2C70.7 24.4 55.2 21.1 41.8 27.2C25 34.9 21.8 56.7 33.6 67.3C46.2 78.7 65.2 69.7 64.4 52.5C63.7 38.4 47.9 36.1 39.5 45.4C31.2 54.6 38.8 65.1 52 60.6C63.6 56.7 73.7 47.1 81.5 36.5"
+          className="agentworld-logo__thread agentworld-logo__thread--primary"
         />
         <path
-          d="M18 66L33 28L48 58L63 28L78 66"
-          className="agentworld-logo__stroke agentworld-logo__stroke--one"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="6"
+          d="M35.2 63.7C45.2 70.7 61.2 68.2 72.2 55.1"
+          className="agentworld-logo__thread agentworld-logo__thread--bridge"
         />
         <path
-          d="M39 47H57"
-          className="agentworld-logo__stroke agentworld-logo__stroke--two"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="6"
+          d="M38.7 31.3C50.8 25.1 63.3 26.3 70.7 34.7"
+          className="agentworld-logo__thread agentworld-logo__thread--glint"
         />
-        <circle cx="70" cy="36" r="4" className="agentworld-logo__dot" fill="currentColor" />
+        <path
+          d="M24.2 70.5C42.6 82.1 67.6 74.6 80.2 52.8"
+          className="agentworld-logo__thread agentworld-logo__thread--wake"
+        />
       </svg>
     </div>
   );

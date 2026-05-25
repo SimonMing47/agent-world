@@ -25,6 +25,14 @@ type RetrievalHit = {
   layer: string;
   score: number;
   excerpt: string;
+  levels?: Array<{
+    level: "L0" | "L1" | "L2";
+    label: string;
+    purpose: string;
+    score: number;
+    excerpt: string;
+    editable: boolean;
+  }>;
 };
 
 export function KnowledgeRetrievalTestDialog({
@@ -95,6 +103,23 @@ export function KnowledgeRetrievalTestDialog({
             </div>
           </div>
 
+          <div className="grid gap-2 md:grid-cols-3">
+            {[
+              ["L0", "摘要召回", "先用 Abstract 做向量召回和快速过滤。"],
+              ["L1", "概览重排", "再用 Overview 理解目录结构并重排。"],
+              ["L2", "原文读取", "最后读取完整 Markdown，只有这一层可编辑。"],
+            ].map(([level, title, description]) => (
+              <div key={level} className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant={level === "L2" ? "accent" : "neutral"}>{level}</Badge>
+                  <span className="text-[11px] text-[var(--ink-subtle)]">{level === "L2" ? "可编辑" : "只读索引"}</span>
+                </div>
+                <div className="mt-2 text-sm font-semibold text-[var(--ink)]">{title}</div>
+                <p className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{description}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-[1fr_auto]">
             <FieldGroup label="knowledge.retrieval.queryLabel">
               <Input
@@ -136,6 +161,26 @@ export function KnowledgeRetrievalTestDialog({
                       </div>
                     </div>
                     <p className="mt-3 text-sm leading-7 text-[var(--ink-muted)]">{hit.excerpt}</p>
+                    {hit.levels?.length ? (
+                      <div className="mt-3 grid gap-2">
+                        {hit.levels.map((level) => (
+                          <div key={`${hit.id}:${level.level}`} className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-3 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="inline-flex items-center gap-2">
+                                <Badge variant={level.editable ? "accent" : "neutral"}>{level.level}</Badge>
+                                <span className="text-sm font-semibold text-[var(--ink)]">{level.label}</span>
+                              </div>
+                              <div className="inline-flex items-center gap-2 text-xs text-[var(--ink-subtle)]">
+                                <span>{level.editable ? "可编辑" : "只读"}</span>
+                                <span>score {level.score}</span>
+                              </div>
+                            </div>
+                            <div className="mt-1 text-xs leading-5 text-[var(--ink-subtle)]">{level.purpose}</div>
+                            {level.excerpt ? <p className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">{level.excerpt}</p> : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

@@ -2,13 +2,13 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import { CurrentUserMenu } from "@/components/current-user-menu";
 import {
   LanguagePackProvider,
   useLanguageText,
 } from "@/components/language-pack-provider";
-import { findNavItem } from "@/components/navigation-config";
+import { findNavGroup, findNavItem } from "@/components/navigation-config";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -84,9 +84,11 @@ function AppShellContentWithUser({
 }) {
   const pathname = usePathname();
   const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
+  const currentGroup = useMemo(() => findNavGroup(pathname), [pathname]);
   const text = useLanguageText();
   const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isFullBleedWorkspace = pathname === "/knowledge";
 
   if (pathname === "/" || pathname === "/signin" || pathname === "/access-request") {
     return <>{children}</>;
@@ -102,7 +104,7 @@ function AppShellContentWithUser({
       <div className="h-screen overflow-hidden bg-[var(--canvas)] text-[var(--ink)]">
         <div className="flex h-full">
           <aside
-            className={`hidden h-screen shrink-0 overflow-hidden border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] backdrop-blur-2xl transition-[width] duration-200 lg:block ${
+            className={`hidden h-screen shrink-0 overflow-visible border-r border-[var(--sidebar-line)] bg-[var(--sidebar)] backdrop-blur-2xl transition-[width] duration-200 lg:block ${
               collapsed ? "w-[68px]" : "w-[214px]"
             }`}
           >
@@ -126,18 +128,13 @@ function AppShellContentWithUser({
                   </SheetContent>
                 </Sheet>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="hidden rounded-xl text-[var(--ink-muted)] hover:bg-white/80 hover:text-[var(--ink)] lg:inline-flex"
-                  onClick={() => updateCollapsed(!collapsed)}
-                >
-                  {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                </Button>
-
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text(currentNav.label)}</div>
+                  <nav className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--ink-muted)]" aria-label="Breadcrumb">
+                    <span className="truncate font-medium">{text(currentGroup.title)}</span>
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--ink-softer)]" />
+                    <span className="truncate font-semibold text-[var(--ink)]">{text(currentNav.label)}</span>
+                  </nav>
+                  <div className="mt-0.5 hidden truncate text-[11px] text-[var(--ink-softer)] sm:block">{text(currentNav.description)}</div>
                 </div>
 
                 {currentUser ? <CurrentUserMenu user={currentUser} /> : null}
@@ -145,7 +142,13 @@ function AppShellContentWithUser({
             </header>
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-              <div className="mx-auto flex w-full max-w-[1560px] flex-col gap-8 px-5 py-7 sm:px-6 lg:px-8">
+              <div
+                className={
+                  isFullBleedWorkspace
+                    ? "flex min-h-full w-full flex-col gap-5 px-5 py-5 sm:px-6 lg:px-7 xl:px-8"
+                    : "mx-auto flex w-full max-w-[1560px] flex-col gap-8 px-5 py-7 sm:px-6 lg:px-8"
+                }
+              >
                 {children}
               </div>
             </main>
