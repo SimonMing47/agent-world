@@ -1726,24 +1726,32 @@ export function submitTaskRunFromBlueprint(args: {
     : null;
   const trigger = parseJsonRecord(blueprint.triggerJson);
   const executionPolicy = parseJsonRecord(blueprint.executionPolicyJson);
-  const inputPayload = {
+  const inputPayload: Record<string, unknown> = {
     taskCategory: blueprint.category,
     taskBlueprintId: blueprint.id,
     run_date: new Date().toISOString().slice(0, 10),
-	    branch: environment?.defaultBranch ?? "",
+    branch: environment?.defaultBranch ?? "",
     ...args.inputPayload,
   };
+  const pluginIdempotencyKey =
+    typeof inputPayload.plugin_idempotency_key === "string" && inputPayload.plugin_idempotency_key.trim()
+      ? inputPayload.plugin_idempotency_key.trim()
+      : null;
+  const sourceType = normalizeTriggerType(trigger.type) as TaskRun["sourceType"];
   const idempotencyTemplate =
     typeof trigger.idempotencyKey === "string"
       ? trigger.idempotencyKey
       : typeof executionPolicy.idempotencyKey === "string"
         ? executionPolicy.idempotencyKey
-        : "${task_blueprint_id}:${run_date}";
+        : pluginIdempotencyKey
+          ? "${plugin_idempotency_key}"
+          : sourceType === "webhook"
+            ? "${task_blueprint_id}:${webhook_path_key}:${delivery_id}:${event_name}:${repo_id}:${mr_id}:${diff_ref}:${received_at}"
+            : "${task_blueprint_id}:${run_date}";
   const idempotencyKey = renderTemplateValue(idempotencyTemplate, {
     task_blueprint_id: blueprint.id,
     ...inputPayload,
   });
-  const sourceType = normalizeTriggerType(trigger.type) as TaskRun["sourceType"];
   const baseEnvironmentSnapshotPayload = buildEnvironmentSnapshotPayload({
     taskRunId: "pending",
     blueprint,
@@ -2271,6 +2279,68 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   }
 
   return getTaskRunDetail(taskRunId);
+}
+
+export async function executeTaskRunUntilSettled(taskRunId: string, requestedBy = "system", maxTicks = 20) {
+  let detail = getTaskRunDetail(taskRunId);
+  if (!detail) throw new Error(uiText("ui.generated.c7faa8038d2"));
+
+  const terminalStatuses = new Set(["completed", "failed", "awaiting"]);
+  let tickCount = 0;
+
+  const signatureOf = (current: NonNullable<typeof detail>) =>
+    [
+      current.taskRun.status,
+      ...current.nodes.map((node) => `${node.nodeKey}:${node.status}:${node.attemptLabel}`),
+    ].join("|");
+
+  while (tickCount < maxTicks) {
+    if (terminalStatuses.has(detail.taskRun.status)) {
+      return {
+        taskRunId,
+        status: detail.taskRun.status,
+        tickCount,
+        stoppedReason: detail.taskRun.status,
+        detail,
+      };
+    }
+
+    const before = signatureOf(detail);
+    detail = await executeTaskRunTick(taskRunId, requestedBy);
+    if (!detail) throw new Error(uiText("ui.generated.c7faa8038d2"));
+    tickCount += 1;
+
+    if (terminalStatuses.has(detail.taskRun.status)) {
+      return {
+        taskRunId,
+        status: detail.taskRun.status,
+        tickCount,
+        stoppedReason: detail.taskRun.status,
+        detail,
+      };
+    }
+
+    if (signatureOf(detail) === before) {
+      return {
+        taskRunId,
+        status: detail.taskRun.status,
+        tickCount,
+        stoppedReason: "no_progress",
+        detail,
+      };
+    }
+  }
+
+  detail = getTaskRunDetail(taskRunId);
+  if (!detail) throw new Error(uiText("ui.generated.c7faa8038d2"));
+
+  return {
+    taskRunId,
+    status: detail.taskRun.status,
+    tickCount,
+    stoppedReason: "max_ticks",
+    detail,
+  };
 }
 
 export function retryTaskRunNode(args: { taskRunId: string; nodeId: string; requestedBy: string }) {

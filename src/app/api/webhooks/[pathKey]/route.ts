@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getWebhookEndpointByPathKey,
+  executeTaskRunUntilSettled,
   listTaskBlueprints,
   listTaskRuns,
   submitTaskRunFromBlueprint,
@@ -60,12 +61,19 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 }
 
-export async function POST(request: Request, context: RouteContext) {
+async function handleWebhookRequest(request: Request, context: RouteContext) {
   const { pathKey } = await context.params;
   const webhook = getWebhookEndpointByPathKey(pathKey);
 
   if (!webhook || webhook.isEnabled !== 1) {
     return NextResponse.json({ ok: false, error: "webhook not found" }, { status: 404 });
+  }
+
+  if (request.method !== webhook.method) {
+    return NextResponse.json(
+      { ok: false, error: `webhook ${pathKey} expects ${webhook.method}` },
+      { status: 405 },
+    );
   }
 
   const secretCheck = validateWebhookSecret(webhook, request);
@@ -89,7 +97,8 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const results = await Promise.all(matchedBlueprints.map(async (blueprint) => {
+  const results = [];
+  for (const blueprint of matchedBlueprints) {
     try {
       const inputPayload = await buildWebhookTaskInputForBlueprint({
         pathKey,
@@ -110,21 +119,30 @@ export async function POST(request: Request, context: RouteContext) {
           .join(":"),
         inputPayload,
       });
+      const dispatch = detail?.taskRun.id
+        ? await executeTaskRunUntilSettled(detail.taskRun.id, "webhook-dispatcher", 20)
+        : null;
 
-      return {
+      results.push({
         ok: true,
         blueprintId: blueprint.id,
         taskRunId: detail?.taskRun.id ?? null,
-        status: detail?.taskRun.status ?? "created",
-      };
+        status: dispatch?.status ?? detail?.taskRun.status ?? "created",
+        dispatch: dispatch
+          ? {
+              tickCount: dispatch.tickCount,
+              stoppedReason: dispatch.stoppedReason,
+            }
+          : null,
+      });
     } catch (error) {
-      return {
+      results.push({
         ok: false,
         blueprintId: blueprint.id,
         error: error instanceof Error ? error.message : "submit failed",
-      };
+      });
     }
-  }));
+  }
 
   const hasSuccess = results.some((result) => result.ok);
   return NextResponse.json(
@@ -136,4 +154,16 @@ export async function POST(request: Request, context: RouteContext) {
     },
     { status: hasSuccess ? 200 : 500 },
   );
+}
+
+export async function POST(request: Request, context: RouteContext) {
+  return handleWebhookRequest(request, context);
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  return handleWebhookRequest(request, context);
+}
+
+export async function PATCH(request: Request, context: RouteContext) {
+  return handleWebhookRequest(request, context);
 }
