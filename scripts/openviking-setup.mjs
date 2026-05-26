@@ -1,48 +1,31 @@
-import fs from "node:fs";
-import path from "node:path";
-import { execFileSync } from "node:child_process";
 import {
   defaultServerBin,
-  root,
-  venvDir,
+  resolveServerBin,
   writeCliConfig,
   writeServerConfig,
 } from "./openviking-common.mjs";
 
-const python = process.env.PYTHON ?? "python3";
-const venvPython = path.join(venvDir, "bin", "python");
 const force = process.argv.includes("--force");
+const requireBinary = process.argv.includes("--require-binary");
 const devVenv = process.argv.includes("--dev-venv");
-
-function run(command, args) {
-  execFileSync(command, args, { cwd: root, stdio: "inherit" });
-}
 
 const configPath = writeServerConfig({ force });
 const cliConfigPath = writeCliConfig({ force });
 
 if (devVenv) {
-  const spec =
-    process.env.OPENVIKING_PIP_SPEC ??
-    (process.env.OPENVIKING_VERSION
-      ? `openviking[local-embed]==${process.env.OPENVIKING_VERSION}`
-      : "openviking[local-embed]");
-
-  if (!fs.existsSync(venvPython)) {
-    run(python, ["-m", "venv", venvDir]);
-  }
-
-  run(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
-  run(venvPython, ["-m", "pip", "install", "--upgrade", spec]);
+  console.error("Networked OpenViking pip installation is disabled for offline deployments.");
+  console.error("Provide a vetted OpenViking server binary via OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server.");
+  process.exit(1);
 }
 
+const serverBin = resolveServerBin();
 console.log(`Config: ${configPath}`);
 console.log(`CLI config: ${cliConfigPath}`);
-console.log(`Binary path: ${defaultServerBin}`);
-if (!fs.existsSync(defaultServerBin) && !devVenv) {
-  console.log("No bundled OpenViking server binary found yet.");
-  console.log("For deployment, place the Linux binary at thirdparty/openviking/bin/openviking-server.");
-  console.log("For a managed source install, run: pnpm openviking:install");
+console.log(`Binary path: ${serverBin ?? defaultServerBin}`);
+if (!serverBin) {
+  console.log("No local OpenViking server binary found.");
+  console.log("Place the vetted binary at thirdparty/openviking/bin/openviking-server, or set OPENVIKING_SERVER_BIN.");
+  if (requireBinary) process.exit(1);
 }
 if (!process.env.OPENVIKING_VLM_PROVIDER || !process.env.OPENVIKING_VLM_MODEL) {
   console.log("OpenViking VLM is not configured yet.");

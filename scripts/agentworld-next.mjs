@@ -63,10 +63,10 @@ async function startOpenVikingIfNeeded() {
     return null;
   }
 
-  const binary = resolveServerBin({ allowVenvFallback: true });
+  const binary = resolveServerBin();
   if (!binary) {
     console.warn(
-      "[agentworld] OpenViking runtime missing. Run agentworld install, or set OPENVIKING_SERVER_BIN to a runnable openviking-server.",
+      "[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN or provide thirdparty/openviking/bin/openviking-server.",
     );
     return null;
   }

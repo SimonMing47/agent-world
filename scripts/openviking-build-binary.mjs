@@ -20,6 +20,7 @@ const python = process.env.PYTHON ?? "python3";
 const venvPython = path.join(venvDir, "bin", "python");
 const distDir = path.join(root, "dist", "openviking-binary-build");
 const entry = path.join(root, "scripts", "openviking-server-entry.py");
+const wheelhouseDir = path.resolve(process.env.OPENVIKING_WHEELHOUSE_DIR ?? path.join(thirdpartyDir, "wheels"));
 const spec =
   process.env.OPENVIKING_PIP_SPEC ??
   (process.env.OPENVIKING_VERSION
@@ -34,8 +35,23 @@ if (!fs.existsSync(venvPython)) {
   run(python, ["-m", "venv", venvDir]);
 }
 
-run(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
-run(venvPython, ["-m", "pip", "install", "--upgrade", spec, "pyinstaller"]);
+if (!fs.existsSync(wheelhouseDir) || fs.readdirSync(wheelhouseDir).length === 0) {
+  console.error(`Offline OpenViking wheelhouse is missing or empty: ${wheelhouseDir}`);
+  console.error("Populate it from an approved internal artifact source before building the binary.");
+  process.exit(1);
+}
+
+run(venvPython, [
+  "-m",
+  "pip",
+  "install",
+  "--no-index",
+  "--find-links",
+  wheelhouseDir,
+  "--upgrade",
+  spec,
+  "pyinstaller",
+]);
 
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
@@ -74,7 +90,7 @@ const manifest = {
   output: path.relative(root, defaultServerBin),
   builtAt: new Date().toISOString(),
   license: "AGPL-3.0",
-  upstream: "https://github.com/volcengine/OpenViking",
+  upstream: "volcengine/OpenViking",
 };
 
 fs.mkdirSync(thirdpartyDir, { recursive: true });
