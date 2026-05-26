@@ -96,8 +96,8 @@ test("Enter continues list markers", () => {
   });
   assert.deepEqual(task, {
     value: "- [x] done\n- [ ] ",
-    selectionStart: 16,
-    selectionEnd: 16,
+    selectionStart: 17,
+    selectionEnd: 17,
   });
 });
 
