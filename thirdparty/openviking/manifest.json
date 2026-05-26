@@ -24,7 +24,7 @@
         "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ab",
         "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ac"
       ],
-      "builtAt": "2026-05-26T11:58:45.792Z",
+      "builtAt": "2026-05-26T12:57:40.651Z",
       "license": "AGPL-3.0",
       "upstream": "volcengine/OpenViking"
     }

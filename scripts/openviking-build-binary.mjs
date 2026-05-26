@@ -4,6 +4,7 @@ import path from "node:path";
 import {
   defaultServerBin,
   platformServerBin,
+  platformServerArchive,
   root,
   thirdpartyDir,
   writeCliConfig,
@@ -33,6 +34,8 @@ const pyinstallerExcludes = (process.env.OPENVIKING_PYINSTALLER_EXCLUDES ?? "")
   .map((moduleName) => moduleName.trim())
   .filter(Boolean)
   .flatMap((moduleName) => ["--exclude-module", moduleName]);
+const shouldArchiveBinary = process.env.OPENVIKING_BINARY_ARCHIVE === "1";
+const archivePartSize = process.env.OPENVIKING_BINARY_ARCHIVE_PART_SIZE ?? "45m";
 
 function run(command, args) {
   execFileSync(command, args, { cwd: root, stdio: "inherit" });
@@ -50,6 +53,23 @@ function findFile(dir, predicate) {
     if (entry.isFile() && predicate(fullPath)) return fullPath;
   }
   return null;
+}
+
+function listArchiveParts(archivePath) {
+  const dir = path.dirname(archivePath);
+  const prefix = `${path.basename(archivePath)}.part-`;
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.startsWith(prefix))
+    .sort()
+    .map((name) => path.join(dir, name));
+}
+
+function removeArchiveParts(archivePath) {
+  for (const part of listArchiveParts(archivePath)) {
+    fs.rmSync(part, { force: true });
+  }
 }
 
 if (!fs.existsSync(venvPython)) {
@@ -150,6 +170,15 @@ if (process.platform === "linux" && process.arch === "x64" && outputBin !== defa
   fs.copyFileSync(outputBin, defaultServerBin);
   fs.chmodSync(defaultServerBin, 0o755);
 }
+const archivePath = platformServerArchive();
+if (shouldArchiveBinary) {
+  removeArchiveParts(archivePath);
+  fs.rmSync(archivePath, { force: true });
+  run("xz", ["-zkf", "-9", outputBin]);
+  run("split", ["-b", archivePartSize, archivePath, `${archivePath}.part-`]);
+  fs.rmSync(archivePath, { force: true });
+}
+const archiveParts = listArchiveParts(archivePath).map((part) => path.relative(root, part));
 writeServerConfig();
 writeCliConfig();
 
@@ -159,6 +188,7 @@ const manifest = {
   platform: process.platform,
   arch: process.arch,
   output: path.relative(root, outputBin),
+  ...(archiveParts.length > 0 ? { archiveParts } : {}),
   builtAt: new Date().toISOString(),
   license: "AGPL-3.0",
   upstream: "volcengine/OpenViking",

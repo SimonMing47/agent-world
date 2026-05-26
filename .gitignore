@@ -44,6 +44,8 @@ output/
 /.venv-openviking-build
 /.venv-openviking-build-*
 /thirdparty/openviking/bin/openviking-server-linux-arm64
+/thirdparty/openviking/bin/openviking-server-linux-x64
+/thirdparty/openviking/bin/openviking-server
 /.playwright-cli
 
 # vercel
