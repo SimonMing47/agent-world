@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${AGENTWORLD_REPO_URL:-https://github.com/SimonMing47/agent-world.git}"
+REPO_URL="${AGENTWORLD_REPO_URL:-}"
 BRANCH="${AGENTWORLD_BRANCH:-main}"
 INSTALL_DIR="${AGENTWORLD_HOME:-$HOME/.agentworld/agent-world}"
 BIN_DIR="${AGENTWORLD_BIN_DIR:-$HOME/.local/bin}"
@@ -15,6 +15,12 @@ need_command() {
 
 need_command git
 need_command node
+
+if [ -z "$REPO_URL" ]; then
+  echo "agentworld installer: AGENTWORLD_REPO_URL must point to your internal git repository mirror." >&2
+  echo "example: AGENTWORLD_REPO_URL=ssh://git.example.local/agent-world.git scripts/install.sh" >&2
+  exit 1
+fi
 
 mkdir -p "$(dirname "$INSTALL_DIR")"
 

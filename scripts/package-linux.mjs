@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import https from "node:https";
 import path from "node:path";
 import { defaultServerBin, root, writeCliConfig, writeServerConfig } from "./openviking-common.mjs";
 
@@ -12,38 +11,11 @@ if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_PACKA
 const appVersion = process.env.npm_package_version ?? "0.1.0";
 const nodeVersion = process.env.AGENTWORLD_BUNDLE_NODE_VERSION ?? process.versions.node;
 const outDir = path.join(root, "dist", `agentworld-linux-x64-${appVersion}`);
-const nodeTar = path.join(root, "dist", `node-v${nodeVersion}-linux-x64.tar.xz`);
-const nodeUrl = `https://nodejs.org/dist/v${nodeVersion}/node-v${nodeVersion}-linux-x64.tar.xz`;
+const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-linux-x64.tar.xz`);
+const nodeTar = path.resolve(process.env.AGENTWORLD_NODE_RUNTIME_TARBALL ?? defaultNodeTar);
 
 function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", ...options });
-}
-
-function download(url, target) {
-  if (fs.existsSync(target)) return Promise.resolve();
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(target);
-    https
-      .get(url, (response) => {
-        if (response.statusCode !== 200) {
-          file.close();
-          fs.rmSync(target, { force: true });
-          reject(new Error(`download failed: ${response.statusCode} ${response.statusMessage}`));
-          return;
-        }
-        response.pipe(file);
-        file.on("finish", () => {
-          file.close();
-          resolve();
-        });
-      })
-      .on("error", (error) => {
-        file.close();
-        fs.rmSync(target, { force: true });
-        reject(error);
-      });
-  });
 }
 
 function copyDir(from, to) {
@@ -54,7 +26,13 @@ function copyDir(from, to) {
 
 if (!fs.existsSync(defaultServerBin)) {
   console.error("OpenViking binary is missing: thirdparty/openviking/bin/openviking-server");
-  console.error("Run pnpm openviking:build-binary on Linux, or place the upstream-compatible binary there.");
+  console.error("Place the approved internal binary there before packaging.");
+  process.exit(1);
+}
+
+if (!fs.existsSync(nodeTar)) {
+  console.error(`Node.js runtime archive is missing: ${nodeTar}`);
+  console.error("Place the approved internal archive at thirdparty/node/, or set AGENTWORLD_NODE_RUNTIME_TARBALL.");
   process.exit(1);
 }
 
@@ -65,7 +43,6 @@ run("pnpm", ["build"]);
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
-await download(nodeUrl, nodeTar);
 run("tar", ["-xJf", nodeTar, "-C", outDir]);
 fs.renameSync(
   path.join(outDir, `node-v${nodeVersion}-linux-x64`),

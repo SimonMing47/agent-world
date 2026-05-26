@@ -30,10 +30,6 @@ function info(message) {
   console.log(`${color("36", "[agentworld]")} ${message}`);
 }
 
-function warn(message) {
-  console.warn(`${color("33", "[agentworld]")} ${message}`);
-}
-
 function fail(message, code = 1) {
   console.error(`${color("31", "[agentworld]")} ${message}`);
   process.exit(code);
@@ -146,11 +142,11 @@ function assertCleanWorktree() {
 
 function hasOpenVikingRuntime() {
   const candidates = [
+    process.env.OPENVIKING_SERVER_BIN,
     path.join(root, "thirdparty", "openviking", "bin", "openviking-server"),
     path.join(root, "thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
-    path.join(root, ".venv-openviking", "bin", "openviking-server"),
-  ];
-  return candidates.some((candidate) => fs.existsSync(candidate));
+  ].filter(Boolean);
+  return candidates.some((candidate) => fs.existsSync(path.resolve(candidate)));
 }
 
 function ensureOpenViking(options) {
@@ -160,12 +156,12 @@ function ensureOpenViking(options) {
   pnpm(["openviking:cli-config"]);
 
   if (!hasOpenVikingRuntime()) {
-    warn("OpenViking runtime is missing. Installing OpenViking now.");
-    pnpm(["openviking:install"]);
-  }
-
-  if (!hasOpenVikingRuntime()) {
-    fail("OpenViking installation did not produce a runnable server. Check the openviking:install output and try again.");
+    fail([
+      "OpenViking runtime is missing.",
+      "Offline installs do not download binaries.",
+      "Place the vetted binary at thirdparty/openviking/bin/openviking-server, or set OPENVIKING_SERVER_BIN.",
+      "Use --skip-openviking only when an internal OpenViking service is already configured.",
+    ].join("\n"));
   }
 }
 
@@ -185,7 +181,7 @@ function upgrade(options = {}) {
   ensurePnpm();
 
   if (!isGitRepo()) {
-    fail("agentworld upgrade requires a git checkout. Use scripts/install.sh for a managed source install.");
+    fail("agentworld upgrade requires a git checkout. Use scripts/install.sh with AGENTWORLD_REPO_URL pointing to your internal mirror.");
   }
 
   assertCleanWorktree();
@@ -222,7 +218,7 @@ async function doctor(options = {}) {
   push("git", commandExists("git"), capture("git", ["--version"]) ?? "missing");
   push(".env.local", fs.existsSync(path.join(root, ".env.local")), ".env.local");
   push("SQLite data dir", fs.existsSync(path.join(root, "data")), "data/");
-  push("OpenViking runtime", hasOpenVikingRuntime(), "binary or .venv-openviking fallback");
+  push("OpenViking runtime", hasOpenVikingRuntime(), "OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server");
 
   const port = process.env.PORT ?? "7369";
   const appUrl = `http://127.0.0.1:${port}`;
