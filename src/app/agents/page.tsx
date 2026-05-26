@@ -27,7 +27,7 @@ import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { formatDateTime } from "@/lib/utils";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
-import { deriveAgentCapabilityProfile } from "@/lib/agent-capability-profile";
+import { parseAgentCapabilityProfile } from "@/lib/agent-capability-profile";
 import { parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
 import {
   buildAgentHarnessExecutionProfile,
@@ -121,7 +121,7 @@ export default async function AgentsPage() {
               <DialogContent className="w-[min(94vw,980px)]">
                 <DialogHeader>
                   <DialogTitle>ui.generated.c8c79a89d5a</DialogTitle>
-                  <DialogDescription>用 SOUL.md 定义 Agent 的身份、职责、边界和风格。</DialogDescription>
+                  <DialogDescription>一条 Agent 数据记录定义名称、角色、描述、systemPrompt 和能力画像。</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentDefinitionForm
@@ -160,6 +160,7 @@ export default async function AgentsPage() {
                       id: provider.id,
                       name: provider.name,
                       defaultModel: provider.defaultModel,
+                      models: parseStringArray(provider.modelsJson),
                     }))}
                     runtimeBindingOptions={runtimeBindings.map((binding) => ({
                       id: binding.id,
@@ -195,19 +196,10 @@ export default async function AgentsPage() {
                   definition.avatarConfigJson,
                   definition.name || definition.slug || definition.id,
                 );
-                const capabilityProfile = deriveAgentCapabilityProfile({
-                  name: definition.name,
-                  role: definition.role,
-                  description: definition.description,
-                  systemPrompt: definition.systemPrompt,
-                  toolBindings: parseStringArray(definition.toolBindingsJson),
-                  harnessConfigJson: definition.harnessConfigJson,
-                  permissionPolicyJson: definition.permissionPolicyJson,
-                  memoryScope: definition.memoryScope,
-                  tags: parseStringArray(definition.tagsJson),
-                  visibility: definition.visibility,
-                  status: definition.status,
-                });
+                const capabilityProfile = parseAgentCapabilityProfile(
+                  definition.capabilityProfileJson,
+                  definition.name || definition.slug || definition.id,
+                );
                 const sharedTeamNames = definitionShares
                   .map((share) => businessTeams.find((team) => team.id === share.businessTeamId)?.name)
                   .filter(Boolean)
@@ -342,6 +334,7 @@ export default async function AgentsPage() {
                                   id: provider.id,
                                   name: provider.name,
                                   defaultModel: provider.defaultModel,
+                                  models: parseStringArray(provider.modelsJson),
                                 }))}
                                 runtimeBindingOptions={runtimeBindings.map((binding) => ({
                                   id: binding.id,

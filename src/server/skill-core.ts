@@ -1,4 +1,8 @@
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { completeSimple, type AssistantMessage } from "@earendil-works/pi-ai";
 import {
   execute,
@@ -25,6 +29,19 @@ export type SkillDraft = {
   isEnabled?: number | boolean;
 };
 
+export type SkillImportFile = {
+  name: string;
+  relativePath?: string;
+  content: string;
+};
+
+export type SkillImportResult = {
+  imported: number;
+  skipped: number;
+  skills: InspectionSkill[];
+  messages: string[];
+};
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -38,6 +55,128 @@ function normalizeTags(input: unknown) {
       .filter(Boolean);
   }
   return [];
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "skill";
+}
+
+function parseFrontmatter(text: string) {
+  if (!text.startsWith("---")) return { meta: {}, body: text };
+  const end = text.indexOf("\n---", 3);
+  if (end < 0) return { meta: {}, body: text };
+  const rawMeta = text.slice(3, end).trim();
+  const meta: Record<string, string> = {};
+  for (const line of rawMeta.split(/\r?\n/)) {
+    const match = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line.trim());
+    if (!match) continue;
+    meta[match[1]] = match[2].replace(/^["']|["']$/g, "").trim();
+  }
+  return { meta, body: text.slice(end + 4).trim() };
+}
+
+function stringFromRecord(record: Record<string, unknown>, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return fallback;
+}
+
+function draftFromJson(value: unknown, fallbackName: string, defaults: Partial<SkillDraft>): SkillDraft | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const name = stringFromRecord(record, ["name", "title"], fallbackName);
+  const promptMd = stringFromRecord(record, ["promptMd", "prompt", "content", "body"]);
+  if (!name || !promptMd) return null;
+
+  const heuristics = record.heuristics ?? record.heuristicsJson ?? {};
+  return {
+    id: typeof record.id === "string" && record.id.trim() ? record.id.trim() : undefined,
+    ownerBusinessTeamId: defaults.ownerBusinessTeamId ?? null,
+    name,
+    layer: stringFromRecord(record, ["layer", "category"], defaults.layer ?? "skill/import"),
+    description: stringFromRecord(record, ["description", "summary"], name),
+    tags: normalizeTags(record.tags ?? defaults.tags ?? []),
+    visibility: stringFromRecord(record, ["visibility"], defaults.visibility ?? "team"),
+    promptMd,
+    heuristicsJson: typeof heuristics === "string" ? heuristics : JSON.stringify(heuristics, null, 2),
+    isEnabled: record.isEnabled === false ? 0 : 1,
+  };
+}
+
+function draftFromMarkdown(file: SkillImportFile, defaults: Partial<SkillDraft>): SkillDraft | null {
+  const { meta, body } = parseFrontmatter(file.content.trim());
+  const fallbackName = path.basename(file.name || file.relativePath || "Skill", path.extname(file.name || ""));
+  const firstHeading = /^#\s+(.+)$/m.exec(body)?.[1]?.trim();
+  const name = meta.name || meta.title || firstHeading || fallbackName;
+  const description = meta.description || body.split(/\r?\n/).find((line) => line.trim() && !line.startsWith("#"))?.trim() || name;
+  const promptMd = body.trim();
+  if (!promptMd) return null;
+
+  return {
+    ownerBusinessTeamId: defaults.ownerBusinessTeamId ?? null,
+    name,
+    layer: meta.layer || defaults.layer || "skill/import",
+    description,
+    tags: normalizeTags(meta.tags || defaults.tags || []),
+    visibility: meta.visibility || defaults.visibility || "team",
+    promptMd,
+    heuristicsJson: JSON.stringify({
+      importedFrom: file.relativePath || file.name,
+      source: "skill-file",
+    }, null, 2),
+    isEnabled: 1,
+  };
+}
+
+function draftFromFile(file: SkillImportFile, defaults: Partial<SkillDraft>) {
+  const fileName = file.name || file.relativePath || "skill";
+  if (/\.json$/i.test(fileName)) {
+    try {
+      const parsed = JSON.parse(file.content) as unknown;
+      const draft = draftFromJson(parsed, path.basename(fileName, ".json"), defaults);
+      if (draft) return draft;
+    } catch {
+      return null;
+    }
+  }
+  if (/(\.md|SKILL)$/i.test(fileName)) return draftFromMarkdown(file, defaults);
+  return null;
+}
+
+function isSkillFile(filePath: string) {
+  const basename = path.basename(filePath).toLowerCase();
+  return basename === "skill.md" || basename === "skill.json" || basename.endsWith(".skill.md") || basename.endsWith(".skill.json");
+}
+
+function walkSkillFiles(rootDir: string, limit = 80) {
+  const results: string[] = [];
+  const ignored = new Set([".git", "node_modules", ".next", "dist", "build", ".venv"]);
+  const visit = (dir: string) => {
+    if (results.length >= limit) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (results.length >= limit || ignored.has(entry.name)) continue;
+      const nextPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        visit(nextPath);
+      } else if (entry.isFile() && isSkillFile(nextPath)) {
+        results.push(nextPath);
+      }
+    }
+  };
+  visit(rootDir);
+  return results;
+}
+
+function assertSupportedRepoUrl(repoUrl: string) {
+  const trimmed = repoUrl.trim();
+  if (!trimmed) throw new Error("Skill repository URL is required.");
+  if (/^(https?:\/\/|git@|ssh:\/\/)/.test(trimmed)) return trimmed;
+  throw new Error("Skill repository URL must use https, ssh, or git@ format.");
 }
 
 function parseJsonRecord(value: string, fallback: Record<string, unknown> = {}) {
@@ -124,6 +263,56 @@ export function upsertSkill(input: SkillDraft) {
   );
 
   return queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", id);
+}
+
+export function importSkillsFromFiles(files: SkillImportFile[], defaults: Partial<SkillDraft> = {}): SkillImportResult {
+  const result: SkillImportResult = { imported: 0, skipped: 0, skills: [], messages: [] };
+  for (const file of files) {
+    const draft = draftFromFile(file, defaults);
+    if (!draft) {
+      result.skipped += 1;
+      result.messages.push(`Skipped ${file.relativePath || file.name}: unsupported or incomplete Skill file.`);
+      continue;
+    }
+
+    const skill = upsertSkill({
+      ...draft,
+      id: draft.id || `skill-${slugify(draft.name)}-${randomUUID().slice(0, 8)}`,
+    });
+    if (skill) {
+      result.imported += 1;
+      result.skills.push(skill);
+    }
+  }
+  return result;
+}
+
+export function discoverSkillsFromRepository(input: {
+  repoUrl: string;
+  ownerBusinessTeamId?: string | null;
+  visibility?: string;
+}) {
+  const repoUrl = assertSupportedRepoUrl(input.repoUrl);
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentworld-skills-"));
+  try {
+    execFileSync("git", ["clone", "--depth=1", repoUrl, tempDir], {
+      stdio: "ignore",
+      timeout: 45_000,
+    });
+    const files = walkSkillFiles(tempDir).map<SkillImportFile>((filePath) => ({
+      name: path.basename(filePath),
+      relativePath: path.relative(tempDir, filePath),
+      content: fs.readFileSync(filePath, "utf8"),
+    }));
+    return importSkillsFromFiles(files, {
+      ownerBusinessTeamId: input.ownerBusinessTeamId ?? null,
+      visibility: input.visibility ?? "team",
+      layer: "skill/repository",
+      tags: ["repository-import"],
+    });
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 export async function syncSkillToOpenViking(skillId: string) {
@@ -241,4 +430,3 @@ export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizatio
     usage: response.usage,
   };
 }
-

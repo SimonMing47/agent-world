@@ -1,4 +1,5 @@
 import { zhCNLanguagePack } from "@/locales/zh-CN";
+import { enUSLanguagePack } from "@/locales/en-US";
 
 export type LanguagePack = {
   id: string;
@@ -17,6 +18,7 @@ export type LanguagePack = {
 export type LanguagePackOverride = Partial<LanguagePack> & Record<string, unknown>;
 
 export const defaultLanguagePack = zhCNLanguagePack;
+export const builtInLanguagePacks = [zhCNLanguagePack, enUSLanguagePack] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -43,6 +45,21 @@ export function parseLanguagePackOverride(raw: string | null | undefined) {
 
 export function mergeLanguagePack(override?: unknown): LanguagePack {
   return deepMerge(defaultLanguagePack, override) as LanguagePack;
+}
+
+export function cloneLanguagePack(pack: LanguagePack): LanguagePack {
+  return JSON.parse(JSON.stringify(pack)) as LanguagePack;
+}
+
+export function createLanguagePackTemplate(base: LanguagePack = defaultLanguagePack): LanguagePack {
+  return {
+    ...cloneLanguagePack(base),
+    id: "custom-locale",
+    locale: "custom-locale",
+    name: "New language",
+    version: "1.0.0",
+    direction: "ltr",
+  };
 }
 
 function readPublicOverride() {

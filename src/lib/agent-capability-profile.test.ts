@@ -78,7 +78,7 @@ test("getAgentCapabilityWeapon returns weapon for dominant capability", () => {
   assert.deepEqual(result.weapon, agentCapabilityWeapons.review);
 });
 
-test("deriveAgentCapabilityProfile boosts expected capability dimensions", () => {
+test("deriveAgentCapabilityProfile no longer encodes role keyword rules", () => {
   const derived = deriveAgentCapabilityProfile({
     name: "Security Manager",
     role: "Architecture Review Leader",
@@ -104,15 +104,8 @@ test("deriveAgentCapabilityProfile boosts expected capability dimensions", () =>
     status: "active",
   });
 
-  const byKey = Object.fromEntries(derived.scores.map((score) => [score.key, score.value]));
-  assert.ok(byKey.permission > 42);
-  assert.ok(byKey.safety > 42);
-  assert.ok(byKey.review > 42);
-  assert.ok(byKey.memory > 42);
-  assert.ok(byKey.collaboration > 42);
-  assert.ok(byKey.toolUse > 42);
-  assert.ok((derived.rationale?.length ?? 0) > 0);
-  assert.ok((derived.rationale?.length ?? 0) <= 4);
+  assert.deepEqual(derived, defaultAgentCapabilityProfile("Security Manager"));
+  assert.equal(derived.rationale, undefined);
 });
 
 test("deriveAgentCapabilityProfile tolerates malformed JSON fields", () => {

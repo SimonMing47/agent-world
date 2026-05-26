@@ -49,23 +49,16 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const defaultMode = props.initialMode ?? "single_agent";
-  const defaultTenantSpaceId = props.tenantSpaces[0]?.id ?? "";
-  const defaultBusinessTeamId = props.businessTeams[0]?.id ?? "";
-  const defaultRuntimeBindingId = props.runtimeBindings[0]?.id ?? "";
-  const defaultProviderProfileId =
-    props.runtimeBindings[0]?.defaultProviderProfileId ?? props.providerProfiles[0]?.id ?? "";
-  const defaultProviderModel =
-    props.providerProfiles.find((provider) => provider.id === defaultProviderProfileId)?.defaultModel ?? "";
   const [form, setForm] = useState({
-    tenantSpaceId: defaultTenantSpaceId,
-    businessTeamId: defaultBusinessTeamId,
+    tenantSpaceId: "",
+    businessTeamId: "",
     title: "",
     mode: defaultMode as "single_agent" | "agent_team",
     agentDefinitionId: "",
-    runtimeBindingId: defaultRuntimeBindingId,
-    providerProfileId: defaultProviderProfileId,
+    runtimeBindingId: "",
+    providerProfileId: "",
     agentTeamId: "",
-    model: defaultProviderModel,
+    model: "",
     systemPrompt: "",
   });
 

@@ -21,11 +21,11 @@ export function SettingsConfigLayout({
   const text = useLanguageText();
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-20 lg:self-start">
         <nav className="rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.72)] p-2 shadow-[0_12px_38px_rgba(15,23,42,0.04)] backdrop-blur-xl">
-          <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-subtle)]">
-            配置导航
+          <div className="px-3 py-2 text-[10px] font-semibold text-[var(--ink-subtle)]">
+            {text("settings.nav.title")}
           </div>
           <div className="space-y-1">
             {items.map((item) => (
@@ -34,9 +34,9 @@ export function SettingsConfigLayout({
                 href={`#${item.id}`}
                 className="block rounded-md px-3 py-2 text-sm transition hover:bg-[var(--surface-muted)] focus:bg-[var(--surface-muted)] focus:outline-none"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-[var(--ink)]">{text(item.label)}</span>
-                  {item.meta ? <span className="shrink-0 text-[11px] text-[var(--ink-subtle)]">{text(item.meta)}</span> : null}
+	                <div className="flex items-center justify-between gap-3">
+	                  <span className="min-w-0 flex-1 truncate font-medium text-[var(--ink)]">{text(item.label)}</span>
+	                  {item.meta ? <span className="shrink-0 whitespace-nowrap text-[11px] text-[var(--ink-subtle)]">{text(item.meta)}</span> : null}
                 </div>
                 {item.description ? (
                   <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-[var(--ink-muted)]">
@@ -82,12 +82,12 @@ export function SettingsCollapsiblePanel({
         <div className="flex items-start justify-between gap-5">
           <div className="min-w-0">
             {eyebrow ? (
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-subtle)]">
-                {text(eyebrow)}
-              </div>
+	              <div className="text-[10px] font-semibold text-[var(--ink-subtle)]">
+	                {text(eyebrow)}
+	              </div>
             ) : null}
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h3 className="text-[18px] font-semibold tracking-[-0.03em] text-[var(--ink)]">{text(title)}</h3>
+	              <h3 className="text-[18px] font-semibold tracking-normal text-[var(--ink)]">{text(title)}</h3>
               {meta ? (
                 <span className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[11px] text-[var(--ink-muted)]">
                   {text(meta)}

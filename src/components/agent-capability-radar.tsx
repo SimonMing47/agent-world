@@ -118,7 +118,7 @@ export function AgentCapabilityProfilePanel({ value }: { value: AgentCapabilityP
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
           <SlidersHorizontal className="h-4 w-4" />
-          自动生成的能力画像
+          数据库能力画像
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {agentCapabilityDimensions.map((dimension) => (

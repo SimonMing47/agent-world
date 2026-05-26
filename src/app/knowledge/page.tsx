@@ -18,7 +18,7 @@ import {
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { getKnowledgeFoundationStatus } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
-import { getKnowledgeManagementSnapshot, listLayeredKnowledge } from "@/server/openviking-core";
+import { getKnowledgeManagementSnapshot, listLayeredKnowledge, retryPendingKnowledgeSyncs } from "@/server/openviking-core";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -41,6 +41,7 @@ export default async function KnowledgePage() {
   const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
     translateWithPack(languagePack, key, fallback, params);
   const authContext = await getRequestAuthContext();
+  await retryPendingKnowledgeSyncs(3);
   const [
     snapshot,
     rawSpaces,
