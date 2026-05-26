@@ -2,10 +2,16 @@
 
 AgentWorld integrates OpenViking through a direct server binary.
 
-Expected deployment path:
+Expected current-platform source install path:
 
 ```text
-thirdparty/openviking/bin/openviking-server
+thirdparty/openviking/bin/openviking-server-${platform}-${arch}
+```
+
+Expected Linux x64 packaging path:
+
+```text
+thirdparty/openviking/bin/openviking-server-linux-x64
 ```
 
 The binary is treated as a third-party artifact from OpenViking and is not part of AgentWorld source code. The upstream project is AGPL-3.0.
@@ -13,6 +19,6 @@ The binary is treated as a third-party artifact from OpenViking and is not part 
 Operational rules:
 
 - Prefer `OPENVIKING_SERVER_BIN` when the binary is installed outside the repository.
-- Prefer `thirdparty/openviking/bin/openviking-server` when shipping a self-contained AgentWorld release.
-- Build the Linux binary with `pnpm openviking:build-binary` on a Linux builder using an internal wheelhouse, or place an approved compatible binary here.
+- Prefer `thirdparty/openviking/bin/openviking-server-${platform}-${arch}` for source installs.
+- Build the Linux binary with `pnpm openviking:build-binary` on a Linux x64 builder using `thirdparty/openviking/wheels`, or place an approved compatible binary at `thirdparty/openviking/bin/openviking-server-linux-x64`.
 - Do not require a container runtime for production deployment.

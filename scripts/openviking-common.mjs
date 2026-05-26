@@ -7,8 +7,16 @@ export const thirdpartyBinDir = path.join(thirdpartyDir, "bin");
 export const venvDir = path.join(root, ".venv-openviking");
 export const configDir = path.join(root, "data", "openviking");
 export const defaultServerBin = path.join(thirdpartyBinDir, "openviking-server");
+export const currentPlatformServerBin = path.join(
+  thirdpartyBinDir,
+  `openviking-server-${process.platform}-${process.arch}`,
+);
 export const defaultServerConfig = path.join(configDir, "ov.conf");
 export const defaultCliConfig = path.join(configDir, "ovcli.conf");
+
+export function platformServerBin(platform = process.platform, arch = process.arch) {
+  return path.join(thirdpartyBinDir, `openviking-server-${platform}-${arch}`);
+}
 
 export function resolveServerConfigPath() {
   return path.resolve(process.env.OPENVIKING_CONFIG_FILE ?? defaultServerConfig);
@@ -33,8 +41,8 @@ export function resolvePort() {
 export function resolveServerBin() {
   const candidates = [
     process.env.OPENVIKING_SERVER_BIN,
+    currentPlatformServerBin,
     defaultServerBin,
-    path.join(thirdpartyBinDir, `openviking-server-${process.platform}-${process.arch}`),
   ].filter(Boolean);
 
   for (const candidate of candidates) {

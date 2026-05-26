@@ -102,7 +102,7 @@ AgentWorld 明确区分 **调度** 与 **调用**：
 - Node.js 20+
 - pnpm 9+
 - macOS 或 Linux 开发环境
-- 来自内部制品库的 OpenViking server 二进制
+- 当前平台已内置的 OpenViking server 二进制，或批准的内部替换制品
 
 AgentWorld 按内网部署场景设计。除了 `pnpm` 安装 npm 包，启动、构建和打包脚本都不能从公网下载字体、资源或二进制。
 
@@ -118,10 +118,12 @@ pnpm install --frozen-lockfile
 pnpm bootstrap
 ```
 
-从内部制品源提供 OpenViking：
+仓库已内置 `public/fonts/` 下的 UI 字体、`thirdparty/node/` 下的 Node.js Linux runtime 压缩包，以及 `thirdparty/openviking/wheels/` 下的 OpenViking wheelhouse。
+
+需要时从内部制品源提供或替换 OpenViking：
 
 ```bash
-install -m 0755 /path/to/openviking-server thirdparty/openviking/bin/openviking-server
+install -m 0755 /path/to/openviking-server thirdparty/openviking/bin/openviking-server-$(node -p 'process.platform')-$(node -p 'process.arch')
 ```
 
 也可以把 `OPENVIKING_SERVER_BIN` 设置为内部绝对路径。
@@ -224,7 +226,7 @@ pnpm openviking:start
 pnpm openviking:smoke
 ```
 
-`agentworld install` 不会下载 OpenViking。它要求本地存在 `thirdparty/openviking/bin/openviking-server`，或已设置 `OPENVIKING_SERVER_BIN`。手动校验二进制路径：
+`agentworld install` 不会下载 OpenViking。它要求本地存在 `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`、`thirdparty/openviking/bin/openviking-server`，或已设置 `OPENVIKING_SERVER_BIN`。手动校验二进制路径：
 
 ```bash
 pnpm openviking:install
@@ -283,16 +285,23 @@ AgentWorld 可以打包为 Linux 自包含服务。发布包包含：
 - Standalone Next.js 应用。
 - 来自本地批准压缩包的 Node.js Linux runtime。
 - 来自本地批准制品的 OpenViking server 二进制。
+- 来自 `public/fonts/` 的本地 UI 字体。
 - OpenViking 配置和 CLI 配置文件。
 - `agentworld` 与 `openviking-server` 启动脚本。
 
-打包前，先把批准的 Node.js runtime 压缩包放到：
+默认 Node.js runtime 压缩包路径为：
 
 ```text
 thirdparty/node/node-v${nodeVersion}-linux-x64.tar.xz
 ```
 
-或设置 `AGENTWORLD_NODE_RUNTIME_TARBALL` 为本地绝对路径。
+需要时可用批准的内部压缩包替换，或设置 `AGENTWORLD_NODE_RUNTIME_TARBALL` 为本地绝对路径。
+
+Linux 打包前，先把 Linux x64 OpenViking 二进制放到：
+
+```text
+thirdparty/openviking/bin/openviking-server-linux-x64
+```
 
 构建 Linux 发布包：
 
@@ -307,8 +316,8 @@ OpenViking 二进制解析顺序：
 
 1. 健康的 `OPENVIKING_BASE_URL`。
 2. `OPENVIKING_SERVER_BIN`。
-3. `thirdparty/openviking/bin/openviking-server`。
-4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
+3. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
+4. `thirdparty/openviking/bin/openviking-server`。
 
 ## 项目结构
 

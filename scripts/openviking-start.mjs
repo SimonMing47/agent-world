@@ -17,7 +17,7 @@ const port = resolvePort();
 
 if (!bin || !fs.existsSync(bin)) {
   console.error("OpenViking server binary is missing.");
-  console.error("Expected: thirdparty/openviking/bin/openviking-server");
+  console.error(`Expected: thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}`);
   console.error("Or set OPENVIKING_SERVER_BIN=/absolute/path/to/openviking-server");
   console.error("Offline installs do not download OpenViking. Provide the binary from an approved internal artifact.");
   process.exit(1);

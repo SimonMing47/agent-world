@@ -1,6 +1,6 @@
 # Node.js Runtime Archive
 
-Linux release packaging is offline by default. Place the approved internal Node.js Linux x64 archive here before running `pnpm package:linux`.
+Linux release packaging is offline by default. The approved internal Node.js Linux x64 archive should be stored here before running `pnpm package:linux`.
 
 Expected default path:
 
