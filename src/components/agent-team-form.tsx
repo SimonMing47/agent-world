@@ -648,7 +648,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     setIsSaving(false);
     const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     if (!response.ok || payload.ok === false) {
-      setMessage(payload.error ?? "保存执行团队失败。");
+      setMessage(payload.error ?? "保存 Agent 团队失败。");
       return null;
     }
 

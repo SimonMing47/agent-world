@@ -3,7 +3,6 @@ import {
   Activity,
   Bot,
   BookOpen,
-  Boxes,
   Cable,
   ChartNoAxesCombined,
   Code2,
@@ -58,8 +57,6 @@ export const navigationGroups: NavGroup[] = [
     items: [
       { href: "/business-teams", label: "ui.generated.c21dfec6104", sidebarLabel: "ui.generated.ca3540e824b", description: "ui.generated.ca9f7562a7c", icon: Users },
       { href: "/team-members", label: "ui.generated.c7de0251fdd", sidebarLabel: "ui.generated.cc1ee9f0190", description: "ui.generated.c2fddae130e", icon: UserRoundCog },
-      { href: "/team-permissions", label: "ui.generated.c24a78ebc85", sidebarLabel: "ui.generated.c560165a6d7", description: "ui.generated.cf5d07326c6", icon: KeyRound },
-      { href: "/team-assets", label: "ui.generated.ce40458cdde", sidebarLabel: "ui.generated.c713fd96fb2", description: "ui.generated.c9cc4c1ba80", icon: Boxes },
       { href: "/task-blueprints", label: "ui.generated.cff5e8b99ae", sidebarLabel: "ui.generated.c3172b317f9", description: "ui.generated.cc954e6a95e", icon: ScrollText },
     ],
   },
