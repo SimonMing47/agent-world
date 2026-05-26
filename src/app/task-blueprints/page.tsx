@@ -254,7 +254,7 @@ export default async function TaskBlueprintsPage({
                     <DataTableCell>
                       <div>{blueprint.environmentName}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {selector.executionPath ? <>{t("ui.common.pathPrefix", "路径")} {String(selector.executionPath)}</> : "ui.generated.c4202f60d95"}
+                        {selector.executionPath ? <>{t("ui.common.pathPrefix")} {String(selector.executionPath)}</> : t("ui.generated.c4202f60d95")}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -267,7 +267,7 @@ export default async function TaskBlueprintsPage({
                         </span>
                       </div>
                       <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                        {t("ui.generated.c94f172d02f", "发布")} {publishers.length ? publishers.join(", ") : "dashboard"}
+                        {t("ui.generated.c94f172d02f")} {publishers.length ? publishers.join(", ") : "dashboard"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(raw.updatedAt)}</DataTableCell>

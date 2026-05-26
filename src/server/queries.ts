@@ -449,7 +449,7 @@ export function deleteProviderRuntimeBinding(id: string) {
 
 function assertNoEnvSecretReference(value: string, label: string) {
   if (value.trim().toLowerCase().startsWith("env:")) {
-    throw new Error(`${label} 不再支持 env: 环境变量引用，请直接保存配置值。`);
+    throw new Error(uiText("ui.providerProfiles.errors.envSecretRefUnsupported", undefined, { label }));
   }
 }
 
@@ -685,9 +685,9 @@ export function upsertProviderProfile(
     | "isEnabled"
   >,
 ) {
-  assertNoEnvSecretReference(input.apiKeyRef, "模型服务 API Key");
+  assertNoEnvSecretReference(input.apiKeyRef, uiText("ui.providerProfiles.fields.providerApiKey"));
   if (parsedConfigHasEnvReference(input.configJson)) {
-    throw new Error("模型服务配置不再支持 env: 环境变量引用，请直接保存配置值。");
+    throw new Error(uiText("ui.providerProfiles.errors.providerConfigEnvUnsupported"));
   }
 
   const current = queryOne<ProviderProfile>("SELECT * FROM provider_profiles WHERE id = ?", input.id);
@@ -729,9 +729,9 @@ export function upsertProviderRuntimeBinding(
     | "isEnabled"
   >,
 ) {
-  assertNoEnvSecretReference(input.apiKeyRef, "运行绑定 API Key");
+  assertNoEnvSecretReference(input.apiKeyRef, uiText("ui.providerProfiles.fields.runtimeBindingApiKey"));
   if (parsedConfigHasEnvReference(input.configJson)) {
-    throw new Error("运行绑定配置不再支持 env: 环境变量引用，请直接保存配置值。");
+    throw new Error(uiText("ui.providerProfiles.errors.runtimeBindingConfigEnvUnsupported"));
   }
 
   const current = queryOne<ProviderRuntimeBinding>(
@@ -1145,6 +1145,12 @@ export function getTaskRunDetail(taskRunId: string) {
       agentName: agents.find((agent) => agent.id === node.agentId)?.name ?? uiText("ui.generated.c566f9749da"),
     })),
     executionBoard: buildExecutionBoard(nodes),
+    workflowProgress: buildTaskRunWorkflowProgress({
+      taskRun,
+      nodes,
+      events,
+      agents: agents.filter((agent) => agent.teamId === taskRun.teamId),
+    }),
     interventions,
     groupedEvents: groupEventsByFoldGroup(events),
     kernel: buildTaskRunKernelView({
@@ -1216,6 +1222,24 @@ export function getDashboardSnapshot() {
   const taskRunPriorityBoard = task_runs
     .map((taskRun) => buildTaskRunPriorityAssessment(taskRun))
     .sort((left, right) => right.effectivePriority - left.effectivePriority);
+  const taskRunWorkflowProgress = Object.fromEntries(
+    task_runs.map((taskRun) => {
+      const nodes = getTaskRunNodes(taskRun.id);
+      const events = queryAll<EventLog>(
+        "SELECT * FROM event_logs WHERE task_run_id = ? ORDER BY seq ASC",
+        taskRun.id,
+      );
+      return [
+        taskRun.id,
+        buildTaskRunWorkflowProgress({
+          taskRun,
+          nodes,
+          events,
+          agents: agents.filter((agent) => agent.teamId === taskRun.teamId),
+        }),
+      ];
+    }),
+  );
 
   const featuredTaskRun = runningTaskRuns[0] ?? awaitingTaskRuns[0] ?? task_runs[0] ?? null;
   const featuredTeam = featuredTaskRun
@@ -1288,6 +1312,7 @@ export function getDashboardSnapshot() {
       }),
     ),
     task_runs,
+    taskRunWorkflowProgress,
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
@@ -1439,6 +1464,132 @@ function resolveTaskRunStatusFromNodes(nodes: TaskRunNode[]) {
   if (nodes.some((node) => node.status === "failed")) return "failed";
   if (nodes.some((node) => node.status === "running")) return "running";
   return "running";
+}
+
+function parseNodeInput(node: TaskRunNode) {
+  try {
+    const parsed = JSON.parse(node.inputJson) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function workflowStepStatusFromNode(node: TaskRunNode) {
+  if (node.status === "completed") return "completed";
+  if (node.status === "running" || node.status === "ready") return "running";
+  if (node.status === "awaiting") return "awaiting";
+  if (node.status === "failed") return "failed";
+  return "pending";
+}
+
+function workflowBlockKind(blockType: string, tool: string) {
+  if (blockType === "script_hook") return "harness";
+  if (blockType === "http_hook") return "harness";
+  if (blockType === "notification") return "harness";
+  if (tool.startsWith("connector.") || tool.startsWith("hook.") || tool.startsWith("script.")) return "harness";
+  return "model";
+}
+
+function workflowBlockLabel(blockType: string, action: string, tool: string) {
+  if (blockType === "agent_team") return uiText("ui.taskRuns.workflow.block.agentTeam");
+  if (blockType === "agent") {
+    return action === "plan"
+      ? uiText("ui.taskRuns.workflow.block.agentPlan")
+      : uiText("ui.taskRuns.workflow.block.agentReply");
+  }
+  if (blockType === "script_hook") {
+    return tool === "code.checkout"
+      ? uiText("ui.taskRuns.workflow.block.codeCheckout")
+      : uiText("ui.taskRuns.workflow.block.scriptHook");
+  }
+  if (blockType === "http_hook") return uiText("ui.taskRuns.workflow.block.httpHook");
+  if (blockType === "notification") return uiText("ui.taskRuns.workflow.block.notification");
+  return action || tool || uiText("ui.taskRuns.workflow.block.executionBlock");
+}
+
+function buildTaskRunWorkflowProgress(args: {
+  taskRun: TaskRun;
+  nodes: TaskRunNode[];
+  events: EventLog[];
+  agents?: Agent[];
+}) {
+  const hasNodeStarted = args.nodes.some((node) => node.startedAt || node.status !== "submitted");
+  const triggerLabel =
+    args.taskRun.sourceType === "webhook"
+      ? uiText("ui.taskRuns.workflow.trigger.webhook")
+      : args.taskRun.sourceType === "schedule"
+        ? uiText("ui.taskRuns.workflow.trigger.schedule")
+        : uiText("ui.taskRuns.workflow.trigger.manual");
+  const preparationStatus = hasNodeStarted || args.nodes.some((node) => node.status === "completed")
+    ? "completed"
+    : args.taskRun.environmentSnapshotId
+      ? "completed"
+      : "pending";
+  const steps = [
+    {
+      id: "trigger",
+      label: triggerLabel,
+      owner: uiText("ui.taskRuns.stageKind.harness"),
+      kind: "harness",
+      status: "completed",
+      detail: args.taskRun.sourceRef ?? args.taskRun.sourceType,
+    },
+    {
+      id: "prepare_workspace",
+      label: uiText("ui.taskRuns.workflow.prepare.label"),
+      owner: uiText("ui.taskRuns.stageKind.harness"),
+      kind: "harness",
+      status: preparationStatus,
+      detail: args.taskRun.environmentSnapshotId
+        ? uiText("ui.taskRuns.workflow.prepare.snapshotReady")
+        : uiText("ui.taskRuns.workflow.prepare.noCodeEnvironment"),
+    },
+    ...args.nodes.map((node) => {
+      const input = parseNodeInput(node);
+      const blockType = typeof input.blockType === "string" ? input.blockType : "agent";
+      const action = typeof input.action === "string" ? input.action : "execute";
+      const tool = typeof input.tool === "string" ? input.tool : "agent.execute";
+      const title = typeof input.title === "string" && input.title.trim()
+        ? input.title.trim()
+        : workflowBlockLabel(blockType, action, tool);
+      const kind = workflowBlockKind(blockType, tool);
+      const agent = args.agents?.find((candidate) => candidate.id === node.agentId);
+      return {
+        id: node.nodeKey,
+        label: title,
+        owner: kind === "harness" ? uiText("ui.taskRuns.stageKind.harness") : agent?.name ?? uiText("terminology.agentTeam"),
+        kind,
+        status: workflowStepStatusFromNode(node),
+        detail: `${workflowBlockLabel(blockType, action, tool)} · ${tool}`,
+      };
+    }),
+  ];
+
+  const currentStep =
+    steps.find((step) => ["running", "awaiting", "failed"].includes(step.status)) ??
+    steps.find((step) => step.status === "pending") ??
+    steps.at(-1) ??
+    null;
+  const completedCount = steps.filter((step) => step.status === "completed").length;
+  const latestEvent = args.events.at(-1) ?? null;
+
+  return {
+    steps,
+    currentStep,
+    completedCount,
+    totalCount: steps.length,
+    percent: steps.length === 0 ? 0 : Math.round((completedCount / steps.length) * 100),
+    latestEvent: latestEvent
+      ? {
+          phase: latestEvent.phase,
+          title: latestEvent.title,
+          createdAt: latestEvent.createdAt,
+        }
+      : null,
+  };
 }
 
 function classifyFailure(args: {

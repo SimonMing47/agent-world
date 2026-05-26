@@ -117,10 +117,20 @@ AgentWorld 明确区分 **调度** 与 **调用**：
 
 ### 安装并启动
 
+使用托管 CLI 从 GitHub 一键安装，保持和常见开源项目类似的 source-based 安装方式：
+
 ```bash
-pnpm install
-pnpm bootstrap
-pnpm dev
+curl -fsSL https://raw.githubusercontent.com/SimonMing47/agent-world/main/scripts/install.sh | bash
+agentworld dev
+```
+
+安装脚本会把仓库克隆到 `~/.agentworld/agent-world`，安装依赖，初始化 `.env.local` 与 SQLite，准备 OpenViking，并在 `~/.local/bin` 下创建 `agentworld` 命令。
+
+如果已经在源码目录中：
+
+```bash
+pnpm agentworld install
+pnpm agentworld dev
 ```
 
 打开控制台：
@@ -131,14 +141,42 @@ http://localhost:7369
 
 `pnpm dev` 会运行 `scripts/agentworld-next.mjs`。该脚本会先检查 OpenViking 健康状态；在启用自动启动时，会先拉起本地 OpenViking 服务，再启动 Next.js dev server。
 
+### 升级
+
+升级托管安装：
+
+```bash
+agentworld upgrade
+agentworld dev
+```
+
+升级已有源码目录：
+
+```bash
+pnpm agentworld upgrade
+pnpm agentworld dev
+```
+
+`agentworld upgrade` 会拒绝在 dirty git worktree 上执行，使用 `--ff-only` 拉取最新代码，按 lockfile 重新安装依赖，重新执行 bootstrap，准备 OpenViking，构建应用，并输出本地健康检查摘要。
+
+常用 CLI：
+
+| 命令 | 用途 |
+| --- | --- |
+| `agentworld install` | 安装依赖，初始化本地配置和 SQLite，准备 OpenViking；需要生产构建时加 `--production`。 |
+| `agentworld upgrade` | 拉取最新源码，重新安装依赖，执行 bootstrap，准备 OpenViking，并构建应用。 |
+| `agentworld dev` | 在 `PORT` 或默认 `7369` 上启动本地开发控制台。 |
+| `agentworld start` | 在 `agentworld build` 后启动生产服务。 |
+| `agentworld doctor` | 检查 Node.js、pnpm、git、本地配置、AgentWorld HTTP 和 OpenViking 健康状态。 |
+
 ### 生产模式
 
 ```bash
-pnpm build
-pnpm start
+agentworld install --production
+agentworld start
 ```
 
-`pnpm start` 使用 Next.js standalone server 输出，并保留与开发启动器一致的 OpenViking 启动逻辑。
+`agentworld start` 使用 Next.js standalone server 输出，并保留与开发启动器一致的 OpenViking 启动逻辑。
 
 ## 配置
 

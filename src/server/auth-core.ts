@@ -249,7 +249,7 @@ export function getDevelopmentAccessSettings(): DevelopmentAccessSettings {
   const current = queryOne<SystemSetting>("SELECT * FROM system_settings WHERE key = ?", DEVELOPMENT_ACCESS_SETTINGS_KEY);
   const parsed = parseJsonRecord(current?.valueJson);
   return {
-    enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : true,
+    enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : process.env.NODE_ENV === "development",
     autoEnter: typeof parsed.autoEnter === "boolean" ? parsed.autoEnter : false,
     name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name : "Development Administrator",
     email:
@@ -353,6 +353,7 @@ export function signInWithDevelopmentIdentity(input: {
   primaryBusinessTeamId?: string | null;
   requestedBy?: string;
 }) {
+  const allowSystemAdmin = input.requestedBy === "development_access";
   const adapter = getAuthAdapter("development_stub");
   const normalizedIdentity: NormalizedEnterpriseIdentity = adapter?.normalizeDevelopmentPayload
     ? adapter.normalizeDevelopmentPayload(input)
@@ -363,11 +364,12 @@ export function signInWithDevelopmentIdentity(input: {
         employeeNo: input.employeeNo?.trim(),
         title: input.title?.trim(),
         avatarUrl: input.avatarUrl?.trim(),
-        isSystemAdmin: Boolean(input.isSystemAdmin),
+        isSystemAdmin: allowSystemAdmin && Boolean(input.isSystemAdmin),
         primaryBusinessTeamId: input.primaryBusinessTeamId ?? null,
         businessTeamIds: input.businessTeamIds ?? [],
       };
   const normalizedEmail = normalizedIdentity.email;
+  const isSystemAdmin = allowSystemAdmin && Boolean(normalizedIdentity.isSystemAdmin);
   const businessTeams = listBusinessTeams();
   const availableTeamIds = new Set(businessTeams.map((team) => team.id));
   const currentMemberships = Array.from(
@@ -403,7 +405,7 @@ export function signInWithDevelopmentIdentity(input: {
     normalizedIdentity.avatarUrl ?? existing?.avatarUrl ?? "",
     normalizedIdentity.title ?? existing?.title ?? "",
     "active",
-    normalizedIdentity.isSystemAdmin ? 1 : 0,
+    isSystemAdmin ? 1 : 0,
     primaryBusinessTeamId,
     normalizeJson(
       {

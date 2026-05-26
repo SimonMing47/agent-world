@@ -1,12 +1,22 @@
 import { type Agent, type AgentTeam, type ServiceCatalogListing } from "@/server/db";
 
 export function buildAgentTeamSummary(team: AgentTeam, agents: Agent[]) {
+  const members = agents
+    .filter((agent) => agent.teamId === team.id)
+    .map((agent) => ({
+      id: agent.id,
+      name: agent.name,
+      role: agent.role,
+      status: agent.status,
+    }));
+
   return {
     id: team.id,
     name: team.name,
     workflowType: team.workflowType,
     visibility: team.visibility,
-    agentCount: agents.filter((agent) => agent.teamId === team.id).length,
+    agentCount: members.length,
+    members,
     timeoutMinutes: Math.round(team.timeoutMs / 60000),
     successRateTarget: team.successRateThreshold,
   };
