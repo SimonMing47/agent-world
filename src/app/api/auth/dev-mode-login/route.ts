@@ -5,6 +5,10 @@ import { uiText } from "@/lib/language-pack";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
+
   try {
     const result = signInWithDevelopmentAccess();
     const response = NextResponse.json({

@@ -87,14 +87,6 @@ function slugifyTaskKey(value: string) {
     .slice(0, 80);
 }
 
-function slugifyWebhookPath(value: string) {
-  return slugifyTaskKey(value).replace(/_/g, "-");
-}
-
-function suggestWebhookPath(value: string) {
-  return slugifyWebhookPath(value) || `webhook-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
-}
-
 function normalizeJson(value: string, fallback: string) {
   try {
     return JSON.stringify(JSON.parse(value), null, 2);
@@ -278,12 +270,29 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   const blocks: WorkflowBlock[] = [];
   if (leader) {
     blocks.push({
+      id: "prepare_workspace",
+      type: "script_hook",
+      title: uiText("ui.taskBlueprintEditor.workflow.prepareWorkspaceTitle"),
+      agentId: leader.id,
+      agentTeamId: "",
+      dependsOn: [],
+      instruction: uiText("ui.taskBlueprintEditor.workflow.prepareWorkspaceInstruction"),
+      tool: "code.checkout",
+      action: "prepare_workspace",
+      script: "agentworld workspace prepare --from-task",
+      url: "",
+      method: "POST",
+      connectorType: "",
+      publisherRef: "",
+      payloadTemplate: "{}",
+    });
+    blocks.push({
       id: "plan",
       type: "agent",
       title: "ui.generated.cf6da0a93ac",
       agentId: leader.id,
       agentTeamId: "",
-      dependsOn: [],
+      dependsOn: ["prepare_workspace"],
       instruction: runPlan.objective || "ui.generated.c1433d74547",
       tool: "memory.retrieve",
       action: "plan",
@@ -403,7 +412,7 @@ function buildRunPlanJson(args: {
     ...block,
     id: normalizeBlockId(block.id, index),
     dependsOn: block.dependsOn.filter(Boolean),
-    agentId: block.agentId,
+    agentId: block.agentId || leader?.id || "",
   }));
   const workers = blocks
     .filter((block) => block.id !== "plan")
@@ -838,44 +847,31 @@ export function TaskBlueprintEditor({
   const isCronTrigger = form.triggerType === "cron";
   const webhookEndpoint = form.triggerWebhookPathKey.trim()
     ? `/api/webhooks/${form.triggerWebhookPathKey.trim()}`
-    : "保存后生成";
+    : uiText("ui.taskBlueprintEditor.generatedAfterSave");
 
   const content = (
     <div className="space-y-4">
       <EditorSection
         defaultOpen
-        title="关键配置"
-        description="优先确定触发来源、Agent 团队和任务目标。"
+        title={uiText("ui.taskBlueprintEditor.sections.keyConfig.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.keyConfig.description")}
         icon={<Webhook className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="任务名称">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.name")}>
             <Input
               value={form.name}
-              onChange={(event) => {
-                const nextName = event.target.value;
-                setForm((current) => {
-                  const nextId = current.id ? current.id : slugifyTaskKey(nextName);
-                  const currentDefaultPath = slugifyWebhookPath(current.name || current.id);
-                  const shouldSyncWebhookPath =
-                    current.triggerType === "webhook" &&
-                    (!current.triggerWebhookPathKey.trim() ||
-                      (currentDefaultPath && current.triggerWebhookPathKey === currentDefaultPath));
-
-                  return {
-                    ...current,
-                    name: nextName,
-                    id: nextId,
-                    triggerWebhookPathKey: shouldSyncWebhookPath
-                      ? suggestWebhookPath(nextName || nextId)
-                      : current.triggerWebhookPathKey,
-                  };
-                });
-              }}
-              placeholder="例如：合并请求安全巡检"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  name: event.target.value,
+                  id: current.id ? current.id : slugifyTaskKey(event.target.value),
+                }))
+              }
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.name")}
             />
           </FieldGroup>
-          <FieldGroup label="运行状态">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.status")}>
             <Select
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
@@ -892,12 +888,12 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="业务团队">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.businessTeam")}>
             <Select
               value={form.ownerBusinessTeamId}
               onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
             >
-              <option value="">请选择业务团队</option>
+              <option value="">{uiText("ui.taskBlueprintEditor.options.selectBusinessTeam")}</option>
               {options.businessTeams.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -905,7 +901,7 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Agent 团队">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.agentTeam")}>
             <Select
               value={form.teamId}
               onChange={(event) => {
@@ -919,7 +915,7 @@ export function TaskBlueprintEditor({
                 });
               }}
             >
-              <option value="">请选择 Agent 团队</option>
+              <option value="">{uiText("ui.taskBlueprintEditor.options.selectAgentTeam")}</option>
               {options.agentTeams.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -927,26 +923,16 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="触发方式">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.triggerType")}>
             <Select
               value={form.triggerType}
-              onChange={(event) => {
-                const nextTriggerType = event.target.value;
-                setForm((current) => ({
-                  ...current,
-                  triggerType: nextTriggerType,
-                  triggerWebhookPathKey:
-                    nextTriggerType === "webhook" && !current.triggerWebhookPathKey.trim()
-                      ? suggestWebhookPath(current.name || current.id)
-                      : current.triggerWebhookPathKey,
-                }));
-              }}
+              onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
             >
               {[
                 ["webhook", "Webhook"],
-                ["manual", "手动"],
+                ["manual", uiText("ui.taskBlueprintEditor.trigger.manual")],
                 ["cron", "Cron"],
-                ["access_grant", "授权调用"],
+                ["access_grant", uiText("ui.taskBlueprintEditor.trigger.accessGrant")],
               ].map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -964,7 +950,7 @@ export function TaskBlueprintEditor({
             </FieldGroup>
           ) : null}
           {isWebhookTrigger ? (
-            <FieldGroup label="事件名称">
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.eventName")}>
               <Input
                 value={form.triggerEvent}
                 onChange={(event) => setForm({ ...form, triggerEvent: event.target.value })}
@@ -973,7 +959,7 @@ export function TaskBlueprintEditor({
             </FieldGroup>
           ) : null}
           {isCronTrigger ? (
-            <FieldGroup label="Cron 表达式">
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.cronExpression")}>
               <Input
                 value={form.triggerExpression}
                 onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
@@ -981,11 +967,11 @@ export function TaskBlueprintEditor({
               />
             </FieldGroup>
           ) : null}
-          <FieldGroup label="任务目标" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.taskObjective")} className="md:col-span-2">
             <Textarea
               value={form.taskObjective}
               onChange={(event) => setForm({ ...form, taskObjective: event.target.value })}
-              placeholder="说明收到 webhook 后团队要完成什么工作。"
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.taskObjective")}
             />
           </FieldGroup>
           {isWebhookTrigger ? (
@@ -998,21 +984,21 @@ export function TaskBlueprintEditor({
 
       <EditorSection
         defaultOpen
-        title="Agent 协作流程"
-        description="配置团队拆分、委派、依赖和汇总节点。"
+        title={uiText("ui.taskBlueprintEditor.sections.agentWorkflow.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.agentWorkflow.description")}
         icon={<Workflow className="h-4 w-4" />}
       >
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-semibold text-[var(--ink)]">编排策略</div>
-              <div className="mt-1 text-xs text-[var(--ink-muted)]">保存时会写入 Agent Team Run Plan。</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">{uiText("ui.taskBlueprintEditor.fields.orchestrationStrategy")}</div>
+              <div className="mt-1 text-xs text-[var(--ink-muted)]">{uiText("ui.taskBlueprintEditor.help.orchestrationStrategy")}</div>
             </div>
             <div className="w-full sm:w-60">
               <Select
                 value={form.orchestrationStrategy}
                 onChange={(event) => setForm({ ...form, orchestrationStrategy: event.target.value })}
-                aria-label="编排策略"
+                aria-label={uiText("ui.taskBlueprintEditor.fields.orchestrationStrategy")}
               >
                 {[
                   ["block_graph", "block_graph"],
@@ -1038,8 +1024,8 @@ export function TaskBlueprintEditor({
       </EditorSection>
 
       <EditorSection
-        title="触发高级选项"
-        description="Webhook parser、密钥、幂等键和额外触发 JSON。"
+        title={uiText("ui.taskBlueprintEditor.sections.triggerAdvanced.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.triggerAdvanced.description")}
         icon={<SlidersHorizontal className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
@@ -1050,7 +1036,7 @@ export function TaskBlueprintEditor({
               placeholder="official.codehub.webhook.merge_request"
             />
           </FieldGroup>
-          <FieldGroup label="幂等键模板">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.idempotencyTemplate")}>
             <Input
               value={form.triggerIdempotencyKey}
               onChange={(event) => setForm({ ...form, triggerIdempotencyKey: event.target.value })}
@@ -1074,7 +1060,7 @@ export function TaskBlueprintEditor({
             </FieldGroup>
           ) : null}
           {!isCronTrigger ? (
-            <FieldGroup label="Cron 表达式">
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.cronExpression")}>
               <Input
                 value={form.triggerExpression}
                 onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
@@ -1082,7 +1068,7 @@ export function TaskBlueprintEditor({
               />
             </FieldGroup>
           ) : null}
-          <FieldGroup label="触发额外 JSON" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.triggerExtraJson")} className="md:col-span-2">
             <Textarea
               className="min-h-28"
               value={form.triggerExtraJson}
@@ -1094,17 +1080,17 @@ export function TaskBlueprintEditor({
       </EditorSection>
 
       <EditorSection
-        title="环境与上下文"
-        description="仓库、工作目录、沙箱和环境选择。"
+        title={uiText("ui.taskBlueprintEditor.sections.environment.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.environment.description")}
         icon={<GitBranch className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="执行环境">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.environment")}>
             <Select
               value={form.environmentId}
               onChange={(event) => setForm({ ...form, environmentId: event.target.value })}
             >
-              <option value="">不绑定环境</option>
+              <option value="">{uiText("ui.taskBlueprintEditor.options.unboundEnvironment")}</option>
               {options.environments.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.name}
@@ -1112,14 +1098,14 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="仓库绑定">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.repoBinding")}>
             <Input
               value={form.repoBinding}
               onChange={(event) => setForm({ ...form, repoBinding: event.target.value })}
               placeholder="${repo_id}"
             />
           </FieldGroup>
-          <FieldGroup label="Checkout 模式">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.checkoutMode")}>
             <Select
               value={form.checkoutMode}
               onChange={(event) => setForm({ ...form, checkoutMode: event.target.value })}
@@ -1136,14 +1122,14 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="执行路径">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.executionPath")}>
             <Input
               value={form.executionPath}
               onChange={(event) => setForm({ ...form, executionPath: event.target.value })}
               placeholder={selectedEnvironment?.workingDirectory ?? "."}
             />
           </FieldGroup>
-          <FieldGroup label="沙箱模式">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.sandboxMode")}>
             <Select
               value={form.sandboxMode}
               onChange={(event) => setForm({ ...form, sandboxMode: event.target.value })}
@@ -1160,14 +1146,14 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="沙箱引用">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.sandboxRef")}>
             <Input
               value={form.sandboxRef}
               onChange={(event) => setForm({ ...form, sandboxRef: event.target.value })}
               placeholder="sandbox:security-inspection"
             />
           </FieldGroup>
-          <FieldGroup label="环境额外 JSON" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.environmentExtraJson")} className="md:col-span-2">
             <Textarea
               className="min-h-28"
               value={form.environmentSelectorExtraJson}
@@ -1179,12 +1165,12 @@ export function TaskBlueprintEditor({
       </EditorSection>
 
       <EditorSection
-        title="数据契约"
-        description="输入和结果 Schema。"
+        title={uiText("ui.taskBlueprintEditor.sections.dataContract.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.dataContract.description")}
         icon={<Settings2 className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="输入 Schema" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.inputSchema")} className="md:col-span-2">
             <Textarea
               className="min-h-32"
               value={form.inputSchemaJson}
@@ -1192,7 +1178,7 @@ export function TaskBlueprintEditor({
               placeholder='{"type":"object","properties":{}}'
             />
           </FieldGroup>
-          <FieldGroup label="结果 Schema" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.resultSchema")} className="md:col-span-2">
             <Textarea
               className="min-h-32"
               value={form.resultSchemaJson}
@@ -1204,27 +1190,27 @@ export function TaskBlueprintEditor({
       </EditorSection>
 
       <EditorSection
-        title="任务身份与策略"
-        description="分类、可见性、策略 JSON、输出和归档。"
+        title={uiText("ui.taskBlueprintEditor.sections.identityPolicy.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.identityPolicy.description")}
         icon={<Users className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="任务 ID">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.taskId")}>
             <Input
               value={form.id}
               onChange={(event) => setForm({ ...form, id: slugifyTaskKey(event.target.value) })}
-              placeholder="保存时自动生成"
+              placeholder={uiText("ui.taskBlueprintEditor.generatedAfterSave")}
               disabled={Boolean(blueprint.id)}
             />
           </FieldGroup>
-          <FieldGroup label="分类">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.category")}>
             <Input
               value={form.category}
               onChange={(event) => setForm({ ...form, category: event.target.value })}
               placeholder="inspection"
             />
           </FieldGroup>
-          <FieldGroup label="可见性">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.visibility")}>
             <Select
               value={form.visibility}
               onChange={(event) => setForm({ ...form, visibility: event.target.value })}
@@ -1236,56 +1222,56 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="版本">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.version")}>
             <Input
               value={form.version}
               onChange={(event) => setForm({ ...form, version: event.target.value })}
               placeholder="1"
             />
           </FieldGroup>
-          <FieldGroup label="记忆策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.memoryPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.memoryPolicyJson}
               onChange={(event) => setForm({ ...form, memoryPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="权限策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.permissionPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.permissionPolicyJson}
               onChange={(event) => setForm({ ...form, permissionPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="输出策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.outputPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.outputPolicyJson}
               onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="执行策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.executionPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.executionPolicyJson}
               onChange={(event) => setForm({ ...form, executionPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="Provider 策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.providerPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.providerPolicyJson}
               onChange={(event) => setForm({ ...form, providerPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="看板策略">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.dashboardPolicy")}>
             <Textarea
               className="min-h-28"
               value={form.dashboardPolicyJson}
               onChange={(event) => setForm({ ...form, dashboardPolicyJson: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="归档策略" className="md:col-span-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.archivePolicy")} className="md:col-span-2">
             <Textarea
               className="min-h-28"
               value={form.archivePolicyJson}
@@ -1297,7 +1283,11 @@ export function TaskBlueprintEditor({
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "ui.generated.ca032e8fdda" : blueprint.id ? "保存任务" : "新增任务"}
+          {isSaving
+            ? uiText("ui.generated.ca032e8fdda")
+            : blueprint.id
+              ? uiText("ui.taskBlueprintEditor.actions.saveTask")
+              : uiText("ui.taskBlueprintEditor.actions.createTask")}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>

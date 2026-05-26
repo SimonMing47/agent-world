@@ -1,8 +1,11 @@
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { NextResponse } from "next/server";
 import { upsertKnowledgeEntry } from "@/server/openviking-core";
 import { getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -90,8 +93,81 @@ function titleFromHtml(html: string, url: URL) {
 
 function normalizeUrl(value: string) {
   const url = new URL(value.trim());
-  if (!["http:", "https:"].includes(url.protocol)) throw new Error("仅支持 http/https URL");
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error(uiText("ui.knowledgeImport.errors.httpOnly"));
   return url;
+}
+
+function isPrivateIpv4(address: string) {
+  const parts = address.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return true;
+  }
+  const [first, second] = parts;
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
+  );
+}
+
+function isPrivateIpv6(address: string) {
+  const normalized = address.toLowerCase();
+  if (normalized === "::" || normalized === "::1") return true;
+  if (normalized.startsWith("::ffff:")) {
+    const mappedIpv4 = normalized.slice("::ffff:".length);
+    return isIP(mappedIpv4) === 4 ? isPrivateIpv4(mappedIpv4) : true;
+  }
+  return (
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe8") ||
+    normalized.startsWith("fe9") ||
+    normalized.startsWith("fea") ||
+    normalized.startsWith("feb") ||
+    normalized.startsWith("ff")
+  );
+}
+
+function isPrivateAddress(address: string) {
+  const family = isIP(address);
+  if (family === 4) return isPrivateIpv4(address);
+  if (family === 6) return isPrivateIpv6(address);
+  return true;
+}
+
+async function assertPublicFetchUrl(url: URL) {
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) {
+    throw new Error(uiText("ui.knowledgeImport.errors.localhostDenied"));
+  }
+
+  const addresses = await lookup(hostname, { all: true, verbatim: true });
+  if (addresses.length === 0 || addresses.some((address) => isPrivateAddress(address.address))) {
+    throw new Error(uiText("ui.knowledgeImport.errors.privateAddressDenied"));
+  }
+}
+
+async function fetchPublicUrl(url: URL, init: RequestInit, redirectLimit = 5) {
+  let currentUrl = url;
+  for (let index = 0; index <= redirectLimit; index += 1) {
+    await assertPublicFetchUrl(currentUrl);
+    const response = await fetch(currentUrl, { ...init, redirect: "manual" });
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      return { response, url: currentUrl };
+    }
+
+    const location = response.headers.get("location");
+    if (!location) throw new Error(uiText("ui.knowledgeImport.errors.redirectMissingLocation"));
+    currentUrl = normalizeUrl(new URL(location, currentUrl).toString());
+  }
+
+  throw new Error(uiText("ui.knowledgeImport.errors.redirectLimitExceeded"));
 }
 
 async function fetchUrlKnowledge(rawUrl: string) {
@@ -99,24 +175,25 @@ async function fetchUrlKnowledge(rawUrl: string) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
-    const response = await fetch(url, {
+    const { response, url: finalUrl } = await fetchPublicUrl(url, {
       headers: {
         Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.6",
         "User-Agent": "AgentWorld-KnowledgeDiscovery/1.0",
       },
       signal: controller.signal,
-      redirect: "follow",
     });
-    if (!response.ok) throw new Error(`抓取失败：HTTP ${response.status}`);
+    if (!response.ok) {
+      throw new Error(uiText("ui.knowledgeImport.errors.fetchFailed", undefined, { status: response.status }));
+    }
     const contentType = response.headers.get("content-type") ?? "";
     const raw = (await response.text()).slice(0, maxFetchedChars);
     const isHtml = contentType.includes("html") || /<html|<body|<article|<main/i.test(raw);
     const body = isHtml ? textFromHtml(raw) : raw.trim();
-    if (!body) throw new Error("没有识别到可归档正文");
-    const title = isHtml ? titleFromHtml(raw, url) : titleFromHtml("", url);
+    if (!body) throw new Error(uiText("ui.knowledgeImport.errors.emptyArchiveBody"));
+    const title = isHtml ? titleFromHtml(raw, finalUrl) : titleFromHtml("", finalUrl);
     const description = isHtml ? extractMeta(raw, "description") || extractMeta(raw, "og:description") : "";
     return {
-      url: url.toString(),
+      url: finalUrl.toString(),
       title,
       description,
       content: body,
@@ -131,12 +208,14 @@ function markdownForUrl(input: Awaited<ReturnType<typeof fetchUrlKnowledge>>) {
   const lines = [
     `# ${input.title}`,
     "",
-    `> 来源: [${input.url}](${input.url})`,
-    `> 抓取时间: ${new Date().toISOString()}`,
+    uiText("ui.knowledgeImport.markdown.source", undefined, { url: input.url }),
+    uiText("ui.knowledgeImport.markdown.fetchTime", undefined, { time: new Date().toISOString() }),
   ];
-  if (input.description) lines.push(`> 描述: ${input.description}`);
-  if (input.truncated) lines.push("> 备注: 原页面较长，已截取前段正文。");
-  lines.push("", "## 正文", "", input.content);
+  if (input.description) {
+    lines.push(uiText("ui.knowledgeImport.markdown.description", undefined, { description: input.description }));
+  }
+  if (input.truncated) lines.push(uiText("ui.knowledgeImport.markdown.urlTruncatedRemark"));
+  lines.push("", uiText("ui.knowledgeImport.markdown.bodyHeading"), "", input.content);
   return lines.join("\n");
 }
 
@@ -145,14 +224,18 @@ function markdownForFile(file: Required<Pick<ImportFilePayload, "name" | "conten
   return [
     `# ${file.name}`,
     "",
-    `> 来源文件: ${file.name}`,
-    file.relativePath && file.relativePath !== file.name ? `> 原始路径: ${file.relativePath}` : null,
-    `> 文件类型: ${file.type || "text/plain"}`,
-    typeof file.size === "number" ? `> 文件大小: ${file.size} B` : null,
-    `> 导入时间: ${new Date().toISOString()}`,
-    file.content.length > maxFileChars ? "> 备注: 文件较长，已截取前段正文。" : null,
+    uiText("ui.knowledgeImport.markdown.sourceFile", undefined, { name: file.name }),
+    file.relativePath && file.relativePath !== file.name
+      ? uiText("ui.knowledgeImport.markdown.originalPath", undefined, { path: file.relativePath })
+      : null,
+    uiText("ui.knowledgeImport.markdown.fileType", undefined, { type: file.type || "text/plain" }),
+    typeof file.size === "number"
+      ? uiText("ui.knowledgeImport.markdown.fileSize", undefined, { size: file.size })
+      : null,
+    uiText("ui.knowledgeImport.markdown.importTime", undefined, { time: new Date().toISOString() }),
+    file.content.length > maxFileChars ? uiText("ui.knowledgeImport.markdown.fileTruncatedRemark") : null,
     "",
-    "## 内容",
+    uiText("ui.knowledgeImport.markdown.contentHeading"),
     "",
     content,
   ]
@@ -177,7 +260,7 @@ function metadataJson(
 }
 
 function cleanTitle(value: string) {
-  return value.replace(/\s+/g, " ").trim().slice(0, 140) || "未命名知识";
+  return value.replace(/\s+/g, " ").trim().slice(0, 140) || uiText("ui.knowledgeImport.defaults.untitledKnowledge");
 }
 
 function pathSegments(value: string | null | undefined, fallbackName: string) {
@@ -193,8 +276,9 @@ function pathSegments(value: string | null | undefined, fallbackName: string) {
 }
 
 function titleFromFilePath(file: ImportFilePayload) {
-  const parts = pathSegments(file.relativePath, file.name || "拖入知识");
-  return cleanTitle(parts[parts.length - 1] ?? file.name ?? "拖入知识");
+  const fallbackName = uiText("ui.knowledgeImport.defaults.droppedKnowledge");
+  const parts = pathSegments(file.relativePath, file.name || fallbackName);
+  return cleanTitle(parts[parts.length - 1] ?? file.name ?? fallbackName);
 }
 
 function scopeFromPath(prefix: string, value: string) {
@@ -252,7 +336,7 @@ async function importDirectoryFiles({
         sourceType: "manual",
         updatedBy,
       });
-      if (!entry) throw new Error("目录创建失败");
+      if (!entry) throw new Error(uiText("ui.knowledgeImport.errors.directoryCreateFailed"));
       entries.push(entry);
       folderIdsByPath.set(key, entry.id);
       currentParentId = entry.id;
@@ -261,9 +345,10 @@ async function importDirectoryFiles({
   };
 
   for (const file of sortedFiles) {
-    const parts = pathSegments(file.relativePath, file.name || "拖入知识");
+    const fallbackName = uiText("ui.knowledgeImport.defaults.droppedKnowledge");
+    const parts = pathSegments(file.relativePath, file.name || fallbackName);
     const directoryParts = parts.slice(0, -1);
-    const fileName = cleanTitle(parts[parts.length - 1] ?? file.name ?? "拖入知识");
+    const fileName = cleanTitle(parts[parts.length - 1] ?? file.name ?? fallbackName);
     const targetParentId = await ensureFolder(directoryParts);
     const content = file.content?.trim();
     if (!content) continue;
@@ -293,7 +378,7 @@ async function importDirectoryFiles({
       sourceType: "skill",
       updatedBy,
     });
-    if (!entry) throw new Error("目录知识创建失败");
+    if (!entry) throw new Error(uiText("ui.knowledgeImport.errors.directoryKnowledgeCreateFailed"));
     entries.push(entry);
   }
 
@@ -304,7 +389,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as KnowledgeImportPayload;
     const knowledgeSpaceId = body.knowledgeSpaceId?.trim();
-    if (!knowledgeSpaceId) throw new Error("请选择知识空间");
+    if (!knowledgeSpaceId) throw new Error(uiText("ui.knowledgeImport.errors.spaceRequired"));
 
     const authContext = await getRequestAuthContext();
     requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(knowledgeSpaceId));
@@ -338,7 +423,7 @@ export async function POST(request: Request) {
         sourceType: "manual",
         updatedBy,
       });
-      if (!entry) throw new Error("URL 知识创建失败");
+      if (!entry) throw new Error(uiText("ui.knowledgeImport.errors.urlKnowledgeCreateFailed"));
       entries.push(entry);
     }
 
@@ -377,16 +462,16 @@ export async function POST(request: Request) {
           sourceType: "manual",
           updatedBy,
         });
-        if (!entry) throw new Error("文件知识创建失败");
+        if (!entry) throw new Error(uiText("ui.knowledgeImport.errors.fileKnowledgeCreateFailed"));
         entries.push(entry);
       }
     }
 
-    if (!entries.length) throw new Error("没有可归档的知识内容");
+    if (!entries.length) throw new Error(uiText("ui.knowledgeImport.errors.noArchiveContent"));
     return NextResponse.json({ ok: true, entries, imported: entries.length });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "知识导入失败" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.knowledgeImport.errors.importFailed") },
       { status: 400 },
     );
   }

@@ -1,5 +1,6 @@
 import { Agent, type AgentEvent, type AgentMessage } from "@earendil-works/pi-agent-core";
 import { completeSimple, type AssistantMessage, type Model } from "@earendil-works/pi-ai";
+import { randomUUID } from "node:crypto";
 import { buildAgentHarnessExecutionProfile } from "@/server/agent-harness-core";
 import { type ProviderProfile, type ProviderRuntimeBinding } from "@/server/db";
 import { buildReadOnlyWorkspaceTools } from "@/server/pi-agent-toolset";
@@ -48,6 +49,23 @@ export type RuntimeSessionContext = {
   providerProfile: ProviderProfile;
 };
 
+type RuntimeContextCompactionPayload = {
+  actorId?: string | null;
+  actorName: string;
+  turnIndex: number;
+  reason: "preflight" | "agent-loop";
+  source: "model" | "fallback";
+  contextWindow: number;
+  maxTokens: number;
+  triggerTokens: number;
+  targetTokens: number;
+  originalTokenEstimate: number;
+  compactedTokenEstimate: number;
+  summarizedMessages: number;
+  retainedMessages: number;
+  summaryPreview: string;
+};
+
 export type RuntimeSessionEnvelope =
   | {
       type: "runtime.session.started" | "runtime.session.resumed" | "runtime.session.cancelled";
@@ -78,12 +96,19 @@ export type RuntimeSessionEnvelope =
         args: Record<string, unknown>;
         approvalMode: ReturnType<typeof buildAgentHarnessExecutionProfile>["approvalMode"];
       };
+    }
+  | {
+      type: "runtime.context.compacted";
+      sessionId: string;
+      occurredAt: string;
+      payload: RuntimeContextCompactionPayload;
     };
 
 export type RuntimeAgentEventCallback = (args: {
   actorId?: string | null;
   actorName: string;
   turnIndex: number;
+  subConversation?: RuntimeSubConversationContext | null;
   event: AgentEvent;
 }) => void;
 
@@ -95,6 +120,7 @@ export type InvokeAgentNodeInput = {
   latestUserMessage: string;
   turnIndex: number;
   instructions?: string;
+  subConversation?: RuntimeSubConversationContext | null;
   teamContext?: {
     teamName: string;
     leaderName?: string;
@@ -102,6 +128,17 @@ export type InvokeAgentNodeInput = {
   getTranscript: () => AgentMessage[];
   onAgentEvent: RuntimeAgentEventCallback;
   onRuntimeEvent?: RuntimeSystemEventCallback;
+};
+
+export type RuntimeSubConversationContext = {
+  id: string;
+  parentId: string;
+  kind: "direct_mention" | "leader_delegation" | "peer_handoff";
+  title: string;
+  sourceActorName: string;
+  targetActorName: string;
+  targetActorId?: string | null;
+  contextText: string;
 };
 
 export type InvokeAgentNodeResult = {
@@ -189,8 +226,9 @@ function buildAgentPrompt(args: {
     ? `Team: ${args.teamContext.teamName}.${args.teamContext.leaderName ? ` Leader: ${args.teamContext.leaderName}.` : ""}`
     : "No agent team is attached to this session.";
   const runtimeContext = `Runtime binding: ${args.runtimeBinding.name}. Provider profile: ${args.providerProfile.name}. Actual configured model: ${args.session.model}. When asked about your current provider or model, answer from this runtime metadata instead of prior model lore.`;
+  const replyRouting = "When a message contains `Question from @name:`, reply to that questioner by mentioning `@name` in the human-facing answer.";
 
-  return [header, teamContext, runtimeContext, args.session.systemPrompt, args.instructions ?? ""]
+  return [header, teamContext, runtimeContext, replyRouting, args.session.systemPrompt, args.instructions ?? ""]
     .filter(Boolean)
     .join("\n\n");
 }
@@ -216,28 +254,56 @@ function escapeRegExp(value: string) {
 }
 
 function textMentionsHandle(text: string, handle: string) {
-  return new RegExp(`(^|\\s)${escapeRegExp(handle)}(?=\\s|$|[：:，,。.;；\\n])`, "i").test(text);
+  return new RegExp(
+    `(^|[^A-Za-z0-9_.-])${escapeRegExp(handle)}(?=\\s|$|[：:，,。.;；、!！?？)\\]】}》」』"'\\\`*_>\\n])`,
+    "i",
+  ).test(text);
+}
+
+function lineLooksLikeMentionHeading(line: string) {
+  const normalized = line
+    .trim()
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^\d+[.)、]\s+/, "")
+    .replace(/^[-*+]\s+/, "")
+    .replace(/^>\s+/, "")
+    .replace(/^(\*\*|__|`)+/, "");
+  return normalized.startsWith("@");
+}
+
+function lineIsSectionDivider(line: string) {
+  return /^-{3,}$/.test(line.trim());
 }
 
 function extractMentionPacket(text: string, handle: string) {
   const normalized = text.trim();
   if (!normalized || !textMentionsHandle(normalized, handle)) return null;
 
-  const paragraphs = normalized.split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
-  const matchingParagraphs = paragraphs.filter((paragraph) => textMentionsHandle(paragraph, handle));
-  if (matchingParagraphs.length > 0) return matchingParagraphs.join("\n\n").slice(0, 2400);
-
   const lines = normalized.split(/\n/);
-  const selected = new Set<number>();
-  lines.forEach((line, index) => {
-    if (!textMentionsHandle(line, handle)) return;
-    selected.add(index);
-    if (index + 1 < lines.length) selected.add(index + 1);
-    if (index + 2 < lines.length) selected.add(index + 2);
-  });
-  return [...selected]
-    .sort((left, right) => left - right)
-    .map((index) => lines[index])
+  const startIndex = lines.findIndex((line) => textMentionsHandle(line, handle));
+  if (startIndex < 0) return null;
+
+  let endIndex = lines.length;
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (lineLooksLikeMentionHeading(line) && !textMentionsHandle(line, handle)) {
+      endIndex = index;
+      break;
+    }
+    if (!lineIsSectionDivider(line)) continue;
+    const nextContent = lines.slice(index + 1).find((candidate) => candidate.trim());
+    if (!nextContent || lineLooksLikeMentionHeading(nextContent)) {
+      endIndex = index;
+      break;
+    }
+  }
+
+  while (endIndex > startIndex && !lines[endIndex - 1]?.trim()) {
+    endIndex -= 1;
+  }
+
+  return lines
+    .slice(startIndex, endIndex)
     .join("\n")
     .trim()
     .slice(0, 2400);
@@ -260,6 +326,466 @@ function collectMentionDelegations(text: string, workers: RuntimeAgentProfile[])
     .filter((item): item is { worker: RuntimeAgentProfile; handle: string; packet: string } => item !== null);
 }
 
+function extractQuestionerName(text: string) {
+  const match = text.match(/^\s*Question from @([^:\n]+):/i);
+  return match?.[1]?.trim() ? `@${match[1].trim()}` : "Human operator";
+}
+
+function buildSubConversationContext(args: {
+  sessionId: string;
+  turnIndex: number;
+  kind: RuntimeSubConversationContext["kind"];
+  sourceActorName: string;
+  target: RuntimeAgentProfile;
+  handle: string;
+  contextText: string;
+}) {
+  const targetName = args.target.name;
+  return {
+    id: `${args.sessionId}:${args.turnIndex}:${args.kind}:${args.target.id ?? slugForMention(targetName, "agent")}:${randomUUID()}`,
+    parentId: `${args.sessionId}:${args.turnIndex}:main`,
+    kind: args.kind,
+    title: uiText("ui.runtimeConsole.subarea.title", undefined, {
+      target: targetName,
+      kind: args.kind === "peer_handoff"
+        ? uiText("ui.runtimeConsole.subarea.kind.peerHandoff")
+        : args.kind === "direct_mention"
+          ? uiText("ui.runtimeConsole.subarea.kind.directMention")
+          : uiText("ui.runtimeConsole.subarea.kind.leaderDelegation"),
+    }),
+    sourceActorName: args.sourceActorName,
+    targetActorName: targetName,
+    targetActorId: args.target.id ?? null,
+    contextText: [`${args.sourceActorName} -> ${args.handle}`, args.contextText].join("\n\n"),
+  } satisfies RuntimeSubConversationContext;
+}
+
+const CONTEXT_COMPACTION_TRIGGER_RATIO = 0.72;
+const CONTEXT_COMPACTION_TARGET_RATIO = 0.42;
+const CONTEXT_COMPACTION_KEEP_RECENT_MESSAGES = 8;
+const CONTEXT_COMPACTION_MAX_SUMMARY_CHARS = 10000;
+
+type ContextCompactionBudget = {
+  contextWindow: number;
+  maxTokens: number;
+  outputReserveTokens: number;
+  usableInputTokens: number;
+  triggerTokens: number;
+  targetTokens: number;
+};
+
+type ContextCompactionResult = {
+  messages: AgentMessage[];
+  metadata?: RuntimeContextCompactionPayload;
+};
+
+function numberOrFallback(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function estimateTextTokens(text: string) {
+  if (!text) return 0;
+  const cjkCount = text.match(/[\u3400-\u9fff\uf900-\ufaff]/g)?.length ?? 0;
+  const otherCount = Math.max(0, text.length - cjkCount);
+  return Math.ceil(cjkCount * 1.1 + otherCount / 3.4);
+}
+
+function clipText(text: string, maxChars: number) {
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 120) return text.slice(0, maxChars);
+  const marker = `\n\n[... ${text.length - maxChars} chars compacted ...]\n\n`;
+  const sideChars = Math.max(40, Math.floor((maxChars - marker.length) / 2));
+  return `${text.slice(0, sideChars)}${marker}${text.slice(-sideChars)}`;
+}
+
+function clipTextToTokenBudget(text: string, maxTokens: number) {
+  if (estimateTextTokens(text) <= maxTokens) return text;
+  let maxChars = Math.max(800, Math.floor(maxTokens * 2.1));
+  let clipped = clipText(text, maxChars);
+  while (estimateTextTokens(clipped) > maxTokens && maxChars > 800) {
+    maxChars = Math.floor(maxChars * 0.75);
+    clipped = clipText(text, maxChars);
+  }
+  return clipped;
+}
+
+function maskToken(value: string) {
+  if (value.length <= 8) return "[REDACTED]";
+  return `${value.slice(0, 3)}***${value.slice(-2)}`;
+}
+
+function redactSensitiveText(value: string) {
+  return value
+    .replace(
+      /((?:API|ACCESS|AUTH|TOKEN|SECRET|PASSWORD|PRIVATE|KEY)[A-Z0-9_ -]*\s*[:=]\s*)([^\s"']+)/gim,
+      (_match, prefix: string, secret: string) => `${prefix}${maskToken(secret)}`,
+    )
+    .replace(
+      /-----BEGIN [^-]+-----[\s\S]+?-----END [^-]+-----/g,
+      "[REDACTED KEY MATERIAL]",
+    )
+    .replace(/\b[a-z0-9]{24,}\.[A-Za-z0-9._-]{12,}\b/g, (match) => maskToken(match))
+    .replace(/\bsk-[A-Za-z0-9]{16,}\b/g, (match) => maskToken(match));
+}
+
+function safeStringify(value: unknown, maxChars = 2400) {
+  try {
+    return clipText(JSON.stringify(value, null, 2), maxChars);
+  } catch {
+    return clipText(String(value), maxChars);
+  }
+}
+
+function contentBlocksToText(blocks: Array<Record<string, unknown>>) {
+  return blocks
+    .map((block) => {
+      if (block.type === "text") return typeof block.text === "string" ? block.text : "";
+      if (block.type === "thinking") {
+        return typeof block.thinking === "string" ? `[thinking]\n${block.thinking}` : "";
+      }
+      if (block.type === "toolCall") {
+        const name = typeof block.name === "string" ? block.name : "unknown_tool";
+        const id = typeof block.id === "string" ? block.id : "";
+        return [`[tool_call ${name}${id ? ` ${id}` : ""}]`, safeStringify(block.arguments ?? {})]
+          .filter(Boolean)
+          .join("\n");
+      }
+      if (block.type === "image") {
+        const mimeType = typeof block.mimeType === "string" ? block.mimeType : "image";
+        const dataLength = typeof block.data === "string" ? block.data.length : 0;
+        return `[image ${mimeType}, ${dataLength} chars]`;
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function agentMessageToText(message: AgentMessage) {
+  if (message.role === "user") {
+    return typeof message.content === "string"
+      ? message.content
+      : contentBlocksToText(message.content as unknown as Array<Record<string, unknown>>);
+  }
+
+  if (message.role === "assistant") {
+    return contentBlocksToText(message.content as unknown as Array<Record<string, unknown>>);
+  }
+
+  if (message.role === "toolResult") {
+    return [
+      `[tool_result ${message.toolName}${message.isError ? " error" : ""}]`,
+      contentBlocksToText(message.content as unknown as Array<Record<string, unknown>>),
+      message.details ? `[details]\n${safeStringify(message.details, 1600)}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  return safeStringify(message);
+}
+
+function estimateMessagesTokens(messages: AgentMessage[]) {
+  return messages.reduce(
+    (total, message) => total + estimateTextTokens(agentMessageToText(message)) + 16,
+    0,
+  );
+}
+
+function estimateToolsTokens(
+  tools: Array<{ name?: string; description?: string; parameters?: unknown }>,
+) {
+  return tools.reduce(
+    (total, tool) =>
+      total +
+      estimateTextTokens(
+        [
+          tool.name ?? "",
+          tool.description ?? "",
+          tool.parameters ? safeStringify(tool.parameters, 6000) : "",
+        ].join("\n"),
+      ) +
+      12,
+    0,
+  );
+}
+
+function estimateContextTokens(args: {
+  systemPrompt: string;
+  tools: Array<{ name?: string; description?: string; parameters?: unknown }>;
+  messages: AgentMessage[];
+}) {
+  return (
+    estimateTextTokens(args.systemPrompt) +
+    estimateToolsTokens(args.tools) +
+    estimateMessagesTokens(args.messages) +
+    64
+  );
+}
+
+function buildContextCompactionBudget(model: Model<string>): ContextCompactionBudget {
+  const contextWindow = numberOrFallback(model.contextWindow, 128000);
+  const maxTokens = numberOrFallback(model.maxTokens, 8192);
+  const outputReserveTokens = Math.min(
+    Math.max(maxTokens, 2048),
+    Math.max(1024, Math.floor(contextWindow * 0.25)),
+  );
+  const usableInputTokens = Math.max(4096, contextWindow - outputReserveTokens);
+  return {
+    contextWindow,
+    maxTokens,
+    outputReserveTokens,
+    usableInputTokens,
+    triggerTokens: Math.max(3500, Math.floor(usableInputTokens * CONTEXT_COMPACTION_TRIGGER_RATIO)),
+    targetTokens: Math.max(2200, Math.floor(usableInputTokens * CONTEXT_COMPACTION_TARGET_RATIO)),
+  };
+}
+
+function chooseRetainedMessageCount(args: {
+  messages: AgentMessage[];
+  systemPrompt: string;
+  tools: Array<{ name?: string; description?: string; parameters?: unknown }>;
+  budget: ContextCompactionBudget;
+  extraTokenEstimate?: number;
+}) {
+  let keepCount = Math.min(
+    CONTEXT_COMPACTION_KEEP_RECENT_MESSAGES,
+    Math.max(0, args.messages.length - 1),
+  );
+  const retainedTarget = Math.floor(args.budget.targetTokens * 0.68);
+
+  while (keepCount > 0) {
+    const retained = args.messages.slice(-keepCount);
+    const retainedEstimate =
+      estimateContextTokens({
+        systemPrompt: args.systemPrompt,
+        tools: args.tools,
+        messages: retained,
+      }) +
+      (args.extraTokenEstimate ?? 0) +
+      320;
+    if (retainedEstimate <= retainedTarget) return keepCount;
+    keepCount -= 1;
+  }
+
+  return 0;
+}
+
+function serializeMessageForCompaction(message: AgentMessage, index: number) {
+  const role = message.role;
+  const timestamp = "timestamp" in message ? new Date(message.timestamp).toISOString() : "";
+  const heading = [`#${index + 1}`, role, timestamp].filter(Boolean).join(" ");
+  return `${heading}\n${clipText(redactSensitiveText(agentMessageToText(message)), 6000)}`;
+}
+
+function fallbackContextSummary(messages: AgentMessage[]) {
+  const serialized = messages.map(serializeMessageForCompaction);
+  const head = serialized.slice(0, 3);
+  const tail = serialized.slice(-6);
+  const notablePattern = new RegExp(
+    [
+      "error",
+      "failed",
+      "exception",
+      uiText("ui.runtimeAdapter.compaction.notable.permission"),
+      uiText("ui.runtimeAdapter.compaction.notable.failure"),
+      uiText("ui.runtimeAdapter.compaction.notable.exception"),
+      "blocked",
+      "denied",
+    ].join("|"),
+    "i",
+  );
+  const notable = serialized
+    .filter((item) => notablePattern.test(item))
+    .slice(-6);
+
+  return clipText(
+    [
+      "## Context Compaction Summary",
+      `Summarized messages: ${messages.length}`,
+      "",
+      "### Early Context",
+      head.join("\n\n---\n\n") || "None.",
+      "",
+      notable.length > 0 ? "### Notable Risks Or Errors" : "",
+      notable.join("\n\n---\n\n"),
+      "",
+      "### Latest Summarized Context",
+      tail.join("\n\n---\n\n") || "None.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    CONTEXT_COMPACTION_MAX_SUMMARY_CHARS,
+  );
+}
+
+async function summarizeContextWithModel(args: {
+  model: Model<string>;
+  apiKey?: string;
+  actorName: string;
+  reason: "preflight" | "agent-loop";
+  budget: ContextCompactionBudget;
+  messages: AgentMessage[];
+  signal?: AbortSignal;
+}) {
+  const sourceText = args.messages.map(serializeMessageForCompaction).join("\n\n---\n\n");
+  const sourceBudget = Math.floor(args.budget.usableInputTokens * 0.52);
+  const compactedSource = clipTextToTokenBudget(sourceText, Math.max(1200, sourceBudget));
+  const response = await completeSimple(
+    args.model,
+    {
+      messages: [
+        {
+          role: "user",
+          content: [
+            "Summarize this older AgentWorld runtime transcript so the same task can continue in a smaller context window.",
+            "Preserve the current user goal, constraints, decisions, files/tools touched, errors, permissions, safety notes, agent routing, unfinished work, and any facts the next model call must know.",
+            "Drop repeated streaming deltas, low-signal chatter, and raw secrets. Replace secrets with [REDACTED].",
+            "Return concise Markdown with sections: Current Goal, Stable Facts, Decisions, Work Done, Open Threads, Tool/File Notes, Risks.",
+            `Actor: ${args.actorName}`,
+            `Compaction reason: ${args.reason}`,
+            "",
+            "Transcript to compact:",
+            compactedSource,
+          ].join("\n"),
+          timestamp: Date.now(),
+        },
+      ],
+    },
+    {
+      apiKey: args.apiKey,
+      maxTokens: Math.min(2400, Math.max(700, Math.floor(args.budget.targetTokens * 0.14))),
+      reasoning: "minimal",
+      signal: args.signal,
+    },
+  );
+
+  if (response.stopReason === "error") {
+    throw new Error(response.errorMessage ?? "Context compaction failed.");
+  }
+
+  const summary = flattenVisibleText(response).trim();
+  if (!summary) throw new Error("Context compaction returned an empty summary.");
+  return clipText(redactSensitiveText(summary), CONTEXT_COMPACTION_MAX_SUMMARY_CHARS);
+}
+
+function buildCompactionSummaryMessage(args: {
+  actorName: string;
+  source: "model" | "fallback";
+  summarizedMessages: number;
+  retainedMessages: number;
+  summary: string;
+}) {
+  return [
+    "[AgentWorld context compaction summary]",
+    `Actor: ${args.actorName}`,
+    `Source: ${args.source}`,
+    `Older messages summarized: ${args.summarizedMessages}`,
+    `Recent raw messages retained: ${args.retainedMessages}`,
+    "",
+    args.summary,
+    "",
+    "Continue from this summary plus the retained recent messages. Treat the summary as lossy but authoritative for older context.",
+  ].join("\n");
+}
+
+async function compactAgentMessagesForContext(args: {
+  session: RuntimeSessionContext;
+  model: Model<string>;
+  systemPrompt: string;
+  tools: Array<{ name?: string; description?: string; parameters?: unknown }>;
+  messages: AgentMessage[];
+  pendingUserMessage?: string;
+  actorId?: string | null;
+  actorName: string;
+  turnIndex: number;
+  reason: "preflight" | "agent-loop";
+  apiKey?: string;
+  signal?: AbortSignal;
+}): Promise<ContextCompactionResult> {
+  const budget = buildContextCompactionBudget(args.model);
+  const extraTokenEstimate = args.pendingUserMessage
+    ? estimateTextTokens(args.pendingUserMessage) + 16
+    : 0;
+  const originalTokenEstimate = estimateContextTokens({
+    systemPrompt: args.systemPrompt,
+    tools: args.tools,
+    messages: args.messages,
+  }) + extraTokenEstimate;
+
+  if (args.messages.length === 0 || originalTokenEstimate <= budget.triggerTokens) {
+    return { messages: args.messages };
+  }
+
+  const retainedMessageCount = chooseRetainedMessageCount({
+    messages: args.messages,
+    systemPrompt: args.systemPrompt,
+    tools: args.tools,
+    budget,
+    extraTokenEstimate,
+  });
+  const retainedMessages = retainedMessageCount > 0 ? args.messages.slice(-retainedMessageCount) : [];
+  const summarizedMessages =
+    retainedMessageCount > 0 ? args.messages.slice(0, -retainedMessageCount) : args.messages;
+
+  if (summarizedMessages.length === 0) return { messages: args.messages };
+
+  let source: "model" | "fallback" = "model";
+  let summary = "";
+  try {
+    summary = await summarizeContextWithModel({
+      model: args.model,
+      apiKey: args.apiKey,
+      actorName: args.actorName,
+      reason: args.reason,
+      budget,
+      messages: summarizedMessages,
+      signal: args.signal,
+    });
+  } catch {
+    source = "fallback";
+    summary = fallbackContextSummary(summarizedMessages);
+  }
+
+  const summaryMessage: AgentMessage = {
+    role: "user",
+    content: buildCompactionSummaryMessage({
+      actorName: args.actorName,
+      source,
+      summarizedMessages: summarizedMessages.length,
+      retainedMessages: retainedMessages.length,
+      summary,
+    }),
+    timestamp: Date.now(),
+  };
+  const messages = [summaryMessage, ...retainedMessages];
+  const compactedTokenEstimate = estimateContextTokens({
+    systemPrompt: args.systemPrompt,
+    tools: args.tools,
+    messages,
+  }) + extraTokenEstimate;
+
+  return {
+    messages,
+    metadata: {
+      actorId: args.actorId ?? null,
+      actorName: args.actorName,
+      turnIndex: args.turnIndex,
+      reason: args.reason,
+      source,
+      contextWindow: budget.contextWindow,
+      maxTokens: budget.maxTokens,
+      triggerTokens: budget.triggerTokens,
+      targetTokens: budget.targetTokens,
+      originalTokenEstimate,
+      compactedTokenEstimate,
+      summarizedMessages: summarizedMessages.length,
+      retainedMessages: retainedMessages.length,
+      summaryPreview: clipText(summary.replace(/\s+/g, " ").trim(), 700),
+    },
+  };
+}
+
 function flattenVisibleText(message: AssistantMessage | null) {
   if (!message) return "";
   return message.content
@@ -280,6 +806,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
   id = "agentworld-runtime-adapter";
   label = uiText("ui.generated.c1d9b27a203");
   private readonly sessionStreams = new Map<string, SessionStreamState>();
+  private readonly sessionGenerations = new Map<string, number>();
 
   private getSessionState(sessionId: string) {
     const existing = this.sessionStreams.get(sessionId);
@@ -305,12 +832,13 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
     state.queue.push(event);
   }
 
-  private close(sessionId: string) {
-    const state = this.getSessionState(sessionId);
-    state.closed = true;
-    while (state.waiters.length > 0) {
-      const waiter = state.waiters.shift();
-      waiter?.({ value: undefined, done: true });
+  private getSessionGeneration(sessionId: string) {
+    return this.sessionGenerations.get(sessionId) ?? 0;
+  }
+
+  private assertSessionGeneration(sessionId: string, generation: number) {
+    if (this.getSessionGeneration(sessionId) !== generation) {
+      throw new Error("Runtime session interrupted");
     }
   }
 
@@ -465,7 +993,10 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
   }
 
   async invokeAgentNode(input: InvokeAgentNodeInput) {
+    const generation = this.getSessionGeneration(input.session.sessionId);
     const model = buildPiModel(input.session.providerProfile, input.session.runtimeBinding) as Model<string>;
+    const apiKey =
+      resolveProviderApiKey(input.session.providerProfile, input.session.runtimeBinding) ?? undefined;
     const harnessProfile = buildAgentHarnessExecutionProfile(
       input.agent ?? {},
       input.session.runtimeBinding,
@@ -478,27 +1009,70 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
     });
     const state = this.getSessionState(input.session.sessionId);
     let finalAssistant: AssistantMessage | null = null;
+    const actorName = input.agent?.name ?? "Runtime Assistant";
+    const actorId = input.agent?.id ?? null;
+    const systemPrompt = buildAgentPrompt({
+      session: input.session,
+      teamContext: input.teamContext ?? null,
+      agent: input.agent,
+      runtimeBinding: input.session.runtimeBinding,
+      providerProfile: input.session.providerProfile,
+      instructions: input.instructions,
+    });
+    const emitContextCompaction = (payload: RuntimeContextCompactionPayload) => {
+      const envelope: RuntimeSessionEnvelope = {
+        type: "runtime.context.compacted",
+        sessionId: input.session.sessionId,
+        occurredAt: nowIso(),
+        payload,
+      };
+      this.emit(input.session.sessionId, envelope);
+      input.onRuntimeEvent?.(envelope);
+    };
+    const compactForContext = async (
+      messages: AgentMessage[],
+      reason: "preflight" | "agent-loop",
+      signal?: AbortSignal,
+    ) => {
+      try {
+        const result = await compactAgentMessagesForContext({
+          session: input.session,
+          model,
+          systemPrompt,
+          tools: toolSet,
+          messages,
+          pendingUserMessage: reason === "preflight" ? input.latestUserMessage : undefined,
+          actorId,
+          actorName,
+          turnIndex: input.turnIndex,
+          reason,
+          apiKey,
+          signal,
+        });
+        if (result.metadata) emitContextCompaction(result.metadata);
+        return result.messages;
+      } catch {
+        return messages;
+      }
+    };
+    const transcriptMessages = await compactForContext(
+      input.getTranscript().filter(
+        (message) => message.role !== "user" || message.content !== input.latestUserMessage,
+      ),
+      "preflight",
+    );
 
     const agent = new Agent({
       initialState: {
-        systemPrompt: buildAgentPrompt({
-          session: input.session,
-          teamContext: input.teamContext ?? null,
-          agent: input.agent,
-          runtimeBinding: input.session.runtimeBinding,
-          providerProfile: input.session.providerProfile,
-          instructions: input.instructions,
-        }),
+        systemPrompt,
         model,
         thinkingLevel: harnessProfile.thinkingLevel,
-        messages: input.getTranscript().filter(
-          (message) => message.role !== "user" || message.content !== input.latestUserMessage,
-        ),
+        messages: transcriptMessages,
         tools: toolSet,
       },
       sessionId: `${input.session.sessionId}:${input.agent?.name ?? "runtime-assistant"}`,
-      getApiKey: () =>
-        resolveProviderApiKey(input.session.providerProfile, input.session.runtimeBinding) ?? undefined,
+      getApiKey: () => apiKey,
+      transformContext: (messages, signal) => compactForContext(messages, "agent-loop", signal),
       beforeToolCall: async (context) => {
         if (approvalMode === "allow") return undefined;
         const envelope: RuntimeSessionEnvelope = {
@@ -506,8 +1080,8 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           sessionId: input.session.sessionId,
           occurredAt: nowIso(),
           payload: {
-            actorId: input.agent?.id ?? null,
-            actorName: input.agent?.name ?? "Runtime Assistant",
+            actorId,
+            actorName,
             turnIndex: input.turnIndex,
             toolName: context.toolCall.name,
             args: context.args as Record<string, unknown>,
@@ -527,11 +1101,10 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
       },
     });
 
-    const actorName = input.agent?.name ?? "Runtime Assistant";
     const actorKey = input.agent?.id ?? actorName;
     state.agents.set(actorKey, {
       agent,
-      actorId: input.agent?.id ?? null,
+      actorId,
       actorName,
     });
     agent.subscribe((event) => {
@@ -540,16 +1113,17 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
         sessionId: input.session.sessionId,
         occurredAt: nowIso(),
         payload: {
-          actorId: input.agent?.id ?? null,
-          actorName: input.agent?.name ?? "Runtime Assistant",
+          actorId,
+          actorName,
           turnIndex: input.turnIndex,
           eventType: event.type,
         },
       });
       input.onAgentEvent({
-        actorId: input.agent?.id ?? null,
-        actorName: input.agent?.name ?? "Runtime Assistant",
+        actorId,
+        actorName,
         turnIndex: input.turnIndex,
+        subConversation: input.subConversation ?? null,
         event,
       });
       if (event.type === "message_end" && event.message.role === "assistant") {
@@ -559,9 +1133,10 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
 
     try {
       await agent.prompt(input.latestUserMessage);
+      this.assertSessionGeneration(input.session.sessionId, generation);
       return {
-        actorId: input.agent?.id ?? null,
-        actorName: input.agent?.name ?? "Runtime Assistant",
+        actorId,
+        actorName,
         assistantText: flattenVisibleText(finalAssistant),
         thinkingText: flattenThinkingText(finalAssistant),
       } satisfies InvokeAgentNodeResult;
@@ -571,6 +1146,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
   }
 
   async invokeTeamPlan(input: InvokeTeamPlanInput) {
+    const generation = this.getSessionGeneration(input.session.sessionId);
     const leader =
       input.teamPlan.leaderAgentId
         ? input.teamPlan.actors.find((agent) => agent.id === input.teamPlan.leaderAgentId) ??
@@ -579,6 +1155,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
     const workers = input.teamPlan.actors.filter((agent) => agent.id !== leader?.id);
     const leaderName = leader?.name ?? "Team Leader";
     const directory = workerDirectory(workers);
+    const directHumanMentions = collectMentionDelegations(input.latestUserMessage, workers);
 
     const leaderResult = leader
       ? await this.invokeAgentNode({
@@ -589,7 +1166,10 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           instructions: [
             "You are the only team member that receives the human instruction directly.",
             "Sub agents do not see the full session transcript. Delegate only by mentioning exact handles from the directory below.",
+            "If the human directly mentions a sub agent, that sub agent will receive only that direct mention packet, not the full transcript.",
             "When you need a sub agent, write a compact packet that starts with its handle and includes Context, Task, and Expected output.",
+            "If you delegate, this first response is a routing packet, not the final answer to the human.",
+            "Keep delegation packets short and operational so the conversation stays readable.",
             "If no sub agent is needed, answer the human directly and do not mention any handle.",
             "",
             "Available sub agents:",
@@ -604,25 +1184,81 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           onRuntimeEvent: input.onRuntimeEvent,
         })
       : null;
+    this.assertSessionGeneration(input.session.sessionId, generation);
 
     const delegations = leaderResult
       ? collectMentionDelegations(leaderResult.assistantText, workers)
       : [];
+    const workerRequestsById = new Map<
+      string,
+      {
+        worker: RuntimeAgentProfile;
+        handle: string;
+        humanPackets: string[];
+        leaderPackets: string[];
+      }
+    >();
+    const ensureWorkerRequest = (worker: RuntimeAgentProfile, handle: string) => {
+      const key = worker.id ?? handle;
+      const existing = workerRequestsById.get(key);
+      if (existing) return existing;
+      const next = {
+        worker,
+        handle,
+        humanPackets: [],
+        leaderPackets: [],
+      };
+      workerRequestsById.set(key, next);
+      return next;
+    };
 
+    for (const mention of directHumanMentions) {
+      ensureWorkerRequest(mention.worker, mention.handle).humanPackets.push(mention.packet);
+    }
+    for (const delegation of delegations) {
+      ensureWorkerRequest(delegation.worker, delegation.handle).leaderPackets.push(delegation.packet);
+    }
+
+    this.assertSessionGeneration(input.session.sessionId, generation);
     const initialWorkerContributions = await Promise.all(
-      delegations.map((delegation) =>
-        this.invokeAgentNode({
-          session: input.session,
-          agent: delegation.worker,
-          latestUserMessage: [
-            `${leaderName} explicitly mentioned ${delegation.handle}.`,
-            "This packet is the only task context you receive:",
-            delegation.packet,
-          ].join("\n\n"),
+      [...workerRequestsById.values()].map((request) => {
+        const routedMessage = [
+          request.humanPackets.length > 0
+            ? [
+                `The human operator directly mentioned ${request.handle}.`,
+                "Direct mention packet:",
+                request.humanPackets.join("\n\n---\n\n"),
+              ].join("\n")
+            : "",
+          request.leaderPackets.length > 0
+            ? [
+                `${leaderName} explicitly mentioned ${request.handle}.`,
+                "Leader routing packet:",
+                request.leaderPackets.join("\n\n---\n\n"),
+              ].join("\n")
+            : "",
+        ].filter(Boolean).join("\n\n");
+        const kind: RuntimeSubConversationContext["kind"] =
+          request.leaderPackets.length > 0 ? "leader_delegation" : "direct_mention";
+        const subConversation = buildSubConversationContext({
+          sessionId: input.session.sessionId,
           turnIndex: input.turnIndex,
+          kind,
+          sourceActorName: kind === "leader_delegation" ? leaderName : extractQuestionerName(input.latestUserMessage),
+          target: request.worker,
+          handle: request.handle,
+          contextText: routedMessage,
+        });
+
+        return this.invokeAgentNode({
+          session: input.session,
+          agent: request.worker,
+          latestUserMessage: routedMessage,
+          turnIndex: input.turnIndex,
+          subConversation,
           instructions: [
-            "Context isolation rule: do not assume you saw the human's full session transcript.",
-            "Use only your system prompt, your role, and the packet provided in the current message.",
+            "Context isolation rule: do not assume you saw the human's full session transcript or the leader's full transcript.",
+            "Use only your system prompt, your role, and the routed packets provided in the current message.",
             "Return your contribution to the team, not directly to the end user.",
             "If you need another sub agent, mention that agent's exact handle and include a small handoff packet.",
             "",
@@ -636,9 +1272,10 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           getTranscript: () => [],
           onAgentEvent: input.onAgentEvent,
           onRuntimeEvent: input.onRuntimeEvent,
-        }),
-      ),
+        });
+      }),
     );
+    this.assertSessionGeneration(input.session.sessionId, generation);
 
     const handoffContributions = (
       await Promise.all(
@@ -646,16 +1283,28 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           collectMentionDelegations(
             sourceResult.assistantText,
             workers.filter((worker) => worker.id !== sourceResult.actorId),
-          ).map((handoff) =>
-            this.invokeAgentNode({
+          ).map((handoff) => {
+            const routedMessage = [
+              `${sourceResult.actorName} explicitly mentioned ${handoff.handle}.`,
+              "This handoff packet is the only peer context you receive:",
+              handoff.packet,
+            ].join("\n\n");
+            const subConversation = buildSubConversationContext({
+              sessionId: input.session.sessionId,
+              turnIndex: input.turnIndex,
+              kind: "peer_handoff",
+              sourceActorName: sourceResult.actorName,
+              target: handoff.worker,
+              handle: handoff.handle,
+              contextText: routedMessage,
+            });
+
+            return this.invokeAgentNode({
               session: input.session,
               agent: handoff.worker,
-              latestUserMessage: [
-                `${sourceResult.actorName} explicitly mentioned ${handoff.handle}.`,
-                "This handoff packet is the only peer context you receive:",
-                handoff.packet,
-              ].join("\n\n"),
+              latestUserMessage: routedMessage,
               turnIndex: input.turnIndex,
+              subConversation,
               instructions: [
                 "Context isolation rule: this is a peer handoff, not the full team transcript.",
                 "Use only your system prompt, your role, and this handoff packet.",
@@ -668,11 +1317,12 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
               getTranscript: () => [],
               onAgentEvent: input.onAgentEvent,
               onRuntimeEvent: input.onRuntimeEvent,
-            }),
-          ),
+            });
+          }),
         ),
       )
     ).slice(0, Math.max(0, workers.length));
+    this.assertSessionGeneration(input.session.sessionId, generation);
 
     const workerResults = [...initialWorkerContributions, ...handoffContributions];
 
@@ -681,7 +1331,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           session: input.session,
           agent: leader,
           latestUserMessage: [
-            "Synthesize the current team turn for the human operator.",
+            "You are the Leader. Produce the final answer for the human operator.",
             `Human instruction:\n${input.latestUserMessage}`,
             `Leader routing plan:\n${leaderResult?.assistantText ?? ""}`,
             `Sub agent outputs:\n${workerResults
@@ -689,7 +1339,14 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
               .join("\n\n")}`,
           ].join("\n\n"),
           turnIndex: input.turnIndex,
-          instructions: "Use only the current routed packets and sub agent outputs. Do not invent unseen sub agent context.",
+          instructions: [
+            "Use only the current routed packets and sub agent outputs. Do not invent unseen sub agent context.",
+            "Summarize what each participating agent contributed by name.",
+            "Start the final answer by mentioning the human questioner when the human instruction contains `Question from @name:`.",
+            "Call out conflicts, risks, or missing evidence when they exist.",
+            "End with the decision, recommendation, or next actions the human can use.",
+            "Do not expose hidden chain-of-thought; summarize reasoning at a useful level.",
+          ].join("\n"),
           teamContext: {
             teamName: input.teamPlan.teamName,
             leaderName,
@@ -699,6 +1356,7 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
           onRuntimeEvent: input.onRuntimeEvent,
         })
       : null;
+    this.assertSessionGeneration(input.session.sessionId, generation);
 
     return {
       leader: leaderResult,
@@ -709,14 +1367,20 @@ class PiRuntimeAdapter implements AgentRuntimeInterface {
 
   async cancel(sessionId: string) {
     const state = this.getSessionState(sessionId);
+    this.sessionGenerations.set(sessionId, this.getSessionGeneration(sessionId) + 1);
+    const abortedActors = [...state.agents.values()].map((entry) => entry.actorName);
+    for (const entry of state.agents.values()) {
+      entry.agent.clearAllQueues();
+      entry.agent.abort();
+    }
     state.agents.clear();
+    state.closed = false;
     this.emit(sessionId, {
       type: "runtime.session.cancelled",
       sessionId,
       occurredAt: nowIso(),
-      payload: {},
+      payload: { abortedActors },
     });
-    this.close(sessionId);
   }
 
   async collectArtifacts(sessionId: string) {
