@@ -284,7 +284,8 @@ curl -fsS http://127.0.0.1:1933/health
 | `AGENTWORLD_OPENVIKING_AUTO_START` | 设置为 `0` 时禁用启动器托管的 OpenViking 自动启动。 |
 | `OPENVIKING_CONFIG_FILE` | OpenViking 服务端配置路径，默认 `data/openviking/ov.conf`。 |
 | `OPENVIKING_CLI_CONFIG_FILE` | OpenViking CLI 配置路径，默认 `data/openviking/ovcli.conf`。 |
-| `AGENTWORLD_NODE_RUNTIME_TARBALL` | `pnpm package:linux` 使用的本地 Node.js Linux x64 压缩包；未放在 `thirdparty/node/` 时使用。 |
+| `AGENTWORLD_NODE_RUNTIME_TARBALL` | `pnpm package:linux` 使用的本地 Node.js Linux 压缩包；未放在 `thirdparty/node/` 时使用。 |
+| `AGENTWORLD_BUNDLE_ARCH` | Linux 发布包架构。默认使用当前进程架构；支持 `x64` 和 `arm64`。 |
 
 模型 Provider 密钥应尽量通过控制台配置。Runtime 和知识库模型设置是持久化资源，不应被当作不可变的环境常量。
 
@@ -380,14 +381,16 @@ AgentWorld 可以打包为 Linux 自包含服务。发布包包含：
 
 ```text
 thirdparty/node/node-v${nodeVersion}-linux-x64.tar.xz
+thirdparty/node/node-v${nodeVersion}-linux-arm64.tar.xz
 ```
 
 需要时可用批准的内部压缩包替换，或设置 `AGENTWORLD_NODE_RUNTIME_TARBALL` 为本地绝对路径。
 
-Linux 打包前，先把 Linux x64 OpenViking 二进制放到：
+Linux 打包前，先把匹配架构的 OpenViking 二进制放到：
 
 ```text
 thirdparty/openviking/bin/openviking-server-linux-x64
+thirdparty/openviking/bin/openviking-server-linux-arm64
 ```
 
 构建 Linux 发布包：
@@ -395,6 +398,13 @@ thirdparty/openviking/bin/openviking-server-linux-x64
 ```bash
 pnpm openviking:build-binary
 pnpm package:linux
+```
+
+指定 Linux 目标架构：
+
+```bash
+AGENTWORLD_BUNDLE_ARCH=arm64 pnpm package:linux
+AGENTWORLD_BUNDLE_ARCH=x64 pnpm package:linux
 ```
 
 `pnpm openviking:build-binary` 默认也是离线模式，只会通过 `pip --no-index` 从 `thirdparty/openviking/wheels` 或 `OPENVIKING_WHEELHOUSE_DIR` 安装 Python 依赖。

@@ -10,10 +10,14 @@ if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_PACKA
 
 const appVersion = process.env.npm_package_version ?? "0.1.0";
 const nodeVersion = process.env.AGENTWORLD_BUNDLE_NODE_VERSION ?? process.versions.node;
-const outDir = path.join(root, "dist", `agentworld-linux-x64-${appVersion}`);
-const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-linux-x64.tar.xz`);
+const bundlePlatform = process.env.AGENTWORLD_BUNDLE_PLATFORM ?? "linux";
+const bundleArch = process.env.AGENTWORLD_BUNDLE_ARCH ?? process.arch;
+const nodeArch = bundleArch === "x64" ? "x64" : bundleArch === "arm64" ? "arm64" : bundleArch;
+const bundleId = `${bundlePlatform}-${bundleArch}`;
+const outDir = path.join(root, "dist", `agentworld-${bundleId}-${appVersion}`);
+const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-${bundlePlatform}-${nodeArch}.tar.xz`);
 const nodeTar = path.resolve(process.env.AGENTWORLD_NODE_RUNTIME_TARBALL ?? defaultNodeTar);
-const linuxServerBin = platformServerBin("linux", "x64");
+const linuxServerBin = platformServerBin(bundlePlatform, bundleArch);
 
 function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", ...options });
@@ -26,8 +30,8 @@ function copyDir(from, to) {
 }
 
 if (!fs.existsSync(linuxServerBin)) {
-  console.error("OpenViking Linux x64 binary is missing: thirdparty/openviking/bin/openviking-server-linux-x64");
-  console.error("Build it on a Linux x64 builder with pnpm openviking:build-binary, or place an approved internal binary there.");
+  console.error(`OpenViking ${bundleId} binary is missing: thirdparty/openviking/bin/openviking-server-${bundleId}`);
+  console.error("Build it on a matching Linux builder with pnpm openviking:build-binary, or place an approved internal binary there.");
   process.exit(1);
 }
 
@@ -46,7 +50,7 @@ fs.mkdirSync(outDir, { recursive: true });
 
 run("tar", ["-xJf", nodeTar, "-C", outDir]);
 fs.renameSync(
-  path.join(outDir, `node-v${nodeVersion}-linux-x64`),
+  path.join(outDir, `node-v${nodeVersion}-${bundlePlatform}-${nodeArch}`),
   path.join(outDir, "runtime-node"),
 );
 
@@ -109,6 +113,7 @@ fs.writeFileSync(
   path.join(outDir, "README.txt"),
   [
     "AgentWorld Linux bundle",
+    `Target: ${bundleId}`,
     "",
     "1. Edit .env or export required environment variables.",
     "2. Start AgentWorld: ./agentworld",
