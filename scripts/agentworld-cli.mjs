@@ -143,8 +143,8 @@ function assertCleanWorktree() {
 function hasOpenVikingRuntime() {
   const candidates = [
     process.env.OPENVIKING_SERVER_BIN,
-    path.join(root, "thirdparty", "openviking", "bin", "openviking-server"),
     path.join(root, "thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
+    path.join(root, "thirdparty", "openviking", "bin", "openviking-server"),
   ].filter(Boolean);
   return candidates.some((candidate) => fs.existsSync(path.resolve(candidate)));
 }
@@ -159,7 +159,7 @@ function ensureOpenViking(options) {
     fail([
       "OpenViking runtime is missing.",
       "Offline installs do not download binaries.",
-      "Place the vetted binary at thirdparty/openviking/bin/openviking-server, or set OPENVIKING_SERVER_BIN.",
+      `Place the vetted binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, or set OPENVIKING_SERVER_BIN.`,
       "Use --skip-openviking only when an internal OpenViking service is already configured.",
     ].join("\n"));
   }
@@ -218,7 +218,11 @@ async function doctor(options = {}) {
   push("git", commandExists("git"), capture("git", ["--version"]) ?? "missing");
   push(".env.local", fs.existsSync(path.join(root, ".env.local")), ".env.local");
   push("SQLite data dir", fs.existsSync(path.join(root, "data")), "data/");
-  push("OpenViking runtime", hasOpenVikingRuntime(), "OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server");
+  push(
+    "OpenViking runtime",
+    hasOpenVikingRuntime(),
+    `OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}`,
+  );
 
   const port = process.env.PORT ?? "7369";
   const appUrl = `http://127.0.0.1:${port}`;

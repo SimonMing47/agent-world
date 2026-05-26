@@ -14,7 +14,7 @@ const cliConfigPath = writeCliConfig({ force });
 
 if (devVenv) {
   console.error("Networked OpenViking pip installation is disabled for offline deployments.");
-  console.error("Provide a vetted OpenViking server binary via OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server.");
+  console.error(`Provide a vetted OpenViking server binary via OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`);
   process.exit(1);
 }
 
@@ -24,7 +24,7 @@ console.log(`CLI config: ${cliConfigPath}`);
 console.log(`Binary path: ${serverBin ?? defaultServerBin}`);
 if (!serverBin) {
   console.log("No local OpenViking server binary found.");
-  console.log("Place the vetted binary at thirdparty/openviking/bin/openviking-server, or set OPENVIKING_SERVER_BIN.");
+  console.log(`Place the vetted binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, or set OPENVIKING_SERVER_BIN.`);
   if (requireBinary) process.exit(1);
 }
 if (!process.env.OPENVIKING_VLM_PROVIDER || !process.env.OPENVIKING_VLM_MODEL) {

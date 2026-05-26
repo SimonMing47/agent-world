@@ -208,7 +208,7 @@ Team -> Memory: 写入结果和人工反馈入口
 AgentWorld 发布为 Linux 自包含包。OpenViking 不要求容器运行时，优先使用：
 
 ```text
-thirdparty/openviking/bin/openviking-server
+thirdparty/openviking/bin/openviking-server-${platform}-${arch}
 ```
 
 如需外置二进制：
@@ -217,4 +217,4 @@ thirdparty/openviking/bin/openviking-server
 OPENVIKING_SERVER_BIN=/opt/openviking/openviking-server
 ```
 
-发布包包含 Node.js runtime、AgentWorld standalone app、OpenViking 二进制和配置文件。默认执行 `./agentworld` 时，启动器会先检查 OpenViking `/health`，必要时拉起 `thirdparty/openviking/bin/openviking-server`，再启动 AgentWorld standalone 服务；`./openviking-server` 仅作为手动诊断入口。
+发布包包含 Node.js runtime、AgentWorld standalone app、OpenViking 二进制、本地字体和配置文件。Linux 打包要求 `thirdparty/openviking/bin/openviking-server-linux-x64`，打包后会复制为包内 `thirdparty/openviking/bin/openviking-server`。默认执行 `./agentworld` 时，启动器会先检查 OpenViking `/health`，必要时拉起包内 OpenViking，再启动 AgentWorld standalone 服务；`./openviking-server` 仅作为手动诊断入口。

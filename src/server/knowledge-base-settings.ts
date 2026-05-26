@@ -146,7 +146,9 @@ function defaultSettings(): KnowledgeBaseSettings {
     baseUrl: (process.env.OPENVIKING_BASE_URL ?? DEFAULT_OPENVIKING_BASE_URL).replace(/\/+$/, ""),
     host: process.env.OPENVIKING_HOST ?? "127.0.0.1",
     port: String(process.env.OPENVIKING_PORT ?? "1933"),
-    serverBin: process.env.OPENVIKING_SERVER_BIN ?? path.join("thirdparty", "openviking", "bin", "openviking-server"),
+    serverBin:
+      process.env.OPENVIKING_SERVER_BIN ??
+      path.join("thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
     configPath: process.env.OPENVIKING_CONFIG_FILE ?? path.join(dataDir(), "ov.conf"),
     cliConfigPath: process.env.OPENVIKING_CLI_CONFIG_FILE ?? path.join(dataDir(), "ovcli.conf"),
     timeoutSeconds: String(process.env.OPENVIKING_TIMEOUT_SECONDS ?? "60"),
