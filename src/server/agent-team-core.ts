@@ -208,41 +208,6 @@ function normalizeStatus(value: unknown) {
   return ["active", "draft", "paused"].includes(status) ? status : "active";
 }
 
-function defaultAgentSoulTemplate(name: string, role: string, teamObjective: string) {
-  return `# SOUL.md - 你是谁
-
-_你不是聊天机器人。你正在成为某个具体的存在。_
-
-## 身份
-
-你是 **${name}**。
-
-你的角色是：**${role}**。
-
-## 团队任务
-
-${teamObjective || "根据团队目标完成被分派的任务。"}
-
-## 核心原则
-
-**先理解任务，再采取行动。** 你只处理 Leader 或协作者明确交给你的上下文，不假设自己拥有完整会话。
-
-**输出要能交接。** 你的结论需要包含证据、判断和下一步建议，方便团队合并。
-
-**守住边界。** 不越权访问私人信息，不对外发送半成品，不确定时把风险交还给 Leader。
-
-## 职责
-
-- 围绕你的角色完成专业判断
-- 使用必要工具验证事实
-- 在需要其他成员时清晰说明 handoff 背景
-
-## 风格
-
-简洁、具体、有判断。不要客服腔，也不要为了显得忙碌而输出空话。
-`;
-}
-
 function sanitizeAssemblySuggestion(
   suggestion: Partial<AgentTeamAssemblySuggestion>,
   args: {
@@ -284,23 +249,26 @@ function sanitizeAssemblySuggestion(
 
   const newAgents = (Array.isArray(suggestion.newAgents) ? suggestion.newAgents : [])
     .slice(0, 6)
-    .map((agent, index) => {
-      const name = normalizeText(agent.name, `新 Agent ${index + 1}`);
-      const role = normalizeText(agent.role, normalizeText(agent.memberRole, "specialist"));
+    .map((agent) => {
+      const name = normalizeText(agent.name);
+      const role = normalizeText(agent.role, normalizeText(agent.memberRole));
+      const systemPrompt = normalizeText(agent.systemPrompt);
+      if (!name || !role || !systemPrompt) return null;
       const memberRole = normalizeText(agent.memberRole, role);
       return {
         tempId: normalizeText(agent.tempId, `new-${randomUUID().slice(0, 8)}`),
         name,
         role,
-        description: normalizeText(agent.description, `${role}，用于补足当前团队目标中的能力缺口。`),
-        systemPrompt: normalizeText(agent.systemPrompt, defaultAgentSoulTemplate(name, role, teamObjective)),
+        description: normalizeText(agent.description),
+        systemPrompt,
         memberRole,
         workInstruction: normalizeText(agent.workInstruction, "根据 Leader 分派的局部上下文输出可合并的专业结论。"),
         tags: Array.isArray(agent.tags) ? agent.tags.map(String).filter(Boolean).slice(0, 8) : ["team-generated"],
         isLeader: Boolean(agent.isLeader) && !selectedMembers.some((member) => member.isLeader),
         rationale: normalizeText(agent.rationale),
       };
-    });
+    })
+    .filter((agent): agent is NonNullable<typeof agent> => Boolean(agent));
 
   if (!selectedMembers.length && !newAgents.length && args.availableAgents[0]) {
     selectedMembers.push({

@@ -86,10 +86,12 @@ export function DataTableHead({
 export function DataTableCell({
   align = "left",
   className,
+  colSpan,
   children,
 }: {
   align?: "left" | "right" | "center";
   className?: string;
+  colSpan?: number;
   children?: React.ReactNode;
 }) {
   const text = useLanguageText();
@@ -97,6 +99,7 @@ export function DataTableCell({
   return (
     <td
       suppressHydrationWarning
+      colSpan={colSpan}
       className={cn(
         "px-4 py-4 align-top text-sm leading-6 text-[var(--ink-muted)]",
         align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left",

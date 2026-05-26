@@ -14,7 +14,6 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateWithPack } from "@/lib/language-pack";
-import { translateSourceType, translateStatus } from "@/lib/presentation";
 import { formatDateTime, formatNumber } from "@/lib/utils";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getDashboardSnapshot, getSettingsSnapshot } from "@/server/queries";
@@ -42,7 +41,7 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
   if (status === "running") return "accent";
   if (status === "failed") return "danger";
   if (status === "queued" || status === "awaiting") return "warning";
-  if (status === "succeeded") return "success";
+  if (status === "completed" || status === "succeeded" || status === "passed") return "success";
   return "neutral";
 }
 
@@ -54,46 +53,28 @@ export default function OverviewPage() {
   const settings = getSettingsSnapshot();
   const runtimeSessions = listRuntimeSessions().slice(0, 5);
 
-  const activeRuns = snapshot.task_runs.filter((taskRun) => ["running", "awaiting"].includes(taskRun.status));
-  const featuredRun = activeRuns[0] ?? snapshot.task_runs[0] ?? null;
-  const featuredBusinessTeam = featuredRun
-    ? snapshot.businessTeamSummaries.find((item) => item.id === featuredRun.businessTeamId) ?? null
-    : null;
-  const featuredAgentTeam = featuredRun
-    ? snapshot.teamSummaries.find((item) => item.id === featuredRun.teamId) ?? null
-    : null;
-  const teamHighlights = snapshot.taskExecutionDashboard.byBusinessTeam
+  const businessTeamHighlights = snapshot.businessTeamSummaries
     .slice()
-    .sort((left, right) => right.taskRunCount - left.taskRunCount)
+    .sort((left, right) => right.toolRefCount - left.toolRefCount || left.name.localeCompare(right.name))
     .slice(0, 6);
-  const topPriorityRuns = snapshot.taskRunPriorityBoard
-    .slice(0, 6)
-    .map((assessment) => ({
-      ...assessment,
-      taskRun: snapshot.task_runs.find((taskRun) => taskRun.id === assessment.taskRunId) ?? null,
-      businessTeamName:
-        (() => {
-          const taskRun = snapshot.task_runs.find((candidate) => candidate.id === assessment.taskRunId);
-          if (!taskRun) return t("overview.common.empty");
-          return snapshot.businessTeamSummaries.find((team) => team.id === taskRun.businessTeamId)?.name ?? t("overview.common.empty");
-        })(),
-    }))
-    .filter((item) => item.taskRun);
   const highlightedBlueprints = snapshot.taskBlueprints.slice(0, 6);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="overview.hero.brandLabel"
-        title="ui.generated.cf0e2bbbacc"
+        eyebrow={t("overview.hero.brandLabel")}
+        title={t("overview.hero.title")}
         badges={[
-          { label: `${activeRuns.length} ${t("ui.common.detail.running", "个运行中")}`, variant: "accent" },
-          { label: `${settings.metrics.providerProfileCount} ${t("ui.common.count.modelServices", "个模型服务")}`, variant: "neutral" },
+          { label: t("overview.hero.teamBadge", undefined, { count: snapshot.teamSummaries.length }), variant: "accent" },
+          {
+            label: t("overview.hero.modelServiceBadge", undefined, { count: settings.metrics.providerProfileCount }),
+            variant: "neutral",
+          },
         ]}
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="primary" size="md" className="rounded-full px-5">
-              <Link href="/task-runs">{t("overview.hero.primaryAction")}</Link>
+              <Link href="/team-wallboard">{t("overview.hero.primaryAction")}</Link>
             </Button>
             <Button asChild variant="secondary" size="md" className="rounded-full px-5">
               <Link href="/interactions">{t("overview.hero.secondaryAction")}</Link>
@@ -105,118 +86,38 @@ export default function OverviewPage() {
       <SummaryStrip
         items={[
           {
-            label: "overview.stats.activeRuns",
-            value: formatNumber(activeRuns.length),
-            detail: "overview.stats.activeRunsDetail",
-            tone: activeRuns.length > 0 ? "accent" : "default",
+            label: t("overview.stats.businessTeams"),
+            value: formatNumber(snapshot.businessTeamSummaries.length),
+            detail: t("overview.stats.businessTeamsDetail"),
+            tone: snapshot.businessTeamSummaries.length > 0 ? "accent" : "default",
           },
           {
-            label: "overview.stats.completedRuns",
-            value: formatNumber(snapshot.completedTaskRunCount),
-            detail: "overview.stats.completedRunsDetail",
-            tone: snapshot.completedTaskRunCount > 0 ? "accent" : "default",
+            label: t("overview.stats.agentTeams"),
+            value: formatNumber(snapshot.teamSummaries.length),
+            detail: t("overview.stats.agentTeamsDetail"),
+            tone: snapshot.teamSummaries.length > 0 ? "accent" : "default",
           },
           {
-            label: "overview.stats.modelServices",
+            label: t("overview.stats.modelServices"),
             value: formatNumber(settings.metrics.providerProfileCount),
-            detail: "overview.stats.modelServicesDetail",
+            detail: t("overview.stats.modelServicesDetail"),
             tone: settings.metrics.providerProfileCount > 0 ? "accent" : "default",
+          },
+          {
+            label: t("overview.stats.runtimeEndpoints"),
+            value: formatNumber(snapshot.runtimes.length),
+            detail: t("overview.stats.runtimeEndpointsDetail"),
+            tone: snapshot.runtimes.length > 0 ? "accent" : "default",
           },
         ]}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_360px]">
-        <Panel>
-          <PanelHeader
-            eyebrow="overview.queue.eyebrow"
-            title="overview.queue.title"
-            description="overview.queue.description"
-            action={
-              <Button asChild size="sm" variant="ghost">
-                      <Link href="/task-runs">{t("overview.queue.action")}</Link>
-              </Button>
-            }
-          />
-          <PanelBody className="p-0">
-            {topPriorityRuns.length ? (
-              <DataTable>
-                <DataTableHeader>
-                  <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("overview.blueprints.columns.name")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
-                    <DataTableHead>{t("overview.featured.businessTeam")}</DataTableHead>
-                    <DataTableHead align="right">{t("ui.generated.c7a25c53e48", "优先级")}</DataTableHead>
-                  </DataTableRow>
-                </DataTableHeader>
-                <DataTableBody>
-                  {topPriorityRuns.map((item) => (
-                    <DataTableRow key={item.taskRunId}>
-                      <DataTableCell className="min-w-[320px]">
-                        <div className="font-medium text-[var(--ink)]">{item.taskRun?.sourceRef ?? item.taskRun?.sourceType}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{item.rationale[0]}</div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <Badge variant={statusVariant(item.taskRun?.status ?? "idle")}>
-                          {translateStatus(item.taskRun?.status ?? "idle")}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell>{item.businessTeamName}</DataTableCell>
-                      <DataTableCell align="right">
-                        <span className="font-medium text-[var(--ink)]">{formatNumber(item.effectivePriority)}</span>
-                      </DataTableCell>
-                    </DataTableRow>
-                  ))}
-                </DataTableBody>
-              </DataTable>
-            ) : (
-              <PanelBody>
-                <CompactEmpty
-                  title={t("overview.queue.empty")}
-                  description={t("overview.queue.emptyDescription")}
-                  action={
-                    <Button asChild size="sm" variant="ghost">
-                      <Link href="/task-blueprints">{t("overview.blueprints.action")}</Link>
-                    </Button>
-                  }
-                />
-              </PanelBody>
-            )}
-          </PanelBody>
-        </Panel>
-
-        <Panel>
-          <PanelHeader eyebrow="overview.featured.kicker" title="overview.status.title" description="overview.status.description" />
-          <PanelBody className="space-y-1">
-            <div className="aw-metric-row">
-              <div className="aw-metric-row__label">{t("overview.featured.agentTeam")}</div>
-              <div className="aw-metric-row__value">{featuredAgentTeam?.name ?? t("overview.common.empty")}</div>
-            </div>
-            <div className="aw-metric-row">
-              <div className="aw-metric-row__label">{t("overview.featured.businessTeam")}</div>
-              <div className="aw-metric-row__value">{featuredBusinessTeam?.name ?? t("overview.common.empty")}</div>
-            </div>
-            <div className="aw-metric-row">
-              <div className="aw-metric-row__label">{t("overview.featured.window")}</div>
-              <div className="aw-metric-row__value">{formatDateTime(snapshot.upcomingWindow)}</div>
-            </div>
-            <div className="aw-metric-row">
-              <div className="aw-metric-row__label">{t("overview.featured.dueSchedules")}</div>
-              <div className="aw-metric-row__value">{formatNumber(snapshot.dueScheduleCount)}</div>
-            </div>
-            <div className="aw-metric-row">
-              <div className="aw-metric-row__label">{t("overview.stats.modelServices")}</div>
-              <div className="aw-metric-row__value">{formatNumber(settings.metrics.providerProfileCount)}</div>
-            </div>
-          </PanelBody>
-        </Panel>
-      </div>
-
       <div className="grid gap-6">
         <Panel>
           <PanelHeader
-            eyebrow="overview.interactions.eyebrow"
-            title="overview.interactions.title"
-            description="overview.interactions.description"
+            eyebrow={t("overview.interactions.eyebrow")}
+            title={t("overview.interactions.title")}
+            description={t("overview.interactions.description")}
             action={
               <Button asChild size="sm" variant="ghost">
                 <Link href="/interactions">{t("overview.interactions.action")}</Link>
@@ -228,10 +129,10 @@ export default function OverviewPage() {
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("ui.generated.c836ffe0e10", "会话")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c093dea88c9", "更新时间")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c8e175e7aa9", "执行配置")}</DataTableHead>
-                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c836ffe0e10")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c093dea88c9")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c8e175e7aa9")}</DataTableHead>
+                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e")}</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -243,7 +144,7 @@ export default function OverviewPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <Badge variant={session.status === "running" ? "accent" : "neutral"}>
-                          {translateStatus(session.status)}
+                          {t(`labels.status.${session.status}`, session.status)}
                         </Badge>
                       </DataTableCell>
                       <DataTableCell>{formatDateTime(session.updatedAt)}</DataTableCell>
@@ -276,9 +177,9 @@ export default function OverviewPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
         <Panel>
           <PanelHeader
-            eyebrow="overview.teams.eyebrow"
-            title="overview.teams.title"
-            description="overview.teams.description"
+            eyebrow={t("overview.teams.eyebrow")}
+            title={t("overview.teams.title")}
+            description={t("overview.teams.description")}
             action={
               <Button asChild size="sm" variant="ghost">
                 <Link href="/business-teams">{t("overview.teams.action")}</Link>
@@ -286,19 +187,17 @@ export default function OverviewPage() {
             }
           />
           <PanelBody className="space-y-1">
-            {teamHighlights.length ? (
-              teamHighlights.map((team) => (
-                <div key={team.businessTeamId} className="aw-metric-row">
+            {businessTeamHighlights.length ? (
+              businessTeamHighlights.map((team) => (
+                <div key={team.id} className="aw-metric-row">
                   <div>
-                    <div className="text-sm font-medium text-[var(--ink)]">{team.businessTeamName}</div>
-                    <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                      {formatNumber(team.teamCount)} {t("overview.teams.agentTeamSuffix")}
-                    </div>
+                    <div className="text-sm font-medium text-[var(--ink)]">{team.name}</div>
+                    <div className="mt-1 max-w-[220px] truncate text-xs text-[var(--ink-muted)]">{team.privateMemoryNamespace}</div>
                   </div>
                   <div className="text-right">
-                    <div className="aw-metric-row__value">{formatNumber(team.taskRunCount)}</div>
+                    <div className="aw-metric-row__value">{formatNumber(team.toolRefCount)}</div>
                     <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                      {formatNumber(team.activeCount)} {t("overview.common.activeSuffix")}
+                      {t("overview.teams.toolSuffix")}
                     </div>
                   </div>
                 </div>
@@ -311,9 +210,9 @@ export default function OverviewPage() {
 
         <Panel>
           <PanelHeader
-            eyebrow="overview.blueprints.eyebrow"
-            title="overview.blueprints.title"
-            description="overview.blueprints.description"
+            eyebrow={t("overview.blueprints.eyebrow")}
+            title={t("overview.blueprints.title")}
+            description={t("overview.blueprints.description")}
             action={
               <Button asChild size="sm" variant="ghost">
                 <Link href="/task-blueprints">{t("overview.blueprints.action")}</Link>
@@ -328,7 +227,7 @@ export default function OverviewPage() {
                     <DataTableHead>{t("overview.blueprints.columns.name")}</DataTableHead>
                     <DataTableHead>{t("overview.blueprints.columns.team")}</DataTableHead>
                     <DataTableHead>{t("overview.blueprints.columns.trigger")}</DataTableHead>
-                    <DataTableHead align="right">{t("overview.blueprints.columns.runs")}</DataTableHead>
+                    <DataTableHead align="right">{t("overview.blueprints.columns.status")}</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -339,8 +238,12 @@ export default function OverviewPage() {
                         <div className="mt-1 text-xs text-[var(--ink-muted)]">{blueprint.category}</div>
                       </DataTableCell>
                       <DataTableCell>{blueprint.businessTeamName}</DataTableCell>
-                      <DataTableCell>{translateSourceType(String((blueprint.trigger as Record<string, unknown>).type ?? "manual"))}</DataTableCell>
-                      <DataTableCell align="right">{formatNumber(blueprint.runCount)}</DataTableCell>
+                      <DataTableCell>
+                        {t(`labels.sourceType.${String((blueprint.trigger as Record<string, unknown>).type ?? "manual")}`)}
+                      </DataTableCell>
+                      <DataTableCell align="right">
+                        <Badge variant={statusVariant(blueprint.status)}>{t(`labels.status.${blueprint.status}`)}</Badge>
+                      </DataTableCell>
                     </DataTableRow>
                   ))}
                 </DataTableBody>

@@ -75,7 +75,7 @@ export function KnowledgeSpaceForm({
     agentTeams.find((team) => team.id === space?.agentTeamId)?.businessTeamId ??
     "";
   const [spaceType, setSpaceType] = useState(space?.spaceType ?? "team");
-  const [tenantSpaceId, setTenantSpaceId] = useState(space?.tenantSpaceId ?? tenantSpaces[0]?.id ?? "");
+  const [tenantSpaceId, setTenantSpaceId] = useState(space?.tenantSpaceId ?? "");
   const [businessTeamId, setBusinessTeamId] = useState(initialBusinessTeamId);
   const availableAgentTeams = useMemo(
     () => agentTeams.filter((team) => !businessTeamId || team.businessTeamId === businessTeamId),

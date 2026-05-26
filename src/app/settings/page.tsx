@@ -40,11 +40,11 @@ const systemEntries = [
     description: "ui.generated.c8f35d729e3",
   },
   {
-    name: "知识库配置",
+    name: "settings.knowledge.title",
     href: "#knowledge-base",
     group: "ui.generated.c918a0a7cf1",
     scope: "OpenViking",
-    description: "配置默认知识库后端、OpenViking 连接、内容理解知识底座和检索索引参数。",
+    description: "settings.knowledge.description",
   },
   {
     name: "ui.common.resources.providerProfile",
@@ -153,56 +153,56 @@ const systemGroupPanels: Record<typeof systemEntryGroups[number], {
   title: string;
   description: string;
 }> = {
-  "ui.generated.c918a0a7cf1": {
-    id: "general-settings",
-    title: "通用设置",
-    description: "开发模式、语言包、知识库等系统级入口。",
-  },
-  "ui.generated.cfad8b39e99": {
-    id: "resource-settings",
-    title: "资源配置",
-    description: "模型、Skill、MCP、连接器、Codebase 和知识库资源入口。",
-  },
-  "ui.generated.c2e03739792": {
-    id: "runtime-governance-settings",
-    title: "运行治理",
-    description: "运行绑定、环境、Webhook、策略、租户和服务目录入口。",
-  },
+	  "ui.generated.c918a0a7cf1": {
+	    id: "general-settings",
+	    title: "settings.groups.general.title",
+	    description: "settings.groups.general.description",
+	  },
+	  "ui.generated.cfad8b39e99": {
+	    id: "resource-settings",
+	    title: "settings.groups.resources.title",
+	    description: "settings.groups.resources.description",
+	  },
+	  "ui.generated.c2e03739792": {
+	    id: "runtime-governance-settings",
+	    title: "settings.groups.runtime.title",
+	    description: "settings.groups.runtime.description",
+	  },
 };
 
 const settingsNavItems: SettingsNavItem[] = [
-  {
-    id: "knowledge-base",
-    label: "知识库配置",
-    description: "OpenViking 连接、启动、内容理解知识底座和检索索引参数。",
-    meta: "OpenViking",
-  },
+	  {
+	    id: "knowledge-base",
+	    label: "settings.knowledge.title",
+	    description: "settings.nav.knowledge.description",
+	    meta: "OpenViking",
+	  },
   {
     id: "development-access",
     label: "developmentAccess.settings.title",
     description: "developmentAccess.settings.description",
-    meta: "开发",
-  },
-  {
-    id: "language-pack",
-    label: "ui.common.resources.languagePack",
-    description: "界面文字、术语和语言包覆盖。",
-    meta: "语言",
-  },
-  {
-    id: "general-settings",
-    label: "通用设置",
-    description: "系统常用配置入口。",
-  },
-  {
-    id: "resource-settings",
-    label: "资源配置",
-    description: "模型服务和平台资源入口。",
-  },
-  {
-    id: "runtime-governance-settings",
-    label: "运行治理",
-    description: "运行环境、Webhook 和治理策略。",
+	    meta: "settings.meta.development",
+	  },
+	  {
+	    id: "language-pack",
+	    label: "ui.common.resources.languagePack",
+	    description: "settings.nav.language.description",
+	    meta: "settings.meta.language",
+	  },
+	  {
+	    id: "general-settings",
+	    label: "settings.groups.general.title",
+	    description: "settings.nav.general.description",
+	  },
+	  {
+	    id: "resource-settings",
+	    label: "settings.groups.resources.title",
+	    description: "settings.nav.resource.description",
+	  },
+	  {
+	    id: "runtime-governance-settings",
+	    label: "settings.groups.runtime.title",
+	    description: "settings.nav.runtime.description",
   },
 ];
 
@@ -214,36 +214,42 @@ export default function SettingsPage() {
   const developmentAccessSetting = getDevelopmentAccessSettings();
   const knowledgeBaseSetting = getKnowledgeBaseSettings();
   const openVikingModelDefaults = getOpenVikingModelDefaults();
+  const localizedSettingsNavItems = settingsNavItems.map((item) => ({
+    ...item,
+    label: t(item.label),
+    description: item.description ? t(item.description) : undefined,
+    meta: item.meta ? t(item.meta) : undefined,
+  }));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.c3c71dca8a0"
-        title="ui.generated.c3c71dca8a0"
-        description="ui.generated.cb2d089ae22"
+        eyebrow={t("ui.generated.c3c71dca8a0")}
+        title={t("ui.generated.c3c71dca8a0")}
+        description={t("ui.generated.cb2d089ae22")}
         badges={[
-          { label: `${snapshot.providers.length} ${t("ui.common.count.modelServices", "个模型服务")}`, variant: "accent" },
-          { label: `${snapshot.environments.length} ${t("ui.common.count.environments", "个执行环境")}`, variant: "neutral" },
+          { label: `${snapshot.providers.length} ${t("ui.common.count.modelServices")}`, variant: "accent" },
+          { label: `${snapshot.environments.length} ${t("ui.common.count.environments")}`, variant: "neutral" },
           { label: knowledgeBaseSetting.provider === "openviking" ? "OpenViking" : knowledgeBaseSetting.provider, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "ui.generated.cbc56f948bb", value: snapshot.providers.length, detail: "ui.generated.c3ecb393f86" },
-          { label: "ui.generated.c059d73c843", value: snapshot.environments.length, detail: "ui.generated.cfcdc5822f5" },
-          { label: "Webhook", value: snapshot.webhooks.length, detail: "ui.generated.c3ba8e6fc8e" },
-          { label: "ui.generated.c971c6e5190", value: snapshot.taskBlueprints.length, detail: "ui.generated.c26f30fd79b" },
+          { label: t("ui.generated.cbc56f948bb"), value: snapshot.providers.length, detail: t("ui.generated.c3ecb393f86") },
+          { label: t("ui.generated.c059d73c843"), value: snapshot.environments.length, detail: t("ui.generated.cfcdc5822f5") },
+          { label: "Webhook", value: snapshot.webhooks.length, detail: t("ui.generated.c3ba8e6fc8e") },
+          { label: t("ui.generated.c971c6e5190"), value: snapshot.taskBlueprints.length, detail: t("ui.generated.c26f30fd79b") },
         ]}
       />
 
-      <SettingsConfigLayout items={settingsNavItems}>
-        <SettingsCollapsiblePanel
-          id="knowledge-base"
-          eyebrow="系统配置"
-          title="知识库配置"
-          description="默认知识库为 OpenViking；这里统一管理知识读写、同步、本地进程启动、内容理解知识底座和检索索引配置。"
-          meta="OpenViking"
+      <SettingsConfigLayout items={localizedSettingsNavItems}>
+	        <SettingsCollapsiblePanel
+	          id="knowledge-base"
+	          eyebrow={t("settings.general.system")}
+	          title={t("settings.knowledge.title")}
+	          description={t("settings.knowledge.panelDescription")}
+	          meta="OpenViking"
         >
           <KnowledgeBaseSettingsForm
             setting={knowledgeBaseSetting}
@@ -263,20 +269,20 @@ export default function SettingsPage() {
 
         <SettingsCollapsiblePanel
           id="development-access"
-          eyebrow="developmentAccess.scope.label"
-          title="developmentAccess.settings.title"
-          description="developmentAccess.settings.description"
-          meta="开发入口"
+          eyebrow={t("developmentAccess.scope.label")}
+	          title={t("developmentAccess.settings.title")}
+	          description={t("developmentAccess.settings.description")}
+	          meta={t("settings.meta.developmentEntry")}
         >
           <DevelopmentAccessSettingsForm setting={developmentAccessSetting} />
         </SettingsCollapsiblePanel>
 
         <SettingsCollapsiblePanel
           id="language-pack"
-          eyebrow="ui.generated.c918a0a7cf1"
-          title="ui.generated.ce13af2e292"
-          description="ui.generated.c2ef0fab9c9"
-          meta="语言"
+          eyebrow={t("ui.generated.c918a0a7cf1")}
+	          title={t("ui.generated.ce13af2e292")}
+	          description={t("ui.generated.c2ef0fab9c9")}
+	          meta={t("settings.meta.language")}
         >
           <LanguagePackSettingsForm setting={snapshot.languagePackSetting} />
         </SettingsCollapsiblePanel>
@@ -288,29 +294,29 @@ export default function SettingsPage() {
             <SettingsCollapsiblePanel
               key={group}
               id={panel.id}
-              eyebrow="ui.generated.cf84ec364a6"
-              title={panel.title}
-              description={panel.description}
+              eyebrow={t("ui.generated.cf84ec364a6")}
+              title={t(panel.title)}
+              description={t(panel.description)}
               bodyClassName="p-0"
             >
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("ui.generated.cc1bebd4ab3", "配置项")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c785b52eb97", "作用域")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c26670dda42", "说明")}</DataTableHead>
-                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.cc1bebd4ab3")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c785b52eb97")}</DataTableHead>
+                    <DataTableHead>{t("ui.generated.c26670dda42")}</DataTableHead>
+                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e")}</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
                   {systemEntries.filter((entry) => entry.group === group).map((entry) => (
                     <DataTableRow key={entry.href}>
-                      <DataTableCell className="font-semibold text-[var(--ink)]">{entry.name}</DataTableCell>
-                      <DataTableCell>{entry.scope}</DataTableCell>
-                      <DataTableCell>{entry.description}</DataTableCell>
+                      <DataTableCell className="font-semibold text-[var(--ink)]">{t(entry.name)}</DataTableCell>
+                      <DataTableCell>{t(entry.scope)}</DataTableCell>
+                      <DataTableCell>{t(entry.description)}</DataTableCell>
                       <DataTableCell align="right">
                         <Button asChild size="sm" variant="ghost">
-                          <Link href={entry.href}>{t("ui.generated.c65fc81e161", "打开")}</Link>
+                          <Link href={entry.href}>{t("ui.generated.c65fc81e161")}</Link>
                         </Button>
                       </DataTableCell>
                     </DataTableRow>

@@ -1,7 +1,8 @@
-import { Eye, PencilLine, Plus, RefreshCcw } from "lucide-react";
+import { Eye, PencilLine, Plus, RefreshCcw, Upload } from "lucide-react";
 import { SkillForm } from "@/components/admin-forms";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
+import { SkillImportDialog } from "@/components/skill-import-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,37 +73,56 @@ export default async function SkillsPage() {
           title="ui.generated.c58f961e5b0"
           description="ui.generated.c87b80ff260"
           action={
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="secondary">
-                  <Plus className="h-4 w-4" />
-                  ui.generated.c502ac6e63b
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[min(96vw,980px)]">
-                <DialogHeader>
-                  <DialogTitle>ui.generated.c502ac6e63b</DialogTitle>
-                  <DialogDescription>ui.generated.c0e37e96b3c</DialogDescription>
-                </DialogHeader>
-                <DialogBody>
-                  <SkillForm
-                    businessTeams={teamOptions}
-                    skill={{
+            <div className="flex flex-wrap gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="secondary">
+                    <Upload className="h-4 w-4" />
+                    skills.import.title
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[min(96vw,980px)]">
+                  <DialogHeader>
+                    <DialogTitle>skills.import.title</DialogTitle>
+                    <DialogDescription>skills.import.description</DialogDescription>
+                  </DialogHeader>
+                  <DialogBody>
+                    <SkillImportDialog businessTeams={teamOptions} />
+                  </DialogBody>
+                </DialogContent>
+              </Dialog>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="secondary">
+                    <Plus className="h-4 w-4" />
+                    ui.generated.c502ac6e63b
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="w-[min(96vw,980px)]">
+                  <DialogHeader>
+                    <DialogTitle>ui.generated.c502ac6e63b</DialogTitle>
+                    <DialogDescription>ui.generated.c0e37e96b3c</DialogDescription>
+                  </DialogHeader>
+                  <DialogBody>
+                    <SkillForm
+                      businessTeams={teamOptions}
+                      skill={{
 	                      id: "",
 	                      ownerBusinessTeamId: null,
 	                      name: "",
 	                      layer: "",
-                      description: "",
-                      tagsJson: "[]",
-                      visibility: "team",
-                      promptMd: "",
-                      heuristicsJson: "{}",
-                      isEnabled: 1,
-                    }}
-                  />
-                </DialogBody>
-              </DialogContent>
-            </Dialog>
+                        description: "",
+                        tagsJson: "[]",
+                        visibility: "team",
+                        promptMd: "",
+                        heuristicsJson: "{}",
+                        isEnabled: 1,
+                      }}
+                    />
+                  </DialogBody>
+                </DialogContent>
+              </Dialog>
+            </div>
           }
         />
         <PanelBody className="p-0">

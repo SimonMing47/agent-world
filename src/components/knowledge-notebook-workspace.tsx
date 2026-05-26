@@ -175,6 +175,7 @@ type OpenVikingLayerItem = {
   uri: string;
   preview: string;
   editable: boolean;
+  scope: "space" | "entry";
 };
 
 type OpenVikingQueryStep = {
@@ -248,15 +249,17 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
 }
 
 function syncStatusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
-  if (status.startsWith("remote_")) return "success";
   if (status === "remote_failed_local_shadow") return "warning";
+  if (status === "remote_pending_retry") return "warning";
+  if (status.startsWith("remote_")) return "success";
   if (status === "local_shadow") return "accent";
   return "neutral";
 }
 
 function syncStatusLabel(status: string) {
-  if (status.startsWith("remote_")) return "同步：OpenViking 已同步";
   if (status === "remote_failed_local_shadow") return "同步：仅本地保存";
+  if (status === "remote_pending_retry") return "同步：OpenViking 忙，稍后重试";
+  if (status.startsWith("remote_")) return "同步：OpenViking 已同步";
   if (status === "local_shadow") return "同步：本地草稿";
   if (status === "draft") return "同步：待保存";
   return status ? `同步：${status}` : "同步：待保存";
@@ -513,64 +516,110 @@ function markdownOutline(value: string) {
 function openVikingLayerMeta(level: OpenVikingIndexLevel) {
   if (level === "L0") {
     return {
-      label: "L0 摘要索引",
-      description: "Abstract，约百 token，用于向量召回、快速过滤和列表感知。",
+      label: "L0 空间摘要索引",
+      description: "Abstract，知识空间全局一份，用于向量召回、快速过滤和空间级列表感知。",
       editable: false,
     };
   }
   if (level === "L1") {
     return {
-      label: "L1 概览索引",
-      description: "Overview，约两千 token，用于目录递归、重排细化和内容导航。",
+      label: "L1 空间概览索引",
+      description: "Overview，知识空间全局一份，用于理解空间结构、目录递归、重排细化和内容导航。",
       editable: false,
     };
   }
   return {
     label: "L2 原文知识",
-    description: "Details，完整 Markdown 原文，按需读取，也是唯一可编辑层。",
+    description: "Details，单篇完整 Markdown 原文，按需读取，也是唯一可编辑层。",
     editable: true,
   };
 }
 
-function openVikingLayerUri(entry: KnowledgeNotebookEntry | DraftEntry, level: OpenVikingIndexLevel) {
+function openVikingEntryLayerUri(entry: KnowledgeNotebookEntry | DraftEntry) {
   const uri = entry.vikingUri || "未同步到 OpenViking";
-  if (level === "L0") return `abstract(${uri})`;
-  if (level === "L1") return `overview(${uri})`;
   return uri;
 }
 
-function openVikingDirectoryIndexUri(uri: string, level: Exclude<OpenVikingIndexLevel, "L2">) {
-  const base = uri.replace(/\/+$/, "");
-  return `${base}/${level === "L0" ? ".abstract.md" : ".overview.md"}`;
+function openVikingSpaceLayerUri(space: KnowledgeNotebookSpace | undefined, level: Exclude<OpenVikingIndexLevel, "L2">) {
+  const uri = space?.vikingUri || "未选择知识空间";
+  return level === "L0" ? `abstract(${uri})` : `overview(${uri})`;
 }
 
-function openVikingLayerPreview(entry: KnowledgeNotebookEntry | DraftEntry, level: OpenVikingIndexLevel) {
-  const plain = stripMarkdownForIndex(entry.contentMd);
+function openVikingSpaceLayerPreview(
+  space: KnowledgeNotebookSpace | undefined,
+  entries: KnowledgeNotebookEntry[],
+  level: Exclude<OpenVikingIndexLevel, "L2">,
+) {
+  if (!space) return "请选择知识空间后查看空间级索引。";
+  const notes = entries.filter((entry) => nodeTypeOf(entry) !== "folder");
+  const folders = entries.filter((entry) => nodeTypeOf(entry) === "folder");
+
   if (level === "L0") {
-    return truncateText(plain || `${entry.title} 的 OpenViking 摘要索引。`, 220);
+    const summaries = notes
+      .slice(0, 16)
+      .map((entry) => {
+        const plain = stripMarkdownForIndex(entry.contentMd);
+        return `- ${entry.title}: ${truncateText(plain || "暂无正文", 96)}`;
+      });
+    return [
+      `${space.name} 的空间级摘要索引。`,
+      `${notes.length} 篇知识，${folders.length} 个目录。`,
+      "",
+      summaries.length ? summaries.join("\n") : "当前空间还没有可汇总的知识正文。",
+    ].join("\n");
   }
 
-  if (level === "L1") {
-    const outline = markdownOutline(entry.contentMd);
-    const body = truncateText(plain || `${entry.title} 暂无正文内容。`, 860);
-    return outline ? `结构导航：${outline}\n\n${body}` : body;
-  }
+  const outlines = notes
+    .slice(0, 24)
+    .map((entry) => {
+      const outline = markdownOutline(entry.contentMd);
+      return `## ${entry.title}\n${outline || truncateText(stripMarkdownForIndex(entry.contentMd) || "暂无结构", 220)}`;
+    });
+  return [
+    `# ${space.name} 空间概览`,
+    "",
+    `- 知识数量：${notes.length}`,
+    `- 目录数量：${folders.length}`,
+    `- OpenViking URI：${space.vikingUri}`,
+    "",
+    outlines.length ? outlines.join("\n\n") : "当前空间还没有可用于概览索引的知识正文。",
+  ].join("\n");
+}
 
+function openVikingEntryLayerPreview(entry: KnowledgeNotebookEntry | DraftEntry) {
   return entry.contentMd;
 }
 
-function openVikingLayerItems(entry: KnowledgeNotebookEntry | DraftEntry): OpenVikingLayerItem[] {
-  return (["L0", "L1", "L2"] as const).map((level) => {
+function openVikingLayerItems(
+  entry: KnowledgeNotebookEntry | DraftEntry,
+  space: KnowledgeNotebookSpace | undefined,
+  spaceEntries: KnowledgeNotebookEntry[],
+): OpenVikingLayerItem[] {
+  const spaceItems = (["L0", "L1"] as const).map((level) => {
     const meta = openVikingLayerMeta(level);
     return {
       level,
       label: meta.label,
       description: meta.description,
-      uri: openVikingLayerUri(entry, level),
-      preview: openVikingLayerPreview(entry, level),
+      uri: openVikingSpaceLayerUri(space, level),
+      preview: openVikingSpaceLayerPreview(space, spaceEntries, level),
       editable: meta.editable,
+      scope: "space" as const,
     };
   });
+  const meta = openVikingLayerMeta("L2");
+  return [
+    ...spaceItems,
+    {
+      level: "L2",
+      label: meta.label,
+      description: meta.description,
+      uri: openVikingEntryLayerUri(entry),
+      preview: openVikingEntryLayerPreview(entry),
+      editable: meta.editable,
+      scope: "entry",
+    },
+  ];
 }
 
 function openVikingQuerySteps(
@@ -587,7 +636,7 @@ function openVikingQuerySteps(
     {
       level: "L0",
       label: "摘要召回",
-      description: `用「${queryText}」在目标范围做 L0 向量召回，先拿最轻量摘要定位候选。`,
+      description: `用「${queryText}」在知识空间全局 L0 摘要索引做向量召回，先定位候选知识。`,
       uri: `find(query, target_uri=${scope}, level=0)`,
       active: activeLevel === "L0",
       editable: false,
@@ -595,8 +644,8 @@ function openVikingQuerySteps(
     {
       level: "L1",
       label: "概览重排",
-      description: "进入高分目录或文档的 overview，理解结构、关键点和上下文后再重排。",
-      uri: `overview(${target})`,
+      description: "读取知识空间全局 Overview，理解空间结构、关键点和上下文后再重排。",
+      uri: `overview(${scope})`,
       active: activeLevel === "L1",
       editable: false,
     },
@@ -662,11 +711,6 @@ function buildOpenVikingTree(space: KnowledgeNotebookSpace, entries: KnowledgeNo
 
 function openVikingNodeCount(node: OpenVikingTreeNode): number {
   return node.entries.length + node.children.reduce((sum, child) => sum + openVikingNodeCount(child), 0);
-}
-
-function leafNameFromUri(uri: string) {
-  const parts = parseVikingUri(uri);
-  return parts.at(-1) ?? uri;
 }
 
 function escapeHtml(value: string) {
@@ -1408,7 +1452,7 @@ function ContextMenu({
   } else if ("entryId" in target) {
     entry = entries.find((item) => item.id === target.entryId) ?? null;
   }
-  const entrySpaceId = entry?.knowledgeSpaceId ?? space?.id ?? spaces[0]?.id ?? "";
+  const entrySpaceId = entry?.knowledgeSpaceId ?? space?.id ?? "";
   const entryParentId = entry && nodeTypeOf(entry) === "folder" ? entry.id : parentFolderIdOf(entry ?? ({} as KnowledgeNotebookEntry));
 
   const itemClass = "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-[var(--ink)] hover:bg-[rgba(15,23,42,0.04)]";
@@ -1507,7 +1551,7 @@ function SpaceQuickDialog({
   const [form, setForm] = useState({
     name: editing?.name ?? "",
     slug: editing?.slug ?? "",
-    tenantSpaceId: editing?.tenantSpaceId ?? tenantSpaces[0]?.id ?? "",
+    tenantSpaceId: editing?.tenantSpaceId ?? "",
     spaceType: editing?.spaceType ?? (state?.mode === "create" ? state.preferredType ?? "team" : "team"),
     businessTeamId: baseBusinessTeamId,
     agentTeamId: editing?.agentTeamId ?? "",
@@ -1526,7 +1570,7 @@ function SpaceQuickDialog({
     setForm({
       name: nextEditing?.name ?? "",
       slug: nextEditing?.slug ?? "",
-      tenantSpaceId: nextEditing?.tenantSpaceId ?? tenantSpaces[0]?.id ?? "",
+      tenantSpaceId: nextEditing?.tenantSpaceId ?? "",
       spaceType: nextEditing?.spaceType ?? (state.mode === "create" ? state.preferredType ?? "team" : "team"),
       businessTeamId: nextBaseBusinessTeamId,
       agentTeamId: nextEditing?.agentTeamId ?? "",
@@ -1711,7 +1755,7 @@ export function KnowledgeNotebookWorkspace({
   const router = useRouter();
   const { alert: showAlert, confirm: showConfirm, prompt: showPrompt, dialogHost } = useAppDialogs();
   const initialEntry = entries[0];
-  const initialSpaceId = initialEntry?.knowledgeSpaceId ?? spaces[0]?.id ?? "";
+  const initialSpaceId = initialEntry?.knowledgeSpaceId ?? "";
   const [entriesState, setEntriesState] = useState(entries);
   const [selectedSpaceId, setSelectedSpaceId] = useState(initialSpaceId);
   const [selectedEntryId, setSelectedEntryId] = useState(initialEntry?.id ?? draftId);
@@ -1836,17 +1880,33 @@ export function KnowledgeNotebookWorkspace({
     });
   }, [entriesBySpaceId, normalizedQuery, spaces]);
 
-  const activeSpace = spaces.find((space) => space.id === (draft.knowledgeSpaceId || selectedSpaceId));
+  const activeSpaceId = selectedIndexLevel === "L2"
+    ? (draft.knowledgeSpaceId || selectedSpaceId)
+    : (selectedSpaceId || draft.knowledgeSpaceId);
+  const activeSpace = spaces.find((space) => space.id === activeSpaceId);
+  const activeSpaceEntries = useMemo(() => {
+    if (!activeSpace) return [];
+    return entriesBySpaceId.get(activeSpace.id) ?? [];
+  }, [activeSpace, entriesBySpaceId]);
   const contentSize = formatBytes(new TextEncoder().encode(draft.contentMd).length);
   const totalEntries = entriesState.filter((entry) => nodeTypeOf(entry) !== "folder").length;
   const totalFolders = entriesState.filter((entry) => nodeTypeOf(entry) === "folder").length;
-  const selectedLayerItems = useMemo(() => openVikingLayerItems(draft), [draft]);
+  const selectedLayerItems = useMemo(
+    () => openVikingLayerItems(draft, activeSpace, activeSpaceEntries),
+    [activeSpace, activeSpaceEntries, draft],
+  );
   const selectedLayerItem = selectedLayerItems.find((item) => item.level === selectedIndexLevel) ?? selectedLayerItems[2];
   const querySteps = useMemo(
     () => openVikingQuerySteps(activeSpace, draft, selectedIndexLevel, query),
     [activeSpace, draft, query, selectedIndexLevel],
   );
-  const isIndexReadOnly = draft.nodeType !== "folder" && draft.id !== "" && selectedIndexLevel !== "L2";
+  const isIndexReadOnly = selectedIndexLevel !== "L2";
+  const activeContentSize = isIndexReadOnly
+    ? formatBytes(new TextEncoder().encode(selectedLayerItem.preview).length)
+    : contentSize;
+  const activeTitle = isIndexReadOnly
+    ? `${activeSpace?.name ?? "知识空间"} · ${selectedLayerItem.label}`
+    : draft.title;
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
     setEntriesState((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
@@ -1862,7 +1922,7 @@ export function KnowledgeNotebookWorkspace({
   }, []);
 
   function updateDraft(updater: DraftEntry | ((current: DraftEntry) => DraftEntry)) {
-    if (selectedIndexLevel !== "L2" && draftRef.current.id && draftRef.current.nodeType !== "folder") return;
+    if (selectedIndexLevel !== "L2") return;
     const next = typeof updater === "function"
       ? (updater as (current: DraftEntry) => DraftEntry)(draftRef.current)
       : updater;
@@ -2100,7 +2160,7 @@ export function KnowledgeNotebookWorkspace({
     return true;
   }
 
-  async function selectEntryLayer(entry: KnowledgeNotebookEntry, level: OpenVikingIndexLevel) {
+  async function selectEntryLayer(entry: KnowledgeNotebookEntry, level: "L2") {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
     const canNavigate = await saveBeforeNavigation().finally(() => {
@@ -2124,6 +2184,36 @@ export function KnowledgeNotebookWorkspace({
 
   function selectEntry(entry: KnowledgeNotebookEntry) {
     void selectEntryLayer(entry, "L2");
+  }
+
+  async function selectSpaceIndex(space: KnowledgeNotebookSpace, level: Exclude<OpenVikingIndexLevel, "L2">) {
+    if (navigatingRef.current) return;
+    navigatingRef.current = true;
+    const canNavigate = await saveBeforeNavigation().finally(() => {
+      navigatingRef.current = false;
+    });
+    if (!canNavigate) return;
+    setCollapsedSpaceIds((current) => {
+      const next = new Set(current);
+      next.delete(space.id);
+      return next;
+    });
+    setSelectedSpaceId(space.id);
+    setSelectedEntryId(`space:${space.id}:${level}`);
+    setSelectedIndexLevel(level);
+    replaceDraft({
+      ...createBlankDraft(space.id, null, "folder"),
+      title: `${space.name} · ${openVikingLayerMeta(level).label}`,
+      layer: "openviking/space-index",
+      scopeKey: space.slug || vikingScopeLabel(space.vikingUri),
+      vikingUri: space.vikingUri,
+      syncStatus: "remote_synced",
+    });
+    setSaveError(null);
+    setConflictEntry(null);
+    setVersionsOpen(false);
+    setPropertiesOpen(false);
+    setMessage(`${space.name} 的 ${openVikingLayerMeta(level).label} 是知识空间全局索引，只读展示；每篇知识只保留 L2 原文。`);
   }
 
   async function startNewEntry(spaceId = selectedSpaceId, parentFolderId: string | null = null, nodeType: "note" | "folder" = "note") {
@@ -2497,7 +2587,6 @@ export function KnowledgeNotebookWorkspace({
     const children = childEntriesByParentId.get(entry.id) ?? [];
     const pathId = `entry:${entry.id}`;
     const collapsed = collapsedVikingPaths.has(pathId);
-    const layerItems = isFolder ? [] : openVikingLayerItems(entry);
 
     return (
       <div key={entry.id}>
@@ -2541,55 +2630,55 @@ export function KnowledgeNotebookWorkspace({
               <MoreHorizontal className="h-4 w-4 shrink-0 text-transparent group-hover:text-[var(--ink-subtle)]" />
             ) : (
               <span className="mt-0.5 rounded-full bg-[rgba(15,23,42,0.04)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ink-subtle)]">
-                L0/L1/L2
+                L2
               </span>
             )}
           </button>
         </div>
-        {!isFolder ? (
-          <div className="mt-1 space-y-1 border-l border-[var(--line)]/70 pl-2.5" style={{ marginLeft: `${44 + depth * 14}px` }}>
-            {layerItems.map((item) => {
-              const activeLayer = isActive && selectedIndexLevel === item.level;
-              return (
-                <button
-                  key={`${entry.id}:${item.level}`}
-                  type="button"
-                  onClick={() => void selectEntryLayer(entry, item.level)}
-                  onContextMenu={(event) => openContextMenu(event, { type: "entry", entryId: entry.id })}
-                  className={cn(
-                    "group/layer flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left transition-colors",
-                    activeLayer ? "bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]" : "hover:bg-white/80",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "mt-0.5 flex h-5 min-w-8 items-center justify-center rounded-full text-[10px] font-semibold",
-                      item.editable
-                        ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                        : "bg-[rgba(15,23,42,0.04)] text-[var(--ink-subtle)]",
-                    )}
-                  >
-                    {item.level}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-[var(--ink)]">{item.label.replace(/^L\d\s/, "")}</span>
-                    <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--ink-subtle)]">
-                      {item.editable ? leafNameFromUri(entry.vikingUri) : item.uri}
-                    </span>
-                  </span>
-                  <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">
-                    {item.editable ? "可编辑" : "只读"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
         {children.length && !collapsed ? (
           <div className="mt-0.5">
             {children.map((child) => renderEntryBranch(child, depth + 1))}
           </div>
         ) : null}
+      </div>
+    );
+  }
+
+  function renderSpaceIndexButtons(space: KnowledgeNotebookSpace, spaceEntries: KnowledgeNotebookEntry[]): ReactNode {
+    const notes = spaceEntries.filter((entry) => nodeTypeOf(entry) !== "folder");
+    const folders = spaceEntries.filter((entry) => nodeTypeOf(entry) === "folder");
+
+    return (
+      <div className="mb-1 space-y-1">
+        {(["L0", "L1"] as const).map((level) => {
+          const meta = openVikingLayerMeta(level);
+          const active = selectedSpaceId === space.id && selectedIndexLevel === level && selectedLayerItem.scope === "space";
+          return (
+            <button
+              key={`${space.id}:${level}`}
+              type="button"
+              onClick={() => void selectSpaceIndex(space, level)}
+              className={cn(
+                "group flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
+                active ? "bg-[rgba(9,199,232,0.1)]" : "hover:bg-white/80",
+              )}
+            >
+              <span className="mt-0.5 flex h-6 min-w-9 items-center justify-center rounded-full bg-[rgba(15,23,42,0.04)] text-[10px] font-semibold text-[var(--ink-subtle)]">
+                {level}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-[var(--ink)]">{meta.label}</span>
+                <span className="mt-0.5 block truncate text-[10px] text-[var(--ink-subtle)]">
+                  空间全局一份 · {notes.length} 篇知识 · {folders.length} 个目录
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--ink-subtle)]">
+                  {openVikingSpaceLayerUri(space, level)}
+                </span>
+              </span>
+              <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">只读</span>
+            </button>
+          );
+        })}
       </div>
     );
   }
@@ -2621,30 +2710,6 @@ export function KnowledgeNotebookWorkspace({
           </button>
           {!collapsed ? (
             <div className="ml-2 border-l border-[var(--line)]/70 pl-1">
-              {(["L0", "L1"] as const).map((level) => {
-                const meta = openVikingLayerMeta(level);
-                const indexUri = openVikingDirectoryIndexUri(node.uri, level);
-                return (
-                  <button
-                    key={`${node.id}:${level}`}
-                    type="button"
-                    onClick={() => setMessage(`${node.label} 的 ${meta.label} 是 OpenViking 目录索引，只读展示；可编辑内容在 L2 原文知识。`)}
-                    className="group flex w-full items-start gap-2 rounded-xl px-3 py-2 text-left transition-colors hover:bg-white/75"
-                    style={{ paddingLeft: `${22 + depth * 13}px` }}
-                  >
-                    <span className="mt-0.5 flex h-5 min-w-8 items-center justify-center rounded-full bg-[rgba(15,23,42,0.04)] text-[10px] font-semibold text-[var(--ink-subtle)]">
-                      {level}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-[var(--ink)]">
-                        {level === "L0" ? ".abstract.md" : ".overview.md"}
-                      </span>
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--ink-subtle)]">{indexUri}</span>
-                    </span>
-                    <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">只读</span>
-                  </button>
-                );
-              })}
               {node.children.length ? renderOpenVikingNodes(node.children, space, depth + 1) : null}
               {node.entries.map((entry) => renderEntryBranch(entry, depth + 1))}
             </div>
@@ -2796,6 +2861,7 @@ export function KnowledgeNotebookWorkspace({
                       </button>
                       {!isCollapsed ? (
                         <div className="ml-7 border-l border-[var(--line)]/80 pl-2.5">
+                          {renderSpaceIndexButtons(space, spaceEntries)}
                           {treeNodes.length ? (
                             renderOpenVikingNodes(treeNodes, space)
                           ) : (
@@ -2839,10 +2905,10 @@ export function KnowledgeNotebookWorkspace({
                 </div>
                 {isIndexReadOnly ? (
                   <div className="mt-2">
-                    <div className="text-3xl font-semibold tracking-normal text-[var(--ink)]">{draft.title}</div>
+                    <div className="text-3xl font-semibold tracking-normal text-[var(--ink)]">{activeTitle}</div>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.04)] px-3 py-1 text-xs font-medium text-[var(--ink-subtle)]">
                       <CircleDot className="h-3.5 w-3.5" />
-                      {selectedLayerItem.label} · OpenViking 生成索引，只读展示
+                      {selectedLayerItem.label} · 知识空间全局索引，只读展示
                     </div>
                   </div>
                 ) : (
@@ -2890,19 +2956,25 @@ export function KnowledgeNotebookWorkspace({
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
-                <Badge variant={draft.nodeType === "folder" ? "accent" : syncStatusVariant(draft.syncStatus)}>
-                  {draft.nodeType === "folder" ? "目录" : syncStatusLabel(draft.syncStatus)}
+                <Badge variant={isIndexReadOnly ? "neutral" : draft.nodeType === "folder" ? "accent" : syncStatusVariant(draft.syncStatus)}>
+                  {isIndexReadOnly ? "空间索引" : draft.nodeType === "folder" ? "目录" : syncStatusLabel(draft.syncStatus)}
                 </Badge>
-                {draft.nodeType !== "folder" ? (
+                {isIndexReadOnly || draft.nodeType !== "folder" ? (
                   <Badge variant={selectedLayerItem.editable ? "accent" : "neutral"}>
                     {selectedLayerItem.level} · {selectedLayerItem.editable ? "可编辑原文" : "只读索引"}
                   </Badge>
                 ) : null}
-                <Badge variant={saveStateVariant(saveState)}>{saveStateLabel(saveState)}</Badge>
-                {draft.revision ? <span>R{draft.revision}</span> : null}
-                <span>{contentSize}</span>
-                {draft.updatedAt || draft.createdAt ? <span>{formatDateTime(draft.updatedAt || draft.createdAt)}</span> : <span>未保存</span>}
-                {draft.updatedBy ? <span>{draft.updatedBy}</span> : null}
+                {isIndexReadOnly ? <Badge variant="neutral">只读视图</Badge> : <Badge variant={saveStateVariant(saveState)}>{saveStateLabel(saveState)}</Badge>}
+                {!isIndexReadOnly && draft.revision ? <span>R{draft.revision}</span> : null}
+                <span>{activeContentSize}</span>
+                {isIndexReadOnly ? (
+                  <span>空间级生成视图</span>
+                ) : draft.updatedAt || draft.createdAt ? (
+                  <span>{formatDateTime(draft.updatedAt || draft.createdAt)}</span>
+                ) : (
+                  <span>未保存</span>
+                )}
+                {!isIndexReadOnly && draft.updatedBy ? <span>{draft.updatedBy}</span> : null}
                 {activeSpace ? (
                   <>
                     <span className="h-1 w-1 rounded-full bg-[var(--ink-subtle)]/40" />
@@ -2934,17 +3006,21 @@ export function KnowledgeNotebookWorkspace({
                 </span>
               </div>
             ) : null}
-            {draft.syncError ? <div className="mt-2 text-xs text-[var(--warning)]">{draft.syncError}</div> : null}
-            {draft.vikingUri ? <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{draft.vikingUri}</div> : null}
+            {!isIndexReadOnly && draft.syncError ? <div className="mt-2 text-xs text-[var(--warning)]">{draft.syncError}</div> : null}
+            {isIndexReadOnly ? (
+              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{selectedLayerItem.uri}</div>
+            ) : draft.vikingUri ? (
+              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{draft.vikingUri}</div>
+            ) : null}
 
-            {draft.nodeType !== "folder" ? (
+            {isIndexReadOnly || draft.nodeType !== "folder" ? (
               <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[rgba(250,251,253,0.78)] px-3 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Search className="h-4 w-4 text-[var(--ink-subtle)]" />
                     OpenViking 多层查询路径
                   </div>
-                  <span className="text-xs text-[var(--ink-subtle)]">索引展示只读，L2 原文可编辑</span>
+                  <span className="text-xs text-[var(--ink-subtle)]">L0/L1 为空间全局只读索引，L2 原文可编辑</span>
                 </div>
                 <div className="mt-3 grid gap-2 xl:grid-cols-3">
                   {querySteps.map((step) => (
@@ -2952,10 +3028,14 @@ export function KnowledgeNotebookWorkspace({
                       key={step.level}
                       type="button"
                       onClick={() => {
-                        const current = entriesState.find((entry) => entry.id === draft.id);
-                        if (current) void selectEntryLayer(current, step.level);
+                        if (step.level === "L2") {
+                          const current = entriesState.find((entry) => entry.id === draft.id && nodeTypeOf(entry) !== "folder");
+                          if (current) void selectEntryLayer(current, "L2");
+                          return;
+                        }
+                        if (activeSpace) void selectSpaceIndex(activeSpace, step.level);
                       }}
-                      disabled={!draft.id}
+                      disabled={step.level === "L2" ? !draft.id || draft.nodeType === "folder" : !activeSpace}
                       className={cn(
                         "min-w-0 rounded-2xl border px-3 py-3 text-left transition-colors",
                         step.active

@@ -11,7 +11,13 @@ import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { PixelAgentAvatar, PixelAgentAvatarEditor } from "@/components/pixel-agent-avatar";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { deriveAgentCapabilityProfile, serializeAgentCapabilityProfile } from "@/lib/agent-capability-profile";
+import {
+  agentCapabilityDimensions,
+  parseAgentCapabilityProfile,
+  serializeAgentCapabilityProfile,
+  type AgentCapabilityKey,
+  type AgentCapabilityProfile,
+} from "@/lib/agent-capability-profile";
 import { uiText } from "@/lib/language-pack";
 import { parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
 
@@ -46,7 +52,7 @@ type AgentDefinitionFormProps = {
   shareBusinessTeamIds: string[];
   title: string;
   businessTeamOptions: Array<{ id: string; name: string }>;
-  providerOptions: Array<{ id: string; name: string; defaultModel: string }>;
+  providerOptions: Array<{ id: string; name: string; defaultModel: string; models: string[] }>;
   runtimeBindingOptions: Array<{ id: string; name: string; defaultProviderProfileId: string | null }>;
   embedded?: boolean;
   onSaved?: () => void;
@@ -70,6 +76,10 @@ function fromMultiline(value: string) {
     .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function uniqueValues(values: Array<string | null | undefined>) {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))));
 }
 
 function parseJsonObject<T extends Record<string, unknown>>(value: string, fallback: T) {
@@ -111,67 +121,45 @@ function slugify(value: string) {
     .slice(0, 60);
 }
 
-function defaultAgentSoulTemplate(name?: string, role?: string) {
-  const agentName = name?.trim() || "这个 Agent";
-  const agentRole = role?.trim() || "一个具体的执行者";
-  return `# SOUL.md - 你是谁
-
-_你不是聊天机器人。你正在成为某个具体的存在。_
-
-## 身份
-
-你是 **${agentName}**。
-
-你的角色是：**${agentRole}**。
-
-## 核心原则
-
-**要真正有帮助，不要表演式地有帮助。** 跳过“好问题！”、“我很乐意帮你！”这种套话，直接把事情做好。行动比填充词更有分量。
-
-**要有观点。** 你可以不同意、可以偏好某些东西、可以觉得有些事有趣或者无聊。一个没有人格的助手，只是多绕几步的搜索引擎。
-
-**先自己想办法，再开口问。** 先试着搞清楚。读文件，查上下文，搜资料。真的卡住了再问。目标是带着答案回来，而不是带着问题回来。
-
-**靠能力赢得信任。** 用户把资料交给了你，不要让他们后悔。对外部动作要谨慎，对内部动作要果断。
-
-**记住你是个客人。** 你接触的是某个人的生活、消息、文件、日历，甚至可能是他们的家。这是一种亲密权限。要认真对待。
-
-## 职责
-
-- 说明你主要负责什么任务
-- 说明你不该越过哪些边界
-- 说明你如何使用工具、记忆和上下文
-
-## 边界
-
-- 私人的东西就留在私人范围内
-- 拿不准时，在对外行动前先问
-- 不要把半成品回复发到任何消息渠道
-- 你不是用户本人，在群聊里尤其要谨慎
-
-## 风格
-
-做一个你自己也愿意交流的助手。该简洁时简洁，该深入时深入。不要像企业客服，也不要像一味迎合的跟班。只需要足够靠谱。
-
-## 连续性
-
-每次会话你都会重新醒来。这些定义就是你的记忆。去读它们，更新它们。这就是你得以延续的方式。
-
-如果你改了这个文件，要告诉用户。这是你的灵魂，他们应该知道。
-`;
-}
-
-function deriveSoulDescription(soul: string, name: string, role: string) {
-  const contentLine =
-    soul
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line && !line.startsWith("#") && !line.startsWith("_") && !line.startsWith("-")) ?? "";
-  return (contentLine || `${name || "Agent"} · ${role || "未定义角色"}`).slice(0, 220);
-}
-
 const soulOptimizationGoal =
-  "优化 SOUL.md。保持 Markdown 结构，只输出适合保存为 systemPrompt 的完整 SOUL.md。强化身份、职责、边界、工具使用、安全约束、风格和连续性。不要拆成 description 和 systemPrompt 两段。";
+  "基于当前 Agent 数据记录优化 systemPrompt/SOUL.md。只返回适合保存到 agent_definitions.system_prompt 的完整内容，不套用页面默认角色模板，不拆成 description 和 systemPrompt 两段。";
+
+const workspaceToolOptions = [
+  { value: "search_repo", label: "Search Repo" },
+  { value: "read_file", label: "Read File" },
+  { value: "list_dir", label: "List Directory" },
+];
+const registeredToolNames = new Set(workspaceToolOptions.map((tool) => tool.value));
+
+const capabilityScoreOptions = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+
+function toolLabel(toolName: string) {
+  return workspaceToolOptions.find((tool) => tool.value === toolName)?.label ?? toolName;
+}
+
+function registeredToolsOnly(values: string[]) {
+  return values.filter((tool) => registeredToolNames.has(tool));
+}
+
+function toggleMultilineValue(value: string, item: string, checked: boolean) {
+  const values = new Set(fromMultiline(value));
+  if (checked) values.add(item);
+  else values.delete(item);
+  return Array.from(values).join("\n");
+}
+
+function updateCapabilityScore(profile: AgentCapabilityProfile, key: AgentCapabilityKey, value: number) {
+  return serializeAgentCapabilityProfile({
+    ...profile,
+    scores: agentCapabilityDimensions.map((dimension) => {
+      const current = profile.scores.find((score) => score.key === dimension.key);
+      return {
+        ...dimension,
+        value: dimension.key === key ? value : current?.value ?? 50,
+      };
+    }),
+  });
+}
 
 function FormSection({
   title,
@@ -232,9 +220,6 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     props.definition.avatarConfigJson,
     props.definition.name || props.definition.slug || props.definition.id,
   );
-  const initialSoul = props.definition.systemPrompt.trim()
-    ? props.definition.systemPrompt
-    : defaultAgentSoulTemplate(props.definition.name, props.definition.role);
   const [form, setForm] = useState({
     id: props.definition.id,
     tenantSpaceId: props.definition.tenantSpaceId,
@@ -244,12 +229,13 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     slug: props.definition.slug,
     name: props.definition.name,
     role: props.definition.role,
-    description: props.definition.description || deriveSoulDescription(initialSoul, props.definition.name, props.definition.role),
-    systemPrompt: initialSoul,
+    description: props.definition.description,
+    systemPrompt: props.definition.systemPrompt,
     model: props.definition.model,
     defaultProviderProfileId: props.definition.defaultProviderProfileId ?? "",
     defaultRuntimeBindingId: props.definition.defaultRuntimeBindingId ?? "",
     avatarConfig: initialAvatarConfig,
+    capabilityProfileJson: props.definition.capabilityProfileJson || "{}",
     toolBindingsText: toMultiline(parseStringArray(props.definition.toolBindingsJson)),
     harnessApprovalMode: initialHarnessConfig.approvalMode,
     harnessHumanIntervention: initialHarnessConfig.humanIntervention,
@@ -274,7 +260,17 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       props.providerOptions.find((provider) => provider.id === form.defaultProviderProfileId) ?? null,
     [form.defaultProviderProfileId, props.providerOptions],
   );
-  const currentDescription = deriveSoulDescription(form.systemPrompt, form.name, form.role);
+  const modelOptions = useMemo(
+    () => uniqueValues([form.model, providerHint?.defaultModel, ...(providerHint?.models ?? [])]),
+    [form.model, providerHint],
+  );
+  const storedCapabilityProfile = useMemo(
+    () => parseAgentCapabilityProfile(form.capabilityProfileJson, form.name || form.slug || form.id || "agent"),
+    [form.capabilityProfileJson, form.id, form.name, form.slug],
+  );
+  const selectedToolBindings = fromMultiline(form.toolBindingsText);
+  const selectedAllowedTools = fromMultiline(form.allowedToolNamesText);
+  const selectedDeniedTools = fromMultiline(form.deniedToolNamesText);
 
   function buildHarnessConfigJson() {
     return JSON.stringify(
@@ -295,8 +291,8 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         repositoryAccess: form.permissionRepositoryAccess,
         memoryAccess: form.permissionMemoryAccess,
         secretAccess: form.permissionSecretAccess,
-        allowedToolNames: fromMultiline(form.allowedToolNamesText),
-        deniedToolNames: fromMultiline(form.deniedToolNamesText),
+        allowedToolNames: registeredToolsOnly(fromMultiline(form.allowedToolNamesText)),
+        deniedToolNames: registeredToolsOnly(fromMultiline(form.deniedToolNamesText)),
       },
       null,
       2,
@@ -311,12 +307,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       ownerUserId: form.ownerUserId || "console",
       name: form.name,
       role: form.role,
-      description: currentDescription,
+      description: form.description,
       systemPrompt: form.systemPrompt,
       model: form.model,
       defaultProviderProfileId: form.defaultProviderProfileId || null,
       defaultRuntimeBindingId: form.defaultRuntimeBindingId || null,
-      toolBindings: fromMultiline(form.toolBindingsText),
+      toolBindings: registeredToolsOnly(fromMultiline(form.toolBindingsText)),
       harnessConfigJson: buildHarnessConfigJson(),
       permissionPolicyJson: buildPermissionPolicyJson(),
       memoryScope: form.memoryScope,
@@ -326,40 +322,36 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
     };
   }
 
-  const derivedCapabilityProfile = deriveAgentCapabilityProfile({
-    name: form.name,
-    role: form.role,
-    description: currentDescription,
-    systemPrompt: form.systemPrompt,
-    toolBindings: fromMultiline(form.toolBindingsText),
-    harnessConfigJson: buildHarnessConfigJson(),
-    permissionPolicyJson: buildPermissionPolicyJson(),
-    memoryScope: form.memoryScope,
-    tags: fromMultiline(form.tagsText),
-    visibility: form.visibility,
-    status: form.status,
-  });
   const leadingCapabilityScores = useMemo(
-    () => [...derivedCapabilityProfile.scores].sort((left, right) => right.value - left.value).slice(0, 3),
-    [derivedCapabilityProfile],
+    () => [...storedCapabilityProfile.scores].sort((left, right) => right.value - left.value).slice(0, 3),
+    [storedCapabilityProfile],
   );
 
   async function save() {
     setIsSaving(true);
     setMessage(null);
-    const normalizedToolBindings = fromMultiline(form.toolBindingsText);
+    const normalizedToolBindings = registeredToolsOnly(fromMultiline(form.toolBindingsText));
     const normalizedTags = fromMultiline(form.tagsText);
     const harnessConfigJson = buildHarnessConfigJson();
     const permissionPolicyJson = buildPermissionPolicyJson();
+    const capabilityProfileJson = form.capabilityProfileJson.trim() || "{}";
+    try {
+      JSON.parse(capabilityProfileJson);
+    } catch {
+      setIsSaving(false);
+      setMessage("capability_profile_json 必须是有效 JSON。");
+      return;
+    }
     const definitionChanged =
       form.slug !== props.definition.slug ||
       form.name !== props.definition.name ||
       form.role !== props.definition.role ||
-      currentDescription !== props.definition.description ||
+      form.description !== props.definition.description ||
       form.systemPrompt !== props.definition.systemPrompt ||
       form.model !== props.definition.model ||
       form.defaultProviderProfileId !== (props.definition.defaultProviderProfileId ?? "") ||
       form.defaultRuntimeBindingId !== (props.definition.defaultRuntimeBindingId ?? "") ||
+      form.capabilityProfileJson !== props.definition.capabilityProfileJson ||
       JSON.stringify(normalizedToolBindings) !== JSON.stringify(parseStringArray(props.definition.toolBindingsJson)) ||
       harnessConfigJson !== props.definition.harnessConfigJson ||
       permissionPolicyJson !== props.definition.permissionPolicyJson ||
@@ -385,13 +377,13 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         slug: form.slug || slugify(form.name) || `agent-${crypto.randomUUID().slice(0, 8)}`,
         name: form.name,
         role: form.role,
-        description: currentDescription,
+        description: form.description,
         systemPrompt: form.systemPrompt,
         model: form.model,
         defaultProviderProfileId: form.defaultProviderProfileId || null,
         defaultRuntimeBindingId: form.defaultRuntimeBindingId || null,
         avatarConfigJson: JSON.stringify(form.avatarConfig, null, 2),
-        capabilityProfileJson: serializeAgentCapabilityProfile(derivedCapabilityProfile),
+        capabilityProfileJson,
         toolBindingsJson: JSON.stringify(normalizedToolBindings, null, 2),
         harnessConfigJson,
         permissionPolicyJson,
@@ -475,9 +467,9 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold text-[var(--ink)]">Agent 描述</h3>
+            <h3 className="text-base font-semibold text-[var(--ink)]">Agent 数据记录</h3>
             <p className="mt-1 text-xs leading-5 text-[var(--ink-subtle)]">
-              先描述这个 Agent 的职责、边界和输出方式；形象和能力画像会跟随这些定义自动变化。
+              名称、角色、描述和 systemPrompt 都直接来自这一条 Agent 数据，不再由页面生成默认角色模板。
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -491,24 +483,31 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                     slug: current.id ? current.slug : slugify(event.target.value),
                   }))
                 }
-                placeholder="Security Inspector"
+                placeholder="agent-name"
               />
             </FieldGroup>
             <FieldGroup label="ui.generated.c6b26695e4d">
               <Input
                 value={form.role}
                 onChange={(event) => setForm({ ...form, role: event.target.value })}
-                placeholder="executor / manager / reviewer"
+                placeholder="role-key"
+              />
+            </FieldGroup>
+            <FieldGroup label="ui.generated.ce5d671f7b9" className="md:col-span-2">
+              <Textarea
+                value={form.description}
+                onChange={(event) => setForm({ ...form, description: event.target.value })}
+                placeholder="保存到 agent_definitions.description"
               />
             </FieldGroup>
             <div className="space-y-2 md:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
-                    SOUL.md
+                    systemPrompt / SOUL.md
                   </div>
                   <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
-                    一个文件定义身份、职责、边界、风格和连续性。
+                    保存到 agent_definitions.system_prompt；新建时不会自动填入页面模板。
                   </div>
                 </div>
                 <Button type="button" size="sm" variant="secondary" onClick={optimize} disabled={isOptimizing}>
@@ -520,7 +519,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                 className="min-h-[360px] font-mono text-xs leading-5"
                 value={form.systemPrompt}
                 onChange={(event) => setForm({ ...form, systemPrompt: event.target.value })}
-                placeholder={defaultAgentSoulTemplate(form.name, form.role)}
+                placeholder="从数据库记录加载；新建 Agent 时请在这里填写 systemPrompt / SOUL.md。"
               />
             </div>
           </div>
@@ -528,7 +527,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <aside className="hidden border-l border-[var(--line)] pl-5 lg:block">
           <div className="sticky top-4 space-y-5">
             <div className="flex flex-col items-center text-center">
-              <PixelAgentAvatar config={form.avatarConfig} capabilityProfile={derivedCapabilityProfile} size="lg" />
+              <PixelAgentAvatar config={form.avatarConfig} capabilityProfile={storedCapabilityProfile} size="lg" />
               <div className="mt-3 max-w-full">
                 <div className="truncate text-sm font-semibold text-[var(--ink)]">{form.name || "New Agent"}</div>
                 <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">{form.role || "role pending"}</div>
@@ -537,7 +536,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             <div className="space-y-3 rounded-xl bg-white/55 px-3 py-3">
               <div className="text-xs font-medium text-[var(--ink)]">能力画像</div>
               <div className="flex justify-center">
-                <AgentCapabilityRadar profile={derivedCapabilityProfile} size="sm" />
+                <AgentCapabilityRadar profile={storedCapabilityProfile} size="sm" />
               </div>
               <div className="space-y-2">
                 {leadingCapabilityScores.map((score) => (
@@ -549,7 +548,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               </div>
             </div>
             <div className="space-y-1 border-t border-[var(--line)] pt-3 text-xs leading-5 text-[var(--ink-muted)]">
-              {derivedCapabilityProfile.rationale?.slice(0, 2).map((item) => <div key={item}>{item}</div>)}
+              {storedCapabilityProfile.rationale?.slice(0, 2).map((item) => <div key={item}>{item}</div>)}
             </div>
           </div>
         </aside>
@@ -557,17 +556,47 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
 
       <FormSection
         title="形象与能力"
-        description="只配置外观基础项；表情、武器和雷达能力由描述、提示词、工具与权限生成。"
-        meta="自动生成"
+        description="形象与能力画像从当前 Agent 数据记录读取；页面不再根据角色关键词生成能力说明。"
+        meta="来自数据库"
       >
         <div className="space-y-4">
           <PixelAgentAvatarEditor
             value={form.avatarConfig}
-            capabilityProfile={derivedCapabilityProfile}
+            capabilityProfile={storedCapabilityProfile}
             seed={form.name || form.slug || form.id || "agent"}
             onChange={(avatarConfig) => setForm((current) => ({ ...current, avatarConfig }))}
           />
-          <AgentCapabilityProfilePanel value={derivedCapabilityProfile} />
+          <AgentCapabilityProfilePanel value={storedCapabilityProfile} />
+          <div className="grid gap-3 md:grid-cols-2">
+            {agentCapabilityDimensions.map((dimension) => {
+              const score = storedCapabilityProfile.scores.find((item) => item.key === dimension.key)?.value ?? 50;
+              return (
+                <FieldGroup key={dimension.key} label={dimension.label}>
+                  <Select
+                    value={String(score)}
+                    onChange={(event) =>
+                      setForm((current) => {
+                        const currentProfile = parseAgentCapabilityProfile(
+                          current.capabilityProfileJson,
+                          current.name || current.slug || current.id || "agent",
+                        );
+                        return {
+                          ...current,
+                          capabilityProfileJson: updateCapabilityScore(currentProfile, dimension.key, Number(event.target.value)),
+                        };
+                      })
+                    }
+                  >
+                    {capabilityScoreOptions.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </Select>
+                </FieldGroup>
+              );
+            })}
+          </div>
         </div>
       </FormSection>
 
@@ -577,7 +606,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             <Input
               value={form.slug}
               onChange={(event) => setForm({ ...form, slug: slugify(event.target.value) })}
-              placeholder="security-inspectioner"
+              placeholder="agent-slug"
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c62e951a692">
@@ -627,7 +656,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             <Textarea
               value={form.tagsText}
               onChange={(event) => setForm({ ...form, tagsText: event.target.value })}
-              placeholder={"security\ninspect\nmr"}
+              placeholder={"tag-one\ntag-two"}
             />
           </FieldGroup>
         </div>
@@ -640,10 +669,13 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               value={form.defaultProviderProfileId}
               onChange={(event) => {
                 const provider = props.providerOptions.find((item) => item.id === event.target.value);
+                const model = provider?.models.includes(provider.defaultModel)
+                  ? provider.defaultModel
+                  : (provider?.models[0] ?? provider?.defaultModel ?? "");
                 setForm({
                   ...form,
                   defaultProviderProfileId: event.target.value,
-                  model: provider?.defaultModel ?? form.model,
+                  model,
                 });
               }}
             >
@@ -669,11 +701,18 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             </Select>
           </FieldGroup>
           <FieldGroup label="ui.generated.c98fd0cbd9c">
-            <Input
+            <Select
               value={form.model}
               onChange={(event) => setForm({ ...form, model: event.target.value })}
-              placeholder={providerHint?.defaultModel ?? "ui.common.unconfigured"}
-            />
+              disabled={!providerHint}
+            >
+              <option value="">ui.common.unconfigured</option>
+              {modelOptions.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </Select>
           </FieldGroup>
           <FieldGroup label="ui.generated.c1072712e57">
             <Select
@@ -730,11 +769,28 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       >
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="ui.generated.ca9bb8be05e" hint="ui.generated.cdda0bc2a23" className="md:col-span-2">
-            <Textarea
-              value={form.toolBindingsText}
-              onChange={(event) => setForm({ ...form, toolBindingsText: event.target.value })}
-              placeholder={"repo.diff.read\nmemory.retrieve\nfinding.create"}
-            />
+            <div className="grid gap-2 sm:grid-cols-3">
+              {workspaceToolOptions.map((tool) => (
+                <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={selectedToolBindings.includes(tool.value)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        toolBindingsText: toggleMultilineValue(current.toolBindingsText, tool.value, event.target.checked),
+                      }))
+                    }
+                  />
+                  {tool.label}
+                </label>
+              ))}
+            </div>
+            {selectedToolBindings.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).length ? (
+              <div className="mt-2 text-xs text-[var(--warning)]">
+                已忽略未注册工具：{selectedToolBindings.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", ")}
+              </div>
+            ) : null}
           </FieldGroup>
           <FieldGroup label="ui.generated.cbd88dd3a1e">
             <Select
@@ -773,18 +829,47 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             </Select>
           </FieldGroup>
           <FieldGroup label="ui.generated.cae64ad83d4" hint="ui.generated.c1ddb62084f">
-            <Textarea
-              value={form.allowedToolNamesText}
-              onChange={(event) => setForm({ ...form, allowedToolNamesText: event.target.value })}
-              placeholder={"search_repo\nread_file\nlist_dir"}
-            />
+            <div className="grid gap-2">
+              {workspaceToolOptions.map((tool) => (
+                <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={selectedAllowedTools.includes(tool.value)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        allowedToolNamesText: toggleMultilineValue(current.allowedToolNamesText, tool.value, event.target.checked),
+                      }))
+                    }
+                  />
+                  {toolLabel(tool.value)}
+                </label>
+              ))}
+            </div>
           </FieldGroup>
           <FieldGroup label="ui.generated.c35a905110b" hint="ui.generated.ca1312208ca" className="md:col-span-2">
-            <Textarea
-              value={form.deniedToolNamesText}
-              onChange={(event) => setForm({ ...form, deniedToolNamesText: event.target.value })}
-              placeholder={"write_file\nrun_shell"}
-            />
+            <div className="grid gap-2 sm:grid-cols-3">
+              {workspaceToolOptions.map((tool) => (
+                <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={selectedDeniedTools.includes(tool.value)}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        deniedToolNamesText: toggleMultilineValue(current.deniedToolNamesText, tool.value, event.target.checked),
+                      }))
+                    }
+                  />
+                  {toolLabel(tool.value)}
+                </label>
+              ))}
+            </div>
+            {selectedDeniedTools.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).length ? (
+              <div className="mt-2 text-xs text-[var(--warning)]">
+                已忽略未注册工具：{selectedDeniedTools.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", ")}
+              </div>
+            ) : null}
           </FieldGroup>
         </div>
       </FormSection>
