@@ -10,6 +10,7 @@ export type ProviderProfileConfig = {
   contextWindow?: number;
   maxTokens?: number;
   reasoning?: boolean;
+  thinkingLevelMap?: Model<string>["thinkingLevelMap"];
   headers?: Record<string, string>;
   compat?: Record<string, unknown>;
   supportsResponsesApi?: boolean;
@@ -22,6 +23,7 @@ export type RuntimeBindingConfig = {
   eventContract?: string;
   executionMode?: "embedded" | "proxy";
   humanIntervention?: "steer" | "follow_up" | "disabled";
+  thinkingLevel?: "off" | "low" | "medium" | "high";
   env?: Record<string, string>;
 };
 
@@ -121,6 +123,7 @@ export function buildPiModel(
         : provider.apiStyle,
     baseUrl: provider.baseUrl,
     reasoning: config.reasoning ?? true,
+    thinkingLevelMap: config.thinkingLevelMap,
     input: ["text"],
     cost: {
       input: 0,

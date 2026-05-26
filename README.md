@@ -117,10 +117,20 @@ That boundary keeps Agent orchestration auditable and prevents provider calls fr
 
 ### Install And Run
 
+Install from GitHub with the managed CLI, following the same source-based pattern used by many open-source projects:
+
 ```bash
-pnpm install
-pnpm bootstrap
-pnpm dev
+curl -fsSL https://raw.githubusercontent.com/SimonMing47/agent-world/main/scripts/install.sh | bash
+agentworld dev
+```
+
+The installer clones the repository into `~/.agentworld/agent-world`, installs dependencies, bootstraps `.env.local` and SQLite, prepares OpenViking, and creates an `agentworld` command in `~/.local/bin`.
+
+For an existing source checkout:
+
+```bash
+pnpm agentworld install
+pnpm agentworld dev
 ```
 
 Open the console:
@@ -131,14 +141,42 @@ http://localhost:7369
 
 `pnpm dev` runs `scripts/agentworld-next.mjs`. The script checks OpenViking health first and, when enabled, starts the local OpenViking service before starting the Next.js dev server.
 
+### Upgrade
+
+Upgrade a managed source install:
+
+```bash
+agentworld upgrade
+agentworld dev
+```
+
+Upgrade an existing checkout:
+
+```bash
+pnpm agentworld upgrade
+pnpm agentworld dev
+```
+
+`agentworld upgrade` refuses to run on a dirty git worktree, pulls with `--ff-only`, reinstalls from the lockfile, re-runs bootstrap, prepares OpenViking, builds the app, and finishes with a local health summary.
+
+Useful CLI commands:
+
+| Command | Purpose |
+| --- | --- |
+| `agentworld install` | Install dependencies, bootstrap local config and SQLite, prepare OpenViking, and optionally build with `--production`. |
+| `agentworld upgrade` | Pull the latest source, reinstall dependencies, bootstrap, prepare OpenViking, and build. |
+| `agentworld dev` | Start the local development console on `PORT` or `7369`. |
+| `agentworld start` | Start the production server after `agentworld build`. |
+| `agentworld doctor` | Check Node.js, pnpm, git, local config, AgentWorld HTTP, and OpenViking health. |
+
 ### Production Mode
 
 ```bash
-pnpm build
-pnpm start
+agentworld install --production
+agentworld start
 ```
 
-`pnpm start` uses the standalone Next.js server output and keeps the same OpenViking startup behavior as the development launcher.
+`agentworld start` uses the standalone Next.js server output and keeps the same OpenViking startup behavior as the development launcher.
 
 ## Configuration
 

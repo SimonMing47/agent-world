@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import path from "node:path";
 import { promisify } from "node:util";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type TextContent } from "@earendil-works/pi-ai";
@@ -27,6 +28,16 @@ function redactSensitiveText(value: string) {
     )
     .replace(/\b[a-z0-9]{24,}\.[A-Za-z0-9._-]{12,}\b/g, (match) => maskToken(match))
     .replace(/\bsk-[A-Za-z0-9]{16,}\b/g, (match) => maskToken(match));
+}
+
+function resolveWorkspacePath(workspaceRoot: string, requestedPath?: string) {
+  const rootPath = path.resolve(workspaceRoot);
+  const targetPath = path.resolve(rootPath, requestedPath || ".");
+  const relativePath = path.relative(rootPath, targetPath);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new Error(`Path is outside workspace: ${requestedPath || "."}`);
+  }
+  return targetPath;
 }
 
 export type WorkspaceToolPolicy = {
@@ -110,9 +121,7 @@ export function buildReadOnlyWorkspaceTools(
       execute: async (_toolCallId, params, signal) => {
         const input = params as { path: string; startLine?: number; endLine?: number };
         return executeGuarded("read_file", async () => {
-          const targetPath = input.path.startsWith("/")
-            ? input.path
-            : `${workspaceRoot}/${input.path}`;
+          const targetPath = resolveWorkspacePath(workspaceRoot, input.path);
           const { stdout } = await execFileAsync(
             "sed",
             [
@@ -139,7 +148,7 @@ export function buildReadOnlyWorkspaceTools(
       execute: async (_toolCallId, params, signal) => {
         const input = params as { path?: string };
         return executeGuarded("list_dir", async () => {
-          const targetPath = input.path ? `${workspaceRoot}/${input.path}` : workspaceRoot;
+          const targetPath = resolveWorkspacePath(workspaceRoot, input.path);
           const { stdout } = await execFileAsync("ls", ["-la", targetPath], { signal });
           return {
             content: buildTextBlocks(stdout.trim()),

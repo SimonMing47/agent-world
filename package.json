@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
+  "bin": {
+    "agentworld": "scripts/agentworld-cli.mjs"
+  },
   "scripts": {
+    "agentworld": "node scripts/agentworld-cli.mjs",
     "dev": "node scripts/agentworld-next.mjs dev",
     "build": "NODE_OPTIONS=--no-warnings=ExperimentalWarning next build",
     "start": "node scripts/agentworld-next.mjs start",

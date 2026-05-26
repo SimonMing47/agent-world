@@ -9,6 +9,10 @@ import { uiText } from "@/lib/language-pack";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
+
   const developmentAccess = getDevelopmentAccessSettings();
   if (!developmentAccess.enabled) {
     return NextResponse.json({ ok: false, error: uiText("developmentAccess.errors.disabled") }, { status: 403 });
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
     title: body.title,
     primaryBusinessTeamId: body.primaryBusinessTeamId ?? null,
     businessTeamIds: body.businessTeamIds ?? [],
-    isSystemAdmin: Boolean(body.isSystemAdmin),
+    isSystemAdmin: false,
   });
 
   const response = NextResponse.json({

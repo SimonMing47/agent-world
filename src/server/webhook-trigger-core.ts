@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { type TaskBlueprint, type WebhookEndpoint } from "@/server/db";
 import { resolveSecretRef, resolveWebhookParser } from "@/server/plugin-sdk-core";
 
@@ -39,18 +40,36 @@ function parseRecord(value: string) {
 }
 
 export function validateWebhookSecret(webhook: WebhookEndpoint, request: Request) {
-  if (!webhook.secretHint.startsWith("env:")) return { ok: true };
+  if (!webhook.secretHint.startsWith("env:")) {
+    return {
+      ok: false,
+      status: 401,
+      error: `Webhook secret is not configured for ${webhook.pathKey}`,
+    };
+  }
 
   const envKey = webhook.secretHint.slice(4);
   const expected = process.env[envKey];
-  if (!expected) return { ok: true };
+  if (!expected) {
+    return {
+      ok: false,
+      status: 401,
+      error: `Webhook secret is missing for ${webhook.pathKey}`,
+    };
+  }
 
   const provided =
     request.headers.get("x-agentworld-webhook-secret") ??
     request.headers.get("x-webhook-secret") ??
     request.headers.get("x-hook-secret");
 
-  if (provided !== expected) {
+  const providedBuffer = Buffer.from(provided ?? "");
+  const expectedBuffer = Buffer.from(expected);
+  const matches =
+    providedBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(providedBuffer, expectedBuffer);
+
+  if (!matches) {
     return {
       ok: false,
       status: 401,
@@ -74,9 +93,15 @@ export function buildWebhookTaskInput(pathKey: string, payload: unknown, request
     request.headers.get("x-github-event") ??
     firstString(payload, [["object_kind"], ["event_name"], ["event"]]) ??
     pathKey;
+  const deliveryId =
+    request.headers.get("x-github-delivery") ??
+    request.headers.get("x-gitlab-event-uuid") ??
+    request.headers.get("x-request-id") ??
+    firstString(payload, [["delivery_id"], ["deliveryId"], ["hook", "id"], ["object_attributes", "id"]]);
 
   return {
     webhook_path_key: pathKey,
+    delivery_id: deliveryId,
     event_name: eventName,
     received_at: new Date().toISOString(),
     repo_id:

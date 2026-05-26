@@ -19,6 +19,7 @@ import {
   translateSourceType,
   translateStatus,
 } from "@/lib/presentation";
+import { uiText } from "@/lib/language-pack";
 import { formatDateTime, formatPercent } from "@/lib/utils";
 import { getTaskRunDetail } from "@/server/queries";
 
@@ -80,6 +81,75 @@ type InterventionRow = {
   requestedAt: string;
 };
 
+type WorkflowProgress = NonNullable<ReturnType<typeof getTaskRunDetail>>["workflowProgress"];
+
+function WorkflowProgressPanel({ progress }: { progress: WorkflowProgress }) {
+  return (
+    <Panel>
+      <PanelHeader
+        eyebrow="Workflow"
+        title={uiText("ui.taskRunDetail.workflow.title")}
+        description={
+          progress.currentStep
+            ? uiText("ui.taskRunDetail.workflow.currentStep", undefined, { step: progress.currentStep.label })
+            : uiText("ui.taskRunDetail.workflow.completed")
+        }
+      />
+      <PanelBody>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="text-sm font-medium text-[var(--ink)]">
+            {uiText("ui.taskRunDetail.workflow.completedRatio", undefined, {
+              completed: progress.completedCount,
+              total: progress.totalCount,
+            })}
+          </div>
+          <Badge variant={progress.currentStep?.status === "failed" ? "danger" : progress.currentStep?.status === "awaiting" ? "warning" : "accent"}>
+            {progress.percent}%
+          </Badge>
+        </div>
+        <div className="space-y-3">
+          {progress.steps.map((step, index) => (
+            <div key={step.id} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3">
+              <div className="relative flex justify-center">
+                <span
+                  className={
+                    step.status === "completed"
+                      ? "mt-1 h-4 w-4 rounded-full bg-[#16a34a]"
+                      : step.status === "running"
+                        ? "mt-1 h-4 w-4 rounded-full bg-[var(--accent)]"
+                        : step.status === "awaiting"
+                          ? "mt-1 h-4 w-4 rounded-full bg-[var(--warning)]"
+                          : step.status === "failed"
+                            ? "mt-1 h-4 w-4 rounded-full bg-[var(--danger)]"
+                            : "mt-1 h-4 w-4 rounded-full bg-[var(--line-strong)]"
+                  }
+                />
+                {index < progress.steps.length - 1 ? (
+                  <span className="absolute top-6 bottom-[-0.75rem] w-px bg-[var(--line-strong)]" aria-hidden="true" />
+                ) : null}
+              </div>
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/65 px-3 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="font-medium text-[var(--ink)]">{step.label}</div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={step.kind === "harness" ? "neutral" : "accent"}>
+                      {step.kind === "harness" ? "Harness" : "Model"}
+                    </Badge>
+                    <Badge variant={statusVariant(step.status)}>{translateStatus(step.status)}</Badge>
+                  </div>
+                </div>
+                <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
+                  {step.owner} · {step.detail}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </PanelBody>
+    </Panel>
+  );
+}
+
 export default async function TaskRunDetailPage({
   params,
 }: {
@@ -136,6 +206,8 @@ export default async function TaskRunDetailPage({
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <main className="space-y-6">
+          <WorkflowProgressPanel progress={detail.workflowProgress} />
+
           <Panel>
             <PanelHeader
               eyebrow="ui.generated.c28febba225"
