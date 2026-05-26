@@ -102,7 +102,7 @@ That boundary keeps Agent orchestration auditable and prevents provider calls fr
 - Node.js 20+
 - pnpm 9+
 - macOS or Linux for local development
-- Approved OpenViking server binary from your internal artifact repository
+- Bundled OpenViking server binary for the current platform, or an approved internal replacement
 
 AgentWorld is designed for intranet deployment. Apart from npm packages installed by `pnpm`, startup, build, and packaging scripts must not download fonts, resources, or binaries from the public internet.
 
@@ -118,10 +118,12 @@ pnpm install --frozen-lockfile
 pnpm bootstrap
 ```
 
-Provide OpenViking from an internal artifact source:
+The repository includes local UI fonts under `public/fonts/`, the Node.js Linux runtime archive under `thirdparty/node/`, and the OpenViking wheelhouse under `thirdparty/openviking/wheels/`.
+
+Provide or replace OpenViking from an internal artifact source when needed:
 
 ```bash
-install -m 0755 /path/to/openviking-server thirdparty/openviking/bin/openviking-server
+install -m 0755 /path/to/openviking-server thirdparty/openviking/bin/openviking-server-$(node -p 'process.platform')-$(node -p 'process.arch')
 ```
 
 Alternatively set `OPENVIKING_SERVER_BIN` to an absolute internal path.
@@ -224,7 +226,7 @@ pnpm openviking:start
 pnpm openviking:smoke
 ```
 
-`agentworld install` does not download OpenViking. It requires a local binary at `thirdparty/openviking/bin/openviking-server` or `OPENVIKING_SERVER_BIN`. To validate the local binary path manually:
+`agentworld install` does not download OpenViking. It requires a local binary at `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`, `thirdparty/openviking/bin/openviking-server`, or `OPENVIKING_SERVER_BIN`. To validate the local binary path manually:
 
 ```bash
 pnpm openviking:install
@@ -283,16 +285,23 @@ AgentWorld is packaged as a Linux self-contained service. The package includes:
 - Standalone Next.js application.
 - Node.js Linux runtime from an approved local tarball.
 - OpenViking server binary from an approved local artifact.
+- Local UI fonts from `public/fonts/`.
 - OpenViking configuration and CLI configuration files.
 - `agentworld` and `openviking-server` launch scripts.
 
-Before packaging, place the approved Node.js runtime archive at:
+The default Node.js runtime archive is already expected at:
 
 ```text
 thirdparty/node/node-v${nodeVersion}-linux-x64.tar.xz
 ```
 
-or set `AGENTWORLD_NODE_RUNTIME_TARBALL` to an absolute local path.
+Replace it with an approved internal archive when needed, or set `AGENTWORLD_NODE_RUNTIME_TARBALL` to an absolute local path.
+
+Before Linux packaging, place the Linux x64 OpenViking binary at:
+
+```text
+thirdparty/openviking/bin/openviking-server-linux-x64
+```
 
 Build a Linux package:
 
@@ -307,8 +316,8 @@ OpenViking binary resolution order:
 
 1. Healthy `OPENVIKING_BASE_URL`.
 2. `OPENVIKING_SERVER_BIN`.
-3. `thirdparty/openviking/bin/openviking-server`.
-4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`.
+3. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`.
+4. `thirdparty/openviking/bin/openviking-server`.
 
 ## Project Map
 

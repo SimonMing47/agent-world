@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { defaultServerBin, root, writeCliConfig, writeServerConfig } from "./openviking-common.mjs";
+import { platformServerBin, root, writeCliConfig, writeServerConfig } from "./openviking-common.mjs";
 
 if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_PACKAGE !== "1") {
   console.error("Build the Linux release bundle on Linux to avoid platform-specific Next.js output.");
@@ -13,6 +13,7 @@ const nodeVersion = process.env.AGENTWORLD_BUNDLE_NODE_VERSION ?? process.versio
 const outDir = path.join(root, "dist", `agentworld-linux-x64-${appVersion}`);
 const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-linux-x64.tar.xz`);
 const nodeTar = path.resolve(process.env.AGENTWORLD_NODE_RUNTIME_TARBALL ?? defaultNodeTar);
+const linuxServerBin = platformServerBin("linux", "x64");
 
 function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", ...options });
@@ -24,9 +25,9 @@ function copyDir(from, to) {
   fs.cpSync(from, to, { recursive: true, force: true });
 }
 
-if (!fs.existsSync(defaultServerBin)) {
-  console.error("OpenViking binary is missing: thirdparty/openviking/bin/openviking-server");
-  console.error("Place the approved internal binary there before packaging.");
+if (!fs.existsSync(linuxServerBin)) {
+  console.error("OpenViking Linux x64 binary is missing: thirdparty/openviking/bin/openviking-server-linux-x64");
+  console.error("Build it on a Linux x64 builder with pnpm openviking:build-binary, or place an approved internal binary there.");
   process.exit(1);
 }
 
@@ -54,6 +55,8 @@ copyDir(path.join(root, ".next", "server", "chunks"), path.join(outDir, "app", "
 copyDir(path.join(root, ".next", "static"), path.join(outDir, "app", ".next", "static"));
 copyDir(path.join(root, "public"), path.join(outDir, "app", "public"));
 copyDir(path.join(root, "thirdparty"), path.join(outDir, "thirdparty"));
+fs.copyFileSync(linuxServerBin, path.join(outDir, "thirdparty", "openviking", "bin", "openviking-server"));
+fs.chmodSync(path.join(outDir, "thirdparty", "openviking", "bin", "openviking-server"), 0o755);
 copyDir(path.join(root, "data", "openviking"), path.join(outDir, "data", "openviking"));
 copyDir(path.join(root, "docs"), path.join(outDir, "docs"));
 

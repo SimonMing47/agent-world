@@ -12,9 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "data/**",
+    "dist/**",
     "output/**",
     ".venv-openviking/**",
+    ".venv-openviking-build/**",
     ".playwright-cli/**",
+    "thirdparty/**",
+    "public/fonts/**",
     "next-env.d.ts",
   ]),
 ]);

@@ -82,8 +82,8 @@ function resolveOpenVikingServerBin() {
   const setting = getKnowledgeBaseSettings();
   const candidates = [
     setting.serverBin,
-    path.join(thirdpartyBinDir(), "openviking-server"),
     path.join(thirdpartyBinDir(), `openviking-server-${process.platform}-${process.arch}`),
+    path.join(thirdpartyBinDir(), "openviking-server"),
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   for (const candidate of candidates) {
@@ -160,7 +160,7 @@ export async function ensureOpenVikingServerStarted(reason = "agentworld-startup
   if (!binaryPath) {
     current.status = "missing_binary";
     current.lastError =
-      "OpenViking server binary missing. Put it at thirdparty/openviking/bin/openviking-server or set OPENVIKING_SERVER_BIN.";
+      `OpenViking server binary missing. Put it at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch} or set OPENVIKING_SERVER_BIN.`;
     appendLog(current, current.lastError);
     return getOpenVikingProcessStatus();
   }
