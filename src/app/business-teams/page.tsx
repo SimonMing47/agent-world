@@ -1,11 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  Boxes,
   Bot,
   Eye,
   GitBranch,
-  KeyRound,
   PencilLine,
   Plus,
   ScrollText,
@@ -42,9 +40,7 @@ import { filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/serv
 import {
   listCodebases,
   listConnectors,
-  listTeamAssetGrants,
   listTeamMembers,
-  listTeamPermissionGrants,
 } from "@/server/governance-core";
 import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import {
@@ -58,9 +54,6 @@ import type { BusinessTeam } from "@/server/db";
 type TeamSummary = {
   memberCount: number;
   activeMemberCount: number;
-  permissionCount: number;
-  denyPermissionCount: number;
-  assetCount: number;
   agentTeamCount: number;
   taskBlueprintCount: number;
   codebaseCount: number;
@@ -91,8 +84,6 @@ function TeamOperationLinks({ teamId }: { teamId: string }) {
   return (
     <div className="flex flex-wrap gap-2">
       <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-members", teamId)}>ui.generated.cc1ee9f0190</Link></Button>
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-permissions", teamId)}>ui.generated.c560165a6d7</Link></Button>
-      <Button asChild size="sm" variant="ghost"><Link href={teamHref("/team-assets", teamId)}>ui.generated.c713fd96fb2</Link></Button>
       <Button asChild size="sm" variant="ghost"><Link href={teamHref("/task-blueprints", teamId)}>ui.generated.c3172b317f9</Link></Button>
     </div>
   );
@@ -131,7 +122,6 @@ function TeamTreeNode({
     members: string;
     agentTeams: string;
     tasks: string;
-    assets: string;
     childTeams: string;
   };
   depth?: number;
@@ -162,11 +152,10 @@ function TeamTreeNode({
           </div>
           <TeamOperationLinks teamId={team.id} />
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           <MetricPill icon={<Users className="h-4 w-4" />} label={labels.members} value={summary?.memberCount ?? 0} />
           <MetricPill icon={<Bot className="h-4 w-4" />} label={labels.agentTeams} value={summary?.agentTeamCount ?? 0} />
           <MetricPill icon={<ScrollText className="h-4 w-4" />} label={labels.tasks} value={summary?.taskBlueprintCount ?? 0} />
-          <MetricPill icon={<Boxes className="h-4 w-4" />} label={labels.assets} value={summary?.assetCount ?? 0} />
         </div>
       </div>
       {children.length ? (
@@ -227,10 +216,8 @@ function TeamDetailDialog({
               { label: "ui.generated.c628a862a9b", value: team.policyJson },
             ]}
           />
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2">
             <MetricPill icon={<Users className="h-4 w-4" />} label="ui.generated.cc1ee9f0190" value={`${summary.activeMemberCount}/${summary.memberCount}`} />
-            <MetricPill icon={<KeyRound className="h-4 w-4" />} label="ui.generated.c95f4519aab" value={summary.permissionCount} />
-            <MetricPill icon={<Boxes className="h-4 w-4" />} label="ui.generated.c778ab92119" value={summary.assetCount} />
             <MetricPill icon={<ScrollText className="h-4 w-4" />} label="ui.generated.c971c6e5190" value={summary.taskBlueprintCount} />
           </div>
           <TeamOperationLinks teamId={team.id} />
@@ -250,8 +237,6 @@ export default async function BusinessTeamsPage() {
   const tenantSpaces = listTenantSpaces();
   const taskBlueprints = listTaskBlueprints().filter((blueprint) => visibleBusinessTeamIds.has(blueprint.ownerBusinessTeamId));
   const members = listTeamMembers().filter((member) => visibleBusinessTeamIds.has(member.businessTeamId));
-  const permissionGrants = listTeamPermissionGrants().filter((grant) => visibleBusinessTeamIds.has(grant.businessTeamId));
-  const assetGrants = listTeamAssetGrants().filter((grant) => visibleBusinessTeamIds.has(grant.businessTeamId));
   const agentTeams = listAgentTeams().filter((team) => visibleBusinessTeamIds.has(team.businessTeamId));
   const codebases = listCodebases().filter((codebase) => visibleBusinessTeamIds.has(codebase.businessTeamId));
   const connectors = listConnectors().filter((connector) => connector.businessTeamId ? visibleBusinessTeamIds.has(connector.businessTeamId) : authContext?.user.isSystemAdmin === 1);
@@ -272,9 +257,6 @@ export default async function BusinessTeamsPage() {
       {
         memberCount: members.filter((member) => member.businessTeamId === team.id).length,
         activeMemberCount: members.filter((member) => member.businessTeamId === team.id && member.status === "active").length,
-        permissionCount: permissionGrants.filter((grant) => grant.businessTeamId === team.id).length,
-        denyPermissionCount: permissionGrants.filter((grant) => grant.businessTeamId === team.id && grant.effect === "deny").length,
-        assetCount: assetGrants.filter((grant) => grant.businessTeamId === team.id).length,
         agentTeamCount: agentTeams.filter((agentTeam) => agentTeam.businessTeamId === team.id).length,
         taskBlueprintCount: taskBlueprints.filter((blueprint) => blueprint.ownerBusinessTeamId === team.id).length,
         codebaseCount: codebases.filter((codebase) => codebase.businessTeamId === team.id).length,
@@ -316,7 +298,7 @@ export default async function BusinessTeamsPage() {
         items={[
           { label: "ui.generated.c2b90028ff3", value: businessTeams.length, detail: `${activeTeamCount} ${t("ui.common.detail.enabled", "个已启用")}` },
           { label: "ui.generated.c7de0251fdd", value: members.length, detail: `${totalActiveMembers} ${t("ui.common.detail.enabled", "个已启用")}` },
-          { label: "ui.generated.ce40458cdde", value: assetGrants.length, detail: "ui.generated.c2b0869c742" },
+          { label: "ui.generated.cd4f6dd33b7", value: agentTeams.length, detail: "ui.generated.cc90de61dca" },
           { label: "ui.generated.cc371224569", value: taskBlueprints.length, detail: "ui.generated.cc90de61dca" },
         ]}
       />
@@ -381,9 +363,6 @@ export default async function BusinessTeamsPage() {
                   const summary = summaries.get(team.id) ?? {
                     memberCount: 0,
                     activeMemberCount: 0,
-                    permissionCount: 0,
-                    denyPermissionCount: 0,
-                    assetCount: 0,
                     agentTeamCount: 0,
                     taskBlueprintCount: 0,
                     codebaseCount: 0,
@@ -404,11 +383,11 @@ export default async function BusinessTeamsPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{summary.activeMemberCount} / {summary.memberCount}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.permissionCount} {t("ui.generated.c096bff697a", "条权限 · ")}{summary.denyPermissionCount} {t("ui.generated.c9814ee699c", "条拒绝规则")}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} {t("ui.common.count.agentTeams", "个 Agent 团队")}</div>
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{summary.assetCount} {t("ui.generated.c9a9997a2da", "项资产 · ")}{summary.taskBlueprintCount} {t("ui.generated.cc5680a85b1", "个任务")}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} {t("ui.generated.c65b0845cb8", "个 Agent 团队 · ")}{summary.knowledgeSpaceCount} {t("ui.generated.c4b183f17ca", "个知识空间")}</div>
+                        <div className="font-medium text-[var(--ink)]">{summary.taskBlueprintCount} {t("ui.generated.cc5680a85b1", "个任务")}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.knowledgeSpaceCount} {t("ui.generated.c4b183f17ca", "个知识空间")}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{money(team.balance)} / {money(team.creditLimit)}</div>
@@ -465,7 +444,6 @@ export default async function BusinessTeamsPage() {
                               members: t("ui.generated.cc1ee9f0190", "成员"),
                               agentTeams: t("ui.generated.cd4f6dd33b7", "Agent 团队"),
                               tasks: t("ui.generated.c3172b317f9", "任务"),
-                              assets: t("ui.generated.c713fd96fb2", "资产"),
                               childTeams: t("ui.generated.c99dfa3e2ed", "个子团队"),
                             }}
                           />
@@ -474,7 +452,7 @@ export default async function BusinessTeamsPage() {
                     ) : (
                       <div className="aw-compact-empty">
                         <div className="aw-compact-empty__title">{t("businessTeams.tree.emptyTitle", "当前没有团队结构")}</div>
-                        <div className="aw-compact-empty__description">{t("businessTeams.tree.emptyDescription", "可以先创建顶层团队，后续再补充子部门和资产绑定。")}</div>
+                        <div className="aw-compact-empty__description">{t("businessTeams.tree.emptyDescription", "可以先创建顶层团队，后续再补充子部门和任务配置。")}</div>
                       </div>
                     )}
                   </section>
