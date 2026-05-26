@@ -14,11 +14,11 @@ export type PixelAgentAvatarConfig = {
   weaponKey: "auto" | AgentCapabilityKey;
 };
 
-export const skinOptions = ["#f2c7a5", "#c98f6d", "#8d5a43", "#f0d7bc", "#e7a889", "#6f4938"];
-export const hairOptions = ["#151515", "#4b3428", "#8c4b25", "#d6dce8", "#5b5fc7", "#f59e0b"];
-export const suitOptions = ["#182133", "#243b53", "#334155", "#f8fafc", "#6d5dfc", "#0f766e"];
-export const accentOptions = ["#09c7e8", "#f59e0b", "#22c55e", "#ef4444", "#a78bfa", "#fb7185"];
-export const backgroundOptions = ["#dff6fb", "#e8f3e8", "#f7edd2", "#ece7ff", "#fce7f3", "#e0f2fe"];
+export const skinOptions = ["#f3bf91", "#d99062", "#9b6042", "#f0cfa9", "#c57854", "#6f4938"];
+export const hairOptions = ["#17100d", "#43281f", "#7f2d1f", "#6b1f1a", "#243044", "#b45309"];
+export const suitOptions = ["#7f1d1d", "#92400e", "#1f3a5f", "#3f2a55", "#164e3d", "#334155"];
+export const accentOptions = ["#fbbf24", "#f97316", "#ef4444", "#22c55e", "#38bdf8", "#a78bfa"];
+export const backgroundOptions = ["#070b16", "#09111f", "#111827", "#18112a", "#10231f", "#17151d"];
 export const hairStyleOptions: PixelAgentAvatarConfig["hairStyle"][] = ["cap", "side", "crest", "visor"];
 export const outfitStyleOptions: PixelAgentAvatarConfig["outfitStyle"][] = ["jacket", "robe", "armor", "hoodie"];
 export const eyeStyleOptions: PixelAgentAvatarConfig["eyeStyle"][] = ["calm", "focus", "spark"];
