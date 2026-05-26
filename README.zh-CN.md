@@ -8,17 +8,6 @@
   <strong>面向团队级 Agent 工作负载的可治理、可观测、多 Agent 操作系统。</strong>
 </p>
 
-<p align="center">
-  <a href="https://nextjs.org/"><img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs"></a>
-  <a href="https://react.dev/"><img alt="React" src="https://img.shields.io/badge/React-19-087EA4?logo=react&logoColor=white"></a>
-  <a href="https://www.typescriptlang.org/"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white"></a>
-  <a href="https://www.sqlite.org/"><img alt="SQLite" src="https://img.shields.io/badge/SQLite-local%20first-003B57?logo=sqlite&logoColor=white"></a>
-  <a href="https://pnpm.io/"><img alt="pnpm" src="https://img.shields.io/badge/pnpm-workflow-F69220?logo=pnpm&logoColor=white"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-  <img alt="OpenViking" src="https://img.shields.io/badge/OpenViking-knowledge%20base-111827">
-  <img alt="Status" src="https://img.shields.io/badge/status-active%20development-16A34A">
-</p>
-
 AgentWorld 是一个治理优先的 Agent 团队构建与运营平台。它将单次对话式 Agent 升级为可配置的团队系统，覆盖团队归属、模型治理、任务蓝图、执行策略、人工审批、知识回写和可追溯任务执行。
 
 这个项目面向严肃的企业内部平台场景：Agent、团队、模型服务、代码仓、连接器、Skill、Webhook、知识空间和执行环境都必须是可持久化资源，而不是写死在页面或代码里的演示数据。
@@ -114,20 +103,31 @@ AgentWorld 明确区分 **调度** 与 **调用**：
 - Node.js 20+
 - pnpm 9+
 - macOS 或 Linux 开发环境
-- OpenViking 运行时由托管 CLI 安装；部署包也可以直接提供 server 二进制
+- 来自内部制品库的 OpenViking server 二进制
+
+AgentWorld 按内网部署场景设计。除了 `pnpm` 安装 npm 包，启动、构建和打包脚本都不能从公网下载字体、资源或二进制。
 
 ### 安装并启动
 
-使用托管 CLI 从 GitHub 一键安装，保持和常见开源项目类似的 source-based 安装方式：
+从内部 Git 镜像安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SimonMing47/agent-world/main/scripts/install.sh | bash
-agentworld start
+git clone <your-internal-agentworld-git-url> agent-world
+cd agent-world
+corepack enable
+pnpm install --frozen-lockfile
+pnpm bootstrap
 ```
 
-安装脚本会把仓库克隆到 `~/.agentworld/agent-world`，安装依赖，初始化 `.env.local` 与 SQLite，安装/准备 OpenViking，构建生产应用，并在 `~/.local/bin` 下创建 `agentworld` 命令。
+从内部制品源提供 OpenViking：
 
-如果已经在源码目录中：
+```bash
+install -m 0755 /path/to/openviking-server thirdparty/openviking/bin/openviking-server
+```
+
+也可以把 `OPENVIKING_SERVER_BIN` 设置为内部绝对路径。
+
+构建并以生产模式启动：
 
 ```bash
 pnpm agentworld install
@@ -165,7 +165,7 @@ pnpm agentworld start
 | 命令 | 用途 |
 | --- | --- |
 | `agentworld` | 在默认安装/构建后启动生产服务。 |
-| `agentworld install` | 安装依赖，初始化本地配置和 SQLite，安装 OpenViking，并构建生产应用。 |
+| `agentworld install` | 安装 npm 依赖，初始化本地配置和 SQLite，校验 OpenViking，并构建生产应用。 |
 | `agentworld upgrade` | 拉取最新源码，重新安装依赖，执行 bootstrap，准备 OpenViking，并构建应用。 |
 | `agentworld start` | 在 `agentworld build` 后启动生产服务。 |
 | `agentworld dev` | 显式在 `PORT` 或默认 `7369` 上启动本地开发控制台。 |
@@ -278,9 +278,11 @@ curl -fsS http://127.0.0.1:1933/health
 | `AGENTWORLD_MASTER_KEY` | 本地加密和签名根密钥；为空时由 bootstrap 生成。 |
 | `AGENTWORLD_PUBLIC_BASE_URL` | 回调和生成链接使用的公开地址。 |
 | `OPENVIKING_BASE_URL` | OpenViking 服务地址，默认 `http://127.0.0.1:1933`。 |
+| `OPENVIKING_SERVER_BIN` | OpenViking server 二进制的内部绝对路径；未放在 `thirdparty/openviking/bin/` 时使用。 |
 | `AGENTWORLD_OPENVIKING_AUTO_START` | 设置为 `0` 时禁用启动器托管的 OpenViking 自动启动。 |
 | `OPENVIKING_CONFIG_FILE` | OpenViking 服务端配置路径，默认 `data/openviking/ov.conf`。 |
 | `OPENVIKING_CLI_CONFIG_FILE` | OpenViking CLI 配置路径，默认 `data/openviking/ovcli.conf`。 |
+| `AGENTWORLD_NODE_RUNTIME_TARBALL` | `pnpm package:linux` 使用的本地 Node.js Linux x64 压缩包；未放在 `thirdparty/node/` 时使用。 |
 
 模型 Provider 密钥应尽量通过控制台配置。Runtime 和知识库模型设置是持久化资源，不应被当作不可变的环境常量。
 
@@ -309,7 +311,7 @@ pnpm openviking:start
 pnpm openviking:smoke
 ```
 
-`agentworld install` 会在没有内置 OpenViking server 二进制时安装托管 OpenViking 运行时。如需手动修复或刷新该运行时：
+`agentworld install` 不会下载 OpenViking。它要求本地存在 `thirdparty/openviking/bin/openviking-server`，或已设置 `OPENVIKING_SERVER_BIN`。手动校验二进制路径：
 
 ```bash
 pnpm openviking:install
@@ -366,10 +368,18 @@ pnpm build
 AgentWorld 可以打包为 Linux 自包含服务。发布包包含：
 
 - Standalone Next.js 应用。
-- Node.js Linux runtime。
-- 已构建的 OpenViking server 二进制。
+- 来自本地批准压缩包的 Node.js Linux runtime。
+- 来自本地批准制品的 OpenViking server 二进制。
 - OpenViking 配置和 CLI 配置文件。
 - `agentworld` 与 `openviking-server` 启动脚本。
+
+打包前，先把批准的 Node.js runtime 压缩包放到：
+
+```text
+thirdparty/node/node-v${nodeVersion}-linux-x64.tar.xz
+```
+
+或设置 `AGENTWORLD_NODE_RUNTIME_TARBALL` 为本地绝对路径。
 
 构建 Linux 发布包：
 
@@ -378,13 +388,14 @@ pnpm openviking:build-binary
 pnpm package:linux
 ```
 
+`pnpm openviking:build-binary` 默认也是离线模式，只会通过 `pip --no-index` 从 `thirdparty/openviking/wheels` 或 `OPENVIKING_WHEELHOUSE_DIR` 安装 Python 依赖。
+
 OpenViking 二进制解析顺序：
 
 1. 健康的 `OPENVIKING_BASE_URL`。
 2. `OPENVIKING_SERVER_BIN`。
 3. `thirdparty/openviking/bin/openviking-server`。
 4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
-5. 托管源码安装生成的 `.venv-openviking/bin/openviking-server`。
 
 ## 项目结构
 

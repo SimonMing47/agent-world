@@ -21,7 +21,7 @@
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "bootstrap": "tsx scripts/setup.ts",
     "openviking:prepare": "node scripts/openviking-setup.mjs",
-    "openviking:install": "node scripts/openviking-setup.mjs --dev-venv",
+    "openviking:install": "node scripts/openviking-setup.mjs --require-binary",
     "openviking:init": "node scripts/openviking-init.mjs",
     "openviking:doctor": "node scripts/openviking-doctor.mjs",
     "openviking:cli-config": "node scripts/openviking-cli-config.mjs",

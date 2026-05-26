@@ -10,7 +10,7 @@ import {
   writeServerConfig,
 } from "./openviking-common.mjs";
 
-const bin = resolveServerBin({ allowVenvFallback: true });
+const bin = resolveServerBin();
 const configPath = resolveServerConfigPath();
 const host = resolveHost();
 const port = resolvePort();
@@ -19,7 +19,7 @@ if (!bin || !fs.existsSync(bin)) {
   console.error("OpenViking server binary is missing.");
   console.error("Expected: thirdparty/openviking/bin/openviking-server");
   console.error("Or set OPENVIKING_SERVER_BIN=/absolute/path/to/openviking-server");
-  console.error("For a managed source install: pnpm openviking:install");
+  console.error("Offline installs do not download OpenViking. Provide the binary from an approved internal artifact.");
   process.exit(1);
 }
 

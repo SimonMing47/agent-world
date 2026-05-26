@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { IBM_Plex_Mono, Noto_Sans_SC } from "next/font/google";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { uiText } from "@/lib/language-pack";
@@ -8,24 +7,13 @@ import { getRequestAuthContext } from "@/server/auth-core";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import "./globals.css";
 
-const notoSansSc = Noto_Sans_SC({
-  variable: "--font-manrope",
-  preload: true,
-  display: "swap",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  fallback: ["PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "sans-serif"],
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
 export const metadata: Metadata = {
   title: "AgentWorld",
   description: uiText("ui.generated.caab5c6c8a4"),
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: ["/icon.svg"],
+  },
 };
 
 export const dynamic = "force-dynamic";
@@ -60,7 +48,7 @@ export default async function RootLayout({
     <html
       lang={languagePack.locale}
       dir={languagePack.direction}
-      className={`${notoSansSc.variable} ${plexMono.variable} h-full bg-[var(--canvas)] text-[var(--ink)] antialiased`}
+      className="h-full bg-[var(--canvas)] text-[var(--ink)] antialiased"
     >
       <body className="min-h-full">
         <AppShell
