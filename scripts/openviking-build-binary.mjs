@@ -12,7 +12,7 @@ import {
 
 if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_BINARY_BUILD !== "1") {
   console.error("OpenViking deployment binary must be built on Linux.");
-  console.error("Run this script in a Linux builder, then commit thirdparty/openviking/bin/openviking-server-linux-x64 if needed.");
+  console.error("Run this script in a matching Linux builder, then commit the generated platform-specific binary under thirdparty/openviking/bin/.");
   process.exit(1);
 }
 

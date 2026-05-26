@@ -284,7 +284,8 @@ Common variables:
 | `AGENTWORLD_OPENVIKING_AUTO_START` | Set to `0` to disable launcher-managed OpenViking startup. |
 | `OPENVIKING_CONFIG_FILE` | OpenViking server config path. Defaults to `data/openviking/ov.conf`. |
 | `OPENVIKING_CLI_CONFIG_FILE` | OpenViking CLI config path. Defaults to `data/openviking/ovcli.conf`. |
-| `AGENTWORLD_NODE_RUNTIME_TARBALL` | Local Node.js Linux x64 tarball used by `pnpm package:linux` when it is not stored under `thirdparty/node/`. |
+| `AGENTWORLD_NODE_RUNTIME_TARBALL` | Local Node.js Linux tarball used by `pnpm package:linux` when it is not stored under `thirdparty/node/`. |
+| `AGENTWORLD_BUNDLE_ARCH` | Linux bundle architecture. Defaults to the current process architecture; supported values are `x64` and `arm64`. |
 
 Model provider keys should be configured through the console whenever possible. Runtime and knowledge-base model settings are persisted resources and should not be treated as immutable environment constants.
 
@@ -376,18 +377,20 @@ AgentWorld is packaged as a Linux self-contained service. The package includes:
 - OpenViking configuration and CLI configuration files.
 - `agentworld` and `openviking-server` launch scripts.
 
-The default Node.js runtime archive is already expected at:
+The default Node.js runtime archives are already expected at:
 
 ```text
 thirdparty/node/node-v${nodeVersion}-linux-x64.tar.xz
+thirdparty/node/node-v${nodeVersion}-linux-arm64.tar.xz
 ```
 
 Replace it with an approved internal archive when needed, or set `AGENTWORLD_NODE_RUNTIME_TARBALL` to an absolute local path.
 
-Before Linux packaging, place the Linux x64 OpenViking binary at:
+Before Linux packaging, place the matching Linux OpenViking binary at:
 
 ```text
 thirdparty/openviking/bin/openviking-server-linux-x64
+thirdparty/openviking/bin/openviking-server-linux-arm64
 ```
 
 Build a Linux package:
@@ -395,6 +398,13 @@ Build a Linux package:
 ```bash
 pnpm openviking:build-binary
 pnpm package:linux
+```
+
+Target a specific Linux architecture:
+
+```bash
+AGENTWORLD_BUNDLE_ARCH=arm64 pnpm package:linux
+AGENTWORLD_BUNDLE_ARCH=x64 pnpm package:linux
 ```
 
 `pnpm openviking:build-binary` is also offline by default. It installs Python dependencies only from `thirdparty/openviking/wheels` or `OPENVIKING_WHEELHOUSE_DIR` using `pip --no-index`.
