@@ -80,6 +80,13 @@ function commandExists(command) {
 
 function parseArgs(argv) {
   const [maybeCommand, ...rest] = argv;
+  if (!maybeCommand) {
+    return {
+      command: "start",
+      args: [],
+      flags: new Set(),
+    };
+  }
   const command = commands.has(maybeCommand) ? maybeCommand : "help";
   const args = commands.has(maybeCommand) ? rest : argv;
   return {
@@ -153,8 +160,12 @@ function ensureOpenViking(options) {
   pnpm(["openviking:cli-config"]);
 
   if (!hasOpenVikingRuntime()) {
-    warn("OpenViking server binary is missing. Installing Python fallback environment.");
+    warn("OpenViking runtime is missing. Installing OpenViking now.");
     pnpm(["openviking:install"]);
+  }
+
+  if (!hasOpenVikingRuntime()) {
+    fail("OpenViking installation did not produce a runnable server. Check the openviking:install output and try again.");
   }
 }
 
@@ -164,9 +175,9 @@ function install(options = {}) {
   pnpm(["install"]);
   pnpm(["bootstrap"]);
   ensureOpenViking(options);
-  if (options.production) pnpm(["build"]);
+  if (options.build) pnpm(["build"]);
   doctor({ quiet: true });
-  info("Install complete. Start with: agentworld dev");
+  info("Install complete. Start with: agentworld start");
 }
 
 function upgrade(options = {}) {
@@ -238,19 +249,20 @@ function printHelp() {
   console.log(`AgentWorld CLI ${packageJson.version}
 
 Usage:
-  agentworld install [--production] [--skip-openviking]
+  agentworld
+  agentworld install [--no-build] [--skip-openviking]
   agentworld upgrade [--no-build] [--skip-openviking]
-  agentworld dev
   agentworld start
+  agentworld dev
   agentworld build
   agentworld doctor
   agentworld version
 
 Commands:
-  install   Install dependencies, bootstrap local config, prepare OpenViking, and optionally build.
-  upgrade   Pull the latest git revision, reinstall dependencies, bootstrap, prepare OpenViking, and build.
-  dev       Start the local development server on PORT or 7369.
-  start     Start the production server after pnpm build.
+  start     Start the production server after the default install/build.
+  install   Install dependencies, bootstrap local config, install OpenViking, and build.
+  upgrade   Pull the latest git revision, reinstall dependencies, bootstrap, install/verify OpenViking, and build.
+  dev       Explicitly start the local development server on PORT or 7369.
   build     Build the standalone Next.js app.
   doctor    Check local prerequisites and service health.
 
@@ -266,7 +278,7 @@ const skipOpenViking = parsed.flags.has("--skip-openviking");
 
 if (parsed.command === "install") {
   install({
-    production: parsed.flags.has("--production"),
+    build: !parsed.flags.has("--no-build"),
     skipOpenViking,
   });
 } else if (parsed.command === "upgrade") {

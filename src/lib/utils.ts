@@ -13,14 +13,19 @@ export function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }
 
-export function formatDateTime(value: string) {
+export function formatDateTime(value: string | number | Date | null | undefined) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
   return new Intl.DateTimeFormat("zh-CN", {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(value));
+  }).format(date);
 }
 
 export function formatBytes(bytes: number) {
