@@ -3,6 +3,7 @@ import {
   deleteKnowledgeEntry,
   KnowledgeEntryConflictError,
   listLayeredKnowledge,
+  retryPendingKnowledgeSyncs,
   upsertKnowledgeEntry,
 } from "@/server/openviking-core";
 import { uiText } from "@/lib/language-pack";
@@ -23,6 +24,7 @@ function resolveSpaceBusinessTeamId(spaceId: string | null | undefined) {
 
 export async function GET() {
   const authContext = await getRequestAuthContext();
+  await retryPendingKnowledgeSyncs(3);
   return NextResponse.json({
     entries: listLayeredKnowledge(100).filter((entry) =>
       canAccessBusinessTeam(authContext, resolveSpaceBusinessTeamId(entry.knowledgeSpaceId)),

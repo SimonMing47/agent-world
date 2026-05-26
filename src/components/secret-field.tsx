@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ export function SecretInput({
   className?: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const text = useLanguageText();
 
   return (
     <div className={cn("flex gap-2", className)}>
@@ -51,7 +53,7 @@ export function SecretInput({
         onClick={() => setVisible((current) => !current)}
       >
         {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        {visible ? "隐藏" : "显示"}
+        {visible ? text("ui.common.secret.hide") : text("ui.common.secret.show")}
       </Button>
     </div>
   );
@@ -65,11 +67,12 @@ export function SecretValue({
   emptyLabel?: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const text = useLanguageText();
   const trimmed = value.trim();
 
-  if (!trimmed) return <span>{emptyLabel}</span>;
+  if (!trimmed) return <span>{text(emptyLabel)}</span>;
   if (isEnvSecretReference(trimmed)) {
-    return <span className="text-[var(--ink-muted)]">旧环境变量引用，请重新保存直接 API Key</span>;
+    return <span className="text-[var(--ink-muted)]">{text("ui.common.secret.legacyEnvReference")}</span>;
   }
 
   return (
@@ -85,7 +88,7 @@ export function SecretValue({
         onClick={() => setVisible((current) => !current)}
       >
         {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-        {visible ? "隐藏" : "显示"}
+        {visible ? text("ui.common.secret.hide") : text("ui.common.secret.show")}
       </Button>
     </span>
   );

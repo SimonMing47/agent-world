@@ -28,37 +28,42 @@ type TextFieldKey = Exclude<
   "provider" | "enabled" | "autoStart" | "corsOrigins" | "vlmProviderProfileId" | "embeddingProviderProfileId"
 >;
 
-const connectionFields: Array<{ field: TextFieldKey; label: string; hint?: string }> = [
-  { field: "baseUrl", label: "OpenViking Base URL", hint: "AgentWorld 调用 OpenViking API 的地址。" },
-  { field: "host", label: "监听 Host" },
-  { field: "port", label: "监听 Port" },
-  { field: "timeoutSeconds", label: "请求超时秒数" },
+const connectionFields: Array<{ field: TextFieldKey; labelKey: string; hintKey?: string }> = [
+  { field: "baseUrl", labelKey: "fields.baseUrl.label", hintKey: "fields.baseUrl.hint" },
+  { field: "host", labelKey: "fields.host.label" },
+  { field: "port", labelKey: "fields.port.label" },
+  { field: "timeoutSeconds", labelKey: "fields.timeoutSeconds.label" },
 ];
 
-const runtimeFields: Array<{ field: TextFieldKey; label: string; hint?: string }> = [
-  { field: "serverBin", label: "OpenViking Server Binary", hint: "本地自动拉起时使用的 openviking-server 路径。" },
-  { field: "configPath", label: "Server Config File", hint: "保存后会同步写入这份 ov.conf。" },
-  { field: "cliConfigPath", label: "CLI Config File", hint: "保存后会同步写入这份 ovcli.conf。" },
+const runtimeFields: Array<{ field: TextFieldKey; labelKey: string; hintKey?: string }> = [
+  { field: "serverBin", labelKey: "fields.serverBin.label", hintKey: "fields.serverBin.hint" },
+  { field: "configPath", labelKey: "fields.configPath.label", hintKey: "fields.configPath.hint" },
+  { field: "cliConfigPath", labelKey: "fields.cliConfigPath.label", hintKey: "fields.cliConfigPath.hint" },
 ];
 
-const identityFields: Array<{ field: TextFieldKey; label: string; type?: string }> = [
-  { field: "apiKey", label: "Root API Key", type: "password" },
-  { field: "account", label: "Account" },
-  { field: "user", label: "User" },
-  { field: "agentId", label: "Agent ID" },
+const identityFields: Array<{ field: TextFieldKey; labelKey: string; type?: string }> = [
+  { field: "apiKey", labelKey: "fields.apiKey.label", type: "password" },
+  { field: "account", labelKey: "fields.account.label" },
+  { field: "user", labelKey: "fields.user.label" },
+  { field: "agentId", labelKey: "fields.agentId.label" },
 ];
 
-const storageFields: Array<{ field: TextFieldKey; label: string }> = [
-  { field: "storageWorkspace", label: "Storage Workspace" },
-  { field: "agfsBackend", label: "AGFS Backend" },
-  { field: "vectorDbBackend", label: "Vector DB Backend" },
-  { field: "lockTimeoutSeconds", label: "Lock Timeout" },
-  { field: "lockExpireSeconds", label: "Lock Expire" },
+const storageFields: Array<{ field: TextFieldKey; labelKey: string }> = [
+  { field: "storageWorkspace", labelKey: "fields.storageWorkspace.label" },
+  { field: "agfsBackend", labelKey: "fields.agfsBackend.label" },
+  { field: "vectorDbBackend", labelKey: "fields.vectorDbBackend.label" },
+  { field: "lockTimeoutSeconds", labelKey: "fields.lockTimeoutSeconds.label" },
+  { field: "lockExpireSeconds", labelKey: "fields.lockExpireSeconds.label" },
 ];
 
 const LOCAL_EMBEDDING_SELECT_VALUE = "__openviking_local_embedding__";
 
-const KNOWLEDGE_FOUNDATION_LABEL = "内容理解知识底座";
+const KB_PREFIX = "settings.knowledgeBase";
+const KNOWLEDGE_FOUNDATION_LABEL_KEY = "knowledgeFoundation.label";
+
+function kbKey(key: string) {
+  return `${KB_PREFIX}.${key}`;
+}
 
 function parseConfig(value: string) {
   try {
@@ -154,9 +159,9 @@ function canRunContentUnderstanding(setting: KnowledgeBaseSettings) {
   return provider === "openai-codex" || (provider === "litellm" && model.startsWith("ollama/"));
 }
 
-function contentFoundationStatus(setting: KnowledgeBaseSettings) {
-  if (!setting.vlmProvider || !setting.vlmModel) return "未配置";
-  return canRunContentUnderstanding(setting) ? "已启用" : "待补 API Key";
+function contentFoundationStatusKey(setting: KnowledgeBaseSettings) {
+  if (!setting.vlmProvider || !setting.vlmModel) return "status.unconfigured";
+  return canRunContentUnderstanding(setting) ? "status.enabled" : "status.apiKeyRequired";
 }
 
 function applyDefaultModelSettings(
@@ -260,15 +265,16 @@ export function KnowledgeBaseSettingsForm({
 }) {
   const router = useRouter();
   const text = useLanguageText();
+  const kbText = (key: string, params?: Record<string, string | number>) => text(kbKey(key), undefined, params);
   const [form, setForm] = useState(() => applyDefaultModelSettings(prepareEditableSettings(setting), providerOptions, modelDefaults));
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const enabledProviderOptions = providerOptions.filter((provider) => provider.isEnabled === 1);
   const visibleProviderOptions = enabledProviderOptions.length ? enabledProviderOptions : providerOptions;
-  const foundationWarning = !form.vlmProvider || !form.vlmModel
-    ? "内容理解知识底座未配置。知识仍可保存，但 L0 摘要、L1 概览和多层语义结构不会作为默认底座启用。"
+  const foundationWarningKey = !form.vlmProvider || !form.vlmModel
+    ? "warnings.foundationMissing"
     : !canRunContentUnderstanding(form)
-      ? "内容理解模型已经选定，但缺少可直接保存的 API Key。当前 OpenViking 只会写入 Embedding 检索索引。"
+      ? "warnings.apiKeyMissing"
       : "";
 
   function update<K extends keyof KnowledgeBaseSettings>(field: K, value: KnowledgeBaseSettings[K]) {
@@ -294,13 +300,13 @@ export function KnowledgeBaseSettingsForm({
     });
   }
 
-  function renderInput(field: TextFieldKey, label: string, options?: { hint?: string; type?: string }) {
+  function renderInput(item: { field: TextFieldKey; labelKey: string; hintKey?: string; type?: string }) {
     return (
-      <FieldGroup key={field} label={label} hint={options?.hint}>
+      <FieldGroup key={item.field} label={kbText(item.labelKey)} hint={item.hintKey ? kbText(item.hintKey) : undefined}>
         <Input
-          type={options?.type ?? "text"}
-          value={form[field]}
-          onChange={(event) => update(field, event.target.value)}
+          type={item.type ?? "text"}
+          value={form[item.field]}
+          onChange={(event) => update(item.field, event.target.value)}
         />
       </FieldGroup>
     );
@@ -315,10 +321,10 @@ export function KnowledgeBaseSettingsForm({
     const modelField = isVlm ? "vlmModel" : "embeddingModel";
     const baseField = isVlm ? "vlmApiBase" : "embeddingApiBase";
     const keyField = isVlm ? "vlmApiKey" : "embeddingApiKey";
-    const title = isVlm ? `${KNOWLEDGE_FOUNDATION_LABEL} VLM/LLM` : "检索索引 Embedding";
+    const title = isVlm ? kbText("models.contentUnderstanding.title") : kbText("models.embedding.title");
     const description = isVlm
-      ? "默认知识底座基于内容理解模型：负责 OpenViking 的 L0 摘要、L1 概览、多层目录理解和语义结构化。它不是 Agent 对话运行时模型。"
-      : "Embedding 只作为检索索引层：把文档和查询转成向量，支撑语义召回。默认使用 OpenViking 本地模型，不把普通聊天模型当成 Embedding 模型。";
+      ? kbText("models.contentUnderstanding.description")
+      : kbText("models.embedding.description");
     const selectValue =
       !isVlm && usesLocalEmbeddingPreset(form, modelDefaults)
         ? LOCAL_EMBEDDING_SELECT_VALUE
@@ -339,56 +345,59 @@ export function KnowledgeBaseSettingsForm({
           </div>
           {selectedProvider ? (
             <div className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-medium text-[var(--accent-strong)]">
-              来自模型服务：{selectedProvider.name}
+              {kbText("models.source.provider", { name: selectedProvider.name })}
             </div>
           ) : isVlm && canRunContentUnderstanding(form) ? (
             <div className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
-              内容理解已启用
+              {kbText("models.contentUnderstanding.enabled")}
             </div>
           ) : !isVlm && usesLocalEmbeddingPreset(form, modelDefaults) ? (
             <div className="rounded-full bg-[#ecfdf5] px-3 py-1 text-xs font-medium text-[#047857]">
-              OpenViking 本地默认
+              {kbText("models.embedding.localDefault")}
             </div>
           ) : null}
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
           {isVlm ? (
-            <ModelRoleNote tone="blue" title="内容理解">
-              默认使用系统模型服务构建知识底座；如果要处理图片、PDF 摘要或多层目录概览，建议选择具备视觉或长上下文能力的模型。
+            <ModelRoleNote tone="blue" title={kbText("models.notes.contentUnderstanding.title")}>
+              {kbText("models.notes.contentUnderstanding.description")}
             </ModelRoleNote>
           ) : (
-            <ModelRoleNote tone="green" title="检索索引">
-              改动 Embedding 模型或维度后，已有向量索引需要重建，否则新旧向量空间不一致，检索效果会失真。
+            <ModelRoleNote tone="green" title={kbText("models.notes.embedding.title")}>
+              {kbText("models.notes.embedding.description")}
             </ModelRoleNote>
           )}
           {!isVlm ? (
-            <ModelRoleNote tone="amber" title="默认策略">
-              推荐保持本地 {modelDefaults.embedding.model}，维度 {modelDefaults.embedding.dimension}。只有明确知道模型支持 Embedding 时，才选择其他模型服务。
+            <ModelRoleNote tone="amber" title={kbText("models.notes.defaultPolicy.title")}>
+              {kbText("models.notes.defaultPolicy.description", {
+                model: modelDefaults.embedding.model,
+                dimension: modelDefaults.embedding.dimension,
+              })}
             </ModelRoleNote>
           ) : null}
           {selectedProviderHasLegacySecret ? (
-            <ModelRoleNote tone="amber" title="需要重新保存 API Key">
-              这个模型服务仍是旧的 env 环境变量引用。知识库配置不会继续带入它，请在这里直接填写 API Key 后保存。
+            <ModelRoleNote tone="amber" title={kbText("models.notes.legacySecret.title")}>
+              {kbText("models.notes.legacySecret.description")}
             </ModelRoleNote>
           ) : null}
           {isVlm && form.vlmProvider && form.vlmModel && !canRunContentUnderstanding(form) ? (
-            <ModelRoleNote tone="amber" title="知识底座待生效">
-              内容理解模型已经选定，但缺少可直接保存的 API Key。保存前请填写 API Key；否则 OpenViking 不会写入不可用的 VLM 配置。
+            <ModelRoleNote tone="amber" title={kbText("models.notes.pendingFoundation.title")}>
+              {kbText("models.notes.pendingFoundation.description")}
             </ModelRoleNote>
           ) : null}
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <FieldGroup label="配置来源">
+          <FieldGroup label={kbText("models.fields.source")}>
             <Select value={selectValue} onChange={(event) => updateModelProvider(target, event.target.value)}>
               {!isVlm ? (
                 <option value={LOCAL_EMBEDDING_SELECT_VALUE}>
-                  OpenViking 本地默认 · {modelDefaults.embedding.model}
+                  {kbText("models.source.localDefault", { model: modelDefaults.embedding.model })}
                 </option>
               ) : null}
-              <option value="">手动配置</option>
-              {!isVlm && visibleProviderOptions.length ? <option disabled>模型服务</option> : null}
+              <option value="">{kbText("models.source.manual")}</option>
+              {!isVlm && visibleProviderOptions.length ? <option disabled>{kbText("models.source.modelServices")}</option> : null}
               {visibleProviderOptions.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.name} · {provider.defaultModel}
@@ -396,33 +405,33 @@ export function KnowledgeBaseSettingsForm({
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Provider">
+          <FieldGroup label={kbText("fields.provider.label")}>
             <Input value={form[providerField]} onChange={(event) => update(providerField, event.target.value)} />
           </FieldGroup>
-          <FieldGroup label="Model">
+          <FieldGroup label={kbText("fields.model.label")}>
             <Input value={form[modelField]} onChange={(event) => update(modelField, event.target.value)} />
           </FieldGroup>
-          <FieldGroup label="API Base">
+          <FieldGroup label={kbText("fields.apiBase.label")}>
             <Input value={form[baseField]} onChange={(event) => update(baseField, event.target.value)} />
           </FieldGroup>
           {!isVlm ? (
-            <FieldGroup label="Embedding Dimension" hint="本地默认模型固定为 512。远程模型请按模型文档填写，未知可留空让 OpenViking 尝试推断。">
+            <FieldGroup label={kbText("models.fields.embeddingDimension")} hint={kbText("models.fields.embeddingDimensionHint")}>
               <Input
                 value={form.embeddingDimension}
                 onChange={(event) => update("embeddingDimension", event.target.value)}
               />
             </FieldGroup>
           ) : null}
-          <FieldGroup label="API Key" className={isVlm ? "md:col-span-2" : ""}>
+          <FieldGroup label={kbText("fields.modelApiKey.label")} className={isVlm ? "md:col-span-2" : ""}>
             <SecretInput
               value={form[keyField]}
               onChange={(value) => update(keyField, value)}
               placeholder={
                 usesLocalEmbeddingPreset(form, modelDefaults) && !isVlm
-                  ? "本地模型不需要 API Key"
+                  ? kbText("models.placeholders.localNoApiKey")
                   : selectedProviderHasLegacySecret
-                    ? "请直接填写 API Key"
-                    : "未配置"
+                    ? kbText("models.placeholders.fillApiKey")
+                    : kbText("status.unconfigured")
               }
             />
           </FieldGroup>
@@ -446,31 +455,31 @@ export function KnowledgeBaseSettingsForm({
         warnings?: string[];
       };
       if (!response.ok || result.ok === false || !result.setting) {
-        throw new Error(result.error ?? text("common.messages.saveFailed", "保存失败"));
+        throw new Error(result.error ?? kbText("messages.saveFailed"));
       }
       setForm(result.setting);
       setMessage(
         result.warnings?.length
-          ? `${text("common.messages.saved", "已保存")}；${result.warnings[0]}`
-          : text("common.messages.saved", "已保存"),
+          ? `${kbText("messages.saved")}; ${result.warnings[0]}`
+          : kbText("messages.saved"),
       );
       startTransition(() => router.refresh());
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : text("common.messages.saveFailed", "保存失败"));
+      setMessage(error instanceof Error ? error.message : kbText("messages.saveFailed"));
     }
   }
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-6">
-        <SettingsSection title="默认知识库" description="系统默认知识库后端固定为 OpenViking，默认以内容理解模型作为知识底座，Embedding 作为检索索引层。">
+        <SettingsSection title={kbText("sections.default.title")} description={kbText("sections.default.description")}>
           <div className="grid gap-4 md:grid-cols-2">
-            <FieldGroup label="Provider">
+            <FieldGroup label={kbText("fields.provider.label")}>
               <Select value={form.provider} disabled>
                 <option value="openviking">OpenViking</option>
               </Select>
             </FieldGroup>
-            <FieldGroup label="Log Level">
+            <FieldGroup label={kbText("fields.logLevel.label")}>
               <Select value={form.logLevel} onChange={(event) => update("logLevel", event.target.value)}>
                 <option value="DEBUG">DEBUG</option>
                 <option value="INFO">INFO</option>
@@ -486,7 +495,7 @@ export function KnowledgeBaseSettingsForm({
                 checked={form.enabled}
                 onChange={(event) => update("enabled", event.target.checked)}
               />
-              启用知识库服务
+              {kbText("fields.enabled.label")}
             </label>
             <label className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--ink-muted)]">
               <input
@@ -494,16 +503,16 @@ export function KnowledgeBaseSettingsForm({
                 checked={form.autoStart}
                 onChange={(event) => update("autoStart", event.target.checked)}
               />
-              随 AgentWorld 自动拉起 OpenViking
+              {kbText("fields.autoStart.label")}
             </label>
           </div>
         </SettingsSection>
 
-        <SettingsSection title="连接与监听" description="这里同时控制 AgentWorld 调用地址和本地 OpenViking 进程的监听地址。">
+        <SettingsSection title={kbText("sections.connection.title")} description={kbText("sections.connection.description")}>
           <div className="grid gap-4 md:grid-cols-2">
-            {connectionFields.map((item) => renderInput(item.field, item.label, { hint: item.hint }))}
+            {connectionFields.map((item) => renderInput(item))}
           </div>
-          <FieldGroup label="CORS Origins" hint="每行一个允许访问 OpenViking 的前端地址。">
+          <FieldGroup label={kbText("fields.corsOrigins.label")} hint={kbText("fields.corsOrigins.hint")}>
             <Textarea
               className="min-h-[120px] font-mono text-xs"
               value={form.corsOrigins}
@@ -512,38 +521,38 @@ export function KnowledgeBaseSettingsForm({
           </FieldGroup>
         </SettingsSection>
 
-        <SettingsSection title="启动与配置文件" description="保存后会立即重写 OpenViking 的 server/cli 配置文件；已运行进程需要重启后才会读取监听端口等启动参数。">
+        <SettingsSection title={kbText("sections.runtime.title")} description={kbText("sections.runtime.description")}>
           <div className="grid gap-4 md:grid-cols-2">
-            {runtimeFields.map((item) => renderInput(item.field, item.label, { hint: item.hint }))}
+            {runtimeFields.map((item) => renderInput(item))}
           </div>
         </SettingsSection>
 
-        <SettingsSection title="身份与请求头" description="这些字段会用于 OpenViking API 鉴权，以及 CLI 配置中的 account/user/agent 标识。">
+        <SettingsSection title={kbText("sections.identity.title")} description={kbText("sections.identity.description")}>
           <div className="grid gap-4 md:grid-cols-2">
-            {identityFields.map((item) => renderInput(item.field, item.label, { type: item.type }))}
+            {identityFields.map((item) => renderInput(item))}
           </div>
         </SettingsSection>
 
-        <SettingsSection title="存储配置" description="对应 OpenViking server config 里的 storage 和 transaction。">
+        <SettingsSection title={kbText("sections.storage.title")} description={kbText("sections.storage.description")}>
           <div className="grid gap-4 md:grid-cols-2">
-            {storageFields.map((item) => renderInput(item.field, item.label))}
+            {storageFields.map((item) => renderInput(item))}
           </div>
         </SettingsSection>
 
-        <SettingsSection title="模型与知识底座" description="OpenViking 默认基于内容理解构建知识底座，再用 Embedding 建立检索索引；Agent 对话模型仍在模型服务与运行绑定中管理。">
+        <SettingsSection title={kbText("sections.models.title")} description={kbText("sections.models.description")}>
           <div className="space-y-4">
-            {foundationWarning ? (
+            {foundationWarningKey ? (
               <div className="rounded-lg border border-[#fde68a] bg-[#fffbeb] px-4 py-3 text-sm leading-6 text-[#713f12]">
-                {foundationWarning}
+                {kbText(foundationWarningKey)}
               </div>
             ) : (
               <div className="rounded-lg border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm leading-6 text-[#1e3a8a]">
-                内容理解知识底座已就绪。OpenViking 会使用该模型生成 L0 摘要、L1 概览和多层语义结构。
+                {kbText("messages.foundationReady")}
               </div>
             )}
             {providerOptions.length ? null : (
               <div className="rounded-lg border border-[#fed7aa] bg-[#fff7ed] px-4 py-3 text-sm text-[var(--warning)]">
-                还没有可选模型服务。请先配置内容理解模型服务；Embedding 会继续使用 OpenViking 本地默认模型。
+                {kbText("messages.noProviderOptions")}
               </div>
             )}
             {renderModelConfig("vlm")}
@@ -562,57 +571,57 @@ export function KnowledgeBaseSettingsForm({
           </Button>
           <Button type="button" variant="ghost" onClick={() => setForm(applyDefaultModelSettings(prepareEditableSettings(setting), providerOptions, modelDefaults, { force: true }))}>
             <RotateCcw className="h-4 w-4" />
-            应用知识底座默认
+            {kbText("actions.applyDefaults")}
           </Button>
         </div>
       </div>
 
       <aside className="h-fit rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-        <div className="text-sm font-semibold text-[var(--ink)]">OpenViking 当前配置</div>
+        <div className="text-sm font-semibold text-[var(--ink)]">{kbText("summary.title")}</div>
         <div className="mt-2 text-sm leading-6 text-[var(--ink-muted)]">
-          默认知识库为 OpenViking。保存后系统会把这些值作为知识读写、同步和本地进程启动的统一来源。
+          {kbText("summary.description")}
         </div>
         <div className="mt-4 space-y-3 text-xs text-[var(--ink-muted)]">
           <div>
-            <div className="font-medium text-[var(--ink)]">服务地址</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.serviceAddress")}</div>
             <div className="mt-1 break-all font-mono">{form.baseUrl}</div>
           </div>
           <div>
-            <div className="font-medium text-[var(--ink)]">监听</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.listen")}</div>
             <div className="mt-1 font-mono">{form.host}:{form.port}</div>
           </div>
           <div>
-            <div className="font-medium text-[var(--ink)]">配置文件</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.configFile")}</div>
             <div className="mt-1 break-all font-mono">{form.configPath}</div>
           </div>
           <div>
-            <div className="font-medium text-[var(--ink)]">CLI 配置</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.cliConfig")}</div>
             <div className="mt-1 break-all font-mono">{form.cliConfigPath}</div>
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-[var(--line)] pt-3">
             <div>
-              <div className="font-medium text-[var(--ink)]">启用</div>
-              <div>{form.enabled ? "是" : "否"}</div>
+              <div className="font-medium text-[var(--ink)]">{kbText("summary.enabled")}</div>
+              <div>{form.enabled ? text("ui.common.boolean.yes") : text("ui.common.boolean.no")}</div>
             </div>
             <div>
-              <div className="font-medium text-[var(--ink)]">自动拉起</div>
-              <div>{form.autoStart ? "是" : "否"}</div>
+              <div className="font-medium text-[var(--ink)]">{kbText("summary.autoStart")}</div>
+              <div>{form.autoStart ? text("ui.common.boolean.yes") : text("ui.common.boolean.no")}</div>
             </div>
           </div>
           <div className="border-t border-[var(--line)] pt-3">
-            <div className="font-medium text-[var(--ink)]">{KNOWLEDGE_FOUNDATION_LABEL}</div>
-            <div className="mt-1 break-all font-mono">{form.vlmModel || "未配置"}</div>
+            <div className="font-medium text-[var(--ink)]">{kbText(KNOWLEDGE_FOUNDATION_LABEL_KEY)}</div>
+            <div className="mt-1 break-all font-mono">{form.vlmModel || kbText("status.unconfigured")}</div>
             <div className="mt-1 text-[var(--ink-subtle)]">
-              {contentFoundationStatus(form)}。生成 L0 摘要、L1 概览和多层语义结构。
+              {kbText("summary.contentFoundationDetail", { status: kbText(contentFoundationStatusKey(form)) })}
             </div>
           </div>
           <div>
-            <div className="font-medium text-[var(--ink)]">检索索引模型</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.embeddingModel")}</div>
             <div className="mt-1 break-all font-mono">
               {form.embeddingModel || modelDefaults.embedding.model}
-              {form.embeddingDimension ? ` / ${form.embeddingDimension} 维` : ""}
+              {form.embeddingDimension ? kbText("summary.embeddingDimension", { dimension: form.embeddingDimension }) : ""}
             </div>
-            <div className="mt-1 text-[var(--ink-subtle)]">写入向量库并支撑语义检索。</div>
+            <div className="mt-1 text-[var(--ink-subtle)]">{kbText("summary.embeddingDetail")}</div>
           </div>
         </div>
       </aside>

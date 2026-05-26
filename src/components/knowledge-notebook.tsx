@@ -252,8 +252,8 @@ export function KnowledgeNotebook({
   const router = useRouter();
   const { confirm: showConfirm, dialogHost } = useAppDialogs();
   const [query, setQuery] = useState("");
-  const [selectedSpaceId, setSelectedSpaceId] = useState(spaces[0]?.id ?? "");
-  const [selectedEntryId, setSelectedEntryId] = useState(entries[0]?.id ?? "");
+  const [selectedSpaceId, setSelectedSpaceId] = useState("");
+  const [selectedEntryId, setSelectedEntryId] = useState("");
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
   const [draft, setDraft] = useState<DraftEntry>(() => entryToDraft(selectedEntry, selectedSpaceId));
   const [message, setMessage] = useState<string | null>(null);
@@ -396,7 +396,7 @@ export function KnowledgeNotebook({
                 onClick={() => {
                   setSelectedSpaceId(space.id);
                   if (!spaceEntries.some((entry) => entry.id === selectedEntryId)) {
-                    setSelectedEntryId(spaceEntries[0]?.id ?? "");
+                    setSelectedEntryId("");
                   }
                 }}
               >

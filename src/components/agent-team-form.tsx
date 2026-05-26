@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Bot, ClipboardList, Plus, Sparkles, Trash2, UserPlus, Users } from "lucide-react";
+import { AlertTriangle, Bot, CheckCircle2, Circle, ClipboardList, Loader2, Plus, Sparkles, Target, Trash2, UserPlus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PixelAgentAvatar } from "@/components/pixel-agent-avatar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { deriveAgentCapabilityProfile, getAgentCapabilityWeapon, serializeAgentCapabilityProfile } from "@/lib/agent-capability-profile";
+import { getAgentCapabilityWeapon, parseAgentCapabilityProfile } from "@/lib/agent-capability-profile";
 import { defaultPixelAgentAvatarConfig, parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ type AgentDefinitionOption = {
   description?: string;
   systemPrompt?: string;
   avatarConfigJson?: string;
+  capabilityProfileJson?: string;
   toolBindingsJson?: string;
   harnessConfigJson?: string;
   permissionPolicyJson?: string;
@@ -119,6 +120,45 @@ type AssemblySuggestion = {
   notes?: string[];
 };
 
+type AssemblyProgressStatus = "pending" | "running" | "done";
+
+type AssemblyProgressStep = {
+  key: string;
+  label: string;
+  description: string;
+  status: AssemblyProgressStatus;
+};
+
+const ASSEMBLY_PROGRESS_STEPS: Array<Omit<AssemblyProgressStep, "status">> = [
+  {
+    key: "intent",
+    label: "读取团队意图",
+    description: "把目标、说明和当前团队设置整理成组建上下文。",
+  },
+  {
+    key: "inventory",
+    label: "扫描可用 Agent",
+    description: "检查现有 Agent 的角色、能力标签和可见性。",
+  },
+  {
+    key: "gap",
+    label: "分析能力缺口",
+    description: "判断现有成员是否足够，必要时生成待确认的新 Agent。",
+  },
+  {
+    key: "draft",
+    label: "生成团队编队",
+    description: "输出成员分工、Leader 建议和团队协作说明。",
+  },
+];
+
+function createAssemblyProgress(activeIndex: number | null = null): AssemblyProgressStep[] {
+  return ASSEMBLY_PROGRESS_STEPS.map((step, index) => ({
+    ...step,
+    status: (activeIndex === index ? "running" : "pending") as AssemblyProgressStatus,
+  }));
+}
+
 function slugify(value: string) {
   return value
     .trim()
@@ -178,51 +218,6 @@ _你们不是一串 Agent 列表。你们是为了一个明确目标临时组成
 **输出要能落地。** 每个结论都要包含判断依据、风险说明和下一步建议。${name ? `\n\n## 当前队名\n\n${name}` : ""}`;
 }
 
-function parseJsonStringArray(value: string | undefined) {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
-}
-
-function defaultAgentSoulTemplate(name: string, role: string, teamObjective: string) {
-  return `# SOUL.md - 你是谁
-
-_你不是聊天机器人。你正在成为某个具体的存在。_
-
-## 身份
-
-你是 **${name || "这个 Agent"}**。
-
-你的角色是：**${role || "一个具体的执行者"}**。
-
-## 团队任务
-
-${teamObjective || "根据团队目标完成被分派的任务。"}
-
-## 核心原则
-
-**先理解任务，再采取行动。** 你只处理 Leader 或协作者明确交给你的上下文，不假设自己拥有完整会话。
-
-**输出要能交接。** 你的结论需要包含证据、判断和下一步建议，方便团队合并。
-
-**守住边界。** 不越权访问私人信息，不对外发送半成品，不确定时把风险交还给 Leader。
-
-## 职责
-
-- 围绕你的角色完成专业判断
-- 使用必要工具验证事实
-- 在需要其他成员时清晰说明 handoff 背景
-
-## 风格
-
-简洁、具体、有判断。不要客服腔，也不要为了显得忙碌而输出空话。
-`;
-}
-
 function defaultHarnessConfigJson() {
   return JSON.stringify(
     {
@@ -261,6 +256,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [agentDefinitionOptions, setAgentDefinitionOptions] = useState<AgentDefinitionOption[]>(props.agentDefinitionOptions);
   const [pendingAssembly, setPendingAssembly] = useState<AssemblySuggestion | null>(null);
+  const [assemblyDialogOpen, setAssemblyDialogOpen] = useState(false);
+  const [assemblyIntent, setAssemblyIntent] = useState(workflow.teamObjective || props.team.description || "");
+  const [assemblyProgress, setAssemblyProgress] = useState<AssemblyProgressStep[]>(createAssemblyProgress());
   const [form, setForm] = useState({
     id: props.team.id,
     businessTeamId: props.team.businessTeamId,
@@ -283,22 +281,22 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
   const [members, setMembers] = useState<MemberDraft[]>(
     props.members.length ? props.members.slice().sort((left, right) => left.position - right.position) : [],
   );
-  const [leaderMemberId, setLeaderMemberId] = useState<string | null>(props.team.leaderAgentId ?? props.members[0]?.id ?? null);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(props.members[0]?.id ?? null);
+  const [leaderMemberId, setLeaderMemberId] = useState<string | null>(props.team.leaderAgentId ?? null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [shareMap, setShareMap] = useState<Record<string, string>>(
     Object.fromEntries(props.shares.map((share) => [share.businessTeamId, share.accessLevel])),
   );
   const selectedMember = members.find((member) => member.id === selectedMemberId) ?? null;
 
-  function buildWorkflowDefinitionJson() {
+  function buildWorkflowDefinitionJson(nextForm = form) {
     return JSON.stringify(
       {
-        strategy: form.workflowType,
-        teamStructure: form.teamStructure,
-        teamObjective: form.teamObjective,
-        aggregationMethod: form.aggregationMethod,
-        conflictResolution: form.conflictResolution,
-        splitStrategy: form.splitStrategy,
+        strategy: nextForm.workflowType,
+        teamStructure: nextForm.teamStructure,
+        teamObjective: nextForm.teamObjective,
+        aggregationMethod: nextForm.aggregationMethod,
+        conflictResolution: nextForm.conflictResolution,
+        splitStrategy: nextForm.splitStrategy,
       },
       null,
       2,
@@ -362,30 +360,46 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
   function memberCapability(member: MemberDraft) {
     const definition = agentDefinitionOptions.find((agent) => agent.id === member.agentDefinitionId);
-    return deriveAgentCapabilityProfile({
-      name: definition?.name,
-      role: `${definition?.role ?? ""} ${member.memberRole}`,
-      description: `${definition?.description ?? ""}\n${member.workInstruction}`,
-      systemPrompt: definition?.systemPrompt,
-      toolBindings: parseJsonStringArray(definition?.toolBindingsJson),
-      harnessConfigJson: definition?.harnessConfigJson,
-      permissionPolicyJson: definition?.permissionPolicyJson,
-      memoryScope: definition?.memoryScope,
-      tags: parseJsonStringArray(definition?.tagsJson),
-      visibility: definition?.visibility,
-      status: definition?.status ?? member.status,
-    });
+    return parseAgentCapabilityProfile(
+      definition?.capabilityProfileJson,
+      definition?.name || definition?.role || member.agentDefinitionId,
+    );
   }
 
-  async function assembleTeam() {
+  function updateAssemblyProgress(activeIndex: number, finalStatus: AssemblyProgressStatus = "running") {
+    setAssemblyProgress((current) =>
+      current.map((step, index) => ({
+        ...step,
+        status: index < activeIndex ? "done" : index === activeIndex ? finalStatus : "pending",
+      })),
+    );
+  }
+
+  function openAssemblyDialog() {
+    setAssemblyIntent(form.teamObjective || form.description || props.team.description || "");
+    setAssemblyProgress(createAssemblyProgress());
+    setAssemblyDialogOpen(true);
+    setMessage(null);
+  }
+
+  async function assembleTeam(intentOverride = assemblyIntent) {
+    const normalizedIntent = intentOverride.trim();
+    const nextForm = {
+      ...form,
+      teamObjective: normalizedIntent || form.teamObjective,
+    };
+    setForm(nextForm);
     setIsAssembling(true);
     setMessage(null);
+    setAssemblyDialogOpen(true);
+    updateAssemblyProgress(0);
     try {
+      updateAssemblyProgress(1);
       const response = await fetch("/api/agent-teams/assemble", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          team: { ...form, workflowDefinitionJson: buildWorkflowDefinitionJson(), members },
+          team: { ...nextForm, workflowDefinitionJson: buildWorkflowDefinitionJson(nextForm), members },
           availableAgents: agentDefinitionOptions.map((agent) => ({
             id: agent.id,
             name: agent.name,
@@ -398,17 +412,21 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
           })),
         }),
       });
+      updateAssemblyProgress(2);
       const payload = (await response.json()) as {
         suggestion?: AssemblySuggestion;
         error?: string;
       };
       if (!response.ok || !payload.suggestion) throw new Error(payload.error ?? "团队组建失败。");
+      updateAssemblyProgress(3, "done");
       if (payload.suggestion.newAgents.length) {
         setPendingAssembly(payload.suggestion);
+        setAssemblyDialogOpen(false);
         setMessage("默认模型认为现有 Agent 不完全够用，需要确认是否新增 Agent。");
         return;
       }
       applyAssemblySuggestion(payload.suggestion);
+      setAssemblyDialogOpen(false);
       setMessage("已根据团队目标从现有 Agent 中完成团队组建。");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "团队组建失败。");
@@ -419,22 +437,12 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
   async function createAgentFromAssemblyDraft(draft: AssemblyNewAgentDraft) {
     const agentId = crypto.randomUUID();
-    const systemPrompt = draft.systemPrompt || defaultAgentSoulTemplate(draft.name, draft.role, form.teamObjective);
+    const systemPrompt = draft.systemPrompt.trim();
+    if (!systemPrompt) {
+      throw new Error(`新增 Agent ${draft.name} 缺少 systemPrompt，请重新组建或先手动创建 Agent。`);
+    }
     const toolBindings: string[] = [];
     const tags = Array.from(new Set(["team-generated", ...(draft.tags ?? [])].map((tag) => tag.trim()).filter(Boolean)));
-    const capabilityProfile = deriveAgentCapabilityProfile({
-      name: draft.name,
-      role: draft.role,
-      description: draft.description,
-      systemPrompt,
-      toolBindings,
-      harnessConfigJson: defaultHarnessConfigJson(),
-      permissionPolicyJson: defaultPermissionPolicyJson(),
-      memoryScope: "private",
-      tags,
-      visibility: "team",
-      status: "draft",
-    });
     const agent: AgentDefinitionOption = {
       id: agentId,
       name: draft.name,
@@ -442,6 +450,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       description: draft.description,
       systemPrompt,
       avatarConfigJson: JSON.stringify(defaultPixelAgentAvatarConfig(`${draft.name}-${draft.role}`), null, 2),
+      capabilityProfileJson: "{}",
       toolBindingsJson: JSON.stringify(toolBindings, null, 2),
       harnessConfigJson: defaultHarnessConfigJson(),
       permissionPolicyJson: defaultPermissionPolicyJson(),
@@ -468,7 +477,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         defaultProviderProfileId: null,
         defaultRuntimeBindingId: null,
         avatarConfigJson: agent.avatarConfigJson,
-        capabilityProfileJson: serializeAgentCapabilityProfile(capabilityProfile),
+        capabilityProfileJson: agent.capabilityProfileJson,
         toolBindingsJson: agent.toolBindingsJson,
         harnessConfigJson: agent.harnessConfigJson,
         permissionPolicyJson: agent.permissionPolicyJson,
@@ -597,7 +606,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         workInstruction: member.workInstruction.trim(),
         status: member.status || "active",
       }));
-    const selectedLeaderId = normalizedMembers.find((member) => member.id === leaderMemberId)?.id ?? normalizedMembers[0]?.id ?? null;
+    const selectedLeaderId = normalizedMembers.find((member) => member.id === leaderMemberId)?.id ?? null;
     const normalizedShares = Object.entries(shareMap)
       .filter(([businessTeamId]) => businessTeamId.trim() && businessTeamId !== form.businessTeamId)
       .map(([businessTeamId, accessLevel]) => ({ businessTeamId, accessLevel }));
@@ -615,6 +624,11 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     if (normalizedMembers.length === 0) {
       setIsSaving(false);
       setMessage("请至少选择一个 Agent 成员。");
+      return null;
+    }
+    if (!selectedLeaderId) {
+      setIsSaving(false);
+      setMessage("请选择 Agent 团队 Leader。");
       return null;
     }
 
@@ -709,7 +723,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 variant="secondary"
                 onClick={(event) => {
                   event.stopPropagation();
-                  void assembleTeam();
+                  openAssemblyDialog();
                 }}
                 disabled={isAssembling || isCreatingAgents}
               >
@@ -722,7 +736,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 variant="ghost"
                 onClick={(event) => {
                   event.stopPropagation();
-                  const next = newMemberDraft(agentDefinitionOptions[0]?.id ?? "");
+                  const next = newMemberDraft("");
                   setMembers((current) => [...current, next]);
                   setSelectedMemberId(next.id);
                   if (!leaderMemberId) setLeaderMemberId(next.id);
@@ -926,6 +940,67 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
           ))}
         </div>
       </details>
+
+      <Dialog
+        open={assemblyDialogOpen}
+        onOpenChange={(open) => {
+          if (!isAssembling) setAssemblyDialogOpen(open);
+        }}
+      >
+        <DialogContent className="w-[min(94vw,720px)]">
+          <DialogHeader>
+            <DialogTitle>团队意图发现与组建</DialogTitle>
+            <DialogDescription>先明确团队意图，再让默认模型扫描 Agent 能力并生成成员编队。</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <FieldGroup label="团队意图">
+              <Textarea
+                value={assemblyIntent}
+                onChange={(event) => setAssemblyIntent(event.target.value)}
+                rows={5}
+                disabled={isAssembling}
+                placeholder="例如：组建一个可以拆解需求、修改代码、验证结果并输出 PR 说明的研发执行团队。"
+              />
+            </FieldGroup>
+
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                <Target className="h-4 w-4" />
+                初步进度
+              </div>
+              <div className="mt-3 grid gap-2">
+                {assemblyProgress.map((step) => (
+                  <div key={step.key} className="flex gap-3 rounded-lg bg-white px-3 py-2">
+                    <div className="mt-0.5 h-5 w-5 shrink-0">
+                      {step.status === "done" ? (
+                        <CheckCircle2 className="h-5 w-5 text-[var(--success)]" />
+                      ) : step.status === "running" ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-[var(--ink-subtle)]" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-[var(--ink)]">{step.label}</div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{step.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setAssemblyDialogOpen(false)} disabled={isAssembling}>
+                取消
+              </Button>
+              <Button type="button" variant="primary" onClick={() => void assembleTeam()} disabled={isAssembling}>
+                <Sparkles className="h-4 w-4" />
+                {isAssembling ? "组建中" : "开始组建"}
+              </Button>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={Boolean(pendingAssembly)}
