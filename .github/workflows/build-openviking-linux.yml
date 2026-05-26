@@ -1,5 +1,8 @@
 name: Build OpenViking Linux Binaries
 
+# This workflow is intentionally checked in so Linux OpenViking binaries can be
+# rebuilt on matching GitHub-hosted Linux runners instead of cross-built.
+
 on:
   workflow_dispatch:
   push:
