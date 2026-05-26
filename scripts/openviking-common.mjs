@@ -30,13 +30,11 @@ export function resolvePort() {
   return String(process.env.OPENVIKING_PORT ?? "1933");
 }
 
-export function resolveServerBin(options = {}) {
-  const allowVenvFallback = options.allowVenvFallback ?? true;
+export function resolveServerBin() {
   const candidates = [
     process.env.OPENVIKING_SERVER_BIN,
     defaultServerBin,
     path.join(thirdpartyBinDir, `openviking-server-${process.platform}-${process.arch}`),
-    allowVenvFallback ? path.join(venvDir, "bin", "openviking-server") : null,
   ].filter(Boolean);
 
   for (const candidate of candidates) {
