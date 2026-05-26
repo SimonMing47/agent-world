@@ -7,24 +7,20 @@ import {
   type ProviderRuntimeBinding,
   type TenantSpace,
 } from "@/server/db";
+import { getRequestAuthContext } from "@/server/auth-core";
 import { createRuntimeSession, submitRuntimeSessionMessage } from "@/server/runtime-session-core";
 import { submitTaskRun } from "@/server/queries";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
-const codeReviewPrompt = `请以这个 Agent Team 执行一次性任务：检视 AgentWorld 代码，生成多个检视意见。
-
-目标：
-- 根据团队成员分工检视代码，而不是只给泛泛总结
-- 输出多条 review comment
-- 每条意见包含标题、严重程度、相关位置、风险说明、建议修改方式
-- 优先关注 Agent 调度、Agent 调用、工具权限、安全边界、TypeScript 类型、错误处理和用户体验`;
+const codeReviewPrompt = uiText("ui.agentTeamCodeReviewSession.prompt");
 
 function resolveRuntimeDefaults() {
   const runtimeBinding = queryOne<ProviderRuntimeBinding>(
     "SELECT * FROM provider_runtime_bindings WHERE is_enabled = 1 ORDER BY updated_at DESC LIMIT 1",
   );
-  if (!runtimeBinding) throw new Error("没有可用的运行时绑定。");
+  if (!runtimeBinding) throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.runtimeBindingMissing"));
 
   const providerProfile =
     (runtimeBinding.defaultProviderProfileId
@@ -36,48 +32,54 @@ function resolveRuntimeDefaults() {
     queryOne<ProviderProfile>(
       "SELECT * FROM provider_profiles WHERE is_enabled = 1 ORDER BY updated_at DESC LIMIT 1",
     );
-  if (!providerProfile) throw new Error("没有可用的模型 Provider。");
+  if (!providerProfile) throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.providerMissing"));
 
   return { runtimeBinding, providerProfile };
 }
 
 export async function POST(request: Request) {
   try {
+    const authContext = await getRequestAuthContext();
+    const actorName = authContext?.user.name?.trim() || authContext?.user.email?.trim();
+    if (!actorName) {
+      return NextResponse.json({ ok: false, error: uiText("identityAccess.errors.signInRequired") }, { status: 401 });
+    }
+
     const body = (await request.json()) as { teamId?: string };
     if (!body.teamId?.trim()) {
-      return NextResponse.json({ ok: false, error: "缺少 teamId。" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: uiText("ui.agentTeamCodeReviewSession.errors.teamIdMissing") }, { status: 400 });
     }
 
     const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", body.teamId);
     if (!team) {
-      return NextResponse.json({ ok: false, error: "找不到 Agent Team。" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: uiText("ui.agentTeamCodeReviewSession.errors.teamMissing") }, { status: 404 });
     }
 
     const businessTeam = queryOne<BusinessTeam>(
       "SELECT * FROM business_teams WHERE id = ?",
       team.businessTeamId,
     );
-    if (!businessTeam) throw new Error("找不到团队所属业务团队。");
+    if (!businessTeam) throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.businessTeamMissing"));
 
     const tenantSpace = queryOne<TenantSpace>(
       "SELECT * FROM tenant_spaces WHERE id = ?",
       businessTeam.tenantSpaceId,
     );
-    if (!tenantSpace) throw new Error("找不到租户空间。");
+    if (!tenantSpace) throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.tenantSpaceMissing"));
 
     const { runtimeBinding, providerProfile } = resolveRuntimeDefaults();
     const taskRun = submitTaskRun({
       teamId: team.id,
       sourceType: "manual",
       sourceRef: "agentworld-code-review",
-      requestedBy: "agent-team-console",
+      requestedBy: actorName,
       priority: 85,
       plannerMode: team.workflowType === "dag" ? "leader_agent" : "rule",
-      summary: "AgentWorld 代码检视任务已创建。",
+      summary: uiText("ui.agentTeamCodeReviewSession.task.summary"),
       inputPayload: {
         taskType: "code_review",
         repository: "AgentWorld",
-        objective: "检视 AgentWorld 代码，生成多个检视意见。",
+        objective: uiText("ui.agentTeamCodeReviewSession.task.objective"),
         requestedOutputs: ["review_comments", "risk_summary", "fix_suggestions"],
       },
       permissionSnapshot: {
@@ -86,7 +88,7 @@ export async function POST(request: Request) {
       },
       agentTeamRunPlan: {
         strategy: team.workflowType,
-        teamObjective: "检视 AgentWorld 代码，生成多个检视意见。",
+        teamObjective: uiText("ui.agentTeamCodeReviewSession.task.objective"),
       },
       executionPolicySnapshot: {
         mode: "one_off_code_review",
@@ -106,7 +108,7 @@ export async function POST(request: Request) {
       },
     });
     if (!taskRun) {
-      throw new Error("代码检视任务创建后无法读取详情。");
+      throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.taskRunUnreadable"));
     }
 
     const detail = createRuntimeSession({
@@ -117,19 +119,23 @@ export async function POST(request: Request) {
       runtimeBindingId: runtimeBinding.id,
       providerProfileId: providerProfile.id,
       mode: "agent_team",
-      title: `${team.name} · AgentWorld 代码检视`,
+      title: uiText("ui.agentTeamCodeReviewSession.session.title", undefined, { team: team.name }),
       systemPrompt: [team.orchestrationPrompt, `Task run id: ${taskRun.taskRun.id}`].filter(Boolean).join("\n\n"),
       model: providerProfile.defaultModel,
-      createdBy: "agent-team-console",
+      createdBy: actorName,
     });
     if (!detail) {
-      throw new Error("运行时会话创建后无法读取详情。");
+      throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.sessionUnreadable"));
     }
 
     await submitRuntimeSessionMessage({
       sessionId: detail.session.id,
-      actorName: "Operator",
-      content: `${codeReviewPrompt}\n\n关联任务运行：${taskRun.taskRun.id}`,
+      actorId: authContext?.user.id ?? null,
+      actorName,
+      content: uiText("ui.agentTeamCodeReviewSession.session.message", undefined, {
+        prompt: codeReviewPrompt,
+        taskRunId: taskRun.taskRun.id,
+      }),
     });
 
     return NextResponse.json({
@@ -139,7 +145,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "创建代码检视任务或会话失败。" },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.agentTeamCodeReviewSession.errors.createFailed") },
       { status: 400 },
     );
   }

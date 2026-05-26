@@ -26,6 +26,7 @@ import {
   piRuntimeAdapter,
   type RuntimeAgentProfile,
   type RuntimeSessionEnvelope,
+  type RuntimeSubConversationContext,
 } from "@/server/runtime-adapter-core";
 import { uiText } from "@/lib/language-pack";
 
@@ -36,15 +37,25 @@ type StreamEnvelope =
 
 type SessionWriter = (event: StreamEnvelope) => void;
 
+export type RuntimeMessageDeliveryMode = "queue" | "append" | "interject" | "interrupt";
+
+type PendingRuntimeMessage = {
+  id: string;
+  content: string;
+  displayContent?: string;
+  actorId?: string | null;
+  actorName: string;
+  deliveryMode: RuntimeMessageDeliveryMode;
+  queuedAt: string;
+  appendedQueueIds?: string[];
+};
+
 type ActiveRuntimeHandle = {
   sessionId: string;
   mode: "single_agent" | "agent_team";
   isRunning: boolean;
-  pendingMessages: Array<{
-    content: string;
-    actorName: string;
-    turnIndex: number;
-  }>;
+  currentRunId?: string;
+  pendingMessages: PendingRuntimeMessage[];
 };
 
 type CreateRuntimeSessionInput = {
@@ -75,6 +86,8 @@ type RuntimeTeamMemberRow = {
   description: string;
   systemPrompt: string;
   model: string;
+  avatarConfigJson: string;
+  capabilityProfileJson: string;
   toolBindingsJson: string;
   memoryScope: string;
   harnessConfigJson: string;
@@ -86,6 +99,30 @@ const activeRuntimeHandles = new Map<string, ActiveRuntimeHandle>();
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function normalizeDeliveryMode(value: unknown): RuntimeMessageDeliveryMode {
+  if (value === "append" || value === "interject" || value === "interrupt") {
+    return value;
+  }
+  return "queue";
+}
+
+function formatTeamInstruction(
+  deliveryMode: RuntimeMessageDeliveryMode,
+  content: string,
+) {
+  if (deliveryMode === "append") return `${uiText("ui.runtimeConsole.queue.appendMarker")}\n${content}`;
+  if (deliveryMode === "interject") return `${uiText("ui.runtimeConsole.queue.interjectMarker")}\n${content}`;
+  return content;
+}
+
+function formatRuntimeHumanMessage(actorName: string, content: string) {
+  return [`Question from @${actorName}:`, content].join("\n");
+}
+
+function mergeAppendedInstruction(existing: string, addition: string) {
+  return `${existing.trim()}\n\n${uiText("ui.runtimeConsole.queue.appendMarker")}\n${addition.trim()}`.trim();
 }
 
 function parseContentJson<T>(value: string, fallback: T) {
@@ -121,6 +158,34 @@ function updateRuntimeSessionStatus(sessionId: string, status: string, lastError
   });
 }
 
+function queueRuntimeMessage(args: {
+  handle: ActiveRuntimeHandle;
+  content: string;
+  displayContent?: string;
+  actorId?: string | null;
+  actorName: string;
+  deliveryMode: RuntimeMessageDeliveryMode;
+  position?: "front" | "back";
+}) {
+  const pendingMessage: PendingRuntimeMessage = {
+    id: randomUUID(),
+    content: args.content,
+    displayContent: args.displayContent,
+    actorId: args.actorId ?? null,
+    actorName: args.actorName,
+    deliveryMode: args.deliveryMode,
+    queuedAt: nowIso(),
+  };
+
+  if (args.position === "front") {
+    args.handle.pendingMessages.unshift(pendingMessage);
+  } else {
+    args.handle.pendingMessages.push(pendingMessage);
+  }
+
+  return pendingMessage;
+}
+
 function getNextTurnIndex(sessionId: string) {
   const row = queryOne<{ maxTurn: number | null }>(
     "SELECT MAX(turn_index) AS max_turn FROM runtime_session_messages WHERE session_id = ?",
@@ -151,6 +216,17 @@ function flattenVisibleText(blocks: Array<{ type: string; text?: string }>) {
     .join("\n");
 }
 
+function mentionHandleFrom(value: string, fallback: string) {
+  const slug =
+    value
+      .toLowerCase()
+      .replace(/[/|]+/g, " ")
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || fallback;
+  return `@${slug}`;
+}
+
 function toRuntimeAgentProfileFromTeamMember(member: RuntimeTeamMemberRow): RuntimeAgentProfile {
   const memberRole = member.memberRole || member.role;
   return {
@@ -158,12 +234,7 @@ function toRuntimeAgentProfileFromTeamMember(member: RuntimeTeamMemberRow): Runt
     name: memberRole || member.name,
     role: memberRole,
     personaPrompt: member.workInstruction || member.systemPrompt || member.description,
-    mentionHandle: `@${(memberRole || member.name)
-      .toLowerCase()
-      .replace(/[/|]+/g, " ")
-      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 48) || member.id.slice(0, 8)}`,
+    mentionHandle: mentionHandleFrom(memberRole || member.name, member.id.slice(0, 8)),
     harnessConfigJson: member.harnessConfigJson,
     permissionPolicyJson: member.permissionPolicyJson,
   };
@@ -186,6 +257,8 @@ function listRuntimeTeamMembers(teamId: string) {
         agent_definitions.description,
         agent_definitions.system_prompt,
         agent_definitions.model,
+        agent_definitions.avatar_config_json,
+        agent_definitions.capability_profile_json,
         agent_definitions.tool_bindings_json,
         agent_definitions.memory_scope,
         agent_definitions.harness_config_json,
@@ -197,6 +270,42 @@ function listRuntimeTeamMembers(teamId: string) {
     `,
     teamId,
   );
+}
+
+function resolveRuntimeTeamLeader(session: RuntimeSession) {
+  if (!session.agentTeamId) return null;
+  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", session.agentTeamId);
+  const agents = listRuntimeTeamMembers(session.agentTeamId);
+  if (agents.length === 0) return null;
+
+  const leader = team?.leaderAgentId
+    ? agents.find(
+        (agent) =>
+          agent.id === team.leaderAgentId ||
+          agent.agentDefinitionId === team.leaderAgentId,
+      ) ?? agents[0]
+    : agents[0];
+
+  return {
+    actorId: leader.id,
+    actorName: leader.memberRole || leader.name,
+  };
+}
+
+async function steerActiveTeamLeader(args: {
+  session: RuntimeSession;
+  actorName: string;
+  content: string;
+}) {
+  const leader = resolveRuntimeTeamLeader(args.session);
+  if (!leader) return false;
+  return piRuntimeAdapter.resumeSession({
+    sessionId: args.session.id,
+    actorName: args.actorName,
+    content: args.content,
+    targetActorId: leader.actorId,
+    targetActorName: leader.actorName,
+  });
 }
 
 function toRuntimeAgentProfileFromDefinition(
@@ -321,19 +430,44 @@ function listTranscriptMessages(sessionId: string) {
 }
 
 function persistRuntimeEnvelope(event: RuntimeSessionEnvelope) {
-  if (event.type !== "runtime.permission.ask") return;
-  insertRuntimeSessionEvent({
-    sessionId: event.sessionId,
-    actorId:
-      typeof event.payload.actorId === "string" ? event.payload.actorId : null,
-    actorName: String(event.payload.actorName ?? "Runtime Assistant"),
-    eventType: "human_approval_required",
-    payload: {
-      toolName: event.payload.toolName,
-      args: event.payload.args,
-      approvalMode: event.payload.approvalMode,
-    },
-  });
+  if (event.type === "runtime.permission.ask") {
+    insertRuntimeSessionEvent({
+      sessionId: event.sessionId,
+      actorId:
+        typeof event.payload.actorId === "string" ? event.payload.actorId : null,
+      actorName: String(event.payload.actorName ?? "Runtime Assistant"),
+      eventType: "human_approval_required",
+      payload: {
+        toolName: event.payload.toolName,
+        args: event.payload.args,
+        approvalMode: event.payload.approvalMode,
+      },
+    });
+    return;
+  }
+
+  if (event.type === "runtime.context.compacted") {
+    insertRuntimeSessionEvent({
+      sessionId: event.sessionId,
+      actorId:
+        typeof event.payload.actorId === "string" ? event.payload.actorId : null,
+      actorName: String(event.payload.actorName ?? "Runtime Assistant"),
+      eventType: "context_compacted",
+      payload: {
+        reason: event.payload.reason,
+        source: event.payload.source,
+        contextWindow: event.payload.contextWindow,
+        maxTokens: event.payload.maxTokens,
+        triggerTokens: event.payload.triggerTokens,
+        targetTokens: event.payload.targetTokens,
+        originalTokenEstimate: event.payload.originalTokenEstimate,
+        compactedTokenEstimate: event.payload.compactedTokenEstimate,
+        summarizedMessages: event.payload.summarizedMessages,
+        retainedMessages: event.payload.retainedMessages,
+        summaryPreview: event.payload.summaryPreview,
+      },
+    });
+  }
 }
 
 function toPiMessage(message: RuntimeSessionMessage): AgentMessage | null {
@@ -421,6 +555,7 @@ async function invokeRuntimeAgentNode(args: {
         agentId: event.actorId ?? null,
         actorName: event.actorName,
         turnIndex: event.turnIndex,
+        subConversation: event.subConversation ?? null,
         event: event.event,
       });
     },
@@ -435,9 +570,22 @@ function persistAgentEvent(args: {
   agentId?: string | null;
   actorName: string;
   turnIndex: number;
+  subConversation?: RuntimeSubConversationContext | null;
   event: AgentEvent;
 }) {
   const createdAt = nowIso();
+  const subConversationPayload = args.subConversation
+    ? {
+        subConversation: args.subConversation,
+        subConversationId: args.subConversation.id,
+        subConversationParentId: args.subConversation.parentId,
+        subConversationKind: args.subConversation.kind,
+        subConversationTitle: args.subConversation.title,
+        subConversationSourceActorName: args.subConversation.sourceActorName,
+        subConversationTargetActorName: args.subConversation.targetActorName,
+        subConversationContext: args.subConversation.contextText,
+      }
+    : {};
 
   switch (args.event.type) {
     case "agent_start":
@@ -446,7 +594,7 @@ function persistAgentEvent(args: {
         actorId: args.agentId,
         actorName: args.actorName,
         eventType: "agent_started",
-        payload: { actorName: args.actorName },
+        payload: { actorName: args.actorName, ...subConversationPayload },
         createdAt,
       });
       return;
@@ -462,6 +610,7 @@ function persistAgentEvent(args: {
             contentIndex: assistantEvent.contentIndex,
             delta: "delta" in assistantEvent ? assistantEvent.delta : undefined,
             content: "content" in assistantEvent ? assistantEvent.content : undefined,
+            ...subConversationPayload,
           },
           createdAt,
         });
@@ -483,6 +632,7 @@ function persistAgentEvent(args: {
             contentIndex: assistantEvent.contentIndex,
             toolName: contentBlock?.type === "toolCall" ? contentBlock.name : undefined,
             delta: "delta" in assistantEvent ? assistantEvent.delta : undefined,
+            ...subConversationPayload,
           },
           createdAt,
         });
@@ -496,6 +646,7 @@ function persistAgentEvent(args: {
           payload: {
             delta: assistantEvent.delta,
             contentIndex: assistantEvent.contentIndex,
+            ...subConversationPayload,
           },
           createdAt,
         });
@@ -532,6 +683,7 @@ function persistAgentEvent(args: {
           usage: message.usage,
           stopReason: message.stopReason,
           errorMessage: message.errorMessage,
+          ...subConversationPayload,
         },
         turnIndex: args.turnIndex,
         createdAt,
@@ -548,6 +700,7 @@ function persistAgentEvent(args: {
           toolCallId: args.event.toolCallId,
           toolName: args.event.toolName,
           args: args.event.args,
+          ...subConversationPayload,
         },
         createdAt,
       });
@@ -562,6 +715,7 @@ function persistAgentEvent(args: {
           toolCallId: args.event.toolCallId,
           toolName: args.event.toolName,
           partialResult: args.event.partialResult,
+          ...subConversationPayload,
         },
         createdAt,
       });
@@ -577,6 +731,7 @@ function persistAgentEvent(args: {
           toolName: args.event.toolName,
           result: args.event.result,
           isError: args.event.isError,
+          ...subConversationPayload,
         },
         createdAt,
       });
@@ -596,6 +751,7 @@ function persistAgentEvent(args: {
             text: flattenTextFromBlocks(toolResult.content),
             details: toolResult.details,
             isError: toolResult.isError,
+            ...subConversationPayload,
           },
           turnIndex: args.turnIndex,
           createdAt,
@@ -611,6 +767,7 @@ function persistAgentEvent(args: {
         payload: {
           actorName: args.actorName,
           messageCount: args.event.messages.length,
+          ...subConversationPayload,
         },
         createdAt,
       });
@@ -676,6 +833,7 @@ async function runTeamSession(args: {
         agentId: event.actorId ?? null,
         actorName: event.actorName,
         turnIndex: event.turnIndex,
+        subConversation: event.subConversation ?? null,
         event: event.event,
       });
     },
@@ -685,13 +843,33 @@ async function runTeamSession(args: {
   });
 }
 
-async function runRuntimeSessionPrompt(args: {
+type RunRuntimeSessionPromptArgs = {
   session: RuntimeSession;
   runtimeBinding: ProviderRuntimeBinding;
   providerProfile: ProviderProfile;
   latestUserMessage: string;
   turnIndex: number;
-}) {
+};
+
+function handleRuntimePromptFailure(args: RunRuntimeSessionPromptArgs, error: unknown) {
+  const message = error instanceof Error ? error.message : "Runtime session failed";
+  insertRuntimeSessionEvent({
+    sessionId: args.session.id,
+    eventType: "session_failed",
+    payload: { error: message },
+  });
+  updateRuntimeSessionStatus(args.session.id, "error", message);
+  activeRuntimeHandles.delete(args.session.id);
+}
+
+function scheduleRuntimeSessionPrompt(args: RunRuntimeSessionPromptArgs) {
+  void runRuntimeSessionPrompt(args).catch((error) => {
+    handleRuntimePromptFailure(args, error);
+  });
+}
+
+async function runRuntimeSessionPrompt(args: RunRuntimeSessionPromptArgs) {
+  const runId = randomUUID();
   const handle = activeRuntimeHandles.get(args.session.id) ?? {
     sessionId: args.session.id,
     mode: args.session.mode as "single_agent" | "agent_team",
@@ -700,6 +878,7 @@ async function runRuntimeSessionPrompt(args: {
   };
   handle.pendingMessages ??= [];
   handle.isRunning = true;
+  handle.currentRunId = runId;
   activeRuntimeHandles.set(args.session.id, handle);
   updateRuntimeSessionStatus(args.session.id, "running", null);
   let completedSuccessfully = false;
@@ -743,6 +922,10 @@ async function runRuntimeSessionPrompt(args: {
     }
     completedSuccessfully = true;
   } catch (error) {
+    const currentHandle = activeRuntimeHandles.get(args.session.id);
+    if (!currentHandle || currentHandle.currentRunId !== runId) {
+      return;
+    }
     const message = error instanceof Error ? error.message : "Runtime session failed";
     insertRuntimeSessionEvent({
       sessionId: args.session.id,
@@ -752,30 +935,64 @@ async function runRuntimeSessionPrompt(args: {
     updateRuntimeSessionStatus(args.session.id, "error", message);
   } finally {
     const currentHandle = activeRuntimeHandles.get(args.session.id);
+    if (!currentHandle || currentHandle.currentRunId !== runId) {
+      return;
+    }
     const nextMessage = completedSuccessfully ? currentHandle?.pendingMessages.shift() : undefined;
     if (nextMessage) {
+      const turnIndex = getNextTurnIndex(args.session.id);
+      insertRuntimeSessionMessage({
+        sessionId: args.session.id,
+        actorType: "human",
+        actorId: nextMessage.actorId ?? null,
+        actorName: nextMessage.actorName,
+        role: "user",
+        content: {
+          text: nextMessage.displayContent ?? nextMessage.content,
+          deliveryMode: nextMessage.deliveryMode,
+          queueId: nextMessage.id,
+          queuedAt: nextMessage.queuedAt,
+        },
+        turnIndex,
+      });
       insertRuntimeSessionEvent({
         sessionId: args.session.id,
+        actorId: nextMessage.actorId ?? null,
+        actorName: nextMessage.actorName,
+        eventType: "human_message",
+        payload: {
+          text: nextMessage.displayContent ?? nextMessage.content,
+          turnIndex,
+          deliveryMode: nextMessage.deliveryMode,
+          queued: true,
+          queueId: nextMessage.id,
+          queuedAt: nextMessage.queuedAt,
+        },
+      });
+      insertRuntimeSessionEvent({
+        sessionId: args.session.id,
+        actorId: nextMessage.actorId ?? null,
         actorName: nextMessage.actorName,
         eventType: "leader_instruction_dequeued",
         payload: {
-          text: nextMessage.content,
-          turnIndex: nextMessage.turnIndex,
+          text: nextMessage.displayContent ?? nextMessage.content,
+          turnIndex,
+          deliveryMode: nextMessage.deliveryMode,
+          queueId: nextMessage.id,
+          appendedQueueIds: nextMessage.appendedQueueIds ?? [],
         },
       });
-      void runRuntimeSessionPrompt({
+      scheduleRuntimeSessionPrompt({
         session: args.session,
         runtimeBinding: args.runtimeBinding,
         providerProfile: args.providerProfile,
         latestUserMessage: nextMessage.content,
-        turnIndex: nextMessage.turnIndex,
+        turnIndex,
       });
       return;
     }
 
-    if (currentHandle) {
-      currentHandle.isRunning = false;
-    }
+    activeRuntimeHandles.delete(args.session.id);
     if (completedSuccessfully) updateRuntimeSessionStatus(args.session.id, "idle", null);
   }
 }
@@ -911,8 +1128,24 @@ export function getRuntimeSessionDetail(sessionId: string) {
     ? listRuntimeTeamMembers(agentTeam.id).map((member) => ({
         id: member.id,
         name: member.memberRole || member.name,
+        displayName: member.name,
         role: member.memberRole || member.role,
+        mentionHandle: mentionHandleFrom(member.memberRole || member.name, member.id.slice(0, 8)),
+        avatarConfigJson: member.avatarConfigJson,
+        capabilityProfileJson: member.capabilityProfileJson,
       }))
+    : agentDefinition
+      ? [
+          {
+            id: agentDefinition.id,
+            name: agentDefinition.name,
+            displayName: agentDefinition.name,
+            role: agentDefinition.role,
+            mentionHandle: mentionHandleFrom(agentDefinition.name, agentDefinition.id.slice(0, 8)),
+            avatarConfigJson: agentDefinition.avatarConfigJson,
+            capabilityProfileJson: agentDefinition.capabilityProfileJson,
+          },
+        ]
     : [];
   const messages = listRuntimeSessionMessages(sessionId).map((message) => ({
     ...message,
@@ -963,7 +1196,9 @@ export function deleteRuntimeSession(sessionId: string) {
 export async function submitRuntimeSessionMessage(args: {
   sessionId: string;
   content: string;
+  actorId?: string | null;
   actorName?: string;
+  deliveryMode?: RuntimeMessageDeliveryMode;
 }) {
   const session = getRuntimeSession(args.sessionId);
   if (!session) throw new Error(uiText("ui.generated.c1211c69ea1"));
@@ -981,45 +1216,271 @@ export async function submitRuntimeSessionMessage(args: {
     throw new Error(uiText("ui.generated.c32a50af4a6"));
   }
 
-  const turnIndex = getNextTurnIndex(session.id);
-  insertRuntimeSessionMessage({
-    sessionId: session.id,
-    actorType: "human",
-    actorName: args.actorName ?? "Operator",
-    role: "user",
-    content: { text: args.content },
-    turnIndex,
-  });
-  insertRuntimeSessionEvent({
-    sessionId: session.id,
-    actorName: args.actorName ?? "Operator",
-    eventType: "human_message",
-    payload: {
-      text: args.content,
-      turnIndex,
-    },
-  });
-
+  const actorName = args.actorName ?? "User";
+  const deliveryMode = normalizeDeliveryMode(args.deliveryMode);
+  const runtimeContent =
+    session.mode === "agent_team" ? formatRuntimeHumanMessage(actorName, args.content) : args.content;
   const activeHandle = activeRuntimeHandles.get(session.id);
-  if (session.mode === "agent_team" && activeHandle?.isRunning) {
-    activeHandle.pendingMessages ??= [];
-    activeHandle.pendingMessages.push({
-      content: args.content,
-      actorName: args.actorName ?? "Operator",
+  const recordHumanMessage = (input?: {
+    text?: string;
+    turnIndex?: number;
+    queued?: boolean;
+    queueId?: string;
+    queuedAt?: string;
+  }) => {
+    const turnIndex = input?.turnIndex ?? getNextTurnIndex(session.id);
+    const text = input?.text ?? args.content;
+    insertRuntimeSessionMessage({
+      sessionId: session.id,
+      actorType: "human",
+      actorId: args.actorId ?? null,
+      actorName,
+      role: "user",
+      content: {
+        text,
+        deliveryMode,
+        ...(input?.queueId ? { queueId: input.queueId } : {}),
+        ...(input?.queuedAt ? { queuedAt: input.queuedAt } : {}),
+      },
       turnIndex,
     });
     insertRuntimeSessionEvent({
       sessionId: session.id,
-      actorName: args.actorName ?? "Operator",
+      actorId: args.actorId ?? null,
+      actorName,
+      eventType: "human_message",
+      payload: {
+        text,
+        turnIndex,
+        deliveryMode,
+        ...(input?.queued ? { queued: true } : {}),
+        ...(input?.queueId ? { queueId: input.queueId } : {}),
+        ...(input?.queuedAt ? { queuedAt: input.queuedAt } : {}),
+      },
+    });
+    return turnIndex;
+  };
+
+  if (session.mode === "agent_team" && activeHandle?.isRunning) {
+    activeHandle.pendingMessages ??= [];
+    if (deliveryMode === "interrupt") {
+      const droppedQueueDepth = activeHandle.pendingMessages.length;
+      const previousRunId = activeHandle.currentRunId ?? null;
+      const turnIndex = recordHumanMessage();
+      activeHandle.pendingMessages = [];
+      activeHandle.isRunning = false;
+      activeHandle.currentRunId = randomUUID();
+      await piRuntimeAdapter.cancel(session.id);
+      insertRuntimeSessionEvent({
+        sessionId: session.id,
+        actorId: args.actorId ?? null,
+        actorName,
+        eventType: "leader_instruction_interrupted",
+        payload: {
+          text: args.content,
+          turnIndex,
+          deliveryMode,
+          routedTo: "leader",
+          previousRunId,
+          droppedQueueDepth,
+        },
+      });
+      scheduleRuntimeSessionPrompt({
+        session,
+        runtimeBinding,
+        providerProfile,
+        latestUserMessage: runtimeContent,
+        turnIndex,
+      });
+      return {
+        accepted: true,
+        queued: false,
+        routedTo: "leader",
+        deliveryMode,
+        interrupted: true,
+        droppedQueueDepth,
+      };
+    }
+
+    if (deliveryMode === "interject") {
+      const instruction = formatTeamInstruction(deliveryMode, runtimeContent);
+      const steered = await steerActiveTeamLeader({
+        session,
+        actorName,
+        content: instruction,
+      });
+      if (steered) {
+        const turnIndex = recordHumanMessage();
+        insertRuntimeSessionEvent({
+          sessionId: session.id,
+          actorId: args.actorId ?? null,
+          actorName,
+          eventType: "leader_instruction_interjected",
+          payload: {
+            text: args.content,
+            turnIndex,
+            deliveryMode,
+            routedTo: "leader",
+            queued: false,
+          },
+        });
+        return {
+          accepted: true,
+          queued: false,
+          routedTo: "leader",
+          deliveryMode,
+          steered: true,
+        };
+      }
+
+      const pending = queueRuntimeMessage({
+        handle: activeHandle,
+        content: instruction,
+        displayContent: args.content,
+        actorId: args.actorId ?? null,
+        actorName,
+        deliveryMode,
+        position: "front",
+      });
+      insertRuntimeSessionEvent({
+        sessionId: session.id,
+        actorId: args.actorId ?? null,
+        actorName,
+        eventType: "leader_instruction_interjected",
+        payload: {
+          text: args.content,
+          deliveryMode,
+          routedTo: "leader",
+          queued: true,
+          queueId: pending.id,
+          queuedAt: pending.queuedAt,
+          position: "front",
+          queueDepth: activeHandle.pendingMessages.length,
+        },
+      });
+      return {
+        accepted: true,
+        queued: true,
+        routedTo: "leader",
+        deliveryMode,
+        queueDepth: activeHandle.pendingMessages.length,
+      };
+    }
+
+    if (deliveryMode === "append") {
+      const instruction = formatTeamInstruction(deliveryMode, runtimeContent);
+      const steered = await steerActiveTeamLeader({
+        session,
+        actorName,
+        content: instruction,
+      });
+      if (steered) {
+        const turnIndex = recordHumanMessage();
+        insertRuntimeSessionEvent({
+          sessionId: session.id,
+          actorId: args.actorId ?? null,
+          actorName,
+          eventType: "leader_instruction_appended",
+          payload: {
+            text: args.content,
+            turnIndex,
+            deliveryMode,
+            routedTo: "leader",
+            queued: false,
+          },
+        });
+        return {
+          accepted: true,
+          queued: false,
+          routedTo: "leader",
+          deliveryMode,
+          steered: true,
+        };
+      }
+
+      const lastPending =
+        activeHandle.pendingMessages[activeHandle.pendingMessages.length - 1];
+      const queueId = randomUUID();
+      const queuedAt = nowIso();
+      if (lastPending) {
+        const previousDisplayContent = lastPending.displayContent ?? lastPending.content;
+        lastPending.content = mergeAppendedInstruction(lastPending.content, args.content);
+        lastPending.displayContent = mergeAppendedInstruction(
+          previousDisplayContent,
+          args.content,
+        );
+        lastPending.deliveryMode = "append";
+        lastPending.appendedQueueIds = [
+          ...(lastPending.appendedQueueIds ?? []),
+          queueId,
+        ];
+      } else {
+        activeHandle.pendingMessages.push({
+          id: queueId,
+          content: instruction,
+          displayContent: args.content,
+          actorId: args.actorId ?? null,
+          actorName,
+          deliveryMode,
+          queuedAt,
+        });
+      }
+      insertRuntimeSessionEvent({
+        sessionId: session.id,
+        actorId: args.actorId ?? null,
+        actorName,
+        eventType: "leader_instruction_appended",
+        payload: {
+          text: args.content,
+          deliveryMode,
+          routedTo: "leader",
+          queued: true,
+          queueId,
+          queuedAt,
+          appendedToQueueId: lastPending?.id,
+          appendedToPending: Boolean(lastPending),
+          queueDepth: activeHandle.pendingMessages.length,
+        },
+      });
+      return {
+        accepted: true,
+        queued: true,
+        routedTo: "leader",
+        deliveryMode,
+        appended: true,
+        queueDepth: activeHandle.pendingMessages.length,
+      };
+    }
+
+    const pending = queueRuntimeMessage({
+      handle: activeHandle,
+      content: runtimeContent,
+      displayContent: args.content,
+      actorId: args.actorId ?? null,
+      actorName,
+      deliveryMode,
+    });
+    insertRuntimeSessionEvent({
+      sessionId: session.id,
+      actorId: args.actorId ?? null,
+      actorName,
       eventType: "leader_instruction_queued",
       payload: {
         text: args.content,
-        turnIndex,
+        deliveryMode,
         routedTo: "leader",
+        queueId: pending.id,
+        queuedAt: pending.queuedAt,
         queueDepth: activeHandle.pendingMessages.length,
       },
     });
-    return { accepted: true, queued: true, routedTo: "leader" };
+    return {
+      accepted: true,
+      queued: true,
+      routedTo: "leader",
+      deliveryMode,
+      queueDepth: activeHandle.pendingMessages.length,
+    };
   }
 
   if (session.mode === "agent_team" && session.status === "running" && !activeHandle?.isRunning) {
@@ -1029,47 +1490,51 @@ export async function submitRuntimeSessionMessage(args: {
       eventType: "session_recovered_from_stale_running",
       payload: {
         reason: "database_status_running_without_active_runtime_handle",
-        nextTurnIndex: turnIndex,
+        nextTurnIndex: getNextTurnIndex(session.id),
       },
     });
     updateRuntimeSessionStatus(session.id, "idle", null);
   }
 
   if (activeHandle?.isRunning) {
+    const turnIndex = recordHumanMessage();
     const accepted = await piRuntimeAdapter.resumeSession({
       sessionId: session.id,
-      actorName: args.actorName ?? "Operator",
+      actorName,
       content: args.content,
     });
     if (!accepted) {
-      void runRuntimeSessionPrompt({
+      scheduleRuntimeSessionPrompt({
         session,
         runtimeBinding,
         providerProfile,
-        latestUserMessage: args.content,
+        latestUserMessage: runtimeContent,
         turnIndex,
       });
       return { accepted: true, queued: false };
     }
     insertRuntimeSessionEvent({
       sessionId: session.id,
-      actorName: args.actorName ?? "Operator",
+      actorId: args.actorId ?? null,
+      actorName,
       eventType: "human_steer",
       payload: {
         text: args.content,
         turnIndex,
+        deliveryMode,
       },
     });
-    return { accepted: true, queued: true };
+    return { accepted: true, queued: true, deliveryMode };
   }
 
-  void runRuntimeSessionPrompt({
+  const turnIndex = recordHumanMessage();
+  scheduleRuntimeSessionPrompt({
     session,
     runtimeBinding,
     providerProfile,
-    latestUserMessage: args.content,
+    latestUserMessage: runtimeContent,
     turnIndex,
   });
 
-  return { accepted: true, queued: false };
+  return { accepted: true, queued: false, deliveryMode };
 }

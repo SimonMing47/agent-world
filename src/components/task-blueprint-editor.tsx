@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
+import { ChevronDown, GitBranch, Settings2, SlidersHorizontal, Users, Webhook, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import {
 } from "@/components/task-workflow-block-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { uiText } from "@/lib/language-pack";
+import { cn } from "@/lib/utils";
 
 type AgentTeamOption = {
   id: string;
@@ -268,12 +270,29 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   const blocks: WorkflowBlock[] = [];
   if (leader) {
     blocks.push({
+      id: "prepare_workspace",
+      type: "script_hook",
+      title: uiText("ui.taskBlueprintEditor.workflow.prepareWorkspaceTitle"),
+      agentId: leader.id,
+      agentTeamId: "",
+      dependsOn: [],
+      instruction: uiText("ui.taskBlueprintEditor.workflow.prepareWorkspaceInstruction"),
+      tool: "code.checkout",
+      action: "prepare_workspace",
+      script: "agentworld workspace prepare --from-task",
+      url: "",
+      method: "POST",
+      connectorType: "",
+      publisherRef: "",
+      payloadTemplate: "{}",
+    });
+    blocks.push({
       id: "plan",
       type: "agent",
       title: "ui.generated.cf6da0a93ac",
       agentId: leader.id,
       agentTeamId: "",
-      dependsOn: [],
+      dependsOn: ["prepare_workspace"],
       instruction: runPlan.objective || "ui.generated.c1433d74547",
       tool: "memory.retrieve",
       action: "plan",
@@ -393,7 +412,7 @@ function buildRunPlanJson(args: {
     ...block,
     id: normalizeBlockId(block.id, index),
     dependsOn: block.dependsOn.filter(Boolean),
-    agentId: block.agentId,
+    agentId: block.agentId || leader?.id || "",
   }));
   const workers = blocks
     .filter((block) => block.id !== "plan")
@@ -496,6 +515,51 @@ function buildEnvironmentSelectorJson(args: {
   );
 }
 
+function EditorSection({
+  title,
+  description,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon: ReactNode;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <details
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      className="group rounded-lg border border-[var(--line)] bg-[rgba(255,255,255,0.58)]"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3">
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-white text-[var(--ink)]">
+            {icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[var(--ink)]">{title}</span>
+            {description ? (
+              <span className="mt-0.5 block text-xs leading-5 text-[var(--ink-muted)]">{description}</span>
+            ) : null}
+          </span>
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-[var(--ink-muted)] transition-transform",
+            open ? "rotate-180" : "rotate-0",
+          )}
+        />
+      </summary>
+      <div className="border-t border-[var(--line)] px-4 py-4">{children}</div>
+    </details>
+  );
+}
+
 export function TaskBlueprintEditor({
   blueprint,
   options,
@@ -529,6 +593,12 @@ export function TaskBlueprintEditor({
       typeof trigger.webhookPathKey === "string" ? trigger.webhookPathKey : "",
     triggerIdempotencyKey:
       typeof trigger.idempotencyKey === "string" ? trigger.idempotencyKey : "",
+    triggerSecretRef:
+      typeof trigger.webhookSecretRef === "string"
+        ? trigger.webhookSecretRef
+        : typeof trigger.secretRef === "string"
+          ? trigger.secretRef
+          : "",
     triggerExtraJson: JSON.stringify(
       Object.fromEntries(
         Object.entries(trigger).filter(
@@ -541,6 +611,8 @@ export function TaskBlueprintEditor({
               "webhookPathKey",
               "endpoint",
               "idempotencyKey",
+              "secretRef",
+              "webhookSecretRef",
             ].includes(key),
         ),
       ),
@@ -697,6 +769,10 @@ export function TaskBlueprintEditor({
             ? `/api/webhooks/${form.triggerWebhookPathKey.trim()}`
             : undefined,
         idempotencyKey: form.triggerIdempotencyKey.trim() || undefined,
+        webhookSecretRef:
+          form.triggerType === "webhook" && form.triggerSecretRef.trim()
+            ? form.triggerSecretRef.trim()
+            : undefined,
       },
       null,
       2,
@@ -767,364 +843,451 @@ export function TaskBlueprintEditor({
     router.refresh();
   }
 
+  const isWebhookTrigger = form.triggerType === "webhook";
+  const isCronTrigger = form.triggerType === "cron";
+  const webhookEndpoint = form.triggerWebhookPathKey.trim()
+    ? `/api/webhooks/${form.triggerWebhookPathKey.trim()}`
+    : uiText("ui.taskBlueprintEditor.generatedAfterSave");
+
   const content = (
-    <div className="space-y-6">
-      <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.c2e30469899">
-          <Input
-            value={form.name}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                name: event.target.value,
-                id: current.id ? current.id : slugifyTaskKey(event.target.value),
-              }))
-            }
-            placeholder="ui.generated.c0b74771e95"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c617a5f9a25" hint="ui.generated.c15ec820bb8">
-          <Input
-            value={form.id}
-            onChange={(event) => setForm({ ...form, id: slugifyTaskKey(event.target.value) })}
-            placeholder="ui.common.unconfigured"
-            disabled={Boolean(blueprint.id)}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c3c943b28b2">
-          <Input
-            value={form.category}
-            onChange={(event) => setForm({ ...form, category: event.target.value })}
-            placeholder="ui.common.unconfigured"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c26f30fd79b">
-          <Select
-            value={form.ownerBusinessTeamId}
-            onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
-          >
-            <option value="">ui.generated.cc51fbedf93</option>
-            {options.businessTeams.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c773c1f915b" hint="ui.generated.cd5ac6f172a">
-          <Select
-            value={form.teamId}
-            onChange={(event) => {
-              const nextTeamId = event.target.value;
-              const nextTeam = options.agentTeams.find((team) => team.id === nextTeamId) ?? null;
-              setForm({
-                ...form,
-                teamId: nextTeamId,
-                orchestrationStrategy: nextTeam?.workflowType || form.orchestrationStrategy || "block_graph",
-                blocks: parseWorkflowBlocks(blueprint.agentTeamRunPlanJson, nextTeam),
-              });
-            }}
-          >
-            <option value="">ui.generated.c9750d7aa4d</option>
-            {options.agentTeams.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c747b74cec9">
-          <Select
-            value={form.visibility}
-            onChange={(event) => setForm({ ...form, visibility: event.target.value })}
-          >
-            {["team", "global", "private"].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c62e951a692">
-          <Select
-            value={form.status}
-            onChange={(event) => setForm({ ...form, status: event.target.value })}
-          >
-            {["draft", "active", "paused", "archived"].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c989d1affa0">
-          <Input
-            value={form.version}
-            onChange={(event) => setForm({ ...form, version: event.target.value })}
-            placeholder="1"
-          />
-        </FieldGroup>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.cf67f1852d8">
-          <Select
-            value={form.triggerType}
-            onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
-          >
-            {[
-              ["manual", "ui.generated.c4a5859fe7a"],
-              ["cron", "ui.generated.c71a57ee3f4"],
-              ["webhook", "ui.generated.cbae9dc4399"],
-              ["access_grant", "ui.generated.cd6f28580d0"],
-            ].map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cbec9421d1b" hint="ui.generated.c39ea9b45fa">
-          <Input
-            value={form.triggerIdempotencyKey}
-            onChange={(event) => setForm({ ...form, triggerIdempotencyKey: event.target.value })}
-            placeholder="${task_blueprint_id}:${run_date}"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cc2dd028659">
-          <Input
-            value={form.triggerConnector}
-            onChange={(event) => setForm({ ...form, triggerConnector: event.target.value })}
-            placeholder="gitlab / github / custom"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c4c93b76aa6">
-          <Input
-            value={form.triggerEvent}
-            onChange={(event) => setForm({ ...form, triggerEvent: event.target.value })}
-            placeholder="merge_request.updated"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c7ce0c7ebfa">
-          <Input
-            value={form.triggerWebhookPathKey}
-            onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
-            placeholder="shield-inspection"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c6859f82ab2">
-          <Input
-            value={form.triggerExpression}
-            onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
-            placeholder="0 2 * * *"
-          />
-        </FieldGroup>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.c059d73c843" hint="ui.generated.c7600fcef60">
-          <Select
-            value={form.environmentId}
-            onChange={(event) => setForm({ ...form, environmentId: event.target.value })}
-          >
-            <option value="">ui.generated.c304b35fa0b</option>
-            {options.environments.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c9d9b3556ce">
-          <Input
-            value={form.repoBinding}
-            onChange={(event) => setForm({ ...form, repoBinding: event.target.value })}
-            placeholder="${repo_id}"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cba5d810d8e">
-          <Select
-            value={form.checkoutMode}
-            onChange={(event) => setForm({ ...form, checkoutMode: event.target.value })}
-          >
-            {[
-              ["full_clone", "ui.generated.ce06ef8ad7c"],
-              ["diff_context", "ui.generated.c7b5bd8f102"],
-              ["shallow_clone", "ui.generated.ce41afa49e0"],
-              ["workspace_only", "ui.generated.cde9f5743a1"],
-            ].map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c9ff2c99ee4" hint="ui.generated.c7106a4b39c">
-          <Input
-            value={form.executionPath}
-            onChange={(event) => setForm({ ...form, executionPath: event.target.value })}
-            placeholder={selectedEnvironment?.workingDirectory ?? "."}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c5b587a4e31">
-          <Select
-            value={form.sandboxMode}
-            onChange={(event) => setForm({ ...form, sandboxMode: event.target.value })}
-          >
-            {[
-              ["inherit", "ui.generated.c42d96899e4"],
-              ["process", "ui.generated.c61f80a29ce"],
-              ["workspace", "ui.generated.c9f475f65d9"],
-              ["future", "ui.generated.c3d25f5aab9"],
-            ].map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c945fc763f7">
-          <Input
-            value={form.sandboxRef}
-            onChange={(event) => setForm({ ...form, sandboxRef: event.target.value })}
-            placeholder="sandbox:security-inspection"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.ce869b36d04" className="md:col-span-2">
-          <Textarea
-            value={form.taskObjective}
-            onChange={(event) => setForm({ ...form, taskObjective: event.target.value })}
-            placeholder="ui.generated.c38f0c4a96f"
-          />
-        </FieldGroup>
-      </div>
-
-      <div className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-4">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-semibold text-[var(--ink)]">ui.generated.c36deb09d20</div>
-            <div className="text-xs text-[var(--ink-muted)]">
-              ui.generated.cdee6457cec
-            </div>
-          </div>
-          <div className="w-full sm:w-56">
+    <div className="space-y-4">
+      <EditorSection
+        defaultOpen
+        title={uiText("ui.taskBlueprintEditor.sections.keyConfig.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.keyConfig.description")}
+        icon={<Webhook className="h-4 w-4" />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.name")}>
+            <Input
+              value={form.name}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  name: event.target.value,
+                  id: current.id ? current.id : slugifyTaskKey(event.target.value),
+                }))
+              }
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.name")}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.status")}>
             <Select
-              value={form.orchestrationStrategy}
-              onChange={(event) => setForm({ ...form, orchestrationStrategy: event.target.value })}
-              aria-label="ui.generated.c4ce28e0e5f"
+              value={form.status}
+              onChange={(event) => setForm({ ...form, status: event.target.value })}
             >
               {[
-                ["block_graph", "ui.generated.c1ba7f07a2c"],
-                ["leader_worker_parallel", "ui.generated.c771fc1cb59"],
-                ["parallel", "ui.generated.c00f5174435"],
-                ["sequential", "ui.generated.ca21bbf9046"],
-                ["dag", "ui.generated.c23f05b1901"],
+                ["active", "active"],
+                ["draft", "draft"],
+                ["paused", "paused"],
+                ["archived", "archived"],
               ].map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
             </Select>
-          </div>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.businessTeam")}>
+            <Select
+              value={form.ownerBusinessTeamId}
+              onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
+            >
+              <option value="">{uiText("ui.taskBlueprintEditor.options.selectBusinessTeam")}</option>
+              {options.businessTeams.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.agentTeam")}>
+            <Select
+              value={form.teamId}
+              onChange={(event) => {
+                const nextTeamId = event.target.value;
+                const nextTeam = options.agentTeams.find((team) => team.id === nextTeamId) ?? null;
+                setForm({
+                  ...form,
+                  teamId: nextTeamId,
+                  orchestrationStrategy: nextTeam?.workflowType || form.orchestrationStrategy || "block_graph",
+                  blocks: parseWorkflowBlocks(blueprint.agentTeamRunPlanJson, nextTeam),
+                });
+              }}
+            >
+              <option value="">{uiText("ui.taskBlueprintEditor.options.selectAgentTeam")}</option>
+              {options.agentTeams.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.triggerType")}>
+            <Select
+              value={form.triggerType}
+              onChange={(event) => setForm({ ...form, triggerType: event.target.value })}
+            >
+              {[
+                ["webhook", "Webhook"],
+                ["manual", uiText("ui.taskBlueprintEditor.trigger.manual")],
+                ["cron", "Cron"],
+                ["access_grant", uiText("ui.taskBlueprintEditor.trigger.accessGrant")],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          {isWebhookTrigger ? (
+            <FieldGroup label="Webhook Path">
+              <Input
+                value={form.triggerWebhookPathKey}
+                onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
+                placeholder="merge-request-review"
+              />
+            </FieldGroup>
+          ) : null}
+          {isWebhookTrigger ? (
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.eventName")}>
+              <Input
+                value={form.triggerEvent}
+                onChange={(event) => setForm({ ...form, triggerEvent: event.target.value })}
+                placeholder="merge_request.updated"
+              />
+            </FieldGroup>
+          ) : null}
+          {isCronTrigger ? (
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.cronExpression")}>
+              <Input
+                value={form.triggerExpression}
+                onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
+                placeholder="0 2 * * *"
+              />
+            </FieldGroup>
+          ) : null}
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.taskObjective")} className="md:col-span-2">
+            <Textarea
+              value={form.taskObjective}
+              onChange={(event) => setForm({ ...form, taskObjective: event.target.value })}
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.taskObjective")}
+            />
+          </FieldGroup>
+          {isWebhookTrigger ? (
+            <div className="md:col-span-2 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2 font-mono text-xs text-[var(--ink-muted)]">
+              {webhookEndpoint}
+            </div>
+          ) : null}
         </div>
-        <TaskWorkflowBlockEditor
-          blocks={form.blocks}
-          onChange={(blocks) => setForm({ ...form, blocks })}
-          agents={selectedTeam?.members ?? []}
-          agentTeams={options.agentTeams.map((team) => ({ id: team.id, name: team.name }))}
-        />
-      </div>
+      </EditorSection>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.c29518b8b22" className="md:col-span-2">
-          <Textarea
-            className="min-h-32"
-            value={form.inputSchemaJson}
-            onChange={(event) => setForm({ ...form, inputSchemaJson: event.target.value })}
-            placeholder='{"type":"object","properties":{}}'
+      <EditorSection
+        defaultOpen
+        title={uiText("ui.taskBlueprintEditor.sections.agentWorkflow.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.agentWorkflow.description")}
+        icon={<Workflow className="h-4 w-4" />}
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-[var(--ink)]">{uiText("ui.taskBlueprintEditor.fields.orchestrationStrategy")}</div>
+              <div className="mt-1 text-xs text-[var(--ink-muted)]">{uiText("ui.taskBlueprintEditor.help.orchestrationStrategy")}</div>
+            </div>
+            <div className="w-full sm:w-60">
+              <Select
+                value={form.orchestrationStrategy}
+                onChange={(event) => setForm({ ...form, orchestrationStrategy: event.target.value })}
+                aria-label={uiText("ui.taskBlueprintEditor.fields.orchestrationStrategy")}
+              >
+                {[
+                  ["block_graph", "block_graph"],
+                  ["leader_worker_parallel", "leader_worker_parallel"],
+                  ["parallel", "parallel"],
+                  ["sequential", "sequential"],
+                  ["dag", "dag"],
+                ].map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <TaskWorkflowBlockEditor
+            blocks={form.blocks}
+            onChange={(blocks) => setForm({ ...form, blocks })}
+            agents={selectedTeam?.members ?? []}
+            agentTeams={options.agentTeams.map((team) => ({ id: team.id, name: team.name }))}
           />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cd8cce53c0b" className="md:col-span-2">
-          <Textarea
-            className="min-h-32"
-            value={form.resultSchemaJson}
-            onChange={(event) => setForm({ ...form, resultSchemaJson: event.target.value })}
-            placeholder='{"type":"object","properties":{}}'
-          />
-        </FieldGroup>
-      </div>
+        </div>
+      </EditorSection>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <FieldGroup label="ui.generated.cb120ff61f1">
-          <Textarea
-            className="min-h-28"
-            value={form.memoryPolicyJson}
-            onChange={(event) => setForm({ ...form, memoryPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c6bf9680606">
-          <Textarea
-            className="min-h-28"
-            value={form.permissionPolicyJson}
-            onChange={(event) => setForm({ ...form, permissionPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c7dff341b42">
-          <Textarea
-            className="min-h-28"
-            value={form.outputPolicyJson}
-            onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c7784da8cb9">
-          <Textarea
-            className="min-h-28"
-            value={form.executionPolicyJson}
-            onChange={(event) => setForm({ ...form, executionPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c1eda7ac653">
-          <Textarea
-            className="min-h-28"
-            value={form.providerPolicyJson}
-            onChange={(event) => setForm({ ...form, providerPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cfdfcc9e3fe">
-          <Textarea
-            className="min-h-28"
-            value={form.environmentSelectorExtraJson}
-            onChange={(event) => setForm({ ...form, environmentSelectorExtraJson: event.target.value })}
-            placeholder="ui.generated.c84b41788aa"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c8656c35176">
-          <Textarea
-            className="min-h-28"
-            value={form.triggerExtraJson}
-            onChange={(event) => setForm({ ...form, triggerExtraJson: event.target.value })}
-            placeholder="ui.generated.c7d186160a1"
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.cc653cfb563">
-          <Textarea
-            className="min-h-28"
-            value={form.dashboardPolicyJson}
-            onChange={(event) => setForm({ ...form, dashboardPolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-        <FieldGroup label="ui.generated.c28b9ca056a">
-          <Textarea
-            className="min-h-28"
-            value={form.archivePolicyJson}
-            onChange={(event) => setForm({ ...form, archivePolicyJson: event.target.value })}
-          />
-        </FieldGroup>
-      </div>
+      <EditorSection
+        title={uiText("ui.taskBlueprintEditor.sections.triggerAdvanced.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.triggerAdvanced.description")}
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label="Parser / Connector">
+            <Input
+              value={form.triggerConnector}
+              onChange={(event) => setForm({ ...form, triggerConnector: event.target.value })}
+              placeholder="official.codehub.webhook.merge_request"
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.idempotencyTemplate")}>
+            <Input
+              value={form.triggerIdempotencyKey}
+              onChange={(event) => setForm({ ...form, triggerIdempotencyKey: event.target.value })}
+              placeholder="${task_blueprint_id}:${delivery_id}:${diff_ref}"
+            />
+          </FieldGroup>
+          <FieldGroup label="Webhook Secret Ref">
+            <Input
+              value={form.triggerSecretRef}
+              onChange={(event) => setForm({ ...form, triggerSecretRef: event.target.value })}
+              placeholder="env:CODE_PLATFORM_WEBHOOK_SECRET"
+            />
+          </FieldGroup>
+          {!isWebhookTrigger ? (
+            <FieldGroup label="Webhook Path">
+              <Input
+                value={form.triggerWebhookPathKey}
+                onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
+                placeholder="merge-request-review"
+              />
+            </FieldGroup>
+          ) : null}
+          {!isCronTrigger ? (
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.cronExpression")}>
+              <Input
+                value={form.triggerExpression}
+                onChange={(event) => setForm({ ...form, triggerExpression: event.target.value })}
+                placeholder="0 2 * * *"
+              />
+            </FieldGroup>
+          ) : null}
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.triggerExtraJson")} className="md:col-span-2">
+            <Textarea
+              className="min-h-28"
+              value={form.triggerExtraJson}
+              onChange={(event) => setForm({ ...form, triggerExtraJson: event.target.value })}
+              placeholder='{"source":"code-platform"}'
+            />
+          </FieldGroup>
+        </div>
+      </EditorSection>
 
-      <div className="flex items-center justify-between gap-3">
+      <EditorSection
+        title={uiText("ui.taskBlueprintEditor.sections.environment.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.environment.description")}
+        icon={<GitBranch className="h-4 w-4" />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.environment")}>
+            <Select
+              value={form.environmentId}
+              onChange={(event) => setForm({ ...form, environmentId: event.target.value })}
+            >
+              <option value="">{uiText("ui.taskBlueprintEditor.options.unboundEnvironment")}</option>
+              {options.environments.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.repoBinding")}>
+            <Input
+              value={form.repoBinding}
+              onChange={(event) => setForm({ ...form, repoBinding: event.target.value })}
+              placeholder="${repo_id}"
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.checkoutMode")}>
+            <Select
+              value={form.checkoutMode}
+              onChange={(event) => setForm({ ...form, checkoutMode: event.target.value })}
+            >
+              {[
+                ["full_clone", "full_clone"],
+                ["diff_context", "diff_context"],
+                ["shallow_clone", "shallow_clone"],
+                ["workspace_only", "workspace_only"],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.executionPath")}>
+            <Input
+              value={form.executionPath}
+              onChange={(event) => setForm({ ...form, executionPath: event.target.value })}
+              placeholder={selectedEnvironment?.workingDirectory ?? "."}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.sandboxMode")}>
+            <Select
+              value={form.sandboxMode}
+              onChange={(event) => setForm({ ...form, sandboxMode: event.target.value })}
+            >
+              {[
+                ["inherit", "inherit"],
+                ["process", "process"],
+                ["workspace", "workspace"],
+                ["future", "future"],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.sandboxRef")}>
+            <Input
+              value={form.sandboxRef}
+              onChange={(event) => setForm({ ...form, sandboxRef: event.target.value })}
+              placeholder="sandbox:security-inspection"
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.environmentExtraJson")} className="md:col-span-2">
+            <Textarea
+              className="min-h-28"
+              value={form.environmentSelectorExtraJson}
+              onChange={(event) => setForm({ ...form, environmentSelectorExtraJson: event.target.value })}
+              placeholder='{"templateId":"workspace-template"}'
+            />
+          </FieldGroup>
+        </div>
+      </EditorSection>
+
+      <EditorSection
+        title={uiText("ui.taskBlueprintEditor.sections.dataContract.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.dataContract.description")}
+        icon={<Settings2 className="h-4 w-4" />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.inputSchema")} className="md:col-span-2">
+            <Textarea
+              className="min-h-32"
+              value={form.inputSchemaJson}
+              onChange={(event) => setForm({ ...form, inputSchemaJson: event.target.value })}
+              placeholder='{"type":"object","properties":{}}'
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.resultSchema")} className="md:col-span-2">
+            <Textarea
+              className="min-h-32"
+              value={form.resultSchemaJson}
+              onChange={(event) => setForm({ ...form, resultSchemaJson: event.target.value })}
+              placeholder='{"type":"object","properties":{}}'
+            />
+          </FieldGroup>
+        </div>
+      </EditorSection>
+
+      <EditorSection
+        title={uiText("ui.taskBlueprintEditor.sections.identityPolicy.title")}
+        description={uiText("ui.taskBlueprintEditor.sections.identityPolicy.description")}
+        icon={<Users className="h-4 w-4" />}
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.taskId")}>
+            <Input
+              value={form.id}
+              onChange={(event) => setForm({ ...form, id: slugifyTaskKey(event.target.value) })}
+              placeholder={uiText("ui.taskBlueprintEditor.generatedAfterSave")}
+              disabled={Boolean(blueprint.id)}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.category")}>
+            <Input
+              value={form.category}
+              onChange={(event) => setForm({ ...form, category: event.target.value })}
+              placeholder="inspection"
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.visibility")}>
+            <Select
+              value={form.visibility}
+              onChange={(event) => setForm({ ...form, visibility: event.target.value })}
+            >
+              {["team", "global", "private"].map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.version")}>
+            <Input
+              value={form.version}
+              onChange={(event) => setForm({ ...form, version: event.target.value })}
+              placeholder="1"
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.memoryPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.memoryPolicyJson}
+              onChange={(event) => setForm({ ...form, memoryPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.permissionPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.permissionPolicyJson}
+              onChange={(event) => setForm({ ...form, permissionPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.outputPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.outputPolicyJson}
+              onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.executionPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.executionPolicyJson}
+              onChange={(event) => setForm({ ...form, executionPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.providerPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.providerPolicyJson}
+              onChange={(event) => setForm({ ...form, providerPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.dashboardPolicy")}>
+            <Textarea
+              className="min-h-28"
+              value={form.dashboardPolicyJson}
+              onChange={(event) => setForm({ ...form, dashboardPolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.archivePolicy")} className="md:col-span-2">
+            <Textarea
+              className="min-h-28"
+              value={form.archivePolicyJson}
+              onChange={(event) => setForm({ ...form, archivePolicyJson: event.target.value })}
+            />
+          </FieldGroup>
+        </div>
+      </EditorSection>
+
+      <div className="flex items-center justify-between gap-3 pt-1">
         <Button type="button" onClick={save} disabled={isSaving}>
-          {isSaving ? "ui.generated.ca032e8fdda" : blueprint.id ? "ui.generated.cbc7177b624" : "ui.generated.c776ad11882"}
+          {isSaving
+            ? uiText("ui.generated.ca032e8fdda")
+            : blueprint.id
+              ? uiText("ui.taskBlueprintEditor.actions.saveTask")
+              : uiText("ui.taskBlueprintEditor.actions.createTask")}
         </Button>
         {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
       </div>

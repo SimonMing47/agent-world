@@ -4,6 +4,7 @@ import { RuntimeInteractionConsole } from "@/components/runtime-interaction-cons
 import { translateHumanIntervention, translateSessionMode, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { buildAgentHarnessExecutionProfile } from "@/server/agent-harness-core";
+import { getRequestAuthContext } from "@/server/auth-core";
 import { getRuntimeSessionDetail } from "@/server/runtime-session-core";
 
 function statusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
@@ -20,10 +21,29 @@ export default async function RuntimeInteractionDetailPage({
 }) {
   const resolved = await params;
   const detail = getRuntimeSessionDetail(resolved.id);
+  const authContext = await getRequestAuthContext();
 
   if (!detail) {
     notFound();
   }
+
+  const humanActorName =
+    authContext?.user.name?.trim() ||
+    authContext?.user.email?.trim() ||
+    detail.session.createdBy ||
+    "User";
+  const humanActorId = authContext?.user.id ?? "human-user";
+  const humanRole = authContext?.user.title?.trim() || "ui.common.humanCollaboration";
+  const displayCreatedBy =
+    detail.session.createdBy === "Operator" || detail.session.createdBy === "agent-team-console"
+      ? humanActorName
+      : detail.session.createdBy;
+  const normalizeHumanActorName = (message: { actorType?: string; role?: string; actorName: string }) =>
+    (message.actorType === "human" || message.role === "user") && message.actorName === "Operator"
+      ? humanActorName
+      : message.actorName;
+  const normalizeEventActorName = (actorName: string | null) =>
+    actorName === "Operator" ? humanActorName : actorName;
 
   const harnessProfile = detail.agentDefinition
     ? buildAgentHarnessExecutionProfile(detail.agentDefinition, detail.runtimeBinding)
@@ -46,17 +66,31 @@ export default async function RuntimeInteractionDetailPage({
         sessionId={detail.session.id}
         sessionMode={detail.session.mode as "single_agent" | "agent_team"}
         initialStatus={detail.session.status}
+        teamContext={detail.agentTeam
+          ? {
+              id: detail.agentTeam.id,
+              name: detail.agentTeam.name,
+              description: detail.agentTeam.description,
+              workflowType: detail.agentTeam.workflowType,
+              leaderAgentId: detail.agentTeam.leaderAgentId,
+            }
+          : null}
         initialMessages={detail.messages.map((message) => ({
           id: message.id,
           actorType: message.actorType,
-          actorName: message.actorName,
+          actorId:
+            (message.actorType === "human" || message.role === "user") && message.actorName === "Operator"
+              ? humanActorId
+              : message.actorId,
+          actorName: normalizeHumanActorName(message),
           role: message.role,
           content: message.content,
+          turnIndex: message.turnIndex,
           createdAt: message.createdAt,
         }))}
         initialEvents={detail.events.map((event) => ({
           id: event.id,
-          actorName: event.actorName,
+          actorName: normalizeEventActorName(event.actorName),
           eventType: event.eventType,
           payload: event.payload,
           createdAt: event.createdAt,
@@ -65,14 +99,18 @@ export default async function RuntimeInteractionDetailPage({
           ...detail.agents.map((agent) => ({
             id: agent.id,
             name: agent.name,
+            displayName: agent.displayName,
             role: agent.role,
             kind: "agent" as const,
             isLeader: agent.id === detail.agentTeam?.leaderAgentId,
+            mentionHandle: agent.mentionHandle,
+            avatarConfigJson: agent.avatarConfigJson,
+            capabilityProfileJson: agent.capabilityProfileJson,
           })),
           {
-            id: "human-operator",
-            name: "Operator",
-            role: "ui.common.humanCollaboration",
+            id: humanActorId,
+            name: humanActorName,
+            role: humanRole,
             kind: "human" as const,
           },
         ]}
@@ -106,7 +144,7 @@ export default async function RuntimeInteractionDetailPage({
             value: translateHumanIntervention(
               harnessProfile?.humanIntervention ?? detail.runtimeDescriptor?.humanIntervention ?? "manual",
             ),
-            detail: detail.session.createdBy,
+            detail: displayCreatedBy,
           },
           {
             label: "ui.generated.c093dea88c9",

@@ -4,7 +4,7 @@ import { parseJsonRecord, resolveRuntimeBindingConfig } from "@/server/runtime-p
 export type AgentHarnessConfig = {
   approvalMode?: "allow" | "ask" | "deny" | "manual";
   humanIntervention?: "steer" | "follow_up" | "disabled";
-  thinkingLevel?: "low" | "medium" | "high";
+  thinkingLevel?: "off" | "low" | "medium" | "high";
   maxToolCalls?: number;
 };
 
@@ -42,6 +42,7 @@ export function parseAgentHarnessConfig(value: string | null | undefined): Agent
         ? parsed.humanIntervention
         : undefined,
     thinkingLevel:
+      parsed.thinkingLevel === "off" ||
       parsed.thinkingLevel === "low" ||
       parsed.thinkingLevel === "medium" ||
       parsed.thinkingLevel === "high"
@@ -92,7 +93,7 @@ export function buildAgentHarnessExecutionProfile(
   return {
     approvalMode: harness.approvalMode ?? runtimeConfig.approvalMode ?? "allow",
     humanIntervention: harness.humanIntervention ?? runtimeConfig.humanIntervention ?? "steer",
-    thinkingLevel: harness.thinkingLevel ?? "medium",
+    thinkingLevel: runtimeConfig.thinkingLevel ?? harness.thinkingLevel ?? "medium",
     maxToolCalls: harness.maxToolCalls ?? 6,
     repositoryAccess: permissions.repositoryAccess ?? "read_only",
     memoryAccess: permissions.memoryAccess ?? "inherit",
