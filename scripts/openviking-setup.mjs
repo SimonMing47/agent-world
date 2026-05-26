@@ -42,7 +42,7 @@ console.log(`Binary path: ${defaultServerBin}`);
 if (!fs.existsSync(defaultServerBin) && !devVenv) {
   console.log("No bundled OpenViking server binary found yet.");
   console.log("For deployment, place the Linux binary at thirdparty/openviking/bin/openviking-server.");
-  console.log("For development fallback, run: pnpm openviking:install");
+  console.log("For a managed source install, run: pnpm openviking:install");
 }
 if (!process.env.OPENVIKING_VLM_PROVIDER || !process.env.OPENVIKING_VLM_MODEL) {
   console.log("OpenViking VLM is not configured yet.");

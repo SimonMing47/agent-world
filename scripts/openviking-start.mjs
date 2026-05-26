@@ -19,7 +19,7 @@ if (!bin || !fs.existsSync(bin)) {
   console.error("OpenViking server binary is missing.");
   console.error("Expected: thirdparty/openviking/bin/openviking-server");
   console.error("Or set OPENVIKING_SERVER_BIN=/absolute/path/to/openviking-server");
-  console.error("For local development fallback: pnpm openviking:install");
+  console.error("For a managed source install: pnpm openviking:install");
   process.exit(1);
 }
 

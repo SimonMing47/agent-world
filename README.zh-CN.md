@@ -113,7 +113,7 @@ AgentWorld 明确区分 **调度** 与 **调用**：
 - Node.js 20+
 - pnpm 9+
 - macOS 或 Linux 开发环境
-- 可选：OpenViking 二进制或 Python fallback 环境，用于本地知识服务
+- OpenViking 运行时由托管 CLI 安装；部署包也可以直接提供 server 二进制
 
 ### 安装并启动
 
@@ -121,16 +121,16 @@ AgentWorld 明确区分 **调度** 与 **调用**：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/SimonMing47/agent-world/main/scripts/install.sh | bash
-agentworld dev
+agentworld start
 ```
 
-安装脚本会把仓库克隆到 `~/.agentworld/agent-world`，安装依赖，初始化 `.env.local` 与 SQLite，准备 OpenViking，并在 `~/.local/bin` 下创建 `agentworld` 命令。
+安装脚本会把仓库克隆到 `~/.agentworld/agent-world`，安装依赖，初始化 `.env.local` 与 SQLite，安装/准备 OpenViking，构建生产应用，并在 `~/.local/bin` 下创建 `agentworld` 命令。
 
 如果已经在源码目录中：
 
 ```bash
 pnpm agentworld install
-pnpm agentworld dev
+pnpm agentworld start
 ```
 
 打开控制台：
@@ -139,7 +139,7 @@ pnpm agentworld dev
 http://localhost:7369
 ```
 
-`pnpm dev` 会运行 `scripts/agentworld-next.mjs`。该脚本会先检查 OpenViking 健康状态；在启用自动启动时，会先拉起本地 OpenViking 服务，再启动 Next.js dev server。
+`agentworld start` 会运行生产启动器。该脚本会先检查 OpenViking 健康状态；在启用自动启动时，会先拉起本地 OpenViking 服务，再启动 Next.js production server。只有明确需要开发服务时才使用 `agentworld dev` 或 `pnpm dev`。
 
 ### 升级
 
@@ -147,14 +147,14 @@ http://localhost:7369
 
 ```bash
 agentworld upgrade
-agentworld dev
+agentworld start
 ```
 
 升级已有源码目录：
 
 ```bash
 pnpm agentworld upgrade
-pnpm agentworld dev
+pnpm agentworld start
 ```
 
 `agentworld upgrade` 会拒绝在 dirty git worktree 上执行，使用 `--ff-only` 拉取最新代码，按 lockfile 重新安装依赖，重新执行 bootstrap，准备 OpenViking，构建应用，并输出本地健康检查摘要。
@@ -163,16 +163,17 @@ pnpm agentworld dev
 
 | 命令 | 用途 |
 | --- | --- |
-| `agentworld install` | 安装依赖，初始化本地配置和 SQLite，准备 OpenViking；需要生产构建时加 `--production`。 |
+| `agentworld` | 在默认安装/构建后启动生产服务。 |
+| `agentworld install` | 安装依赖，初始化本地配置和 SQLite，安装 OpenViking，并构建生产应用。 |
 | `agentworld upgrade` | 拉取最新源码，重新安装依赖，执行 bootstrap，准备 OpenViking，并构建应用。 |
-| `agentworld dev` | 在 `PORT` 或默认 `7369` 上启动本地开发控制台。 |
 | `agentworld start` | 在 `agentworld build` 后启动生产服务。 |
+| `agentworld dev` | 显式在 `PORT` 或默认 `7369` 上启动本地开发控制台。 |
 | `agentworld doctor` | 检查 Node.js、pnpm、git、本地配置、AgentWorld HTTP 和 OpenViking 健康状态。 |
 
 ### 生产模式
 
 ```bash
-agentworld install --production
+agentworld install
 agentworld start
 ```
 
@@ -190,7 +191,7 @@ agentworld start
 | `AGENTWORLD_MASTER_KEY` | 本地加密和签名根密钥；为空时由 bootstrap 生成。 |
 | `AGENTWORLD_PUBLIC_BASE_URL` | 回调和生成链接使用的公开地址。 |
 | `OPENVIKING_BASE_URL` | OpenViking 服务地址，默认 `http://127.0.0.1:1933`。 |
-| `AGENTWORLD_OPENVIKING_AUTO_START` | 设置为 `1` 时启用启动器托管的 OpenViking 自动启动。 |
+| `AGENTWORLD_OPENVIKING_AUTO_START` | 设置为 `0` 时禁用启动器托管的 OpenViking 自动启动。 |
 | `OPENVIKING_CONFIG_FILE` | OpenViking 服务端配置路径，默认 `data/openviking/ov.conf`。 |
 | `OPENVIKING_CLI_CONFIG_FILE` | OpenViking CLI 配置路径，默认 `data/openviking/ovcli.conf`。 |
 
@@ -221,7 +222,7 @@ pnpm openviking:start
 pnpm openviking:smoke
 ```
 
-如果仓库里没有可用的 OpenViking 二进制，可以安装 Python fallback：
+`agentworld install` 会在没有内置 OpenViking server 二进制时安装托管 OpenViking 运行时。如需手动修复或刷新该运行时：
 
 ```bash
 pnpm openviking:install
@@ -296,7 +297,7 @@ OpenViking 二进制解析顺序：
 2. `OPENVIKING_SERVER_BIN`。
 3. `thirdparty/openviking/bin/openviking-server`。
 4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
-5. 开发 fallback：`.venv-openviking/bin/openviking-server`。
+5. 托管源码安装生成的 `.venv-openviking/bin/openviking-server`。
 
 ## 项目结构
 

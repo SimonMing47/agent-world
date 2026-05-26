@@ -495,9 +495,9 @@ OpenViking 通过服务端二进制直接集成，不依赖容器运行时。
 1. `OPENVIKING_SERVER_BIN`
 2. `thirdparty/openviking/bin/openviking-server`
 3. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`
-4. 本地开发 fallback：`.venv-openviking/bin/openviking-server`
+4. 托管源码安装运行时：`.venv-openviking/bin/openviking-server`
 
-部署主路径必须使用 1 或 2。
+发布包主路径必须使用 1 或 2；源码托管安装可使用 4，并由 `agentworld install` 在首次安装时自动准备。
 
 ### 5.2 目录结构
 
@@ -521,7 +521,7 @@ data/openviking/
 - `pnpm openviking:doctor`：调用 OpenViking doctor。
 - `pnpm openviking:start`：启动服务端二进制。
 - `pnpm openviking:smoke`：验证 health、write、read、tree。
-- `pnpm openviking:install`：仅用于开发机 venv fallback。
+- `pnpm openviking:install`：在源码托管安装中准备 `.venv-openviking` OpenViking 运行时。
 - `pnpm openviking:build-binary`：Linux 构建服务端二进制并放入 thirdparty。
 
 OpenViking doctor 要求 VLM provider/model 配置完整。AgentWorld 不写入假 key，也不猜测私有模型名；部署方通过以下变量完成最小配置：

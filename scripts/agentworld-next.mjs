@@ -11,7 +11,7 @@ import {
   writeServerConfig,
 } from "./openviking-common.mjs";
 
-const mode = process.argv[2] ?? "dev";
+const mode = process.argv[2] ?? "start";
 const defaultAgentWorldPort = "7369";
 const startupTimeoutMs = Number(process.env.OPENVIKING_STARTUP_TIMEOUT_MS ?? "3500");
 const experimentalWarningOption = "--no-warnings=ExperimentalWarning";
@@ -63,10 +63,10 @@ async function startOpenVikingIfNeeded() {
     return null;
   }
 
-  const binary = resolveServerBin({ allowVenvFallback: mode !== "start" });
+  const binary = resolveServerBin({ allowVenvFallback: true });
   if (!binary) {
     console.warn(
-      "[agentworld] OpenViking server binary missing. Put it at thirdparty/openviking/bin/openviking-server or run pnpm openviking:install for local development.",
+      "[agentworld] OpenViking runtime missing. Run agentworld install, or set OPENVIKING_SERVER_BIN to a runnable openviking-server.",
     );
     return null;
   }
