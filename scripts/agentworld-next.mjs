@@ -66,7 +66,7 @@ async function startOpenVikingIfNeeded() {
   const binary = resolveServerBin();
   if (!binary) {
     console.warn(
-      "[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN or provide thirdparty/openviking/bin/openviking-server.",
+      `[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN or provide thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`,
     );
     return null;
   }
