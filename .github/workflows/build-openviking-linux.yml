@@ -1,5 +1,8 @@
 name: Build OpenViking Linux Binaries
 
+# This workflow is intentionally checked in so Linux OpenViking binaries can be
+# rebuilt on matching GitHub-hosted Linux runners instead of cross-built.
+
 on:
   workflow_dispatch:
   push:
@@ -49,6 +52,7 @@ jobs:
         env:
           OPENVIKING_PIP_SPEC: openviking==0.3.20
           OPENVIKING_WHEELHOUSE_DIR: .tmp/openviking-linux-wheels
+          OPENVIKING_BINARY_ARCHIVE: "1"
         run: node scripts/openviking-build-binary.mjs
 
       - name: Verify binary
@@ -60,5 +64,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: thirdparty/openviking/bin/${{ matrix.artifact }}
+          path: |
+            thirdparty/openviking/bin/${{ matrix.artifact }}.xz.part-*
+            thirdparty/openviking/manifest-linux-*.json
+            thirdparty/openviking/manifest.json
           if-no-files-found: error

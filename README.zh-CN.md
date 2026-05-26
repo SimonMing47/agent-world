@@ -386,12 +386,16 @@ thirdparty/node/node-v${nodeVersion}-linux-arm64.tar.xz
 
 需要时可用批准的内部压缩包替换，或设置 `AGENTWORLD_NODE_RUNTIME_TARBALL` 为本地绝对路径。
 
-Linux 打包前，先把匹配架构的 OpenViking 二进制放到：
+Linux 打包前，先在本地提供匹配架构的 OpenViking 制品：
 
 ```text
 thirdparty/openviking/bin/openviking-server-linux-x64
 thirdparty/openviking/bin/openviking-server-linux-arm64
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz.part-*
 ```
+
+`.xz` 压缩制品会在打包时本地解压；分片 `.xz.part-*` 会先合并再解压。这样内网环境无需外部下载，也不需要把超过平台限制的原始大二进制直接放进仓库。
 
 构建 Linux 发布包：
 
@@ -414,7 +418,8 @@ OpenViking 二进制解析顺序：
 1. 健康的 `OPENVIKING_BASE_URL`。
 2. `OPENVIKING_SERVER_BIN`。
 3. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`。
-4. `thirdparty/openviking/bin/openviking-server`。
+4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}.xz` 或 `.xz.part-*`。
+5. `thirdparty/openviking/bin/openviking-server`。
 
 ## 项目结构
 
