@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -16,6 +17,77 @@ export const defaultCliConfig = path.join(configDir, "ovcli.conf");
 
 export function platformServerBin(platform = process.platform, arch = process.arch) {
   return path.join(thirdpartyBinDir, `openviking-server-${platform}-${arch}`);
+}
+
+export function platformServerArchive(platform = process.platform, arch = process.arch) {
+  return `${platformServerBin(platform, arch)}.xz`;
+}
+
+function platformServerArchiveParts(platform = process.platform, arch = process.arch) {
+  const archive = platformServerArchive(platform, arch);
+  const dir = path.dirname(archive);
+  const prefix = `${path.basename(archive)}.part-`;
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((name) => name.startsWith(prefix))
+    .sort()
+    .map((name) => path.join(dir, name));
+}
+
+function concatenateParts(parts, outputPath) {
+  const fd = fs.openSync(outputPath, "w");
+  try {
+    for (const part of parts) {
+      fs.writeSync(fd, fs.readFileSync(part));
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function extractXz(archivePath, outputPath) {
+  const tempOutput = `${outputPath}.tmp-${process.pid}`;
+  const fd = fs.openSync(tempOutput, "w", 0o755);
+  let extracted = false;
+  try {
+    const result = spawnSync("xz", ["-dc", archivePath], {
+      cwd: root,
+      stdio: ["ignore", fd, "inherit"],
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(`xz exited with status ${result.status}`);
+    }
+    extracted = true;
+  } finally {
+    fs.closeSync(fd);
+    if (!extracted) fs.rmSync(tempOutput, { force: true });
+  }
+  fs.renameSync(tempOutput, outputPath);
+  fs.chmodSync(outputPath, 0o755);
+}
+
+export function ensurePlatformServerBin(platform = process.platform, arch = process.arch) {
+  const outputPath = platformServerBin(platform, arch);
+  if (fs.existsSync(outputPath)) return outputPath;
+
+  const archivePath = platformServerArchive(platform, arch);
+  const parts = platformServerArchiveParts(platform, arch);
+  const tempArchivePath = `${archivePath}.tmp-${process.pid}`;
+  const sourceArchivePath = fs.existsSync(archivePath) ? archivePath : parts.length > 0 ? tempArchivePath : null;
+  if (!sourceArchivePath) return null;
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  try {
+    if (parts.length > 0 && !fs.existsSync(archivePath)) {
+      concatenateParts(parts, tempArchivePath);
+    }
+    extractXz(sourceArchivePath, outputPath);
+    return outputPath;
+  } finally {
+    fs.rmSync(tempArchivePath, { force: true });
+  }
 }
 
 export function resolveServerConfigPath() {
@@ -39,11 +111,10 @@ export function resolvePort() {
 }
 
 export function resolveServerBin() {
-  const candidates = [
-    process.env.OPENVIKING_SERVER_BIN,
-    currentPlatformServerBin,
-    defaultServerBin,
-  ].filter(Boolean);
+  const candidates = [process.env.OPENVIKING_SERVER_BIN].filter(Boolean);
+  const extractedPlatformBin = ensurePlatformServerBin();
+  if (extractedPlatformBin) candidates.push(extractedPlatformBin);
+  candidates.push(currentPlatformServerBin, defaultServerBin);
 
   for (const candidate of candidates) {
     const resolved = path.resolve(candidate);

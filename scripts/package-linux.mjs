@@ -1,7 +1,13 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { platformServerBin, root, writeCliConfig, writeServerConfig } from "./openviking-common.mjs";
+import {
+  ensurePlatformServerBin,
+  platformServerBin,
+  root,
+  writeCliConfig,
+  writeServerConfig,
+} from "./openviking-common.mjs";
 
 if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_PACKAGE !== "1") {
   console.error("Build the Linux release bundle on Linux to avoid platform-specific Next.js output.");
@@ -17,7 +23,8 @@ const bundleId = `${bundlePlatform}-${bundleArch}`;
 const outDir = path.join(root, "dist", `agentworld-${bundleId}-${appVersion}`);
 const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-${bundlePlatform}-${nodeArch}.tar.xz`);
 const nodeTar = path.resolve(process.env.AGENTWORLD_NODE_RUNTIME_TARBALL ?? defaultNodeTar);
-const linuxServerBin = platformServerBin(bundlePlatform, bundleArch);
+const linuxServerBin = ensurePlatformServerBin(bundlePlatform, bundleArch);
+const expectedLinuxServerBin = platformServerBin(bundlePlatform, bundleArch);
 
 function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", ...options });
@@ -29,9 +36,9 @@ function copyDir(from, to) {
   fs.cpSync(from, to, { recursive: true, force: true });
 }
 
-if (!fs.existsSync(linuxServerBin)) {
-  console.error(`OpenViking ${bundleId} binary is missing: thirdparty/openviking/bin/openviking-server-${bundleId}`);
-  console.error("Build it on a matching Linux builder with pnpm openviking:build-binary, or place an approved internal binary there.");
+if (!linuxServerBin || !fs.existsSync(linuxServerBin)) {
+  console.error(`OpenViking ${bundleId} binary is missing: ${path.relative(root, expectedLinuxServerBin)}`);
+  console.error("Build it on a matching Linux builder with pnpm openviking:build-binary, or place an approved internal binary/archive there.");
   process.exit(1);
 }
 

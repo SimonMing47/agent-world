@@ -496,7 +496,7 @@ OpenViking 通过服务端二进制直接集成，不依赖容器运行时。
 2. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`
 3. `thirdparty/openviking/bin/openviking-server`
 
-Linux 发布包要求 `thirdparty/openviking/bin/openviking-server-linux-x64`。内网源码安装不会从公网下载或构建 OpenViking 二进制。
+Linux 发布包要求本地提供匹配架构的 `thirdparty/openviking/bin/openviking-server-linux-${arch}`、`.xz` 或 `.xz.part-*` 制品，支持 `x64` 与 `arm64`。内网源码安装不会从公网下载或构建 OpenViking 二进制。
 
 ### 5.2 目录结构
 
@@ -507,6 +507,7 @@ thirdparty/openviking/
   bin/
     openviking-server-${platform}-${arch}
     openviking-server-linux-x64
+    openviking-server-linux-arm64.xz.part-*
   wheels/
 data/openviking/
   ov.conf
@@ -619,7 +620,7 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 - `.next/standalone`。
 - `.next/static`。
 - Node.js Linux runtime。
-- `thirdparty/openviking/bin/openviking-server-linux-x64`，发布时复制为包内 `thirdparty/openviking/bin/openviking-server`。
+- `thirdparty/openviking/bin/openviking-server-linux-${arch}`、`.xz` 或 `.xz.part-*`，发布时复制为包内 `thirdparty/openviking/bin/openviking-server`。
 - `data/openviking/ov.conf`。
 - `data/openviking/ovcli.conf`。
 - `agentworld` 启动脚本。
