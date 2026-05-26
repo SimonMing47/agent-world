@@ -40,7 +40,7 @@ chmod +x "$BIN_DIR/agentworld"
 
 echo
 echo "[agentworld] CLI installed: $BIN_DIR/agentworld"
-echo "[agentworld] Start AgentWorld: agentworld dev"
+echo "[agentworld] Start AgentWorld: agentworld start"
 echo "[agentworld] Upgrade later: agentworld upgrade"
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   echo "[agentworld] Add this to your shell profile if agentworld is not found:"
