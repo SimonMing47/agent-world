@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/.pnpm-store
 /.pnp
 .pnp.*
 .yarn/*
@@ -41,6 +42,10 @@ dist/
 output/
 /.venv-openviking
 /.venv-openviking-build
+/.venv-openviking-build-*
+/thirdparty/openviking/bin/openviking-server-linux-arm64
+/thirdparty/openviking/bin/openviking-server-linux-x64
+/thirdparty/openviking/bin/openviking-server
 /.playwright-cli
 
 # vercel

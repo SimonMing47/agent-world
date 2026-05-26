@@ -1,10 +1,47 @@
 {
   "name": "openviking-server",
-  "source": "openviking==0.3.20",
-  "platform": "darwin",
-  "arch": "arm64",
-  "output": "thirdparty/openviking/bin/openviking-server-darwin-arm64",
-  "builtAt": "2026-05-26T10:04:41.016Z",
   "license": "AGPL-3.0",
-  "upstream": "volcengine/OpenViking"
+  "upstream": "volcengine/OpenViking",
+  "artifacts": {
+    "darwin-arm64": {
+      "name": "openviking-server",
+      "source": "openviking==0.3.20",
+      "platform": "darwin",
+      "arch": "arm64",
+      "output": "thirdparty/openviking/bin/openviking-server-darwin-arm64",
+      "builtAt": "2026-05-26T10:04:41.016Z",
+      "license": "AGPL-3.0",
+      "upstream": "volcengine/OpenViking"
+    },
+    "linux-arm64": {
+      "name": "openviking-server",
+      "source": "openviking==0.3.20",
+      "platform": "linux",
+      "arch": "arm64",
+      "output": "thirdparty/openviking/bin/openviking-server-linux-arm64",
+      "archiveParts": [
+        "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-aa",
+        "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ab",
+        "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ac"
+      ],
+      "builtAt": "2026-05-26T12:57:40.651Z",
+      "license": "AGPL-3.0",
+      "upstream": "volcengine/OpenViking"
+    },
+    "linux-x64": {
+      "name": "openviking-server",
+      "source": "openviking==0.3.20",
+      "platform": "linux",
+      "arch": "x64",
+      "output": "thirdparty/openviking/bin/openviking-server-linux-x64",
+      "archiveParts": [
+        "thirdparty/openviking/bin/openviking-server-linux-x64.xz.part-aa",
+        "thirdparty/openviking/bin/openviking-server-linux-x64.xz.part-ab",
+        "thirdparty/openviking/bin/openviking-server-linux-x64.xz.part-ac"
+      ],
+      "builtAt": "2026-05-26T13:37:25.402Z",
+      "license": "AGPL-3.0",
+      "upstream": "volcengine/OpenViking"
+    }
+  }
 }
