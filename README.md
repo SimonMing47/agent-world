@@ -29,6 +29,7 @@ The project is designed for serious internal platforms: every agent, team, model
 - [Core Capabilities](#core-capabilities)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
+- [Build And Start From A Source Checkout](#build-and-start-from-a-source-checkout)
 - [Configuration](#configuration)
 - [OpenViking Knowledge Base](#openviking-knowledge-base)
 - [Development Workflow](#development-workflow)
@@ -178,6 +179,92 @@ agentworld start
 ```
 
 `agentworld start` uses the standalone Next.js server output and keeps the same OpenViking startup behavior as the development launcher.
+
+## Build And Start From A Source Checkout
+
+Use this flow when deploying or testing directly from the Git repository instead of the managed installer. The default startup path is production mode; development mode is opt-in.
+
+### Clone And Install
+
+```bash
+git clone https://github.com/SimonMing47/agent-world.git
+cd agent-world
+corepack enable
+corepack prepare pnpm@9 --activate
+pnpm install --frozen-lockfile
+pnpm bootstrap
+```
+
+`pnpm bootstrap` creates `.env.local` when it is missing, generates a local `AGENTWORLD_MASTER_KEY`, and initializes the SQLite data directory.
+
+### Prepare OpenViking
+
+```bash
+pnpm openviking:install
+pnpm openviking:prepare
+pnpm openviking:cli-config
+```
+
+`openviking:install` installs the managed local OpenViking runtime when the repository does not already contain a runnable server binary. `openviking:prepare` and `openviking:cli-config` write the server and CLI configuration files under `data/openviking/` by default.
+
+### Build For Production
+
+```bash
+pnpm build
+```
+
+The build produces the standalone Next.js output under `.next/standalone`. This is the artifact used by the production launcher when it exists.
+
+### Start Production
+
+```bash
+pnpm start
+```
+
+`pnpm start` runs `scripts/agentworld-next.mjs start`. It starts the local OpenViking service first when `AGENTWORLD_OPENVIKING_AUTO_START` is not `0`, then launches the standalone Next.js server on `PORT` or `7369`.
+
+Open the console:
+
+```text
+http://localhost:7369
+```
+
+Equivalent CLI form:
+
+```bash
+pnpm agentworld install
+pnpm agentworld start
+```
+
+### Development Mode
+
+Use development mode only for local iteration:
+
+```bash
+pnpm dev
+```
+
+or:
+
+```bash
+pnpm agentworld dev
+```
+
+Development mode uses the Next.js development server and still follows the same local OpenViking auto-start behavior.
+
+### Verify The Local Service
+
+```bash
+pnpm agentworld doctor
+pnpm openviking:smoke
+```
+
+For a quick HTTP check:
+
+```bash
+curl -I http://localhost:7369
+curl -fsS http://127.0.0.1:1933/health
+```
 
 ## Configuration
 
