@@ -85,13 +85,12 @@ export default function RuntimeBindingsPage() {
   const providerOptions = snapshot.providers.map((provider) => ({ id: provider.id, name: provider.name }));
   const adapterOptions = snapshot.providerAdapters.map((adapter) => ({ id: adapter.id, name: adapter.name }));
   const businessTeamOptions = snapshot.businessTeams.map((team) => ({ id: team.id, name: team.name }));
-  const defaultTenantSpaceId = tenantSpaceOptions[0]?.id ?? "";
   const initialBinding = {
     ...defaultBinding(),
-    tenantSpaceId: defaultTenantSpaceId,
-    adapterDefinitionId: adapterOptions[0]?.id ?? "builtin-agent-runtime",
-    businessTeamId: businessTeamOptions[0]?.id ?? null,
-    defaultProviderProfileId: providerOptions[0]?.id ?? null,
+    tenantSpaceId: "",
+    adapterDefinitionId: "",
+    businessTeamId: null,
+    defaultProviderProfileId: null,
     workspaceRoot: process.cwd(),
   };
 

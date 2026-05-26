@@ -62,7 +62,6 @@ export default function AiProvidersPage() {
     translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
   const tenantSpaceOptions = snapshot.tenantSpaces.map((space) => ({ id: space.id, name: space.name }));
-  const defaultTenantSpaceId = tenantSpaceOptions[0]?.id ?? "";
 
   return (
     <div className="space-y-6">
@@ -125,7 +124,7 @@ export default function AiProvidersPage() {
 	                    tenantSpaceOptions={tenantSpaceOptions}
 	                    provider={{
 	                      id: "",
-	                      tenantSpaceId: defaultTenantSpaceId,
+	                      tenantSpaceId: "",
 	                      name: "",
 	                      baseUrl: "",
 	                      apiStyle: "",

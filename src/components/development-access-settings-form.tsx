@@ -24,10 +24,12 @@ export function DevelopmentAccessSettingsForm({
   const text = useLanguageText();
   const [form, setForm] = useState(setting);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRefreshing, startTransition] = useTransition();
 
   async function save() {
     setMessage(null);
+    setIsSaving(true);
     try {
       const response = await fetch("/api/system-settings/development-access", {
         method: "PUT",
@@ -42,6 +44,8 @@ export function DevelopmentAccessSettingsForm({
       startTransition(() => router.refresh());
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "developmentAccess.errors.saveFailed");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -82,8 +86,8 @@ export function DevelopmentAccessSettingsForm({
         {message ? <div className="text-sm text-[var(--ink-muted)]">{text(message, message)}</div> : null}
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="primary" onClick={save} disabled={isPending}>
-            {isPending ? "ui.generated.ca032e8fdda" : "ui.generated.c9152e440ee"}
+          <Button type="button" variant="primary" onClick={save} disabled={isSaving || isRefreshing}>
+            {isSaving || isRefreshing ? "developmentAccess.settings.saving" : "developmentAccess.settings.save"}
           </Button>
         </div>
       </div>

@@ -105,8 +105,8 @@ export function KnowledgeRetrievalTestDialog({
 
           <div className="grid gap-2 md:grid-cols-3">
             {[
-              ["L0", "摘要召回", "先用 Abstract 做向量召回和快速过滤。"],
-              ["L1", "概览重排", "再用 Overview 理解目录结构并重排。"],
+              ["L0", "空间摘要召回", "先用知识空间全局 Abstract 做向量召回和快速过滤。"],
+              ["L1", "空间概览重排", "再用知识空间全局 Overview 理解目录结构并重排。"],
               ["L2", "原文读取", "最后读取完整 Markdown，只有这一层可编辑。"],
             ].map(([level, title, description]) => (
               <div key={level} className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">

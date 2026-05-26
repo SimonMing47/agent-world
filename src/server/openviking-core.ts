@@ -16,6 +16,11 @@ import { uiText } from "@/lib/language-pack";
 import { getKnowledgeBaseSettings } from "@/server/knowledge-base-settings";
 
 const SHADOW_ROOT = path.join("data", "openviking-shadow");
+const REMOTE_PENDING_RETRY_STATUS = "remote_pending_retry";
+const INTERACTIVE_BUSY_RETRY_DELAYS_MS = [600, 1200, 2400];
+const BACKGROUND_BUSY_RETRY_DELAYS_MS = [2500, 8000, 20000, 45000];
+const remoteSyncRetryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const remoteSyncRetryAttempts = new Map<string, number>();
 
 type KnowledgeInput = {
   knowledgeSpaceId?: string | null;
@@ -47,6 +52,11 @@ type RemoteSyncResult = {
   status: string;
   error: string | null;
   response?: unknown;
+};
+
+type SyncRemoteOptions = {
+  busyRetryDelaysMs?: number[];
+  pendingOnBusy?: boolean;
 };
 
 export type KnowledgeRetrievalTestHit = {
@@ -189,15 +199,17 @@ function isAlreadyExistsError(message: string) {
   return message.toLowerCase().includes("already exists");
 }
 
-async function syncRemote(uri: string, contentMd: string): Promise<RemoteSyncResult> {
+async function syncRemote(uri: string, contentMd: string, options: SyncRemoteOptions = {}): Promise<RemoteSyncResult> {
   const attempts = [
     { mode: "create", status: "remote_created" },
     { mode: "replace", status: "remote_replaced" },
   ];
+  const busyRetryDelaysMs = options.busyRetryDelaysMs ?? INTERACTIVE_BUSY_RETRY_DELAYS_MS;
+  let stoppedOnBusy = false;
 
   let lastError = "OpenViking remote sync failed";
   for (const attempt of attempts) {
-    for (let retry = 0; retry < 4; retry += 1) {
+    for (let retry = 0; retry <= busyRetryDelaysMs.length; retry += 1) {
       try {
         const result = await openVikingRequest<unknown>("/api/v1/content/write", {
           method: "POST",
@@ -210,7 +222,10 @@ async function syncRemote(uri: string, contentMd: string): Promise<RemoteSyncRes
         lastError = message;
 
         if (isBusyError(message)) {
-          await delay(600 + retry * 400);
+          stoppedOnBusy = true;
+          const retryDelay = busyRetryDelaysMs[retry];
+          if (retryDelay === undefined) break;
+          await delay(retryDelay);
           continue;
         }
 
@@ -221,7 +236,85 @@ async function syncRemote(uri: string, contentMd: string): Promise<RemoteSyncRes
     }
   }
 
+  if (stoppedOnBusy && options.pendingOnBusy !== false) {
+    return { status: REMOTE_PENDING_RETRY_STATUS, error: null };
+  }
+
   return { status: "remote_failed_local_shadow", error: lastError };
+}
+
+function shouldRetryRemoteSync(status: string, error: string | null) {
+  return status === REMOTE_PENDING_RETRY_STATUS || (status === "remote_failed_local_shadow" && Boolean(error && isBusyError(error)));
+}
+
+function updateKnowledgeEntryRemoteSyncState(id: string, syncResult: RemoteSyncResult) {
+  execute(
+    "UPDATE openviking_knowledge_entries SET sync_status = ?, sync_error = ? WHERE id = ?",
+    syncResult.status,
+    syncResult.error,
+    id,
+  );
+}
+
+async function retryKnowledgeEntryRemoteSync(entryId: string) {
+  const entry = queryOne<OpenVikingKnowledgeEntry>("SELECT * FROM openviking_knowledge_entries WHERE id = ?", entryId);
+  if (!entry || !shouldRetryRemoteSync(entry.syncStatus, entry.syncError)) {
+    remoteSyncRetryAttempts.delete(entryId);
+    return;
+  }
+
+  const syncResult = await syncRemote(entry.vikingUri, entry.contentMd, {
+    busyRetryDelaysMs: [800, 1600],
+    pendingOnBusy: true,
+  });
+  updateKnowledgeEntryRemoteSyncState(entry.id, syncResult);
+
+  if (shouldRetryRemoteSync(syncResult.status, syncResult.error)) {
+    const attempt = remoteSyncRetryAttempts.get(entry.id) ?? 0;
+    const delayMs = BACKGROUND_BUSY_RETRY_DELAYS_MS[attempt];
+    if (delayMs === undefined) {
+      remoteSyncRetryAttempts.delete(entry.id);
+      return;
+    }
+    remoteSyncRetryAttempts.set(entry.id, attempt + 1);
+    queueKnowledgeEntryRemoteSyncRetry(entry.id, delayMs);
+    return;
+  }
+
+  remoteSyncRetryAttempts.delete(entry.id);
+}
+
+function queueKnowledgeEntryRemoteSyncRetry(entryId: string, delayMs = BACKGROUND_BUSY_RETRY_DELAYS_MS[0]) {
+  if (remoteSyncRetryTimers.has(entryId)) return;
+  const timer = setTimeout(() => {
+    remoteSyncRetryTimers.delete(entryId);
+    void retryKnowledgeEntryRemoteSync(entryId).catch(() => undefined);
+  }, delayMs);
+  (timer as ReturnType<typeof setTimeout> & { unref?: () => void }).unref?.();
+  remoteSyncRetryTimers.set(entryId, timer);
+}
+
+export async function retryPendingKnowledgeSyncs(limit = 5) {
+  const entries = queryAll<OpenVikingKnowledgeEntry>(
+    "SELECT * FROM openviking_knowledge_entries WHERE sync_status = ? OR (sync_status = ? AND lower(sync_error) LIKE ?) ORDER BY updated_at ASC LIMIT ?",
+    REMOTE_PENDING_RETRY_STATUS,
+    "remote_failed_local_shadow",
+    "%resource is busy%",
+    limit,
+  );
+
+  for (const entry of entries) {
+    const syncResult = await syncRemote(entry.vikingUri, entry.contentMd, {
+      busyRetryDelaysMs: [500],
+      pendingOnBusy: true,
+    });
+    updateKnowledgeEntryRemoteSyncState(entry.id, syncResult);
+    if (shouldRetryRemoteSync(syncResult.status, syncResult.error)) {
+      queueKnowledgeEntryRemoteSyncRetry(entry.id);
+    }
+  }
+
+  return entries.length;
 }
 
 export async function writeLayeredKnowledge(input: KnowledgeInput) {
@@ -281,6 +374,11 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
     null,
     1,
   );
+
+  if (shouldRetryRemoteSync(syncResult.status, syncResult.error)) {
+    remoteSyncRetryAttempts.set(id, 0);
+    queueKnowledgeEntryRemoteSyncRetry(id);
+  }
 
   return {
     id,
@@ -439,6 +537,11 @@ export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
     );
   }
 
+  if (shouldRetryRemoteSync(syncResult.status, syncResult.error)) {
+    remoteSyncRetryAttempts.set(id, 0);
+    queueKnowledgeEntryRemoteSyncRetry(id);
+  }
+
   return queryOne<OpenVikingKnowledgeEntry>("SELECT * FROM openviking_knowledge_entries WHERE id = ?", id);
 }
 
@@ -552,31 +655,53 @@ function scoreTerms(content: string, queryTerms: string[], weight: number) {
   return queryTerms.reduce((score, term) => score + (haystack.includes(term) ? weight : 0), 0);
 }
 
+function buildRetrievalSpaceIndex(entries: OpenVikingKnowledgeEntry[]) {
+  const notes = entries.filter((entry) => parseMetadataJson(entry.metadataJson).notebookNodeType !== "folder");
+  const l0Text = compactWhitespace(
+    notes
+      .map((entry) => {
+        const plainContent = stripMarkdownForRetrieval(entry.contentMd);
+        return `${entry.title}: ${plainContent.slice(0, 260)}`;
+      })
+      .join("\n"),
+  );
+  const l1Text = compactWhitespace(
+    notes
+      .map((entry) => {
+        const plainContent = stripMarkdownForRetrieval(entry.contentMd);
+        const outline = markdownOutlineForRetrieval(entry.contentMd);
+        return [`## ${entry.title}`, outline || plainContent.slice(0, 900), entry.metadataJson].filter(Boolean).join("\n");
+      })
+      .join("\n\n"),
+  );
+  return { l0Text, l1Text };
+}
+
 function retrievalLevelsForEntry(
   entry: OpenVikingKnowledgeEntry,
   query: string,
   queryTerms: string[],
+  spaceIndex: ReturnType<typeof buildRetrievalSpaceIndex>,
 ): KnowledgeRetrievalTestLevelHit[] {
   const plainContent = stripMarkdownForRetrieval(entry.contentMd);
-  const outline = markdownOutlineForRetrieval(entry.contentMd);
-  const l0Text = compactWhitespace([entry.title, plainContent.slice(0, 260), entry.metadataJson].join("\n"));
-  const l1Text = compactWhitespace([entry.title, outline, plainContent.slice(0, 1600), entry.metadataJson].join("\n"));
+  const l0Text = spaceIndex.l0Text || compactWhitespace([entry.title, plainContent.slice(0, 260), entry.metadataJson].join("\n"));
+  const l1Text = spaceIndex.l1Text || compactWhitespace([entry.title, plainContent.slice(0, 1600), entry.metadataJson].join("\n"));
   const l2Text = [entry.title, entry.contentMd, entry.metadataJson].join("\n");
 
   const levels: KnowledgeRetrievalTestLevelHit[] = [
     {
       level: "L0",
-      label: "摘要索引召回",
-      purpose: "Abstract：向量召回、快速过滤、列表展示。",
-      score: scoreTerms(entry.title, queryTerms, 6) + scoreTerms(l0Text, queryTerms, 2),
+      label: "空间摘要索引召回",
+      purpose: "Abstract：知识空间全局一份，用于向量召回、快速过滤和空间级列表感知。",
+      score: scoreTerms(entry.title, queryTerms, 6) + scoreTerms(l0Text, queryTerms, 1),
       excerpt: buildExcerpt(l0Text, query),
       editable: false,
     },
     {
       level: "L1",
-      label: "概览索引重排",
-      purpose: "Overview：目录递归、结构理解、重排细化。",
-      score: scoreTerms(entry.title, queryTerms, 4) + scoreTerms(l1Text, queryTerms, 3),
+      label: "空间概览索引重排",
+      purpose: "Overview：知识空间全局一份，用于理解空间结构、目录递归和重排细化。",
+      score: scoreTerms(entry.title, queryTerms, 4) + scoreTerms(l1Text, queryTerms, 2),
       excerpt: buildExcerpt(l1Text, query),
       editable: false,
     },
@@ -610,10 +735,11 @@ export function runKnowledgeRetrievalTest(input: {
     .toLowerCase()
     .split(/\s+/)
     .filter(Boolean);
+  const spaceIndex = buildRetrievalSpaceIndex(entries);
 
   return entries
     .map<KnowledgeRetrievalTestHit | null>((entry) => {
-      const levels = retrievalLevelsForEntry(entry, normalizedQuery, queryTerms);
+      const levels = retrievalLevelsForEntry(entry, normalizedQuery, queryTerms, spaceIndex);
       const score = levels.reduce((sum, level) => sum + level.score, 0);
 
       if (!score) return null;
