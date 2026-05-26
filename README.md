@@ -386,12 +386,16 @@ thirdparty/node/node-v${nodeVersion}-linux-arm64.tar.xz
 
 Replace it with an approved internal archive when needed, or set `AGENTWORLD_NODE_RUNTIME_TARBALL` to an absolute local path.
 
-Before Linux packaging, place the matching Linux OpenViking binary at:
+Before Linux packaging, provide the matching Linux OpenViking artifact at one of these local paths:
 
 ```text
 thirdparty/openviking/bin/openviking-server-linux-x64
 thirdparty/openviking/bin/openviking-server-linux-arm64
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz.part-*
 ```
+
+Compressed `.xz` artifacts are expanded locally during packaging; split `.xz.part-*` artifacts are joined first. This keeps the repository deployable in an offline environment without requiring GitHub-sized raw binaries.
 
 Build a Linux package:
 
@@ -414,7 +418,8 @@ OpenViking binary resolution order:
 1. Healthy `OPENVIKING_BASE_URL`.
 2. `OPENVIKING_SERVER_BIN`.
 3. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`.
-4. `thirdparty/openviking/bin/openviking-server`.
+4. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}.xz` or `.xz.part-*`.
+5. `thirdparty/openviking/bin/openviking-server`.
 
 ## Project Map
 

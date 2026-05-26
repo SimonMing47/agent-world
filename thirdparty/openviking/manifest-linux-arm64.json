@@ -1,0 +1,15 @@
+{
+  "name": "openviking-server",
+  "source": "openviking==0.3.20",
+  "platform": "linux",
+  "arch": "arm64",
+  "output": "thirdparty/openviking/bin/openviking-server-linux-arm64",
+  "archiveParts": [
+    "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-aa",
+    "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ab",
+    "thirdparty/openviking/bin/openviking-server-linux-arm64.xz.part-ac"
+  ],
+  "builtAt": "2026-05-26T11:58:45.792Z",
+  "license": "AGPL-3.0",
+  "upstream": "volcengine/OpenViking"
+}

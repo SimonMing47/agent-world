@@ -28,6 +28,11 @@ const spec =
   (process.env.OPENVIKING_VERSION
     ? `openviking[local-embed]==${process.env.OPENVIKING_VERSION}`
     : "openviking[local-embed]");
+const pyinstallerExcludes = (process.env.OPENVIKING_PYINSTALLER_EXCLUDES ?? "")
+  .split(",")
+  .map((moduleName) => moduleName.trim())
+  .filter(Boolean)
+  .flatMap((moduleName) => ["--exclude-module", moduleName]);
 
 function run(command, args) {
   execFileSync(command, args, { cwd: root, stdio: "inherit" });
@@ -112,6 +117,7 @@ const assetArgs = [
 
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
+fs.mkdirSync(path.join(distDir, "work", "openviking-server"), { recursive: true });
 
 run(venvPython, [
   "-m",
@@ -132,6 +138,7 @@ run(venvPython, [
   "openviking_cli",
   "--collect-submodules",
   "tiktoken_ext",
+  ...pyinstallerExcludes,
   ...assetArgs,
   entry,
 ]);
@@ -158,5 +165,34 @@ const manifest = {
 };
 
 fs.mkdirSync(thirdpartyDir, { recursive: true });
-fs.writeFileSync(path.join(thirdpartyDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+const platformKey = `${process.platform}-${process.arch}`;
+const manifestPath = path.join(thirdpartyDir, "manifest.json");
+const platformManifestPath = path.join(thirdpartyDir, `manifest-${platformKey}.json`);
+let manifestRegistry = {
+  name: "openviking-server",
+  license: "AGPL-3.0",
+  upstream: "volcengine/OpenViking",
+  artifacts: {},
+};
+if (fs.existsSync(manifestPath)) {
+  try {
+    const existingManifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    if (existingManifest && typeof existingManifest === "object") {
+      if (existingManifest.artifacts && typeof existingManifest.artifacts === "object") {
+        manifestRegistry = { ...manifestRegistry, ...existingManifest };
+      } else if (existingManifest.platform && existingManifest.arch && existingManifest.output) {
+        const existingKey = `${existingManifest.platform}-${existingManifest.arch}`;
+        manifestRegistry.artifacts[existingKey] = existingManifest;
+      }
+    }
+  } catch {
+    // Replace unreadable manifests with a fresh generated registry.
+  }
+}
+manifestRegistry.artifacts = {
+  ...manifestRegistry.artifacts,
+  [platformKey]: manifest,
+};
+fs.writeFileSync(platformManifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+fs.writeFileSync(manifestPath, `${JSON.stringify(manifestRegistry, null, 2)}\n`);
 console.log(JSON.stringify({ ok: true, manifest }, null, 2));

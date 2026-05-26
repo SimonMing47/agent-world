@@ -13,6 +13,8 @@ Expected Linux packaging paths:
 ```text
 thirdparty/openviking/bin/openviking-server-linux-x64
 thirdparty/openviking/bin/openviking-server-linux-arm64
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz
+thirdparty/openviking/bin/openviking-server-linux-${arch}.xz.part-*
 ```
 
 The binary is treated as a third-party artifact from OpenViking and is not part of AgentWorld source code. The upstream project is AGPL-3.0.
@@ -21,5 +23,6 @@ Operational rules:
 
 - Prefer `OPENVIKING_SERVER_BIN` when the binary is installed outside the repository.
 - Prefer `thirdparty/openviking/bin/openviking-server-${platform}-${arch}` for source installs.
-- Build the Linux binary with `pnpm openviking:build-binary` on a matching Linux builder using `thirdparty/openviking/wheels`, or place an approved compatible binary at `thirdparty/openviking/bin/openviking-server-linux-${arch}`.
+- Build the Linux binary with `pnpm openviking:build-binary` on a matching Linux builder using `thirdparty/openviking/wheels`, or place an approved compatible binary/archive at `thirdparty/openviking/bin/openviking-server-linux-${arch}`.
+- Use `.xz.part-*` split archives when the raw binary is too large for repository hosting. AgentWorld joins and expands those parts locally before packaging or starting OpenViking.
 - Do not require a container runtime for production deployment.
