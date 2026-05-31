@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
 import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import {
   bindKnowledgeSpace,
@@ -34,13 +35,21 @@ function textValue(value: unknown) {
 
 function knowledgeSpaceErrorResponse(error: unknown) {
   const rawMessage = error instanceof Error ? error.message : "";
+  const duplicateSlugCoreMessage = uiText(
+    "ui.server.knowledge.spaceDuplicateSlug",
+    "Knowledge space slug already exists. Choose another slug.",
+  );
   const isDuplicateSlug =
-    rawMessage.includes("空间标识已存在") || rawMessage.includes("UNIQUE constraint failed: knowledge_spaces.slug");
+    rawMessage.includes(duplicateSlugCoreMessage) || rawMessage.includes("UNIQUE constraint failed: knowledge_spaces.slug");
   const isAccessError =
     rawMessage.includes("Authentication required") || rawMessage.includes("access denied") || rawMessage.includes("Access denied");
   const message = isDuplicateSlug
-    ? "空间标识已存在，请换一个名称或 Slug。"
-    : rawMessage || "保存知识空间失败，请稍后重试。";
+    ? uiText(
+        "ui.api.errors.knowledgeSpaceDuplicateSlug",
+        "Knowledge space slug already exists. Choose another name or slug.",
+      )
+    : rawMessage ||
+      uiText("ui.api.errors.saveKnowledgeSpaceFailed", "Failed to save knowledge space. Try again later.");
   const status = isAccessError ? 403 : isDuplicateSlug ? 409 : 400;
   return NextResponse.json({ ok: false, error: message }, { status });
 }

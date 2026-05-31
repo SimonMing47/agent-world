@@ -1,0 +1,1381 @@
+{
+  "pack_id": "agentworld_reference_locked_pixelkit_v0_2",
+  "display_name": "AgentWorld Reference-Locked Pixel Kit v0.2",
+  "language": "zh-CN",
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "source_size": [
+      242,
+      233
+    ],
+    "source_offset": [
+      7,
+      12
+    ],
+    "anchor": "top_left",
+    "scale_policy": "nearest_neighbor_only"
+  },
+  "reference_lock": {
+    "description_zh": "该版本直接从用户参考图做透明化、像素拆解、源像素调色与少量硬边像素道具叠加；主角色轮廓、光影、帽子、服装、靴子、火炬和地面均保留参考图细节。",
+    "background_removed_by": "dark_navy_border_flood_fill",
+    "stray_right_edge_tick_removed_in_clean_assets": true,
+    "reconstruction_mismatched_pixels": 0,
+    "reconstruction_note": "layers/reconstruction 中的拆解层叠加后与 source/reference_transparent_clean_256.png 像素一致。"
+  },
+  "style_rules": [
+    "不要重新手绘粗线条简化版；新增部件必须服从参考图的头身比、2-5px深色外轮廓、红棕/金色高光、硬边阴影。",
+    "所有导入与缩放必须关闭双线性/三线性插值，使用 nearest-neighbor。",
+    "角色核心 silhouette 固定为参考图，变体优先使用源像素调色，不改变像素块密度。"
+  ],
+  "layers": [
+    {
+      "layer": "ground",
+      "z_index": 0,
+      "description_zh": "石板、脚底阴影、地面微光"
+    },
+    {
+      "layer": "side_prop",
+      "z_index": 10,
+      "description_zh": "左侧火炬/侧边装饰"
+    },
+    {
+      "layer": "aura",
+      "z_index": 20,
+      "description_zh": "环境光点与角色外部特效"
+    },
+    {
+      "layer": "hair",
+      "z_index": 40,
+      "description_zh": "头发、马尾、发尾轮廓"
+    },
+    {
+      "layer": "shoes",
+      "z_index": 50,
+      "description_zh": "靴子与下肢可见部分"
+    },
+    {
+      "layer": "outfit",
+      "z_index": 60,
+      "description_zh": "外套、肩甲、腰带、手臂主体"
+    },
+    {
+      "layer": "face",
+      "z_index": 70,
+      "description_zh": "脸、眼睛、嘴、肤色"
+    },
+    {
+      "layer": "headgear",
+      "z_index": 80,
+      "description_zh": "帽子、帽檐、徽章"
+    },
+    {
+      "layer": "detail",
+      "z_index": 85,
+      "description_zh": "强制复刻的轮廓、缺口与精修像素层"
+    },
+    {
+      "layer": "hand_item",
+      "z_index": 90,
+      "description_zh": "右手附近可选道具"
+    }
+  ],
+  "traits": [
+    {
+      "trait_id": "cap_reference_red",
+      "layer": "headgear",
+      "display_name_zh": "复刻红色冒险帽",
+      "path": "parts/headgear/cap_reference_red.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_reference_dark_ponytail",
+      "layer": "hair",
+      "display_name_zh": "复刻深色头发与红色马尾",
+      "path": "parts/hair/hair_reference_dark_ponytail.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "face_reference_focus",
+      "layer": "face",
+      "display_name_zh": "复刻专注表情",
+      "path": "parts/face/face_reference_focus.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_reference_red_leather",
+      "layer": "outfit",
+      "display_name_zh": "复刻红色皮甲外套",
+      "path": "parts/outfit/outfit_reference_red_leather.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_reference_brown_boots",
+      "layer": "shoes",
+      "display_name_zh": "复刻棕色厚底靴",
+      "path": "parts/shoes/shoes_reference_brown_boots.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "side_prop_reference_torch",
+      "layer": "side_prop",
+      "display_name_zh": "复刻左侧火炬",
+      "path": "parts/side_prop/side_prop_reference_torch.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_reference_stone_shadow",
+      "layer": "ground",
+      "display_name_zh": "复刻石板地面阴影",
+      "path": "parts/ground/ground_reference_stone_shadow.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "detail_overlay_reference",
+      "layer": "detail",
+      "display_name_zh": "复刻轮廓与精修像素层",
+      "path": "parts/detail/detail_overlay_reference.png",
+      "rarity": "core",
+      "tags": [
+        "reference",
+        "pixel-exact",
+        "mandatory",
+        "outline"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hand_item_none",
+      "layer": "hand_item",
+      "display_name_zh": "无",
+      "path": "parts/hand_item/hand_item_none.png",
+      "rarity": "common",
+      "tags": [
+        "none",
+        "transparent"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "aura_none",
+      "layer": "aura",
+      "display_name_zh": "无",
+      "path": "parts/aura/aura_none.png",
+      "rarity": "common",
+      "tags": [
+        "none",
+        "transparent"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "side_prop_none",
+      "layer": "side_prop",
+      "display_name_zh": "无",
+      "path": "parts/side_prop/side_prop_none.png",
+      "rarity": "common",
+      "tags": [
+        "none",
+        "transparent"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_none",
+      "layer": "ground",
+      "display_name_zh": "无",
+      "path": "parts/ground/ground_none.png",
+      "rarity": "common",
+      "tags": [
+        "none",
+        "transparent"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_scarlet",
+      "layer": "headgear",
+      "display_name_zh": "猩红冒险帽",
+      "path": "parts/headgear/cap_scarlet.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_scarlet",
+      "layer": "outfit",
+      "display_name_zh": "猩红皮甲外套",
+      "path": "parts/outfit/outfit_scarlet.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_scarlet",
+      "layer": "shoes",
+      "display_name_zh": "猩红厚底靴",
+      "path": "parts/shoes/shoes_scarlet.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_cobalt",
+      "layer": "headgear",
+      "display_name_zh": "钴蓝冒险帽",
+      "path": "parts/headgear/cap_cobalt.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_cobalt",
+      "layer": "outfit",
+      "display_name_zh": "钴蓝皮甲外套",
+      "path": "parts/outfit/outfit_cobalt.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_cobalt",
+      "layer": "shoes",
+      "display_name_zh": "钴蓝厚底靴",
+      "path": "parts/shoes/shoes_cobalt.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_emerald",
+      "layer": "headgear",
+      "display_name_zh": "翡翠绿冒险帽",
+      "path": "parts/headgear/cap_emerald.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_emerald",
+      "layer": "outfit",
+      "display_name_zh": "翡翠绿皮甲外套",
+      "path": "parts/outfit/outfit_emerald.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_emerald",
+      "layer": "shoes",
+      "display_name_zh": "翡翠绿厚底靴",
+      "path": "parts/shoes/shoes_emerald.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_violet",
+      "layer": "headgear",
+      "display_name_zh": "紫罗兰冒险帽",
+      "path": "parts/headgear/cap_violet.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_violet",
+      "layer": "outfit",
+      "display_name_zh": "紫罗兰皮甲外套",
+      "path": "parts/outfit/outfit_violet.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_violet",
+      "layer": "shoes",
+      "display_name_zh": "紫罗兰厚底靴",
+      "path": "parts/shoes/shoes_violet.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_copper",
+      "layer": "headgear",
+      "display_name_zh": "机械铜冒险帽",
+      "path": "parts/headgear/cap_copper.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_copper",
+      "layer": "outfit",
+      "display_name_zh": "机械铜皮甲外套",
+      "path": "parts/outfit/outfit_copper.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_copper",
+      "layer": "shoes",
+      "display_name_zh": "机械铜厚底靴",
+      "path": "parts/shoes/shoes_copper.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_white_teal",
+      "layer": "headgear",
+      "display_name_zh": "白袍青光冒险帽",
+      "path": "parts/headgear/cap_white_teal.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_white_teal",
+      "layer": "outfit",
+      "display_name_zh": "白袍青光皮甲外套",
+      "path": "parts/outfit/outfit_white_teal.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_white_teal",
+      "layer": "shoes",
+      "display_name_zh": "白袍青光厚底靴",
+      "path": "parts/shoes/shoes_white_teal.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_charcoal_neon",
+      "layer": "headgear",
+      "display_name_zh": "炭黑霓虹冒险帽",
+      "path": "parts/headgear/cap_charcoal_neon.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_charcoal_neon",
+      "layer": "outfit",
+      "display_name_zh": "炭黑霓虹皮甲外套",
+      "path": "parts/outfit/outfit_charcoal_neon.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_charcoal_neon",
+      "layer": "shoes",
+      "display_name_zh": "炭黑霓虹厚底靴",
+      "path": "parts/shoes/shoes_charcoal_neon.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_olive",
+      "layer": "headgear",
+      "display_name_zh": "苔绿冒险帽",
+      "path": "parts/headgear/cap_olive.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_olive",
+      "layer": "outfit",
+      "display_name_zh": "苔绿皮甲外套",
+      "path": "parts/outfit/outfit_olive.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_olive",
+      "layer": "shoes",
+      "display_name_zh": "苔绿厚底靴",
+      "path": "parts/shoes/shoes_olive.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_navy",
+      "layer": "headgear",
+      "display_name_zh": "航海靛蓝冒险帽",
+      "path": "parts/headgear/cap_navy.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_navy",
+      "layer": "outfit",
+      "display_name_zh": "航海靛蓝皮甲外套",
+      "path": "parts/outfit/outfit_navy.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_navy",
+      "layer": "shoes",
+      "display_name_zh": "航海靛蓝厚底靴",
+      "path": "parts/shoes/shoes_navy.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_magenta",
+      "layer": "headgear",
+      "display_name_zh": "吟游玫红冒险帽",
+      "path": "parts/headgear/cap_magenta.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_magenta",
+      "layer": "outfit",
+      "display_name_zh": "吟游玫红皮甲外套",
+      "path": "parts/outfit/outfit_magenta.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_magenta",
+      "layer": "shoes",
+      "display_name_zh": "吟游玫红厚底靴",
+      "path": "parts/shoes/shoes_magenta.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "cap_lavender",
+      "layer": "headgear",
+      "display_name_zh": "神谕薰紫冒险帽",
+      "path": "parts/headgear/cap_lavender.png",
+      "rarity": "common",
+      "tags": [
+        "cap",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "outfit_lavender",
+      "layer": "outfit",
+      "display_name_zh": "神谕薰紫皮甲外套",
+      "path": "parts/outfit/outfit_lavender.png",
+      "rarity": "common",
+      "tags": [
+        "outfit",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "shoes_lavender",
+      "layer": "shoes",
+      "display_name_zh": "神谕薰紫厚底靴",
+      "path": "parts/shoes/shoes_lavender.png",
+      "rarity": "common",
+      "tags": [
+        "boots",
+        "palette-swap",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_dark_red_tail",
+      "layer": "hair",
+      "display_name_zh": "深色红马尾",
+      "path": "parts/hair/hair_dark_red_tail.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_silver_tail",
+      "layer": "hair",
+      "display_name_zh": "银灰马尾",
+      "path": "parts/hair/hair_silver_tail.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_auburn",
+      "layer": "hair",
+      "display_name_zh": "赤褐发",
+      "path": "parts/hair/hair_auburn.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_blue_black",
+      "layer": "hair",
+      "display_name_zh": "蓝黑发",
+      "path": "parts/hair/hair_blue_black.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_forest",
+      "layer": "hair",
+      "display_name_zh": "森林绿发",
+      "path": "parts/hair/hair_forest.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hair_violet_tail",
+      "layer": "hair",
+      "display_name_zh": "紫尾发",
+      "path": "parts/hair/hair_violet_tail.png",
+      "rarity": "common",
+      "tags": [
+        "hair",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "face_reference",
+      "layer": "face",
+      "display_name_zh": "复刻肤色",
+      "path": "parts/face/face_reference.png",
+      "rarity": "common",
+      "tags": [
+        "face",
+        "expression-focus",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "face_warm",
+      "layer": "face",
+      "display_name_zh": "暖肤色",
+      "path": "parts/face/face_warm.png",
+      "rarity": "common",
+      "tags": [
+        "face",
+        "expression-focus",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "face_tan",
+      "layer": "face",
+      "display_name_zh": "小麦肤色",
+      "path": "parts/face/face_tan.png",
+      "rarity": "common",
+      "tags": [
+        "face",
+        "expression-focus",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "face_cool",
+      "layer": "face",
+      "display_name_zh": "冷亮肤色",
+      "path": "parts/face/face_cool.png",
+      "rarity": "common",
+      "tags": [
+        "face",
+        "expression-focus",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "torch_orange",
+      "layer": "side_prop",
+      "display_name_zh": "原始火炬",
+      "path": "parts/side_prop/torch_orange.png",
+      "rarity": "common",
+      "tags": [
+        "torch",
+        "light",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "torch_blue",
+      "layer": "side_prop",
+      "display_name_zh": "蓝焰火炬",
+      "path": "parts/side_prop/torch_blue.png",
+      "rarity": "common",
+      "tags": [
+        "torch",
+        "light",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "torch_green",
+      "layer": "side_prop",
+      "display_name_zh": "炼金绿焰",
+      "path": "parts/side_prop/torch_green.png",
+      "rarity": "common",
+      "tags": [
+        "torch",
+        "light",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "torch_purple",
+      "layer": "side_prop",
+      "display_name_zh": "奥术紫焰",
+      "path": "parts/side_prop/torch_purple.png",
+      "rarity": "common",
+      "tags": [
+        "torch",
+        "light",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "torch_white",
+      "layer": "side_prop",
+      "display_name_zh": "白金火焰",
+      "path": "parts/side_prop/torch_white.png",
+      "rarity": "common",
+      "tags": [
+        "torch",
+        "light",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_stone_shadow",
+      "layer": "ground",
+      "display_name_zh": "原始石板阴影",
+      "path": "parts/ground/ground_stone_shadow.png",
+      "rarity": "common",
+      "tags": [
+        "ground",
+        "shadow",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_moss_glow",
+      "layer": "ground",
+      "display_name_zh": "苔藓微光",
+      "path": "parts/ground/ground_moss_glow.png",
+      "rarity": "common",
+      "tags": [
+        "ground",
+        "shadow",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_arcane_blue",
+      "layer": "ground",
+      "display_name_zh": "奥术蓝光",
+      "path": "parts/ground/ground_arcane_blue.png",
+      "rarity": "common",
+      "tags": [
+        "ground",
+        "shadow",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "ground_ember",
+      "layer": "ground",
+      "display_name_zh": "余烬红光",
+      "path": "parts/ground/ground_ember.png",
+      "rarity": "common",
+      "tags": [
+        "ground",
+        "shadow",
+        "reference-silhouette"
+      ],
+      "role_affinity": [],
+      "source": "reference_pixel_derived"
+    },
+    {
+      "trait_id": "hand_item_scroll",
+      "layer": "hand_item",
+      "display_name_zh": "卷轴",
+      "path": "parts/hand_item/hand_item_scroll.png",
+      "rarity": "common",
+      "tags": [
+        "hand-item",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "hand_item_book",
+      "layer": "hand_item",
+      "display_name_zh": "小书",
+      "path": "parts/hand_item/hand_item_book.png",
+      "rarity": "common",
+      "tags": [
+        "hand-item",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "hand_item_crystal",
+      "layer": "hand_item",
+      "display_name_zh": "晶体",
+      "path": "parts/hand_item/hand_item_crystal.png",
+      "rarity": "common",
+      "tags": [
+        "hand-item",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "hand_item_wrench",
+      "layer": "hand_item",
+      "display_name_zh": "扳手",
+      "path": "parts/hand_item/hand_item_wrench.png",
+      "rarity": "common",
+      "tags": [
+        "hand-item",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "hand_item_compass",
+      "layer": "hand_item",
+      "display_name_zh": "罗盘",
+      "path": "parts/hand_item/hand_item_compass.png",
+      "rarity": "common",
+      "tags": [
+        "hand-item",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "aura_ember",
+      "layer": "aura",
+      "display_name_zh": "余烬光点",
+      "path": "parts/aura/aura_ember.png",
+      "rarity": "common",
+      "tags": [
+        "aura",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "aura_arcane",
+      "layer": "aura",
+      "display_name_zh": "奥术光点",
+      "path": "parts/aura/aura_arcane.png",
+      "rarity": "common",
+      "tags": [
+        "aura",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "aura_data",
+      "layer": "aura",
+      "display_name_zh": "数据光点",
+      "path": "parts/aura/aura_data.png",
+      "rarity": "common",
+      "tags": [
+        "aura",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    },
+    {
+      "trait_id": "aura_healing",
+      "layer": "aura",
+      "display_name_zh": "治愈光点",
+      "path": "parts/aura/aura_healing.png",
+      "rarity": "common",
+      "tags": [
+        "aura",
+        "optional",
+        "pixel-drawn"
+      ],
+      "role_affinity": [],
+      "source": "new_pixel_overlay_matching_reference"
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "explorer_scout",
+      "display_name_zh": "探险侦察者",
+      "preview_path": "composites/roles/explorer_scout.png",
+      "agent_trait_bias": {
+        "curiosity": 0.94,
+        "risk_tolerance": 0.7,
+        "autonomy": 0.76,
+        "analysis": 0.55
+      },
+      "visual_recipe": {
+        "ground": "ground_stone_shadow",
+        "side_prop": "torch_orange",
+        "hair": "hair_dark_red_tail",
+        "face": "face_reference",
+        "headgear": "cap_scarlet",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_scarlet",
+        "shoes": "shoes_scarlet",
+        "hand_item": "hand_item_compass",
+        "aura": "aura_ember"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "scholar_archivist",
+      "display_name_zh": "学者记录员",
+      "preview_path": "composites/roles/scholar_archivist.png",
+      "agent_trait_bias": {
+        "analysis": 0.92,
+        "memory_depth": 0.9,
+        "curiosity": 0.68,
+        "risk_tolerance": 0.32
+      },
+      "visual_recipe": {
+        "ground": "ground_stone_shadow",
+        "side_prop": "torch_orange",
+        "hair": "hair_silver_tail",
+        "face": "face_cool",
+        "headgear": "cap_cobalt",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_cobalt",
+        "shoes": "shoes_cobalt",
+        "hand_item": "hand_item_book",
+        "aura": "aura_none"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "guardian_warrior",
+      "display_name_zh": "守护战士",
+      "preview_path": "composites/roles/guardian_warrior.png",
+      "agent_trait_bias": {
+        "risk_tolerance": 0.82,
+        "collaboration": 0.72,
+        "autonomy": 0.64,
+        "empathy": 0.54
+      },
+      "visual_recipe": {
+        "ground": "ground_ember",
+        "side_prop": "torch_orange",
+        "hair": "hair_auburn",
+        "face": "face_tan",
+        "headgear": "cap_navy",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_navy",
+        "shoes": "shoes_navy",
+        "hand_item": "hand_item_none",
+        "aura": "aura_ember"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "alchemist_researcher",
+      "display_name_zh": "炼金研究员",
+      "preview_path": "composites/roles/alchemist_researcher.png",
+      "agent_trait_bias": {
+        "creativity": 0.9,
+        "analysis": 0.78,
+        "curiosity": 0.82,
+        "risk_tolerance": 0.55
+      },
+      "visual_recipe": {
+        "ground": "ground_moss_glow",
+        "side_prop": "torch_green",
+        "hair": "hair_violet_tail",
+        "face": "face_warm",
+        "headgear": "cap_violet",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_violet",
+        "shoes": "shoes_violet",
+        "hand_item": "hand_item_crystal",
+        "aura": "aura_healing"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "mechanic_engineer",
+      "display_name_zh": "机械工程师",
+      "preview_path": "composites/roles/mechanic_engineer.png",
+      "agent_trait_bias": {
+        "analysis": 0.84,
+        "autonomy": 0.74,
+        "creativity": 0.64,
+        "memory_depth": 0.62
+      },
+      "visual_recipe": {
+        "ground": "ground_arcane_blue",
+        "side_prop": "torch_blue",
+        "hair": "hair_blue_black",
+        "face": "face_tan",
+        "headgear": "cap_copper",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_copper",
+        "shoes": "shoes_copper",
+        "hand_item": "hand_item_wrench",
+        "aura": "aura_data"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "merchant_coordinator",
+      "display_name_zh": "商旅协调者",
+      "preview_path": "composites/roles/merchant_coordinator.png",
+      "agent_trait_bias": {
+        "collaboration": 0.92,
+        "empathy": 0.7,
+        "analysis": 0.58,
+        "risk_tolerance": 0.42
+      },
+      "visual_recipe": {
+        "ground": "ground_stone_shadow",
+        "side_prop": "torch_orange",
+        "hair": "hair_auburn",
+        "face": "face_warm",
+        "headgear": "cap_emerald",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_emerald",
+        "shoes": "shoes_emerald",
+        "hand_item": "hand_item_scroll",
+        "aura": "aura_none"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "healer_support",
+      "display_name_zh": "治疗支持者",
+      "preview_path": "composites/roles/healer_support.png",
+      "agent_trait_bias": {
+        "empathy": 0.95,
+        "collaboration": 0.86,
+        "risk_tolerance": 0.25,
+        "memory_depth": 0.7
+      },
+      "visual_recipe": {
+        "ground": "ground_moss_glow",
+        "side_prop": "torch_white",
+        "hair": "hair_silver_tail",
+        "face": "face_cool",
+        "headgear": "cap_white_teal",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_white_teal",
+        "shoes": "shoes_white_teal",
+        "hand_item": "hand_item_crystal",
+        "aura": "aura_healing"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "cyber_hacker",
+      "display_name_zh": "赛博黑客",
+      "preview_path": "composites/roles/cyber_hacker.png",
+      "agent_trait_bias": {
+        "analysis": 0.88,
+        "autonomy": 0.88,
+        "creativity": 0.72,
+        "risk_tolerance": 0.66
+      },
+      "visual_recipe": {
+        "ground": "ground_arcane_blue",
+        "side_prop": "torch_blue",
+        "hair": "hair_blue_black",
+        "face": "face_cool",
+        "headgear": "cap_charcoal_neon",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_charcoal_neon",
+        "shoes": "shoes_charcoal_neon",
+        "hand_item": "hand_item_crystal",
+        "aura": "aura_data"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "forager_cultivator",
+      "display_name_zh": "农夫采集者",
+      "preview_path": "composites/roles/forager_cultivator.png",
+      "agent_trait_bias": {
+        "empathy": 0.72,
+        "curiosity": 0.61,
+        "collaboration": 0.75,
+        "risk_tolerance": 0.36
+      },
+      "visual_recipe": {
+        "ground": "ground_moss_glow",
+        "side_prop": "torch_green",
+        "hair": "hair_forest",
+        "face": "face_tan",
+        "headgear": "cap_olive",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_olive",
+        "shoes": "shoes_olive",
+        "hand_item": "hand_item_none",
+        "aura": "aura_healing"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "navigator_pilot",
+      "display_name_zh": "导航飞行员",
+      "preview_path": "composites/roles/navigator_pilot.png",
+      "agent_trait_bias": {
+        "analysis": 0.76,
+        "autonomy": 0.82,
+        "curiosity": 0.76,
+        "risk_tolerance": 0.58
+      },
+      "visual_recipe": {
+        "ground": "ground_arcane_blue",
+        "side_prop": "torch_blue",
+        "hair": "hair_blue_black",
+        "face": "face_reference",
+        "headgear": "cap_navy",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_navy",
+        "shoes": "shoes_navy",
+        "hand_item": "hand_item_compass",
+        "aura": "aura_data"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "bard_narrator",
+      "display_name_zh": "吟游叙事者",
+      "preview_path": "composites/roles/bard_narrator.png",
+      "agent_trait_bias": {
+        "creativity": 0.96,
+        "empathy": 0.76,
+        "collaboration": 0.78,
+        "memory_depth": 0.66
+      },
+      "visual_recipe": {
+        "ground": "ground_stone_shadow",
+        "side_prop": "torch_purple",
+        "hair": "hair_violet_tail",
+        "face": "face_warm",
+        "headgear": "cap_magenta",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_magenta",
+        "shoes": "shoes_magenta",
+        "hand_item": "hand_item_scroll",
+        "aura": "aura_arcane"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    },
+    {
+      "role_id": "oracle_diplomat",
+      "display_name_zh": "神谕外交官",
+      "preview_path": "composites/roles/oracle_diplomat.png",
+      "agent_trait_bias": {
+        "analysis": 0.72,
+        "empathy": 0.88,
+        "collaboration": 0.86,
+        "memory_depth": 0.82
+      },
+      "visual_recipe": {
+        "ground": "ground_arcane_blue",
+        "side_prop": "torch_purple",
+        "hair": "hair_silver_tail",
+        "face": "face_cool",
+        "headgear": "cap_lavender",
+        "detail": "detail_overlay_reference",
+        "outfit": "outfit_lavender",
+        "shoes": "shoes_lavender",
+        "hand_item": "hand_item_scroll",
+        "aura": "aura_arcane"
+      },
+      "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+    }
+  ]
+}

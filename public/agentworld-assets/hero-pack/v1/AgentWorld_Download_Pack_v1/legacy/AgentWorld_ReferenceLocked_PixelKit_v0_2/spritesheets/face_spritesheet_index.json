@@ -1,0 +1,34 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "face_cool",
+      "path": "parts/face/face_cool.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "face_reference",
+      "path": "parts/face/face_reference.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "face_reference_focus",
+      "path": "parts/face/face_reference_focus.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "face_tan",
+      "path": "parts/face/face_tan.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "face_warm",
+      "path": "parts/face/face_warm.png"
+    }
+  ]
+}

@@ -1,29 +1,39 @@
 "use client";
 
+import Image from "next/image";
 import type { AgentCapabilityKey, AgentCapabilityProfile } from "@/lib/agent-capability-profile";
 import { getAgentCapabilityWeapon } from "@/lib/agent-capability-profile";
 import {
+  agentWorldHeroExampleAgents,
+  agentWorldHeroLayerOrder,
+  agentWorldHeroPackId,
+  getAgentWorldHeroAssetsByLayer,
+  resolveAgentWorldHeroLayers,
+  resolveAgentWorldHeroTraits,
+  type AgentWorldHeroLayer,
+  type AgentWorldHeroResolvedLayer,
+  type AgentWorldHeroTraits,
+} from "@/lib/agentworld-hero-assets";
+import {
   accentOptions,
-  accessoryOptions,
   backgroundOptions,
   defaultPixelAgentAvatarConfig,
-  eyeStyleOptions,
   hairOptions,
-  hairStyleOptions,
-  mouthStyleOptions,
-  outfitStyleOptions,
   skinOptions,
   suitOptions,
   weaponKeyOptions,
   type PixelAgentAvatarConfig,
 } from "@/lib/pixel-agent-avatar";
 import { cn } from "@/lib/utils";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Select } from "@/components/ui/select";
 
 type PixelAgentAvatarProps = {
   config: PixelAgentAvatarConfig;
   capabilityProfile?: AgentCapabilityProfile;
+  seed?: string;
+  roleSlot?: number;
   size?: "sm" | "md" | "lg" | "team";
   className?: string;
 };
@@ -36,25 +46,14 @@ const sizeClass: Record<NonNullable<PixelAgentAvatarProps["size"]>, string> = {
 };
 
 const labelByOption: Record<string, string> = {
-  cap: "圆帽",
-  side: "侧分",
-  crest: "翘发",
-  visor: "护目",
-  jacket: "夹克",
-  robe: "长袍",
-  armor: "护甲",
-  hoodie: "连帽",
-  calm: "平静",
-  focus: "专注",
-  spark: "高光",
-  line: "坚定",
-  smile: "微笑",
-  dot: "沉思",
-  none: "无",
-  glasses: "眼镜",
-  headset: "耳机",
-  badge: "徽章",
-  auto: "自动",
+  auto: "agent.avatar.generation.auto",
+  permission: "agent.capability.permission.label",
+  toolUse: "agent.capability.toolUse.label",
+  safety: "agent.capability.safety.label",
+  coding: "agent.capability.coding.label",
+  review: "agent.capability.review.label",
+  memory: "agent.capability.memory.label",
+  collaboration: "agent.capability.collaboration.label",
 };
 
 function avatar(config: PixelAgentAvatarConfig) {
@@ -496,9 +495,55 @@ function PixelAccessory({ value }: { value: PixelAgentAvatarConfig }) {
   return null;
 }
 
+function AgentWorldHeroPackAvatar({
+  layers,
+  size,
+  className,
+}: {
+  layers: AgentWorldHeroResolvedLayer[];
+  size: NonNullable<PixelAgentAvatarProps["size"]>;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-[8px] border border-[#2f3748] bg-[#070b16] shadow-sm ring-1 ring-black/40",
+        sizeClass[size],
+        className,
+      )}
+      aria-label="Agent avatar"
+    >
+      <div className="absolute inset-0 bg-[#070b16]" />
+      {layers.map((layer) => (
+        <Image
+          key={layer.traitId}
+          src={layer.src}
+          alt=""
+          fill
+          sizes={
+            size === "sm"
+              ? "64px"
+              : size === "md"
+                ? "112px"
+                : size === "team"
+                  ? "144px"
+                  : "160px"
+          }
+          draggable={false}
+          unoptimized
+          className="select-none object-contain"
+          style={{ imageRendering: "pixelated", zIndex: layer.zIndex }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function PixelAgentAvatar({
   config,
   capabilityProfile,
+  seed = "agent",
+  roleSlot,
   size = "md",
   className,
 }: PixelAgentAvatarProps) {
@@ -507,6 +552,19 @@ export function PixelAgentAvatar({
   const dominant = capabilityProfile ? getAgentCapabilityWeapon(capabilityProfile) : null;
   const weaponKey: AgentCapabilityKey | undefined =
     value.weaponKey === "auto" ? dominant?.capability.key : value.weaponKey;
+  const capabilityKey = weaponKey ?? null;
+  const heroLayers =
+    visual.assetPack === agentWorldHeroPackId
+      ? resolveAgentWorldHeroLayers({
+          seed: JSON.stringify({ seed, roleSlot, visual, capabilityKey }),
+          configuredTraits: visual.assetTraits,
+          capabilityKey,
+      })
+      : [];
+
+  if (heroLayers.length > 0) {
+    return <AgentWorldHeroPackAvatar layers={heroLayers} size={size} className={className} />;
+  }
 
   return (
     <div
@@ -563,56 +621,68 @@ type PixelAgentAvatarEditorProps = {
   onChange: (value: PixelAgentAvatarConfig) => void;
 };
 
-function colorControl(
-  label: string,
-  value: string,
-  options: string[],
-  onChange: (value: string) => void,
-) {
-  return (
-    <FieldGroup label={label}>
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={cn(
-              "h-7 w-7 rounded-full border border-white shadow-sm ring-1 ring-black/10",
-              option.toLowerCase() === value.toLowerCase() && "ring-2 ring-[var(--accent)]",
-            )}
-            style={{ background: option }}
-            onClick={() => onChange(option)}
-            aria-label={`${label} ${option}`}
-          />
-        ))}
-      </div>
-    </FieldGroup>
-  );
-}
-
 export function PixelAgentAvatarEditor({
   value,
   capabilityProfile,
   seed = "agent",
   onChange,
 }: PixelAgentAvatarEditorProps) {
+  const text = useLanguageText();
   const current = remasterAvatarPalette(avatar(value));
+  const capabilityKey =
+    current.weaponKey === "auto" && capabilityProfile
+      ? getAgentCapabilityWeapon(capabilityProfile).capability.key
+      : current.weaponKey === "auto"
+        ? null
+        : current.weaponKey;
+  const currentAssetTraits = resolveAgentWorldHeroTraits({
+    seed: JSON.stringify({ current, capabilityKey, seed }),
+    configuredTraits: current.assetTraits,
+    capabilityKey,
+  });
+  const selectedExampleAgent =
+    agentWorldHeroExampleAgents.find((agent) =>
+      agentWorldHeroLayerOrder.every((layer) => currentAssetTraits[layer] === agent.traits[layer]),
+    ) ?? null;
 
-  function update<K extends keyof PixelAgentAvatarConfig>(field: K, nextValue: PixelAgentAvatarConfig[K]) {
-    onChange({ ...current, [field]: nextValue });
+  function updateGeneration(nextValue: PixelAgentAvatarConfig["weaponKey"]) {
+    onChange({
+      ...current,
+      assetPack: agentWorldHeroPackId,
+      assetTraits: undefined,
+      weaponKey: nextValue,
+    });
   }
 
-  function selectControl<K extends keyof PixelAgentAvatarConfig>(
-    label: string,
-    field: K,
-    options: PixelAgentAvatarConfig[K][],
-  ) {
+  function updateExampleAgent(agentId: string) {
+    const exampleAgent = agentWorldHeroExampleAgents.find((agent) => agent.agentId === agentId);
+    onChange({
+      ...current,
+      assetPack: agentWorldHeroPackId,
+      assetTraits: exampleAgent?.traits,
+    });
+  }
+
+  function updateAssetTrait(layer: AgentWorldHeroLayer, traitId: string) {
+    const nextTraits: AgentWorldHeroTraits = {
+      ...currentAssetTraits,
+      [layer]: traitId,
+    };
+    onChange({
+      ...current,
+      assetPack: agentWorldHeroPackId,
+      assetTraits: nextTraits,
+    });
+  }
+
+  function assetTraitControl(layer: AgentWorldHeroLayer) {
+    const assets = getAgentWorldHeroAssetsByLayer(layer);
     return (
-      <FieldGroup label={label}>
-        <Select value={String(current[field])} onChange={(event) => update(field, event.target.value as PixelAgentAvatarConfig[K])}>
-          {options.map((option) => (
-            <option key={String(option)} value={String(option)}>
-              {labelByOption[String(option)] ?? String(option)}
+      <FieldGroup key={layer} label={layer}>
+        <Select value={currentAssetTraits[layer] ?? ""} onChange={(event) => updateAssetTrait(layer, event.target.value)}>
+          {assets.map((asset) => (
+            <option key={asset.traitId} value={asset.traitId}>
+              {asset.name}
             </option>
           ))}
         </Select>
@@ -623,27 +693,39 @@ export function PixelAgentAvatarEditor({
   return (
     <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
       <div className="flex flex-col items-center justify-center rounded-xl border border-[var(--line)] bg-white/60 p-5">
-        <PixelAgentAvatar config={current} capabilityProfile={capabilityProfile} size="lg" />
+        <PixelAgentAvatar config={current} capabilityProfile={capabilityProfile} seed={seed} size="lg" />
         <button
           type="button"
           className="mt-4 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow-sm transition hover:bg-[var(--surface-muted)]"
-          onClick={() => onChange(defaultPixelAgentAvatarConfig(`${seed}-${Date.now()}`))}
+          onClick={() => onChange({ ...defaultPixelAgentAvatarConfig(`${seed}-${Date.now()}`), assetPack: agentWorldHeroPackId })}
         >
-          重新生成
+          agent.avatar.regenerate
         </button>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        {colorControl("肤色", current.skin, skinOptions, (nextValue) => update("skin", nextValue))}
-        {colorControl("发色", current.hair, hairOptions, (nextValue) => update("hair", nextValue))}
-        {colorControl("服装", current.suit, suitOptions, (nextValue) => update("suit", nextValue))}
-        {colorControl("强调色", current.accent, accentOptions, (nextValue) => update("accent", nextValue))}
-        {colorControl("背景", current.background, backgroundOptions, (nextValue) => update("background", nextValue))}
-        {selectControl("发型", "hairStyle", hairStyleOptions)}
-        {selectControl("服装款式", "outfitStyle", outfitStyleOptions)}
-        {selectControl("眼神", "eyeStyle", eyeStyleOptions)}
-        {selectControl("嘴型", "mouthStyle", mouthStyleOptions)}
-        {selectControl("配件", "accessory", accessoryOptions)}
-        {selectControl("武器", "weaponKey", weaponKeyOptions)}
+        <FieldGroup label="agent.avatar.generation.bias">
+          <Select
+            value={current.weaponKey}
+            onChange={(event) => updateGeneration(event.target.value as PixelAgentAvatarConfig["weaponKey"])}
+          >
+            {weaponKeyOptions.map((option) => (
+              <option key={option} value={option}>
+                {text(labelByOption[option] ?? option)}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+        <FieldGroup label="agent.avatar.exampleComposition">
+          <Select value={selectedExampleAgent?.agentId ?? ""} onChange={(event) => updateExampleAgent(event.target.value)}>
+            <option value="">agent.avatar.automaticComposition</option>
+            {agentWorldHeroExampleAgents.map((agent) => (
+              <option key={agent.agentId} value={agent.agentId}>
+                {agent.displayName}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+        {agentWorldHeroLayerOrder.map(assetTraitControl)}
       </div>
     </div>
   );

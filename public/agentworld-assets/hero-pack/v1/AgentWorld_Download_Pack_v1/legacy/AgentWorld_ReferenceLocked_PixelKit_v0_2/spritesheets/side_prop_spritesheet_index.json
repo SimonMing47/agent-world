@@ -1,0 +1,44 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "side_prop_none",
+      "path": "parts/side_prop/side_prop_none.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "side_prop_reference_torch",
+      "path": "parts/side_prop/side_prop_reference_torch.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "torch_blue",
+      "path": "parts/side_prop/torch_blue.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "torch_green",
+      "path": "parts/side_prop/torch_green.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "torch_orange",
+      "path": "parts/side_prop/torch_orange.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "torch_purple",
+      "path": "parts/side_prop/torch_purple.png"
+    },
+    {
+      "tile_index": 6,
+      "trait_id": "torch_white",
+      "path": "parts/side_prop/torch_white.png"
+    }
+  ]
+}

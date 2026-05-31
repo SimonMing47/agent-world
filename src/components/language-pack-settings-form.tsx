@@ -13,6 +13,15 @@ import {
 } from "@/lib/language-pack";
 import type { LanguagePackSettingValue } from "@/server/language-pack-store";
 
+function languageDisplayName(
+  pack: Pick<LanguagePack, "locale" | "name"> | undefined,
+  fallback: string,
+  text: (keyOrPhrase: string, fallback?: string) => string,
+) {
+  if (!pack) return fallback;
+  return text(`settings.languageConfiguration.languageName.${pack.locale}`, pack.name);
+}
+
 export function LanguagePackSettingsForm({
   setting,
 }: {
@@ -96,7 +105,7 @@ export function LanguagePackSettingsForm({
           <Select value={activeLocale} onChange={(event) => setActiveLocale(event.target.value)}>
             {availableLanguages.map((pack) => (
               <option key={pack.locale} value={pack.locale}>
-                {pack.name} ({pack.locale})
+                {languageDisplayName(pack, pack.name, text)} ({pack.locale})
               </option>
             ))}
           </Select>
@@ -154,7 +163,7 @@ export function LanguagePackSettingsForm({
 	          </div>
 	          <div>
 	            <dt className="text-xs text-[var(--ink-subtle)]">{text("settings.languageConfiguration.metadata.name", "Name")}</dt>
-	            <dd className="font-semibold text-[var(--ink)]">{activeLanguage?.name ?? activeLocale}</dd>
+	            <dd className="font-semibold text-[var(--ink)]">{languageDisplayName(activeLanguage, activeLocale, text)}</dd>
 	          </div>
 	          <div>
 	            <dt className="text-xs text-[var(--ink-subtle)]">{text("settings.languageConfiguration.metadata.source", "Source")}</dt>

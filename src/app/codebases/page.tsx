@@ -50,9 +50,9 @@ export default async function CodebasesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.c6aa9ff908e"
-        title="ui.generated.c30a4255f18"
-        description="ui.generated.c7b9962aaa9"
+        eyebrow="ui.common.resources.codebase"
+        title="nav.codebases.label"
+        description="nav.codebases.description"
         badges={[
           { label: <>{codebases.length} ui.common.count.codebases</>, variant: "accent" },
           { label: <>{tokens.length} ui.common.count.operatorTokens</>, variant: "neutral" },
@@ -70,9 +70,9 @@ export default async function CodebasesPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.c5a809b4959"
-          title="ui.generated.c00c6af449a"
-          description="ui.generated.cf1dd78a117"
+          eyebrow="ui.common.resources.codebase"
+          title="ui.common.resources.codebase"
+          description="nav.codebases.description"
           action={
             <div className="flex gap-2">
               <Dialog>

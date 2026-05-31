@@ -1,0 +1,34 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "aura_arcane",
+      "path": "parts/aura/aura_arcane.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "aura_data",
+      "path": "parts/aura/aura_data.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "aura_ember",
+      "path": "parts/aura/aura_ember.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "aura_healing",
+      "path": "parts/aura/aura_healing.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "aura_none",
+      "path": "parts/aura/aura_none.png"
+    }
+  ]
+}

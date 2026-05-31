@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
 import {
   deleteProviderRuntimeBinding,
   listProviderRuntimeBindings,
@@ -18,7 +19,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, providerRuntimeBinding });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存运行绑定失败" },
+      {
+        ok: false,
+        error: error instanceof Error
+          ? error.message
+          : uiText("ui.api.errors.saveProviderRuntimeBindingFailed", "Failed to save runtime binding."),
+      },
       { status: 400 },
     );
   }
@@ -31,7 +37,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true, providerRuntimeBinding });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "保存运行绑定失败" },
+      {
+        ok: false,
+        error: error instanceof Error
+          ? error.message
+          : uiText("ui.api.errors.saveProviderRuntimeBindingFailed", "Failed to save runtime binding."),
+      },
       { status: 400 },
     );
   }

@@ -45,7 +45,10 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "知识已被其他编辑者更新，请先查看最新版本后再合并。",
+          error: uiText(
+            "ui.api.errors.knowledgeEntryConflict",
+            "This knowledge entry was updated by another editor. Review the latest version before merging.",
+          ),
           currentEntry: error.currentEntry,
         },
         { status: 409 },

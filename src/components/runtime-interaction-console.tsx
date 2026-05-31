@@ -38,7 +38,6 @@ import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { Textarea } from "@/components/ui/textarea";
 import { parseAgentCapabilityProfile } from "@/lib/agent-capability-profile";
 import { parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
-import { translateSessionMode, translateStatus } from "@/lib/presentation";
 import { uiText } from "@/lib/language-pack";
 import { cn, formatDateTime } from "@/lib/utils";
 
@@ -322,18 +321,18 @@ function renderEventSummary(payload: Record<string, unknown>) {
 }
 
 function labelForPhase(phase: ActorPhase) {
-  if (phase === "thinking") return "ui.generated.c138d5364bb";
-  if (phase === "replying") return "ui.generated.c40f42daae7";
-  if (phase === "tool") return "ui.generated.ccda8fcb667";
-  if (phase === "waiting") return "ui.generated.c8ff9347ecc";
-  if (phase === "error") return "ui.generated.c5caf279339";
-  return "ui.generated.c837e7a109a";
+  if (phase === "thinking") return "ui.runtimeConsole.phase.thinking";
+  if (phase === "replying") return "ui.runtimeConsole.phase.replying";
+  if (phase === "tool") return "ui.runtimeConsole.phase.tool";
+  if (phase === "waiting") return "ui.runtimeConsole.phase.waiting";
+  if (phase === "error") return "ui.runtimeConsole.phase.error";
+  return "ui.runtimeConsole.phase.idle";
 }
 
 function labelForMessageRole(role: string) {
   if (role === "assistant") return "Agent";
-  if (role === "user") return "ui.generated.c80212d3591";
-  if (role === "toolResult") return "ui.generated.cfb7edd231f";
+  if (role === "user") return "ui.runtimeConsole.role.user";
+  if (role === "toolResult") return "ui.runtimeConsole.role.toolResult";
   return role;
 }
 
@@ -437,10 +436,10 @@ function buildParticipants(
       name: message.actorName,
       role:
         message.actorType === "human"
-          ? "ui.generated.c8d8f100fb8"
+          ? "ui.common.humanCollaboration"
           : message.role === "toolResult"
-            ? "ui.generated.cfb7edd231f"
-            : "ui.generated.cb01dd40289",
+            ? "ui.runtimeConsole.role.toolResult"
+            : "ui.runtimeConsole.role.collaborator",
       kind: actorKindFromMessage(message),
     });
   }
@@ -571,7 +570,7 @@ function buildActorActivities(
       kind,
       phase: "idle",
       active: false,
-      summary: "ui.generated.c32d948a2ef",
+      summary: "ui.runtimeConsole.state.waitingInput",
       updatedAt: "",
     };
     registry.set(name, next);
@@ -603,15 +602,15 @@ function buildActorActivities(
     ) {
       current.phase = "thinking";
       current.active = true;
-      current.summary = eventSummary || "ui.generated.c43fba8ce70";
+      current.summary = eventSummary || "ui.runtimeConsole.activity.organizingThoughts";
     } else if (event.eventType === "thinking_end") {
       current.phase = "replying";
       current.active = true;
-      current.summary = "ui.generated.c96f528a547";
+      current.summary = "ui.runtimeConsole.activity.preparingReply";
     } else if (event.eventType === "agent_message_delta") {
       current.phase = "replying";
       current.active = true;
-      current.summary = eventSummary || "ui.generated.c5e40fbee29";
+      current.summary = eventSummary || "ui.runtimeConsole.activity.generatingReply";
     } else if (
       event.eventType === "tool_call_requested" ||
       event.eventType === "tool_call_started" ||
@@ -619,15 +618,15 @@ function buildActorActivities(
     ) {
       current.phase = "tool";
       current.active = true;
-      current.summary = toolName ? `ui.common.processingPrefix ${toolName}` : "ui.generated.c847d330a47";
+      current.summary = toolName ? `ui.common.processingPrefix ${toolName}` : "ui.runtimeConsole.activity.processingToolCall";
     } else if (event.eventType === "tool_call_finished") {
       current.phase = "thinking";
       current.active = true;
-      current.summary = toolName ? `${toolName} ui.common.completed` : "ui.generated.ca7977ccccd";
+      current.summary = toolName ? `${toolName} ui.common.completed` : "ui.runtimeConsole.activity.toolCallCompleted";
     } else if (event.eventType === "human_approval_required") {
       current.phase = "waiting";
       current.active = true;
-      current.summary = toolName ? `ui.common.approvalPrefix ${toolName}` : "ui.generated.c793239df50";
+      current.summary = toolName ? `ui.common.approvalPrefix ${toolName}` : "ui.runtimeConsole.activity.waitingApproval";
     } else if (event.eventType === "context_compacted") {
       current.phase = "thinking";
       current.active = true;
@@ -635,15 +634,15 @@ function buildActorActivities(
     } else if (event.eventType === "session_completed" || event.eventType === "agent_completed") {
       current.phase = "idle";
       current.active = false;
-      current.summary = "ui.generated.c0a9ed3f757";
+      current.summary = "ui.runtimeConsole.activity.turnCompleted";
     } else if (event.eventType === "session_failed") {
       current.phase = "error";
       current.active = false;
-      current.summary = eventSummary || "ui.generated.c9746cfc7d2";
+      current.summary = eventSummary || "ui.runtimeConsole.activity.executionFailed";
     } else if (event.eventType === "human_message" || event.eventType === "human_steer") {
       current.phase = "idle";
       current.active = false;
-      current.summary = "ui.generated.c8787872f4c";
+      current.summary = "ui.runtimeConsole.activity.humanMessageSent";
       current.kind = "human";
     } else if (event.eventType === "leader_instruction_queued") {
       current.phase = "waiting";
@@ -671,10 +670,10 @@ function buildActorActivities(
     const current = ensureActor(message.actorName, actorKindFromMessage(message));
     if (current.active) continue;
     if (message.role === "assistant") {
-      current.summary = redactSecrets(messageText(message.content)).slice(0, 72) || "ui.generated.cbe6d5af7f7";
+      current.summary = redactSecrets(messageText(message.content)).slice(0, 72) || "ui.runtimeConsole.activity.replyOutput";
       current.updatedAt = message.createdAt;
     } else if (message.role === "user") {
-      current.summary = "ui.generated.c85c9b52bb7";
+      current.summary = "ui.runtimeConsole.activity.messageSent";
       current.updatedAt = message.createdAt;
     }
   }
@@ -687,7 +686,7 @@ function buildActorActivities(
         const current = ensureActor(fallback.name, fallback.kind);
         current.phase = "replying";
         current.active = true;
-        current.summary = "ui.generated.c70f83dd504";
+        current.summary = "ui.runtimeConsole.activity.continuing";
       }
     }
   }
@@ -838,6 +837,7 @@ function ParticipantAvatar({
         <PixelAgentAvatar
           config={avatarConfig}
           capabilityProfile={capabilityProfile}
+          seed={seed}
           size="sm"
           className={cn(
             "shadow-none",
@@ -898,10 +898,10 @@ function BubbleMeta({
       </span>
       {actorLabel ? <Badge variant="neutral">{actorLabel}</Badge> : null}
       {roleLabel ? <Badge variant={participant.isLeader ? "accent" : "neutral"}>{text(roleLabel)}</Badge> : null}
-      {participant.isLeader ? <Badge variant="accent">{text("ui.generated.c974d383f36")}</Badge> : null}
-      {message.role === "toolResult" ? <Badge variant="warning">{text("ui.generated.ca72ef18d9a")}</Badge> : null}
+      {participant.isLeader ? <Badge variant="accent">{text("ui.runtimeConsole.role.leader")}</Badge> : null}
+      {message.role === "toolResult" ? <Badge variant="warning">{text("ui.runtimeConsole.role.tool")}</Badge> : null}
       {message.role === "assistant" ? <Badge variant="neutral">Agent</Badge> : null}
-      {message.role === "user" ? <Badge variant="neutral">{text("ui.generated.c80212d3591")}</Badge> : null}
+      {message.role === "user" ? <Badge variant="neutral">{text("ui.runtimeConsole.role.user")}</Badge> : null}
       <span>{formatDateTime(message.createdAt)}</span>
     </div>
   );
@@ -1088,7 +1088,7 @@ function RuntimeMessageBubble({
             {message.role === "assistant" ? (
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-muted)]">
                 {typeof message.content.responseModel === "string" ? (
-                  <span>{text("ui.generated.cf21d6e8111")} {message.content.responseModel}</span>
+                  <span>{text("ui.runtimeConsole.message.modelPrefix")} {message.content.responseModel}</span>
                 ) : null}
                 {renderUsage(message.content) ? <span>{renderUsage(message.content)}</span> : null}
                 {renderAssistantFinish(message.content) ? <span>{renderAssistantFinish(message.content)}</span> : null}
@@ -1786,7 +1786,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
         scrollToLatest("smooth");
       });
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : "ui.generated.cfc43172b72");
+      setSendError(error instanceof Error ? error.message : "ui.runtimeConsole.errors.sendFailed");
     } finally {
       setIsSending(false);
     }
@@ -1810,19 +1810,19 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
   return (
     <Panel className="overflow-hidden">
       <PanelHeader
-        eyebrow={text("ui.generated.c836ffe0e10")}
-        title={text("ui.generated.c282129d737")}
-        description={text("ui.generated.c4bd66b4bf7")}
+        eyebrow={text("console.interactions.columns.session")}
+        title={text("ui.runtimeConsole.header.title")}
+        description={text("ui.runtimeConsole.header.description")}
         action={
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={status === "running" ? "accent" : status === "error" ? "danger" : "neutral"}>
-              {translateStatus(status)}
+              {text(`labels.status.${status}`, status)}
             </Badge>
             <Badge variant="neutral">
-              {translateSessionMode(props.sessionMode)}
+              {text(`labels.sessionMode.${props.sessionMode}`, props.sessionMode)}
             </Badge>
             {activeActors.length > 1
-              ? <Badge variant="accent">{activeActors.length} {text("ui.generated.c49ec72c849")}</Badge>
+              ? <Badge variant="accent">{activeActors.length} {text("ui.runtimeConsole.roster.parallelSuffix")}</Badge>
               : null}
           </div>
         }
@@ -1910,7 +1910,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <div className="truncate text-sm font-semibold text-[var(--ink)]">{participantDisplayName(participant)}</div>
-                      {participant.isLeader ? <Badge variant="accent">{text("ui.generated.c974d383f36")}</Badge> : null}
+                      {participant.isLeader ? <Badge variant="accent">{text("ui.runtimeConsole.role.leader")}</Badge> : null}
                     </div>
                     <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">
                       {participant.kind === "agent" && participant.name !== participantDisplayName(participant)
@@ -1929,7 +1929,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                       </span>
                     </div>
                     <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">
-                      {formatActivitySummary(activity?.summary ?? "ui.generated.cf3e50f365b", text)}
+                      {formatActivitySummary(activity?.summary ?? "ui.runtimeConsole.activity.waitingCollaboration", text)}
                     </div>
                   </div>
                 </div>
@@ -2023,7 +2023,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               <div className="relative">
           <div
             ref={scrollerRef}
-            aria-label="ui.generated.c089a724d1f"
+            aria-label={text("ui.runtimeConsole.messages.ariaLabel")}
             className="relative min-h-[520px] max-h-[calc(100vh-25rem)] scroll-smooth overflow-auto overscroll-contain rounded-lg border border-[var(--line)] bg-[var(--surface-muted)]/55 px-4 py-4"
             onScroll={handleMessageScroll}
             onWheel={handleMessageWheel}
@@ -2041,7 +2041,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               {!isPinnedToBottom ? (
                 <div className="sticky top-0 z-10 flex justify-center">
                   <div className="rounded-full border border-[var(--line)] bg-white/95 px-3 py-1.5 text-xs font-medium text-[var(--ink-muted)] shadow-sm backdrop-blur">
-                    {text("ui.generated.ceb16ef1a7f")}
+                    {text("ui.runtimeConsole.messages.historyPaused")}
                   </div>
                 </div>
               ) : null}
@@ -2133,9 +2133,9 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               {mainAreaMessages.filter((message) => !isAssistantToolHandshake(message) && message.role !== "toolResult").length === 0 ? (
                 <div className="flex min-h-[340px] items-center justify-center px-4 text-center">
                   <div>
-                    <div className="text-sm font-semibold text-[var(--ink)]">{text("ui.generated.ca6658b3a48")}</div>
+                    <div className="text-sm font-semibold text-[var(--ink)]">{text("ui.runtimeConsole.messages.emptyTitle")}</div>
                     <div className="mt-2 max-w-[28rem] text-sm leading-6 text-[var(--ink-muted)]">
-                      {text("ui.generated.c62a4e600e7")}
+                      {text("ui.runtimeConsole.messages.emptyDescription")}
                     </div>
                   </div>
                 </div>
@@ -2184,7 +2184,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => scrollToLatest("smooth")}
               >
                 <ArrowDown className="h-4 w-4" />
-                {unseenUpdates > 0 ? <>{unseenUpdates} {text("ui.common.newUpdates")}</> : text("ui.generated.c32282e734a")}
+                {unseenUpdates > 0 ? <>{unseenUpdates} {text("ui.common.newUpdates")}</> : text("ui.runtimeConsole.messages.scrollToBottom")}
               </button>
             ) : null}
           </div>
@@ -2351,7 +2351,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                             <span className="truncate text-sm font-semibold text-[var(--ink)]">
                               {participantDisplayName(participant)}
                             </span>
-                            {participant.isLeader ? <Badge variant="accent">{text("ui.generated.c974d383f36")}</Badge> : null}
+                            {participant.isLeader ? <Badge variant="accent">{text("ui.runtimeConsole.role.leader")}</Badge> : null}
                           </div>
                           <div className="mt-0.5 truncate text-xs text-[var(--ink-muted)]">
                             {text(participant.role)}
@@ -2412,7 +2412,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 }}
                 onSelect={(event) => updateMentionLookup(event.currentTarget.value, event.currentTarget.selectionStart)}
                 onBlur={() => setMentionLookup(null)}
-                placeholder="ui.generated.c5da4989f38"
+                placeholder="ui.runtimeConsole.composer.placeholder"
                 className="max-h-36 min-h-[52px] resize-none border-transparent bg-[var(--surface-muted)] shadow-none focus:border-[var(--accent)]/35"
                 onKeyDown={(event) => {
                   if (event.nativeEvent.isComposing) return;
@@ -2472,16 +2472,16 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
               />
               <Button type="submit" disabled={!canSendMessage} className="h-[52px] shrink-0 px-4">
                 <SendHorizontal className="h-4 w-4" />
-                {isSending ? text("ui.generated.cd948e6a3fb") : text("ui.generated.c1214d633a4")}
+                {isSending ? text("ui.runtimeConsole.composer.sending") : text("ui.runtimeConsole.composer.send")}
               </Button>
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-muted)]">
               <span>
                 {isTeamSession
                   ? `${text(selectedDeliveryMode.labelKey)} · ${text(selectedDeliveryMode.descriptionKey)}`
-                  : text("ui.generated.c633f10d101")}
+                  : text("ui.runtimeConsole.composer.singleSessionHint")}
               </span>
-              <span>{draft.trim().length} {text("ui.generated.c582c50066c")}</span>
+              <span>{draft.trim().length} {text("ui.runtimeConsole.composer.characterUnit")}</span>
             </div>
             {sendError ? (
               <div className="mt-2 rounded-lg border border-[var(--danger)]/20 bg-[var(--danger)]/5 px-3 py-2 text-xs font-medium text-[var(--danger)]">
@@ -2503,7 +2503,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => setInspectorTab("activity")}
               >
                 <Activity className="h-4 w-4" />
-                {text("ui.generated.cb2548636f0")}
+                {text("ui.runtimeConsole.tabs.activity")}
               </Button>
               <Button
                 type="button"
@@ -2512,7 +2512,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                 onClick={() => setInspectorTab("events")}
               >
                 <MessageSquareMore className="h-4 w-4" />
-                {text("ui.generated.c550e328062")}
+                {text("ui.runtimeConsole.tabs.events")}
               </Button>
               <Button
                 type="button"
@@ -2599,7 +2599,7 @@ export function RuntimeInteractionConsole(props: RuntimeInteractionConsoleProps)
                               <Badge variant={badgeVariantForPhase(actor.phase)}>{text(labelForPhase(actor.phase))}</Badge>
                             </div>
                             {actor.active ? (
-                              <TypingIndicator className="mt-3" label={text("ui.generated.c943db1095f")} />
+                              <TypingIndicator className="mt-3" label={text("ui.runtimeConsole.activity.statusUpdating")} />
                             ) : null}
                           </div>
                         </div>

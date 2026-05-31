@@ -121,7 +121,7 @@ export default async function AgentsPage() {
               <DialogContent className="w-[min(94vw,980px)]">
                 <DialogHeader>
                   <DialogTitle>ui.generated.c8c79a89d5a</DialogTitle>
-                  <DialogDescription>一条 Agent 数据记录定义名称、角色、描述、systemPrompt 和能力画像。</DialogDescription>
+                  <DialogDescription>agents.create.description</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentDefinitionForm
@@ -187,7 +187,7 @@ export default async function AgentsPage() {
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {definitions.map((definition) => {
+              {definitions.map((definition, index) => {
                 const ownerTeam = businessTeams.find((team) => team.id === definition.ownerBusinessTeamId);
                 const provider = providers.find((item) => item.id === definition.defaultProviderProfileId);
                 const definitionShares = shares.filter((share) => share.agentDefinitionId === definition.id);
@@ -209,7 +209,13 @@ export default async function AgentsPage() {
                   <DataTableRow key={definition.id}>
                     <DataTableCell className="min-w-[260px]">
                       <div className="flex items-center gap-3">
-                        <PixelAgentAvatar config={avatarConfig} capabilityProfile={capabilityProfile} size="sm" />
+                        <PixelAgentAvatar
+                          config={avatarConfig}
+                          capabilityProfile={capabilityProfile}
+                          seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                          roleSlot={index}
+                          size="sm"
+                        />
                         <div>
                           <div className="font-medium text-[var(--ink)]">{definition.name}</div>
                           <div className="mt-1 text-xs text-[var(--ink-muted)]">{definition.role} · {translateStatus(definition.status)}</div>
@@ -250,7 +256,13 @@ export default async function AgentsPage() {
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <div className="grid gap-5 lg:grid-cols-[auto_1fr_auto]">
-                                <PixelAgentAvatar config={avatarConfig} capabilityProfile={capabilityProfile} size="lg" />
+                                <PixelAgentAvatar
+                                  config={avatarConfig}
+                                  capabilityProfile={capabilityProfile}
+                                  seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                                  roleSlot={index}
+                                  size="lg"
+                                />
                                 <DefinitionList
                                   items={[
                                     { label: "ui.generated.c6b26695e4d", value: definition.role },

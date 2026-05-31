@@ -37,52 +37,52 @@ export type NavGroup = {
 
 export const navigationGroups: NavGroup[] = [
   {
-    title: "ui.generated.cc122e1758c",
+    title: "navigation.groups.overview",
     items: [
-      { href: "/overview", label: "ui.generated.c5219bd1bbc", sidebarLabel: "ui.generated.cf0e2bbbacc", description: "ui.generated.cc1ecf48bb4", icon: LayoutDashboard },
+      { href: "/overview", label: "nav.overview.label", sidebarLabel: "nav.overview.sidebarLabel", description: "nav.overview.description", icon: LayoutDashboard },
       { href: "/interactions", label: "console.interactions.label", sidebarLabel: "console.interactions.sidebarLabel", description: "console.interactions.description", icon: MessageSquareMore },
       { href: "/team-wallboard", label: "nav.teamWallboard.label", sidebarLabel: "nav.teamWallboard.sidebarLabel", description: "nav.teamWallboard.description", icon: ChartNoAxesCombined },
       { href: "/agent-team-wallboard", label: "nav.agentTeamWallboard.label", sidebarLabel: "nav.agentTeamWallboard.sidebarLabel", description: "nav.agentTeamWallboard.description", icon: Activity },
     ],
   },
   {
-    title: "ui.generated.c85894b835e",
+    title: "navigation.groups.agentGovernance",
     items: [
-      { href: "/agents", label: "ui.generated.cc7b4185dbe", sidebarLabel: "Agent", description: "ui.generated.c10e5edeb6f", icon: Bot },
-      { href: "/agent-teams", label: "ui.generated.c70f970c1fc", sidebarLabel: "ui.generated.cd4f6dd33b7", description: "ui.generated.c0bd68882f9", icon: Workflow },
+      { href: "/agents", label: "nav.agents.label", sidebarLabel: "ui.common.resources.agent", description: "nav.agents.description", icon: Bot },
+      { href: "/agent-teams", label: "ui.common.resources.agentTeam", sidebarLabel: "ui.common.resources.agentTeam", description: "nav.agentTeams.description", icon: Workflow },
     ],
   },
   {
-    title: "ui.generated.c41decbbd6e",
+    title: "navigation.groups.teamGovernance",
     items: [
-      { href: "/business-teams", label: "ui.generated.c21dfec6104", sidebarLabel: "ui.generated.ca3540e824b", description: "ui.generated.ca9f7562a7c", icon: Users },
-      { href: "/team-members", label: "ui.generated.c7de0251fdd", sidebarLabel: "ui.generated.cc1ee9f0190", description: "ui.generated.c2fddae130e", icon: UserRoundCog },
-      { href: "/task-blueprints", label: "ui.generated.cff5e8b99ae", sidebarLabel: "ui.generated.c3172b317f9", description: "ui.generated.cc954e6a95e", icon: ScrollText },
+      { href: "/business-teams", label: "nav.businessTeams.label", sidebarLabel: "nav.businessTeams.sidebarLabel", description: "nav.businessTeams.description", icon: Users },
+      { href: "/team-members", label: "nav.teamMembers.label", sidebarLabel: "nav.teamMembers.sidebarLabel", description: "nav.teamMembers.description", icon: UserRoundCog },
+      { href: "/task-blueprints", label: "nav.taskBlueprints.label", sidebarLabel: "nav.taskBlueprints.sidebarLabel", description: "nav.taskBlueprints.description", icon: ScrollText },
     ],
   },
   {
-    title: "ui.generated.c5095009346",
+    title: "navigation.groups.foundation",
     items: [
-      { href: "/runtimes", label: "ui.generated.cbc56f948bb", sidebarLabel: "ui.generated.c98fd0cbd9c", description: "ui.generated.c0f0ca69c34", icon: Cable },
-      { href: "/skills", label: "ui.generated.ceb5b6ad433", sidebarLabel: "Skill", description: "ui.generated.cdc0757c222", icon: Wrench },
-      { href: "/mcp", label: "ui.generated.c0950f9419b", sidebarLabel: "MCP", description: "ui.generated.c82a807f2dd", icon: Network },
-      { href: "/connectors", label: "ui.generated.c2e8b3a3fbd", sidebarLabel: "ui.generated.cc2dd028659", description: "ui.generated.cda19037130", icon: Plug },
-      { href: "/codebases", label: "ui.generated.c30a4255f18", sidebarLabel: "Codebase", description: "ui.generated.c53f720768a", icon: Code2 },
-      { href: "/knowledge", label: "ui.generated.c053fc4ecbf", sidebarLabel: "ui.generated.c1dda51f9e3", description: "ui.generated.c572ffec9e5", icon: BookOpen },
+      { href: "/runtimes", label: "ui.common.resources.providerProfile", sidebarLabel: "nav.runtimes.sidebarLabel", description: "nav.runtimes.description", icon: Cable },
+      { href: "/skills", label: "nav.skills.label", sidebarLabel: "terminology.skill", description: "nav.skills.description", icon: Wrench },
+      { href: "/mcp", label: "nav.mcp.label", sidebarLabel: "MCP", description: "nav.mcp.description", icon: Network },
+      { href: "/connectors", label: "nav.connectors.label", sidebarLabel: "terminology.connector", description: "nav.connectors.description", icon: Plug },
+      { href: "/codebases", label: "nav.codebases.label", sidebarLabel: "terminology.codebase", description: "nav.codebases.description", icon: Code2 },
+      { href: "/knowledge", label: "nav.knowledge.label", sidebarLabel: "terminology.knowledge", description: "nav.knowledge.description", icon: BookOpen },
       { href: "/identity-access", label: "identityAccess.nav.label", sidebarLabel: "identityAccess.nav.sidebarLabel", description: "identityAccess.nav.description", icon: ShieldCheck },
-      { href: "/settings", label: "ui.generated.c3c71dca8a0", sidebarLabel: "ui.generated.c1a1f6dff78", description: "ui.generated.cc133a25a4a", icon: Settings },
+      { href: "/settings", label: "nav.settings.label", sidebarLabel: "nav.settings.sidebarLabel", description: "nav.settings.description", icon: Settings },
     ],
   },
 ];
 
 export const secondaryNavigation: NavItem[] = [
-  { href: "/runtime-bindings", label: "ui.generated.c94a82a5175", sidebarLabel: "ui.generated.c8e175e7aa9", description: "ui.generated.c607060c125", icon: Cable },
-  { href: "/environments", label: "ui.generated.c78f16f104a", sidebarLabel: "ui.generated.caa3833ea2a", description: "ui.generated.c6024d1d911", icon: Database },
-  { href: "/webhooks", label: "ui.generated.cc6ce61d180", sidebarLabel: "Webhook", description: "ui.generated.c1ed9c2542f", icon: Plug },
-  { href: "/tenant-spaces", label: "ui.generated.c3db35d2741", sidebarLabel: "ui.generated.ccc04fa896e", description: "ui.generated.c187be7147c", icon: Globe },
-  { href: "/execution-policies", label: "ui.generated.c6408e9f93d", sidebarLabel: "ui.generated.cf3c49831c6", description: "ui.generated.cf1eddc323b", icon: ShieldCheck },
-  { href: "/service-catalog", label: "ui.generated.cab63588ee3", sidebarLabel: "ui.generated.c41e5243e2d", description: "ui.generated.ce05c93fb64", icon: Database },
-  { href: "/access-grants", label: "ui.generated.c2c4520c3e3", sidebarLabel: "ui.generated.c3a6e607f0c", description: "ui.generated.cb7453bf268", icon: KeyRound },
+  { href: "/runtime-bindings", label: "nav.runtimeBindings.label", sidebarLabel: "ui.common.resources.runtimeBinding", description: "nav.runtimeBindings.description", icon: Cable },
+  { href: "/environments", label: "nav.environments.label", sidebarLabel: "nav.environments.sidebarLabel", description: "nav.environments.description", icon: Database },
+  { href: "/webhooks", label: "nav.webhooks.label", sidebarLabel: "Webhook", description: "nav.webhooks.description", icon: Plug },
+  { href: "/tenant-spaces", label: "terminology.tenantSpace", sidebarLabel: "nav.tenantSpaces.sidebarLabel", description: "nav.tenantSpaces.description", icon: Globe },
+  { href: "/execution-policies", label: "terminology.executionPolicy", sidebarLabel: "nav.executionPolicies.sidebarLabel", description: "nav.executionPolicies.description", icon: ShieldCheck },
+  { href: "/service-catalog", label: "terminology.serviceDirectory", sidebarLabel: "nav.serviceCatalog.sidebarLabel", description: "nav.serviceCatalog.description", icon: Database },
+  { href: "/access-grants", label: "terminology.accessPolicy", sidebarLabel: "nav.accessGrants.sidebarLabel", description: "nav.accessGrants.description", icon: KeyRound },
 ];
 
 export const flatNavigation = [
@@ -103,7 +103,7 @@ export function findNavGroup(pathname: string) {
     navigationGroups.find((group) => group.items.some((candidate) => candidate.href === item.href)) ??
     (secondaryNavigation.some((candidate) => candidate.href === item.href)
       ? {
-          title: "ui.generated.c5095009346",
+          title: "navigation.groups.foundation",
           items: secondaryNavigation,
         }
       : navigationGroups[0])

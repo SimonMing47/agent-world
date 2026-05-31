@@ -49,9 +49,9 @@ export default async function SkillsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.ceb5b6ad433"
-        title="ui.generated.ceb5b6ad433"
-        description="ui.generated.c62d736b98a"
+        eyebrow="ui.common.resources.skill"
+        title="nav.skills.label"
+        description="nav.skills.description"
         badges={[
           { label: <>{skills.length} ui.generated.cd927cc5599</>, variant: "accent" },
           { label: <>ui.common.enabled {skills.filter((skill) => skill.isEnabled).length}</>, variant: "success" },
@@ -69,9 +69,9 @@ export default async function SkillsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.c41e5243e2d"
-          title="ui.generated.c58f961e5b0"
-          description="ui.generated.c87b80ff260"
+          eyebrow="ui.common.resources.skill"
+          title="ui.common.resources.skill"
+          description="nav.skills.description"
           action={
             <div className="flex flex-wrap gap-2">
               <Dialog>

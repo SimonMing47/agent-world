@@ -1,0 +1,39 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "hand_item_book",
+      "path": "parts/hand_item/hand_item_book.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "hand_item_compass",
+      "path": "parts/hand_item/hand_item_compass.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "hand_item_crystal",
+      "path": "parts/hand_item/hand_item_crystal.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "hand_item_none",
+      "path": "parts/hand_item/hand_item_none.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "hand_item_scroll",
+      "path": "parts/hand_item/hand_item_scroll.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "hand_item_wrench",
+      "path": "parts/hand_item/hand_item_wrench.png"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "outfit_charcoal_neon",
+      "path": "parts/outfit/outfit_charcoal_neon.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "outfit_cobalt",
+      "path": "parts/outfit/outfit_cobalt.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "outfit_copper",
+      "path": "parts/outfit/outfit_copper.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "outfit_emerald",
+      "path": "parts/outfit/outfit_emerald.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "outfit_lavender",
+      "path": "parts/outfit/outfit_lavender.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "outfit_magenta",
+      "path": "parts/outfit/outfit_magenta.png"
+    },
+    {
+      "tile_index": 6,
+      "trait_id": "outfit_navy",
+      "path": "parts/outfit/outfit_navy.png"
+    },
+    {
+      "tile_index": 7,
+      "trait_id": "outfit_olive",
+      "path": "parts/outfit/outfit_olive.png"
+    },
+    {
+      "tile_index": 8,
+      "trait_id": "outfit_reference_red_leather",
+      "path": "parts/outfit/outfit_reference_red_leather.png"
+    },
+    {
+      "tile_index": 9,
+      "trait_id": "outfit_scarlet",
+      "path": "parts/outfit/outfit_scarlet.png"
+    },
+    {
+      "tile_index": 10,
+      "trait_id": "outfit_violet",
+      "path": "parts/outfit/outfit_violet.png"
+    },
+    {
+      "tile_index": 11,
+      "trait_id": "outfit_white_teal",
+      "path": "parts/outfit/outfit_white_teal.png"
+    }
+  ]
+}

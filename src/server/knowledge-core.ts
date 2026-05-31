@@ -70,7 +70,12 @@ function resolveKnowledgeSpaceSlug(input: { id?: string; slug?: string | null; n
 
   const existing = findKnowledgeSpaceBySlug(baseSlug);
   if (existing && existing.id !== input.id) {
-    throw new Error("空间标识已存在，请换一个 Slug。");
+    throw new Error(
+      uiText(
+        "ui.server.knowledge.spaceDuplicateSlug",
+        "Knowledge space slug already exists. Choose another slug.",
+      ),
+    );
   }
   return baseSlug;
 }

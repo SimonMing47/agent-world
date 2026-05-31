@@ -1,0 +1,69 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "shoes_charcoal_neon",
+      "path": "parts/shoes/shoes_charcoal_neon.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "shoes_cobalt",
+      "path": "parts/shoes/shoes_cobalt.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "shoes_copper",
+      "path": "parts/shoes/shoes_copper.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "shoes_emerald",
+      "path": "parts/shoes/shoes_emerald.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "shoes_lavender",
+      "path": "parts/shoes/shoes_lavender.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "shoes_magenta",
+      "path": "parts/shoes/shoes_magenta.png"
+    },
+    {
+      "tile_index": 6,
+      "trait_id": "shoes_navy",
+      "path": "parts/shoes/shoes_navy.png"
+    },
+    {
+      "tile_index": 7,
+      "trait_id": "shoes_olive",
+      "path": "parts/shoes/shoes_olive.png"
+    },
+    {
+      "tile_index": 8,
+      "trait_id": "shoes_reference_brown_boots",
+      "path": "parts/shoes/shoes_reference_brown_boots.png"
+    },
+    {
+      "tile_index": 9,
+      "trait_id": "shoes_scarlet",
+      "path": "parts/shoes/shoes_scarlet.png"
+    },
+    {
+      "tile_index": 10,
+      "trait_id": "shoes_violet",
+      "path": "parts/shoes/shoes_violet.png"
+    },
+    {
+      "tile_index": 11,
+      "trait_id": "shoes_white_teal",
+      "path": "parts/shoes/shoes_white_teal.png"
+    }
+  ]
+}

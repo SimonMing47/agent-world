@@ -1,0 +1,290 @@
+[
+  {
+    "role_id": "explorer_scout",
+    "display_name_zh": "探险侦察者",
+    "preview_path": "composites/roles/explorer_scout.png",
+    "agent_trait_bias": {
+      "curiosity": 0.94,
+      "risk_tolerance": 0.7,
+      "autonomy": 0.76,
+      "analysis": 0.55
+    },
+    "visual_recipe": {
+      "ground": "ground_stone_shadow",
+      "side_prop": "torch_orange",
+      "hair": "hair_dark_red_tail",
+      "face": "face_reference",
+      "headgear": "cap_scarlet",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_scarlet",
+      "shoes": "shoes_scarlet",
+      "hand_item": "hand_item_compass",
+      "aura": "aura_ember"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "scholar_archivist",
+    "display_name_zh": "学者记录员",
+    "preview_path": "composites/roles/scholar_archivist.png",
+    "agent_trait_bias": {
+      "analysis": 0.92,
+      "memory_depth": 0.9,
+      "curiosity": 0.68,
+      "risk_tolerance": 0.32
+    },
+    "visual_recipe": {
+      "ground": "ground_stone_shadow",
+      "side_prop": "torch_orange",
+      "hair": "hair_silver_tail",
+      "face": "face_cool",
+      "headgear": "cap_cobalt",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_cobalt",
+      "shoes": "shoes_cobalt",
+      "hand_item": "hand_item_book",
+      "aura": "aura_none"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "guardian_warrior",
+    "display_name_zh": "守护战士",
+    "preview_path": "composites/roles/guardian_warrior.png",
+    "agent_trait_bias": {
+      "risk_tolerance": 0.82,
+      "collaboration": 0.72,
+      "autonomy": 0.64,
+      "empathy": 0.54
+    },
+    "visual_recipe": {
+      "ground": "ground_ember",
+      "side_prop": "torch_orange",
+      "hair": "hair_auburn",
+      "face": "face_tan",
+      "headgear": "cap_navy",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_navy",
+      "shoes": "shoes_navy",
+      "hand_item": "hand_item_none",
+      "aura": "aura_ember"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "alchemist_researcher",
+    "display_name_zh": "炼金研究员",
+    "preview_path": "composites/roles/alchemist_researcher.png",
+    "agent_trait_bias": {
+      "creativity": 0.9,
+      "analysis": 0.78,
+      "curiosity": 0.82,
+      "risk_tolerance": 0.55
+    },
+    "visual_recipe": {
+      "ground": "ground_moss_glow",
+      "side_prop": "torch_green",
+      "hair": "hair_violet_tail",
+      "face": "face_warm",
+      "headgear": "cap_violet",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_violet",
+      "shoes": "shoes_violet",
+      "hand_item": "hand_item_crystal",
+      "aura": "aura_healing"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "mechanic_engineer",
+    "display_name_zh": "机械工程师",
+    "preview_path": "composites/roles/mechanic_engineer.png",
+    "agent_trait_bias": {
+      "analysis": 0.84,
+      "autonomy": 0.74,
+      "creativity": 0.64,
+      "memory_depth": 0.62
+    },
+    "visual_recipe": {
+      "ground": "ground_arcane_blue",
+      "side_prop": "torch_blue",
+      "hair": "hair_blue_black",
+      "face": "face_tan",
+      "headgear": "cap_copper",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_copper",
+      "shoes": "shoes_copper",
+      "hand_item": "hand_item_wrench",
+      "aura": "aura_data"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "merchant_coordinator",
+    "display_name_zh": "商旅协调者",
+    "preview_path": "composites/roles/merchant_coordinator.png",
+    "agent_trait_bias": {
+      "collaboration": 0.92,
+      "empathy": 0.7,
+      "analysis": 0.58,
+      "risk_tolerance": 0.42
+    },
+    "visual_recipe": {
+      "ground": "ground_stone_shadow",
+      "side_prop": "torch_orange",
+      "hair": "hair_auburn",
+      "face": "face_warm",
+      "headgear": "cap_emerald",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_emerald",
+      "shoes": "shoes_emerald",
+      "hand_item": "hand_item_scroll",
+      "aura": "aura_none"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "healer_support",
+    "display_name_zh": "治疗支持者",
+    "preview_path": "composites/roles/healer_support.png",
+    "agent_trait_bias": {
+      "empathy": 0.95,
+      "collaboration": 0.86,
+      "risk_tolerance": 0.25,
+      "memory_depth": 0.7
+    },
+    "visual_recipe": {
+      "ground": "ground_moss_glow",
+      "side_prop": "torch_white",
+      "hair": "hair_silver_tail",
+      "face": "face_cool",
+      "headgear": "cap_white_teal",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_white_teal",
+      "shoes": "shoes_white_teal",
+      "hand_item": "hand_item_crystal",
+      "aura": "aura_healing"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "cyber_hacker",
+    "display_name_zh": "赛博黑客",
+    "preview_path": "composites/roles/cyber_hacker.png",
+    "agent_trait_bias": {
+      "analysis": 0.88,
+      "autonomy": 0.88,
+      "creativity": 0.72,
+      "risk_tolerance": 0.66
+    },
+    "visual_recipe": {
+      "ground": "ground_arcane_blue",
+      "side_prop": "torch_blue",
+      "hair": "hair_blue_black",
+      "face": "face_cool",
+      "headgear": "cap_charcoal_neon",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_charcoal_neon",
+      "shoes": "shoes_charcoal_neon",
+      "hand_item": "hand_item_crystal",
+      "aura": "aura_data"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "forager_cultivator",
+    "display_name_zh": "农夫采集者",
+    "preview_path": "composites/roles/forager_cultivator.png",
+    "agent_trait_bias": {
+      "empathy": 0.72,
+      "curiosity": 0.61,
+      "collaboration": 0.75,
+      "risk_tolerance": 0.36
+    },
+    "visual_recipe": {
+      "ground": "ground_moss_glow",
+      "side_prop": "torch_green",
+      "hair": "hair_forest",
+      "face": "face_tan",
+      "headgear": "cap_olive",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_olive",
+      "shoes": "shoes_olive",
+      "hand_item": "hand_item_none",
+      "aura": "aura_healing"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "navigator_pilot",
+    "display_name_zh": "导航飞行员",
+    "preview_path": "composites/roles/navigator_pilot.png",
+    "agent_trait_bias": {
+      "analysis": 0.76,
+      "autonomy": 0.82,
+      "curiosity": 0.76,
+      "risk_tolerance": 0.58
+    },
+    "visual_recipe": {
+      "ground": "ground_arcane_blue",
+      "side_prop": "torch_blue",
+      "hair": "hair_blue_black",
+      "face": "face_reference",
+      "headgear": "cap_navy",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_navy",
+      "shoes": "shoes_navy",
+      "hand_item": "hand_item_compass",
+      "aura": "aura_data"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "bard_narrator",
+    "display_name_zh": "吟游叙事者",
+    "preview_path": "composites/roles/bard_narrator.png",
+    "agent_trait_bias": {
+      "creativity": 0.96,
+      "empathy": 0.76,
+      "collaboration": 0.78,
+      "memory_depth": 0.66
+    },
+    "visual_recipe": {
+      "ground": "ground_stone_shadow",
+      "side_prop": "torch_purple",
+      "hair": "hair_violet_tail",
+      "face": "face_warm",
+      "headgear": "cap_magenta",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_magenta",
+      "shoes": "shoes_magenta",
+      "hand_item": "hand_item_scroll",
+      "aura": "aura_arcane"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  },
+  {
+    "role_id": "oracle_diplomat",
+    "display_name_zh": "神谕外交官",
+    "preview_path": "composites/roles/oracle_diplomat.png",
+    "agent_trait_bias": {
+      "analysis": 0.72,
+      "empathy": 0.88,
+      "collaboration": 0.86,
+      "memory_depth": 0.82
+    },
+    "visual_recipe": {
+      "ground": "ground_arcane_blue",
+      "side_prop": "torch_purple",
+      "hair": "hair_silver_tail",
+      "face": "face_cool",
+      "headgear": "cap_lavender",
+      "detail": "detail_overlay_reference",
+      "outfit": "outfit_lavender",
+      "shoes": "shoes_lavender",
+      "hand_item": "hand_item_scroll",
+      "aura": "aura_arcane"
+    },
+    "generation_note": "role preview is derived from the original reference pixels using palette-shift masks, preserving silhouette, outlines, and shading."
+  }
+]

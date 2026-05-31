@@ -19,23 +19,23 @@ export type AgentCapabilityProfile = {
 };
 
 export const agentCapabilityDimensions: Array<{ key: AgentCapabilityKey; label: string }> = [
-  { key: "permission", label: "权限" },
-  { key: "toolUse", label: "工具" },
-  { key: "safety", label: "安全" },
-  { key: "coding", label: "编码" },
-  { key: "review", label: "审核" },
-  { key: "memory", label: "记忆" },
-  { key: "collaboration", label: "协作" },
+  { key: "permission", label: "agent.capability.permission.shortLabel" },
+  { key: "toolUse", label: "agent.capability.toolUse.shortLabel" },
+  { key: "safety", label: "agent.capability.safety.shortLabel" },
+  { key: "coding", label: "agent.capability.coding.shortLabel" },
+  { key: "review", label: "agent.capability.review.shortLabel" },
+  { key: "memory", label: "agent.capability.memory.shortLabel" },
+  { key: "collaboration", label: "agent.capability.collaboration.shortLabel" },
 ];
 
 export const agentCapabilityWeapons: Record<AgentCapabilityKey, { name: string; shortName: string }> = {
-  permission: { name: "权限权杖", shortName: "权杖" },
-  toolUse: { name: "工具扳手", shortName: "扳手" },
-  safety: { name: "安全盾牌", shortName: "盾牌" },
-  coding: { name: "代码刃", shortName: "代码刃" },
-  review: { name: "审核透镜", shortName: "透镜" },
-  memory: { name: "记忆卷轴", shortName: "卷轴" },
-  collaboration: { name: "协作旗帜", shortName: "旗帜" },
+  permission: { name: "agent.capability.permission.weapon", shortName: "agent.capability.permission.weaponShort" },
+  toolUse: { name: "agent.capability.toolUse.weapon", shortName: "agent.capability.toolUse.weaponShort" },
+  safety: { name: "agent.capability.safety.weapon", shortName: "agent.capability.safety.weaponShort" },
+  coding: { name: "agent.capability.coding.weapon", shortName: "agent.capability.coding.weaponShort" },
+  review: { name: "agent.capability.review.weapon", shortName: "agent.capability.review.weaponShort" },
+  memory: { name: "agent.capability.memory.weapon", shortName: "agent.capability.memory.weaponShort" },
+  collaboration: { name: "agent.capability.collaboration.weapon", shortName: "agent.capability.collaboration.weaponShort" },
 };
 
 function clampScore(value: unknown, fallback: number) {

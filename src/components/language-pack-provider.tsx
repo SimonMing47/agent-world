@@ -19,6 +19,8 @@ import {
 const LanguagePackContext = createContext<LanguagePack>(defaultLanguagePack);
 const localizableAttributes = ["aria-label", "title", "placeholder", "alt"] as const;
 const skippedTextParents = new Set(["SCRIPT", "STYLE", "TEXTAREA"]);
+const inlineLanguageKeyPattern =
+  /\b(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|developmentAccess|identityAccess|knowledge|labels|nav|overview|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+\b/g;
 
 function preserveOuterWhitespace(value: string, nextValue: string) {
   const leading = value.match(/^\s*/)?.[0] ?? "";
@@ -30,8 +32,17 @@ function localizeTextValue(value: string, languagePack: LanguagePack) {
   const trimmed = value.trim();
   if (!trimmed) return value;
   const translated = translateWithPack(languagePack, trimmed);
-  if (translated === trimmed) return value;
-  return preserveOuterWhitespace(value, translated);
+  if (translated !== trimmed) return preserveOuterWhitespace(value, translated);
+
+  let changed = false;
+  const replaced = value.replace(inlineLanguageKeyPattern, (key) => {
+    const nextValue = translateWithPack(languagePack, key);
+    if (nextValue === key) return key;
+    changed = true;
+    return nextValue;
+  });
+
+  return changed ? replaced : value;
 }
 
 function localizeElementAttributes(element: Element, languagePack: LanguagePack) {
@@ -140,7 +151,13 @@ export function localizeNode(
   node: ReactNode,
   text: (keyOrPhrase: string, fallback?: string) => string,
 ): ReactNode {
-  if (typeof node === "string") return text(node);
+  if (typeof node === "string") {
+    const trimmed = node.trim();
+    if (!trimmed) return node;
+    const leading = node.match(/^\s*/)?.[0] ?? "";
+    const trailing = node.match(/\s*$/)?.[0] ?? "";
+    return `${leading}${text(trimmed)}${trailing}`;
+  }
   if (Array.isArray(node)) return Children.map(node, (child) => localizeNode(child, text));
   if (isValidElement<Record<string, unknown> & { children?: ReactNode }>(node)) {
     const nextProps: Record<string, unknown> = {};

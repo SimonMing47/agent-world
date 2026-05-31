@@ -1,0 +1,4936 @@
+{
+  "pack_id": "agentworld_pixelkit_v0_1",
+  "name": "AgentWorld Pixel Modular Agent Kit v0.1",
+  "style_zh": "清晰像素风；深色外描边；小体积高辨识轮廓；统一 96x96 透明画布，可叠层组合。",
+  "version": "0.1.0",
+  "created_for": "AgentWorld modular agent avatar generation",
+  "canvas": {
+    "w": 96,
+    "h": 96,
+    "background": "transparent",
+    "pixel_perfect": true
+  },
+  "layer_definitions": [
+    {
+      "id": "shadow",
+      "z_index": 0,
+      "required": false,
+      "compose": "bottom",
+      "description_zh": "脚下阴影或地面块"
+    },
+    {
+      "id": "side_prop",
+      "z_index": 5,
+      "required": false,
+      "compose": "environment",
+      "description_zh": "左侧周边装饰，例如火炬、终端、植物"
+    },
+    {
+      "id": "aura",
+      "z_index": 8,
+      "required": false,
+      "compose": "effect",
+      "description_zh": "光点、魔法、线路、音乐等氛围特效"
+    },
+    {
+      "id": "back",
+      "z_index": 10,
+      "required": false,
+      "compose": "back",
+      "description_zh": "披风、背包、机械包等背部装饰"
+    },
+    {
+      "id": "base_body",
+      "z_index": 20,
+      "required": true,
+      "compose": "body",
+      "description_zh": "头、皮肤、手、腿的基础人体层"
+    },
+    {
+      "id": "shoes",
+      "z_index": 30,
+      "required": true,
+      "compose": "feet",
+      "description_zh": "鞋子或靴子层"
+    },
+    {
+      "id": "outfit",
+      "z_index": 40,
+      "required": true,
+      "compose": "clothing",
+      "description_zh": "主服装、职业装、外套"
+    },
+    {
+      "id": "face",
+      "z_index": 50,
+      "required": true,
+      "compose": "face",
+      "description_zh": "眼睛、眉毛、嘴、表情"
+    },
+    {
+      "id": "hair",
+      "z_index": 60,
+      "required": false,
+      "compose": "hair",
+      "description_zh": "发型与发色"
+    },
+    {
+      "id": "headgear",
+      "z_index": 70,
+      "required": false,
+      "compose": "head",
+      "description_zh": "帽子、头盔、眼镜、护目镜、头环"
+    },
+    {
+      "id": "hand_item",
+      "z_index": 80,
+      "required": false,
+      "compose": "item",
+      "description_zh": "手持道具，例如火炬、书、剑、扳手"
+    },
+    {
+      "id": "pet",
+      "z_index": 85,
+      "required": false,
+      "compose": "companion",
+      "description_zh": "右下角宠物或副手"
+    }
+  ],
+  "roles": [
+    {
+      "id": "explorer",
+      "category_zh": "探索类",
+      "name_zh": "探险侦察者",
+      "name_en": "Explorer Scout",
+      "summary_zh": "高好奇、高移动、偏风险承受，适合地图探索、信息采样、先行试探。",
+      "trait_profile": {
+        "curiosity": 95,
+        "analysis": 55,
+        "creativity": 58,
+        "empathy": 45,
+        "risk_tolerance": 78,
+        "autonomy": 82,
+        "collaboration": 50,
+        "memory_depth": 45
+      },
+      "visual_keywords": [
+        "torch",
+        "compass",
+        "ranger_cap",
+        "backpack",
+        "embers"
+      ],
+      "default_recipe": {
+        "shadow": "stone_floor",
+        "base_body": "skin_tan",
+        "face": "curious",
+        "hair": "short_brown",
+        "headgear": "ranger_cap",
+        "outfit": "scout_leather",
+        "shoes": "travel_boots",
+        "back": "backpack",
+        "hand_item": "compass",
+        "side_prop": "torch_stand",
+        "aura": "embers",
+        "pet": "firefly"
+      }
+    },
+    {
+      "id": "scholar",
+      "category_zh": "知识类",
+      "name_zh": "学者记录员",
+      "name_en": "Scholar Scribe",
+      "summary_zh": "高分析、高记忆、低冲动，适合资料检索、写作、知识组织。",
+      "trait_profile": {
+        "curiosity": 78,
+        "analysis": 95,
+        "creativity": 62,
+        "empathy": 52,
+        "risk_tolerance": 25,
+        "autonomy": 62,
+        "collaboration": 65,
+        "memory_depth": 96
+      },
+      "visual_keywords": [
+        "glasses",
+        "book",
+        "robe",
+        "candle",
+        "sparkle"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_porcelain",
+        "face": "calm",
+        "hair": "bob_black",
+        "headgear": "scholar_glasses",
+        "outfit": "scholar_robe",
+        "shoes": "soft_slippers",
+        "back": "scroll_case",
+        "hand_item": "book",
+        "side_prop": "candle",
+        "aura": "sparkle",
+        "pet": "owl"
+      }
+    },
+    {
+      "id": "guardian",
+      "category_zh": "防御类",
+      "name_zh": "守护战士",
+      "name_en": "Guardian",
+      "summary_zh": "高责任、高抗压、低风险偏移，适合安全边界、审查、保护任务。",
+      "trait_profile": {
+        "curiosity": 38,
+        "analysis": 62,
+        "creativity": 35,
+        "empathy": 64,
+        "risk_tolerance": 45,
+        "autonomy": 72,
+        "collaboration": 82,
+        "memory_depth": 65
+      },
+      "visual_keywords": [
+        "helmet",
+        "armor",
+        "shield",
+        "cape",
+        "shield_glow"
+      ],
+      "default_recipe": {
+        "shadow": "stone_floor",
+        "base_body": "skin_brown",
+        "face": "stern",
+        "hair": "short_brown",
+        "headgear": "iron_helmet",
+        "outfit": "guardian_armor",
+        "shoes": "iron_greaves",
+        "back": "cape_red",
+        "hand_item": "shield",
+        "side_prop": "supply_crate",
+        "aura": "shield_glow",
+        "pet": "tiny_dog"
+      }
+    },
+    {
+      "id": "alchemist",
+      "category_zh": "实验类",
+      "name_zh": "炼金研究员",
+      "name_en": "Alchemist",
+      "summary_zh": "高创造、高探索、容错式试验，适合原型构建、假设实验、工具组合。",
+      "trait_profile": {
+        "curiosity": 88,
+        "analysis": 80,
+        "creativity": 92,
+        "empathy": 44,
+        "risk_tolerance": 66,
+        "autonomy": 78,
+        "collaboration": 52,
+        "memory_depth": 70
+      },
+      "visual_keywords": [
+        "hood",
+        "vial",
+        "rune",
+        "bubbles"
+      ],
+      "default_recipe": {
+        "shadow": "stone_floor",
+        "base_body": "skin_olive",
+        "face": "focused",
+        "hair": "long_silver",
+        "headgear": "wizard_hood",
+        "outfit": "alchemist_coat",
+        "shoes": "soft_slippers",
+        "back": "satchel",
+        "hand_item": "vial",
+        "side_prop": "rune_pedestal",
+        "aura": "bubbles",
+        "pet": "slime"
+      }
+    },
+    {
+      "id": "engineer",
+      "category_zh": "构建类",
+      "name_zh": "机械工程师",
+      "name_en": "Engineer",
+      "summary_zh": "高执行、高修复、高工具亲和，适合代码、工作流、自动化和系统拼装。",
+      "trait_profile": {
+        "curiosity": 66,
+        "analysis": 86,
+        "creativity": 74,
+        "empathy": 42,
+        "risk_tolerance": 54,
+        "autonomy": 84,
+        "collaboration": 60,
+        "memory_depth": 72
+      },
+      "visual_keywords": [
+        "goggles",
+        "wrench",
+        "mechanical_pack",
+        "electric"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_peach",
+        "face": "focused",
+        "hair": "side_swept_blue",
+        "headgear": "engineer_goggles",
+        "outfit": "engineer_suit",
+        "shoes": "brown_boots",
+        "back": "mechanical_pack",
+        "hand_item": "wrench",
+        "side_prop": "anvil",
+        "aura": "electric",
+        "pet": "robot_drone"
+      }
+    },
+    {
+      "id": "merchant",
+      "category_zh": "交易类",
+      "name_zh": "商旅协调者",
+      "name_en": "Merchant Broker",
+      "summary_zh": "高社交、高权衡、偏协商，适合资源分配、撮合、报价与谈判。",
+      "trait_profile": {
+        "curiosity": 60,
+        "analysis": 72,
+        "creativity": 58,
+        "empathy": 75,
+        "risk_tolerance": 48,
+        "autonomy": 65,
+        "collaboration": 88,
+        "memory_depth": 70
+      },
+      "visual_keywords": [
+        "turban",
+        "coin",
+        "crate",
+        "coins"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_tan",
+        "face": "smile",
+        "hair": "curly_blonde",
+        "headgear": "merchant_turban",
+        "outfit": "merchant_coat",
+        "shoes": "merchant_shoes",
+        "back": "satchel",
+        "hand_item": "coin_pouch",
+        "side_prop": "crate",
+        "aura": "coins",
+        "pet": "tiny_dog"
+      }
+    },
+    {
+      "id": "healer",
+      "category_zh": "支持类",
+      "name_zh": "治疗支持者",
+      "name_en": "Healer",
+      "summary_zh": "高同理、高稳定、低攻击性，适合用户支持、安抚、复盘与关怀型流程。",
+      "trait_profile": {
+        "curiosity": 55,
+        "analysis": 68,
+        "creativity": 60,
+        "empathy": 98,
+        "risk_tolerance": 22,
+        "autonomy": 55,
+        "collaboration": 92,
+        "memory_depth": 78
+      },
+      "visual_keywords": [
+        "headband",
+        "medkit",
+        "hearts",
+        "plant"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_dark",
+        "face": "cheerful",
+        "hair": "braid_chestnut",
+        "headgear": "medic_headband",
+        "outfit": "healer_tunic",
+        "shoes": "sandals",
+        "back": "satchel",
+        "hand_item": "medkit",
+        "side_prop": "plant",
+        "aura": "hearts",
+        "pet": "seedling_sprite"
+      }
+    },
+    {
+      "id": "hacker",
+      "category_zh": "赛博类",
+      "name_zh": "赛博黑客",
+      "name_en": "Cyber Hacker",
+      "summary_zh": "高分析、高自主、高隐蔽，适合调试、异常检测、数据管道和快速检索。",
+      "trait_profile": {
+        "curiosity": 82,
+        "analysis": 94,
+        "creativity": 76,
+        "empathy": 35,
+        "risk_tolerance": 62,
+        "autonomy": 90,
+        "collaboration": 45,
+        "memory_depth": 84
+      },
+      "visual_keywords": [
+        "visor",
+        "hoodie",
+        "laptop",
+        "terminal",
+        "circuit"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_brown",
+        "face": "visor_eyes",
+        "hair": "cyber_undercut",
+        "headgear": "cyber_visor",
+        "outfit": "cyber_hoodie",
+        "shoes": "cyber_boots",
+        "back": "mechanical_pack",
+        "hand_item": "laptop",
+        "side_prop": "terminal",
+        "aura": "circuit",
+        "pet": "data_orb_pet"
+      }
+    },
+    {
+      "id": "farmer",
+      "category_zh": "自然类",
+      "name_zh": "农夫采集者",
+      "name_en": "Farmer Gatherer",
+      "summary_zh": "高耐心、高积累、偏长期主义，适合数据收集、养成、资源维护。",
+      "trait_profile": {
+        "curiosity": 64,
+        "analysis": 50,
+        "creativity": 62,
+        "empathy": 76,
+        "risk_tolerance": 34,
+        "autonomy": 70,
+        "collaboration": 74,
+        "memory_depth": 66
+      },
+      "visual_keywords": [
+        "straw_hat",
+        "sickle",
+        "plant",
+        "leaves"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_olive",
+        "face": "cheerful",
+        "hair": "braid_chestnut",
+        "headgear": "straw_hat",
+        "outfit": "farmer_overalls",
+        "shoes": "farmer_boots",
+        "back": "backpack",
+        "hand_item": "sickle",
+        "side_prop": "plant",
+        "aura": "leaves",
+        "pet": "seedling_sprite"
+      }
+    },
+    {
+      "id": "pilot",
+      "category_zh": "导航类",
+      "name_zh": "导航飞行员",
+      "name_en": "Navigator Pilot",
+      "summary_zh": "高方向感、高速度、偏计划，适合任务路由、调度、路径规划。",
+      "trait_profile": {
+        "curiosity": 70,
+        "analysis": 82,
+        "creativity": 52,
+        "empathy": 48,
+        "risk_tolerance": 58,
+        "autonomy": 88,
+        "collaboration": 68,
+        "memory_depth": 62
+      },
+      "visual_keywords": [
+        "pilot_cap",
+        "map",
+        "beacon",
+        "wind"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_peach",
+        "face": "focused",
+        "hair": "side_swept_blue",
+        "headgear": "pilot_cap",
+        "outfit": "pilot_jacket",
+        "shoes": "pilot_boots",
+        "back": "banner_back",
+        "hand_item": "map",
+        "side_prop": "waypoint_beacon",
+        "aura": "wind",
+        "pet": "robot_drone"
+      }
+    },
+    {
+      "id": "bard",
+      "category_zh": "表达类",
+      "name_zh": "吟游叙事者",
+      "name_en": "Bard Storyteller",
+      "summary_zh": "高表达、高创造、高社交，适合内容创作、故事、品牌语气与用户互动。",
+      "trait_profile": {
+        "curiosity": 68,
+        "analysis": 45,
+        "creativity": 97,
+        "empathy": 82,
+        "risk_tolerance": 55,
+        "autonomy": 60,
+        "collaboration": 86,
+        "memory_depth": 58
+      },
+      "visual_keywords": [
+        "feather",
+        "lute",
+        "music",
+        "cat"
+      ],
+      "default_recipe": {
+        "shadow": "soft_shadow",
+        "base_body": "skin_porcelain",
+        "face": "wink",
+        "hair": "buns_pink",
+        "headgear": "feather_hat",
+        "outfit": "bard_vest",
+        "shoes": "merchant_shoes",
+        "back": "satchel",
+        "hand_item": "lute",
+        "side_prop": "lantern_post",
+        "aura": "music",
+        "pet": "cat"
+      }
+    },
+    {
+      "id": "oracle",
+      "category_zh": "神谕类",
+      "name_zh": "神谕外交官",
+      "name_en": "Oracle Diplomat",
+      "summary_zh": "高抽象、高洞察、高叙事秩序，适合战略建议、长期记忆和跨 Agent 调停。",
+      "trait_profile": {
+        "curiosity": 75,
+        "analysis": 86,
+        "creativity": 90,
+        "empathy": 80,
+        "risk_tolerance": 40,
+        "autonomy": 72,
+        "collaboration": 88,
+        "memory_depth": 94
+      },
+      "visual_keywords": [
+        "circlet",
+        "orb",
+        "stars",
+        "robe"
+      ],
+      "default_recipe": {
+        "shadow": "stone_floor",
+        "base_body": "skin_dark",
+        "face": "calm",
+        "hair": "long_silver",
+        "headgear": "oracle_circlet",
+        "outfit": "oracle_robe",
+        "shoes": "soft_slippers",
+        "back": "wings_small",
+        "hand_item": "orb",
+        "side_prop": "rune_pedestal",
+        "aura": "stars",
+        "pet": "data_orb_pet"
+      }
+    }
+  ],
+  "traits": [
+    {
+      "id": "soft_shadow",
+      "layer": "shadow",
+      "display_zh": "软阴影",
+      "display_en": "Soft Shadow",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 0,
+      "tags": [
+        "ground",
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/shadow/soft_shadow.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        28,
+        83,
+        69,
+        93
+      ],
+      "notes": ""
+    },
+    {
+      "id": "stone_floor",
+      "layer": "shadow",
+      "display_zh": "石板地面",
+      "display_en": "Stone Floor",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 0,
+      "tags": [
+        "ground",
+        "dungeon"
+      ],
+      "role_affinity": [
+        "explorer",
+        "guardian",
+        "alchemist"
+      ],
+      "file": "parts/shadow/stone_floor.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        21,
+        80,
+        76,
+        91
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_porcelain",
+      "layer": "base_body",
+      "display_zh": "瓷白肤色",
+      "display_en": "Porcelain Skin",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 20,
+      "tags": [
+        "soft",
+        "bright"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_porcelain.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_peach",
+      "layer": "base_body",
+      "display_zh": "蜜桃肤色",
+      "display_en": "Peach Skin",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 20,
+      "tags": [
+        "warm"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_peach.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_tan",
+      "layer": "base_body",
+      "display_zh": "小麦肤色",
+      "display_en": "Tan Skin",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 20,
+      "tags": [
+        "warm"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_tan.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_olive",
+      "layer": "base_body",
+      "display_zh": "橄榄肤色",
+      "display_en": "Olive Skin",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 20,
+      "tags": [
+        "earth"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_olive.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_brown",
+      "layer": "base_body",
+      "display_zh": "棕色肤色",
+      "display_en": "Brown Skin",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 20,
+      "tags": [
+        "warm",
+        "grounded"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_brown.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "skin_dark",
+      "layer": "base_body",
+      "display_zh": "深棕肤色",
+      "display_en": "Dark Skin",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 20,
+      "tags": [
+        "strong",
+        "grounded"
+      ],
+      "role_affinity": [],
+      "file": "parts/base_body/skin_dark.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        14,
+        72,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "calm",
+      "layer": "face",
+      "display_zh": "冷静脸",
+      "display_en": "Calm Face",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 50,
+      "tags": [
+        "calm",
+        "stable"
+      ],
+      "role_affinity": [
+        "scholar",
+        "diplomat",
+        "healer"
+      ],
+      "file": "parts/face/calm.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        42,
+        27,
+        56,
+        35
+      ],
+      "notes": ""
+    },
+    {
+      "id": "smile",
+      "layer": "face",
+      "display_zh": "微笑脸",
+      "display_en": "Smile Face",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 50,
+      "tags": [
+        "friendly",
+        "warm"
+      ],
+      "role_affinity": [
+        "merchant",
+        "bard",
+        "healer"
+      ],
+      "file": "parts/face/smile.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        42,
+        27,
+        56,
+        37
+      ],
+      "notes": ""
+    },
+    {
+      "id": "focused",
+      "layer": "face",
+      "display_zh": "专注脸",
+      "display_en": "Focused Face",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 50,
+      "tags": [
+        "analytical",
+        "work"
+      ],
+      "role_affinity": [
+        "engineer",
+        "scholar",
+        "hacker"
+      ],
+      "file": "parts/face/focused.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        41,
+        25,
+        57,
+        36
+      ],
+      "notes": ""
+    },
+    {
+      "id": "stern",
+      "layer": "face",
+      "display_zh": "坚定脸",
+      "display_en": "Stern Face",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 50,
+      "tags": [
+        "discipline",
+        "brave"
+      ],
+      "role_affinity": [
+        "guardian",
+        "explorer"
+      ],
+      "file": "parts/face/stern.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        41,
+        25,
+        57,
+        36
+      ],
+      "notes": ""
+    },
+    {
+      "id": "curious",
+      "layer": "face",
+      "display_zh": "好奇脸",
+      "display_en": "Curious Face",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 50,
+      "tags": [
+        "curious",
+        "explore"
+      ],
+      "role_affinity": [
+        "explorer",
+        "alchemist",
+        "farmer"
+      ],
+      "file": "parts/face/curious.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        41,
+        24,
+        57,
+        37
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sleepy",
+      "layer": "face",
+      "display_zh": "困倦脸",
+      "display_en": "Sleepy Face",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 50,
+      "tags": [
+        "low_energy",
+        "night"
+      ],
+      "role_affinity": [
+        "oracle",
+        "hacker"
+      ],
+      "file": "parts/face/sleepy.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        41,
+        29,
+        57,
+        36
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wink",
+      "layer": "face",
+      "display_zh": "眨眼脸",
+      "display_en": "Wink Face",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 50,
+      "tags": [
+        "playful",
+        "social"
+      ],
+      "role_affinity": [
+        "bard",
+        "merchant"
+      ],
+      "file": "parts/face/wink.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        42,
+        27,
+        57,
+        37
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cheerful",
+      "layer": "face",
+      "display_zh": "开心脸",
+      "display_en": "Cheerful Face",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 50,
+      "tags": [
+        "joy",
+        "social"
+      ],
+      "role_affinity": [
+        "bard",
+        "healer",
+        "farmer"
+      ],
+      "file": "parts/face/cheerful.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        39,
+        27,
+        60,
+        37
+      ],
+      "notes": ""
+    },
+    {
+      "id": "masked",
+      "layer": "face",
+      "display_zh": "口罩脸",
+      "display_en": "Masked Face",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 50,
+      "tags": [
+        "medical",
+        "mystery"
+      ],
+      "role_affinity": [
+        "healer",
+        "hacker"
+      ],
+      "file": "parts/face/masked.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        37,
+        27,
+        60,
+        37
+      ],
+      "notes": ""
+    },
+    {
+      "id": "visor_eyes",
+      "layer": "face",
+      "display_zh": "电子眼",
+      "display_en": "Visor Eyes",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 50,
+      "tags": [
+        "cyber",
+        "tech"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/face/visor_eyes.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        40,
+        26,
+        58,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "short_brown",
+      "layer": "hair",
+      "display_zh": "短发·棕",
+      "display_en": "Short Brown Hair",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 60,
+      "tags": [
+        "simple",
+        "classic"
+      ],
+      "role_affinity": [],
+      "file": "parts/hair/short_brown.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        13,
+        62,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bob_black",
+      "layer": "hair",
+      "display_zh": "波波头·黑",
+      "display_en": "Black Bob Hair",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 60,
+      "tags": [
+        "clean",
+        "focused"
+      ],
+      "role_affinity": [
+        "scholar",
+        "hacker"
+      ],
+      "file": "parts/hair/bob_black.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        33,
+        14,
+        63,
+        45
+      ],
+      "notes": ""
+    },
+    {
+      "id": "ponytail_red",
+      "layer": "hair",
+      "display_zh": "马尾·红",
+      "display_en": "Red Ponytail",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 60,
+      "tags": [
+        "energetic",
+        "bold"
+      ],
+      "role_affinity": [
+        "explorer",
+        "bard"
+      ],
+      "file": "parts/hair/ponytail_red.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        36,
+        14,
+        70,
+        46
+      ],
+      "notes": ""
+    },
+    {
+      "id": "curly_blonde",
+      "layer": "hair",
+      "display_zh": "卷发·金",
+      "display_en": "Blonde Curls",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 60,
+      "tags": [
+        "creative",
+        "bright"
+      ],
+      "role_affinity": [
+        "bard",
+        "merchant"
+      ],
+      "file": "parts/hair/curly_blonde.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        34,
+        14,
+        64,
+        39
+      ],
+      "notes": ""
+    },
+    {
+      "id": "mohawk_green",
+      "layer": "hair",
+      "display_zh": "莫西干·绿",
+      "display_en": "Green Mohawk",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 60,
+      "tags": [
+        "rebellious",
+        "wild"
+      ],
+      "role_affinity": [
+        "hacker",
+        "explorer"
+      ],
+      "file": "parts/hair/mohawk_green.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        38,
+        8,
+        59,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "side_swept_blue",
+      "layer": "hair",
+      "display_zh": "侧分·蓝",
+      "display_en": "Blue Side-Swept Hair",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 60,
+      "tags": [
+        "cool",
+        "precise"
+      ],
+      "role_affinity": [
+        "engineer",
+        "pilot"
+      ],
+      "file": "parts/hair/side_swept_blue.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        14,
+        63,
+        30
+      ],
+      "notes": ""
+    },
+    {
+      "id": "long_silver",
+      "layer": "hair",
+      "display_zh": "长发·银",
+      "display_en": "Silver Long Hair",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 60,
+      "tags": [
+        "mystic",
+        "calm"
+      ],
+      "role_affinity": [
+        "oracle",
+        "alchemist"
+      ],
+      "file": "parts/hair/long_silver.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        33,
+        14,
+        64,
+        54
+      ],
+      "notes": ""
+    },
+    {
+      "id": "braid_chestnut",
+      "layer": "hair",
+      "display_zh": "编发·栗",
+      "display_en": "Chestnut Braid",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 60,
+      "tags": [
+        "craft",
+        "nature"
+      ],
+      "role_affinity": [
+        "farmer",
+        "healer"
+      ],
+      "file": "parts/hair/braid_chestnut.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        31,
+        14,
+        61,
+        64
+      ],
+      "notes": ""
+    },
+    {
+      "id": "buns_pink",
+      "layer": "hair",
+      "display_zh": "丸子头·粉",
+      "display_en": "Pink Buns",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 60,
+      "tags": [
+        "playful",
+        "social"
+      ],
+      "role_affinity": [
+        "bard",
+        "healer"
+      ],
+      "file": "parts/hair/buns_pink.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        29,
+        17,
+        69,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cyber_undercut",
+      "layer": "hair",
+      "display_zh": "赛博铲青",
+      "display_en": "Cyber Undercut",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 60,
+      "tags": [
+        "cyber",
+        "rare"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/hair/cyber_undercut.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        14,
+        62,
+        35
+      ],
+      "notes": ""
+    },
+    {
+      "id": "none",
+      "layer": "headgear",
+      "display_zh": "无头饰",
+      "display_en": "No Headgear",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/headgear/none.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "miner_cap",
+      "layer": "headgear",
+      "display_zh": "矿工帽",
+      "display_en": "Miner Cap",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "fire",
+        "craft"
+      ],
+      "role_affinity": [
+        "explorer",
+        "engineer"
+      ],
+      "file": "parts/headgear/miner_cap.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        36,
+        12,
+        61,
+        24
+      ],
+      "notes": ""
+    },
+    {
+      "id": "ranger_cap",
+      "layer": "headgear",
+      "display_zh": "游侠帽",
+      "display_en": "Ranger Cap",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "explore",
+        "nature"
+      ],
+      "role_affinity": [
+        "explorer",
+        "farmer"
+      ],
+      "file": "parts/headgear/ranger_cap.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        36,
+        12,
+        69,
+        24
+      ],
+      "notes": ""
+    },
+    {
+      "id": "scholar_glasses",
+      "layer": "headgear",
+      "display_zh": "学者眼镜",
+      "display_en": "Scholar Glasses",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "knowledge",
+        "analysis"
+      ],
+      "role_affinity": [
+        "scholar",
+        "diplomat"
+      ],
+      "file": "parts/headgear/scholar_glasses.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        36,
+        26,
+        63,
+        33
+      ],
+      "notes": ""
+    },
+    {
+      "id": "iron_helmet",
+      "layer": "headgear",
+      "display_zh": "铁头盔",
+      "display_en": "Iron Helmet",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 70,
+      "tags": [
+        "defense",
+        "battle"
+      ],
+      "role_affinity": [
+        "guardian"
+      ],
+      "file": "parts/headgear/iron_helmet.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        34,
+        13,
+        63,
+        36
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wizard_hood",
+      "layer": "headgear",
+      "display_zh": "法师兜帽",
+      "display_en": "Wizard Hood",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 70,
+      "tags": [
+        "magic",
+        "mystic"
+      ],
+      "role_affinity": [
+        "alchemist",
+        "oracle"
+      ],
+      "file": "parts/headgear/wizard_hood.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        10,
+        65,
+        46
+      ],
+      "notes": ""
+    },
+    {
+      "id": "engineer_goggles",
+      "layer": "headgear",
+      "display_zh": "工程护目镜",
+      "display_en": "Engineer Goggles",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "tech",
+        "craft"
+      ],
+      "role_affinity": [
+        "engineer",
+        "pilot"
+      ],
+      "file": "parts/headgear/engineer_goggles.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        37,
+        17,
+        61,
+        30
+      ],
+      "notes": ""
+    },
+    {
+      "id": "merchant_turban",
+      "layer": "headgear",
+      "display_zh": "商旅头巾",
+      "display_en": "Merchant Turban",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 70,
+      "tags": [
+        "trade",
+        "wealth"
+      ],
+      "role_affinity": [
+        "merchant",
+        "diplomat"
+      ],
+      "file": "parts/headgear/merchant_turban.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        14,
+        65,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "medic_headband",
+      "layer": "headgear",
+      "display_zh": "医疗头带",
+      "display_en": "Medic Headband",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "heal",
+        "care"
+      ],
+      "role_affinity": [
+        "healer"
+      ],
+      "file": "parts/headgear/medic_headband.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        36,
+        18,
+        61,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cyber_visor",
+      "layer": "headgear",
+      "display_zh": "赛博目镜",
+      "display_en": "Cyber Visor",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 70,
+      "tags": [
+        "cyber",
+        "analysis"
+      ],
+      "role_affinity": [
+        "hacker"
+      ],
+      "file": "parts/headgear/cyber_visor.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        38,
+        23,
+        64,
+        32
+      ],
+      "notes": ""
+    },
+    {
+      "id": "straw_hat",
+      "layer": "headgear",
+      "display_zh": "草帽",
+      "display_en": "Straw Hat",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 70,
+      "tags": [
+        "nature",
+        "farm"
+      ],
+      "role_affinity": [
+        "farmer",
+        "explorer"
+      ],
+      "file": "parts/headgear/straw_hat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        29,
+        12,
+        69,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilot_cap",
+      "layer": "headgear",
+      "display_zh": "飞行帽",
+      "display_en": "Pilot Cap",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 70,
+      "tags": [
+        "navigation",
+        "air"
+      ],
+      "role_affinity": [
+        "pilot"
+      ],
+      "file": "parts/headgear/pilot_cap.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        13,
+        63,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "feather_hat",
+      "layer": "headgear",
+      "display_zh": "羽毛帽",
+      "display_en": "Feather Hat",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 70,
+      "tags": [
+        "music",
+        "story"
+      ],
+      "role_affinity": [
+        "bard"
+      ],
+      "file": "parts/headgear/feather_hat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        34,
+        5,
+        71,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "oracle_circlet",
+      "layer": "headgear",
+      "display_zh": "神谕头环",
+      "display_en": "Oracle Circlet",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 70,
+      "tags": [
+        "mystic",
+        "authority"
+      ],
+      "role_affinity": [
+        "oracle",
+        "diplomat"
+      ],
+      "file": "parts/headgear/oracle_circlet.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        38,
+        18,
+        60,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "captain_hat",
+      "layer": "headgear",
+      "display_zh": "队长帽",
+      "display_en": "Captain Hat",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 70,
+      "tags": [
+        "leadership",
+        "navigation"
+      ],
+      "role_affinity": [
+        "pilot",
+        "guardian",
+        "diplomat"
+      ],
+      "file": "parts/headgear/captain_hat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        13,
+        63,
+        26
+      ],
+      "notes": ""
+    },
+    {
+      "id": "scout_leather",
+      "layer": "outfit",
+      "display_zh": "侦察皮甲",
+      "display_en": "Scout Leather",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "explore",
+        "mobility"
+      ],
+      "role_affinity": [
+        "explorer"
+      ],
+      "file": "parts/outfit/scout_leather.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "scholar_robe",
+      "layer": "outfit",
+      "display_zh": "学者长袍",
+      "display_en": "Scholar Robe",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "knowledge",
+        "calm"
+      ],
+      "role_affinity": [
+        "scholar"
+      ],
+      "file": "parts/outfit/scholar_robe.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        44,
+        66,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "guardian_armor",
+      "layer": "outfit",
+      "display_zh": "守卫铠甲",
+      "display_en": "Guardian Armor",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 40,
+      "tags": [
+        "defense",
+        "battle"
+      ],
+      "role_affinity": [
+        "guardian"
+      ],
+      "file": "parts/outfit/guardian_armor.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        31,
+        44,
+        68,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "alchemist_coat",
+      "layer": "outfit",
+      "display_zh": "炼金外套",
+      "display_en": "Alchemist Coat",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 40,
+      "tags": [
+        "magic",
+        "science"
+      ],
+      "role_affinity": [
+        "alchemist"
+      ],
+      "file": "parts/outfit/alchemist_coat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "engineer_suit",
+      "layer": "outfit",
+      "display_zh": "工程工装",
+      "display_en": "Engineer Suit",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "tech",
+        "craft"
+      ],
+      "role_affinity": [
+        "engineer"
+      ],
+      "file": "parts/outfit/engineer_suit.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "merchant_coat",
+      "layer": "outfit",
+      "display_zh": "商旅外套",
+      "display_en": "Merchant Coat",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "trade",
+        "social"
+      ],
+      "role_affinity": [
+        "merchant"
+      ],
+      "file": "parts/outfit/merchant_coat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "healer_tunic",
+      "layer": "outfit",
+      "display_zh": "治疗者 tunic",
+      "display_en": "Healer Tunic",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "heal",
+        "care"
+      ],
+      "role_affinity": [
+        "healer"
+      ],
+      "file": "parts/outfit/healer_tunic.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        66,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cyber_hoodie",
+      "layer": "outfit",
+      "display_zh": "赛博连帽衫",
+      "display_en": "Cyber Hoodie",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 40,
+      "tags": [
+        "cyber",
+        "stealth"
+      ],
+      "role_affinity": [
+        "hacker"
+      ],
+      "file": "parts/outfit/cyber_hoodie.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "farmer_overalls",
+      "layer": "outfit",
+      "display_zh": "农夫背带裤",
+      "display_en": "Farmer Overalls",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 40,
+      "tags": [
+        "nature",
+        "work"
+      ],
+      "role_affinity": [
+        "farmer"
+      ],
+      "file": "parts/outfit/farmer_overalls.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        35,
+        45,
+        63,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilot_jacket",
+      "layer": "outfit",
+      "display_zh": "导航飞行夹克",
+      "display_en": "Pilot Jacket",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 40,
+      "tags": [
+        "navigation",
+        "air"
+      ],
+      "role_affinity": [
+        "pilot"
+      ],
+      "file": "parts/outfit/pilot_jacket.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bard_vest",
+      "layer": "outfit",
+      "display_zh": "吟游马甲",
+      "display_en": "Bard Vest",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 40,
+      "tags": [
+        "music",
+        "social"
+      ],
+      "role_affinity": [
+        "bard"
+      ],
+      "file": "parts/outfit/bard_vest.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        31,
+        44,
+        67,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "diplomat_coat",
+      "layer": "outfit",
+      "display_zh": "外交礼服",
+      "display_en": "Diplomat Coat",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 40,
+      "tags": [
+        "leadership",
+        "social"
+      ],
+      "role_affinity": [
+        "diplomat"
+      ],
+      "file": "parts/outfit/diplomat_coat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        30,
+        44,
+        69,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "oracle_robe",
+      "layer": "outfit",
+      "display_zh": "神谕长袍",
+      "display_en": "Oracle Robe",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 40,
+      "tags": [
+        "mystic",
+        "rare"
+      ],
+      "role_affinity": [
+        "oracle"
+      ],
+      "file": "parts/outfit/oracle_robe.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        34,
+        44,
+        68,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "brown_boots",
+      "layer": "shoes",
+      "display_zh": "棕色靴",
+      "display_en": "Brown Boots",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 30,
+      "tags": [
+        "classic",
+        "work"
+      ],
+      "role_affinity": [],
+      "file": "parts/shoes/brown_boots.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "iron_greaves",
+      "layer": "shoes",
+      "display_zh": "铁护胫",
+      "display_en": "Iron Greaves",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 30,
+      "tags": [
+        "defense"
+      ],
+      "role_affinity": [
+        "guardian"
+      ],
+      "file": "parts/shoes/iron_greaves.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sandals",
+      "layer": "shoes",
+      "display_zh": "草编凉鞋",
+      "display_en": "Sandals",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 30,
+      "tags": [
+        "nature",
+        "light"
+      ],
+      "role_affinity": [
+        "farmer",
+        "healer"
+      ],
+      "file": "parts/shoes/sandals.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "soft_slippers",
+      "layer": "shoes",
+      "display_zh": "软底鞋",
+      "display_en": "Soft Slippers",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 30,
+      "tags": [
+        "quiet",
+        "calm"
+      ],
+      "role_affinity": [
+        "scholar",
+        "oracle"
+      ],
+      "file": "parts/shoes/soft_slippers.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cyber_boots",
+      "layer": "shoes",
+      "display_zh": "赛博靴",
+      "display_en": "Cyber Boots",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 30,
+      "tags": [
+        "cyber",
+        "speed"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/shoes/cyber_boots.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "travel_boots",
+      "layer": "shoes",
+      "display_zh": "旅行靴",
+      "display_en": "Travel Boots",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 30,
+      "tags": [
+        "explore"
+      ],
+      "role_affinity": [
+        "explorer",
+        "merchant",
+        "pilot"
+      ],
+      "file": "parts/shoes/travel_boots.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "pilot_boots",
+      "layer": "shoes",
+      "display_zh": "飞行靴",
+      "display_en": "Pilot Boots",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 30,
+      "tags": [
+        "navigation"
+      ],
+      "role_affinity": [
+        "pilot"
+      ],
+      "file": "parts/shoes/pilot_boots.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "farmer_boots",
+      "layer": "shoes",
+      "display_zh": "农场靴",
+      "display_en": "Farmer Boots",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 30,
+      "tags": [
+        "nature",
+        "work"
+      ],
+      "role_affinity": [
+        "farmer"
+      ],
+      "file": "parts/shoes/farmer_boots.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "merchant_shoes",
+      "layer": "shoes",
+      "display_zh": "商旅鞋",
+      "display_en": "Merchant Shoes",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 30,
+      "tags": [
+        "trade"
+      ],
+      "role_affinity": [
+        "merchant",
+        "diplomat"
+      ],
+      "file": "parts/shoes/merchant_shoes.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        32,
+        78,
+        69,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "none",
+      "layer": "back",
+      "display_zh": "无背饰",
+      "display_en": "No Back Item",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 10,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/back/none.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "backpack",
+      "layer": "back",
+      "display_zh": "冒险背包",
+      "display_en": "Adventure Backpack",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 10,
+      "tags": [
+        "explore",
+        "carry"
+      ],
+      "role_affinity": [
+        "explorer",
+        "farmer"
+      ],
+      "file": "parts/back/backpack.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        27,
+        42,
+        43,
+        68
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cape_red",
+      "layer": "back",
+      "display_zh": "红披风",
+      "display_en": "Red Cape",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 10,
+      "tags": [
+        "hero",
+        "defense"
+      ],
+      "role_affinity": [
+        "guardian",
+        "diplomat"
+      ],
+      "file": "parts/back/cape_red.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        28,
+        42,
+        73,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "mechanical_pack",
+      "layer": "back",
+      "display_zh": "机械背包",
+      "display_en": "Mechanical Pack",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 10,
+      "tags": [
+        "tech",
+        "craft"
+      ],
+      "role_affinity": [
+        "engineer",
+        "hacker"
+      ],
+      "file": "parts/back/mechanical_pack.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        24,
+        43,
+        46,
+        69
+      ],
+      "notes": ""
+    },
+    {
+      "id": "scroll_case",
+      "layer": "back",
+      "display_zh": "卷轴筒",
+      "display_en": "Scroll Case",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 10,
+      "tags": [
+        "knowledge",
+        "paper"
+      ],
+      "role_affinity": [
+        "scholar",
+        "diplomat"
+      ],
+      "file": "parts/back/scroll_case.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        24,
+        44,
+        36,
+        74
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wings_small",
+      "layer": "back",
+      "display_zh": "小翅膀",
+      "display_en": "Small Wings",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 10,
+      "tags": [
+        "magic",
+        "rare"
+      ],
+      "role_affinity": [
+        "oracle",
+        "healer"
+      ],
+      "file": "parts/back/wings_small.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        23,
+        38,
+        74,
+        66
+      ],
+      "notes": ""
+    },
+    {
+      "id": "quiver",
+      "layer": "back",
+      "display_zh": "箭袋",
+      "display_en": "Quiver",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 10,
+      "tags": [
+        "ranged",
+        "explore"
+      ],
+      "role_affinity": [
+        "explorer"
+      ],
+      "file": "parts/back/quiver.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        25,
+        32,
+        37,
+        70
+      ],
+      "notes": ""
+    },
+    {
+      "id": "satchel",
+      "layer": "back",
+      "display_zh": "斜挎包",
+      "display_en": "Satchel",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 10,
+      "tags": [
+        "trade",
+        "carry"
+      ],
+      "role_affinity": [
+        "merchant",
+        "bard",
+        "healer"
+      ],
+      "file": "parts/back/satchel.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        23,
+        43,
+        60,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "shadow_cloak",
+      "layer": "back",
+      "display_zh": "暗影斗篷",
+      "display_en": "Shadow Cloak",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 10,
+      "tags": [
+        "stealth",
+        "mystery"
+      ],
+      "role_affinity": [
+        "hacker",
+        "oracle"
+      ],
+      "file": "parts/back/shadow_cloak.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        31,
+        42,
+        67,
+        85
+      ],
+      "notes": ""
+    },
+    {
+      "id": "banner_back",
+      "layer": "back",
+      "display_zh": "背旗",
+      "display_en": "Back Banner",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 10,
+      "tags": [
+        "leadership",
+        "identity"
+      ],
+      "role_affinity": [
+        "guardian",
+        "diplomat"
+      ],
+      "file": "parts/back/banner_back.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        28,
+        36,
+        46,
+        76
+      ],
+      "notes": ""
+    },
+    {
+      "id": "empty",
+      "layer": "hand_item",
+      "display_zh": "空手",
+      "display_en": "Empty Hands",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/hand_item/empty.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "torch",
+      "layer": "hand_item",
+      "display_zh": "手持火炬",
+      "display_en": "Hand Torch",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "fire",
+        "explore"
+      ],
+      "role_affinity": [
+        "explorer",
+        "guardian"
+      ],
+      "file": "parts/hand_item/torch.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        40,
+        82,
+        76
+      ],
+      "notes": ""
+    },
+    {
+      "id": "compass",
+      "layer": "hand_item",
+      "display_zh": "罗盘",
+      "display_en": "Compass",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "navigation",
+        "explore"
+      ],
+      "role_affinity": [
+        "explorer",
+        "pilot"
+      ],
+      "file": "parts/hand_item/compass.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        70,
+        58,
+        82,
+        70
+      ],
+      "notes": ""
+    },
+    {
+      "id": "book",
+      "layer": "hand_item",
+      "display_zh": "书本",
+      "display_en": "Book",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "knowledge"
+      ],
+      "role_affinity": [
+        "scholar",
+        "oracle"
+      ],
+      "file": "parts/hand_item/book.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        55,
+        82,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sword",
+      "layer": "hand_item",
+      "display_zh": "短剑",
+      "display_en": "Sword",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 80,
+      "tags": [
+        "battle",
+        "brave"
+      ],
+      "role_affinity": [
+        "guardian",
+        "explorer"
+      ],
+      "file": "parts/hand_item/sword.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        37,
+        85,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "shield",
+      "layer": "hand_item",
+      "display_zh": "盾牌",
+      "display_en": "Shield",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 80,
+      "tags": [
+        "defense"
+      ],
+      "role_affinity": [
+        "guardian",
+        "healer"
+      ],
+      "file": "parts/hand_item/shield.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        69,
+        51,
+        85,
+        79
+      ],
+      "notes": ""
+    },
+    {
+      "id": "staff",
+      "layer": "hand_item",
+      "display_zh": "法杖",
+      "display_en": "Staff",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 80,
+      "tags": [
+        "magic"
+      ],
+      "role_affinity": [
+        "alchemist",
+        "oracle",
+        "healer"
+      ],
+      "file": "parts/hand_item/staff.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        63,
+        34,
+        74,
+        79
+      ],
+      "notes": ""
+    },
+    {
+      "id": "vial",
+      "layer": "hand_item",
+      "display_zh": "药剂瓶",
+      "display_en": "Vial",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 80,
+      "tags": [
+        "alchemy",
+        "science"
+      ],
+      "role_affinity": [
+        "alchemist",
+        "healer"
+      ],
+      "file": "parts/hand_item/vial.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        70,
+        51,
+        79,
+        67
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wrench",
+      "layer": "hand_item",
+      "display_zh": "扳手",
+      "display_en": "Wrench",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "tech",
+        "craft"
+      ],
+      "role_affinity": [
+        "engineer"
+      ],
+      "file": "parts/hand_item/wrench.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        51,
+        86,
+        72
+      ],
+      "notes": ""
+    },
+    {
+      "id": "coin_pouch",
+      "layer": "hand_item",
+      "display_zh": "钱袋",
+      "display_en": "Coin Pouch",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "trade",
+        "wealth"
+      ],
+      "role_affinity": [
+        "merchant"
+      ],
+      "file": "parts/hand_item/coin_pouch.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        59,
+        81,
+        76
+      ],
+      "notes": ""
+    },
+    {
+      "id": "medkit",
+      "layer": "hand_item",
+      "display_zh": "医疗箱",
+      "display_en": "Medkit",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "heal",
+        "care"
+      ],
+      "role_affinity": [
+        "healer"
+      ],
+      "file": "parts/hand_item/medkit.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        55,
+        83,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "laptop",
+      "layer": "hand_item",
+      "display_zh": "小电脑",
+      "display_en": "Laptop",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 80,
+      "tags": [
+        "cyber",
+        "analysis"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/hand_item/laptop.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        61,
+        56,
+        84,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sickle",
+      "layer": "hand_item",
+      "display_zh": "镰刀",
+      "display_en": "Sickle",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "nature",
+        "farm"
+      ],
+      "role_affinity": [
+        "farmer"
+      ],
+      "file": "parts/hand_item/sickle.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        65,
+        42,
+        83,
+        78
+      ],
+      "notes": ""
+    },
+    {
+      "id": "map",
+      "layer": "hand_item",
+      "display_zh": "地图",
+      "display_en": "Map",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "navigation",
+        "explore"
+      ],
+      "role_affinity": [
+        "pilot",
+        "explorer"
+      ],
+      "file": "parts/hand_item/map.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        64,
+        54,
+        83,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lute",
+      "layer": "hand_item",
+      "display_zh": "鲁特琴",
+      "display_en": "Lute",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 80,
+      "tags": [
+        "music",
+        "story"
+      ],
+      "role_affinity": [
+        "bard"
+      ],
+      "file": "parts/hand_item/lute.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        63,
+        37,
+        83,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "scroll",
+      "layer": "hand_item",
+      "display_zh": "卷轴",
+      "display_en": "Scroll",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 80,
+      "tags": [
+        "paper",
+        "diplomacy"
+      ],
+      "role_affinity": [
+        "diplomat",
+        "scholar"
+      ],
+      "file": "parts/hand_item/scroll.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        64,
+        55,
+        84,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lantern",
+      "layer": "hand_item",
+      "display_zh": "手提灯",
+      "display_en": "Lantern",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 80,
+      "tags": [
+        "light",
+        "night"
+      ],
+      "role_affinity": [
+        "explorer",
+        "scholar"
+      ],
+      "file": "parts/hand_item/lantern.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        52,
+        79,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "orb",
+      "layer": "hand_item",
+      "display_zh": "数据/魔法球",
+      "display_en": "Data/Magic Orb",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 80,
+      "tags": [
+        "mystic",
+        "cyber"
+      ],
+      "role_affinity": [
+        "oracle",
+        "hacker"
+      ],
+      "file": "parts/hand_item/orb.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        66,
+        56,
+        81,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "none",
+      "layer": "side_prop",
+      "display_zh": "无周边装饰",
+      "display_en": "No Side Prop",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/side_prop/none.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "torch_stand",
+      "layer": "side_prop",
+      "display_zh": "火炬台",
+      "display_en": "Torch Stand",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "fire",
+        "dungeon"
+      ],
+      "role_affinity": [
+        "explorer",
+        "guardian"
+      ],
+      "file": "parts/side_prop/torch_stand.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        8,
+        28,
+        22,
+        86
+      ],
+      "notes": ""
+    },
+    {
+      "id": "lantern_post",
+      "layer": "side_prop",
+      "display_zh": "灯柱",
+      "display_en": "Lantern Post",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "light",
+        "town"
+      ],
+      "role_affinity": [
+        "merchant",
+        "scholar"
+      ],
+      "file": "parts/side_prop/lantern_post.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        9,
+        38,
+        25,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "terminal",
+      "layer": "side_prop",
+      "display_zh": "微型终端",
+      "display_en": "Mini Terminal",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 5,
+      "tags": [
+        "cyber",
+        "tech"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/side_prop/terminal.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        5,
+        55,
+        29,
+        84
+      ],
+      "notes": ""
+    },
+    {
+      "id": "plant",
+      "layer": "side_prop",
+      "display_zh": "盆栽",
+      "display_en": "Plant",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "nature",
+        "growth"
+      ],
+      "role_affinity": [
+        "farmer",
+        "healer"
+      ],
+      "file": "parts/side_prop/plant.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        7,
+        52,
+        28,
+        86
+      ],
+      "notes": ""
+    },
+    {
+      "id": "crate",
+      "layer": "side_prop",
+      "display_zh": "木箱",
+      "display_en": "Wooden Crate",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "trade",
+        "supply"
+      ],
+      "role_affinity": [
+        "merchant",
+        "explorer"
+      ],
+      "file": "parts/side_prop/crate.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        6,
+        66,
+        29,
+        86
+      ],
+      "notes": ""
+    },
+    {
+      "id": "rune_pedestal",
+      "layer": "side_prop",
+      "display_zh": "符文基座",
+      "display_en": "Rune Pedestal",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 5,
+      "tags": [
+        "magic",
+        "mystic"
+      ],
+      "role_affinity": [
+        "alchemist",
+        "oracle"
+      ],
+      "file": "parts/side_prop/rune_pedestal.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        7,
+        58,
+        30,
+        86
+      ],
+      "notes": ""
+    },
+    {
+      "id": "waypoint_beacon",
+      "layer": "side_prop",
+      "display_zh": "路标信标",
+      "display_en": "Waypoint Beacon",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 5,
+      "tags": [
+        "navigation",
+        "light"
+      ],
+      "role_affinity": [
+        "pilot",
+        "explorer"
+      ],
+      "file": "parts/side_prop/waypoint_beacon.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        7,
+        46,
+        31,
+        87
+      ],
+      "notes": ""
+    },
+    {
+      "id": "supply_crate",
+      "layer": "side_prop",
+      "display_zh": "补给箱",
+      "display_en": "Supply Crate",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 5,
+      "tags": [
+        "supply",
+        "team"
+      ],
+      "role_affinity": [
+        "guardian",
+        "engineer"
+      ],
+      "file": "parts/side_prop/supply_crate.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        5,
+        63,
+        32,
+        86
+      ],
+      "notes": ""
+    },
+    {
+      "id": "candle",
+      "layer": "side_prop",
+      "display_zh": "蜡烛",
+      "display_en": "Candle",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "knowledge",
+        "night"
+      ],
+      "role_affinity": [
+        "scholar",
+        "oracle"
+      ],
+      "file": "parts/side_prop/candle.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        15,
+        56,
+        24,
+        84
+      ],
+      "notes": ""
+    },
+    {
+      "id": "signpost",
+      "layer": "side_prop",
+      "display_zh": "路牌",
+      "display_en": "Signpost",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 5,
+      "tags": [
+        "navigation",
+        "town"
+      ],
+      "role_affinity": [
+        "explorer",
+        "farmer"
+      ],
+      "file": "parts/side_prop/signpost.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        5,
+        50,
+        32,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "mini_drone",
+      "layer": "side_prop",
+      "display_zh": "小无人机",
+      "display_en": "Mini Drone",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 5,
+      "tags": [
+        "tech",
+        "companion"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer",
+        "pilot"
+      ],
+      "file": "parts/side_prop/mini_drone.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        47,
+        39,
+        67
+      ],
+      "notes": ""
+    },
+    {
+      "id": "anvil",
+      "layer": "side_prop",
+      "display_zh": "小铁砧",
+      "display_en": "Small Anvil",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 5,
+      "tags": [
+        "craft",
+        "metal"
+      ],
+      "role_affinity": [
+        "engineer",
+        "guardian"
+      ],
+      "file": "parts/side_prop/anvil.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        5,
+        68,
+        32,
+        88
+      ],
+      "notes": ""
+    },
+    {
+      "id": "none",
+      "layer": "aura",
+      "display_zh": "无氛围",
+      "display_en": "No Aura",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/aura/none.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "embers",
+      "layer": "aura",
+      "display_zh": "火星",
+      "display_en": "Embers",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "fire",
+        "active"
+      ],
+      "role_affinity": [
+        "explorer",
+        "guardian"
+      ],
+      "file": "parts/aura/embers.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        18,
+        20,
+        81,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "sparkle",
+      "layer": "aura",
+      "display_zh": "灵感星光",
+      "display_en": "Sparkle",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "creative",
+        "idea"
+      ],
+      "role_affinity": [
+        "scholar",
+        "bard"
+      ],
+      "file": "parts/aura/sparkle.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        17,
+        8,
+        79,
+        66
+      ],
+      "notes": ""
+    },
+    {
+      "id": "shield_glow",
+      "layer": "aura",
+      "display_zh": "守护光环",
+      "display_en": "Shield Glow",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 8,
+      "tags": [
+        "defense",
+        "care"
+      ],
+      "role_affinity": [
+        "guardian",
+        "healer"
+      ],
+      "file": "parts/aura/shield_glow.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        23,
+        14,
+        77,
+        85
+      ],
+      "notes": ""
+    },
+    {
+      "id": "bubbles",
+      "layer": "aura",
+      "display_zh": "炼金气泡",
+      "display_en": "Alchemy Bubbles",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 8,
+      "tags": [
+        "alchemy",
+        "science"
+      ],
+      "role_affinity": [
+        "alchemist"
+      ],
+      "file": "parts/aura/bubbles.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        22,
+        24,
+        85,
+        71
+      ],
+      "notes": ""
+    },
+    {
+      "id": "electric",
+      "layer": "aura",
+      "display_zh": "电弧",
+      "display_en": "Electric Arc",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 8,
+      "tags": [
+        "tech",
+        "energy"
+      ],
+      "role_affinity": [
+        "engineer",
+        "hacker"
+      ],
+      "file": "parts/aura/electric.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        22,
+        22,
+        79,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "coins",
+      "layer": "aura",
+      "display_zh": "金币闪光",
+      "display_en": "Coin Shine",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 8,
+      "tags": [
+        "trade",
+        "wealth"
+      ],
+      "role_affinity": [
+        "merchant"
+      ],
+      "file": "parts/aura/coins.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        18,
+        14,
+        84,
+        78
+      ],
+      "notes": ""
+    },
+    {
+      "id": "hearts",
+      "layer": "aura",
+      "display_zh": "治疗心光",
+      "display_en": "Healing Hearts",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "heal",
+        "care"
+      ],
+      "role_affinity": [
+        "healer"
+      ],
+      "file": "parts/aura/hearts.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        20,
+        30,
+        83,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "circuit",
+      "layer": "aura",
+      "display_zh": "电路脉冲",
+      "display_en": "Circuit Pulse",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 8,
+      "tags": [
+        "cyber",
+        "analysis"
+      ],
+      "role_affinity": [
+        "hacker"
+      ],
+      "file": "parts/aura/circuit.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        18,
+        18,
+        78,
+        75
+      ],
+      "notes": ""
+    },
+    {
+      "id": "leaves",
+      "layer": "aura",
+      "display_zh": "叶片飘散",
+      "display_en": "Floating Leaves",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "nature",
+        "growth"
+      ],
+      "role_affinity": [
+        "farmer",
+        "healer"
+      ],
+      "file": "parts/aura/leaves.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        21,
+        15,
+        85,
+        80
+      ],
+      "notes": ""
+    },
+    {
+      "id": "wind",
+      "layer": "aura",
+      "display_zh": "风线",
+      "display_en": "Wind Lines",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 8,
+      "tags": [
+        "navigation",
+        "speed"
+      ],
+      "role_affinity": [
+        "pilot",
+        "explorer"
+      ],
+      "file": "parts/aura/wind.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        17,
+        35,
+        86,
+        69
+      ],
+      "notes": ""
+    },
+    {
+      "id": "music",
+      "layer": "aura",
+      "display_zh": "音符",
+      "display_en": "Music Notes",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 8,
+      "tags": [
+        "music",
+        "social"
+      ],
+      "role_affinity": [
+        "bard"
+      ],
+      "file": "parts/aura/music.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        18,
+        34,
+        80,
+        78
+      ],
+      "notes": ""
+    },
+    {
+      "id": "stars",
+      "layer": "aura",
+      "display_zh": "星辰",
+      "display_en": "Stars",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 8,
+      "tags": [
+        "mystic",
+        "calm"
+      ],
+      "role_affinity": [
+        "oracle",
+        "diplomat"
+      ],
+      "file": "parts/aura/stars.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        16,
+        8,
+        82,
+        70
+      ],
+      "notes": ""
+    },
+    {
+      "id": "data_orbit",
+      "layer": "aura",
+      "display_zh": "数据轨道",
+      "display_en": "Data Orbit",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 8,
+      "tags": [
+        "cyber",
+        "mystic"
+      ],
+      "role_affinity": [
+        "hacker",
+        "oracle"
+      ],
+      "file": "parts/aura/data_orbit.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        21,
+        10,
+        82,
+        79
+      ],
+      "notes": ""
+    },
+    {
+      "id": "none",
+      "layer": "pet",
+      "display_zh": "无宠物",
+      "display_en": "No Companion",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 85,
+      "tags": [
+        "neutral"
+      ],
+      "role_affinity": [],
+      "file": "parts/pet/none.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "notes": ""
+    },
+    {
+      "id": "firefly",
+      "layer": "pet",
+      "display_zh": "萤火虫",
+      "display_en": "Firefly",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 85,
+      "tags": [
+        "light",
+        "small"
+      ],
+      "role_affinity": [
+        "explorer",
+        "healer"
+      ],
+      "file": "parts/pet/firefly.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        73,
+        63,
+        86,
+        73
+      ],
+      "notes": ""
+    },
+    {
+      "id": "slime",
+      "layer": "pet",
+      "display_zh": "小史莱姆",
+      "display_en": "Tiny Slime",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 85,
+      "tags": [
+        "cute",
+        "magic"
+      ],
+      "role_affinity": [
+        "alchemist",
+        "farmer"
+      ],
+      "file": "parts/pet/slime.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        73,
+        72,
+        89,
+        85
+      ],
+      "notes": ""
+    },
+    {
+      "id": "robot_drone",
+      "layer": "pet",
+      "display_zh": "机器人小机",
+      "display_en": "Robot Drone",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 85,
+      "tags": [
+        "tech",
+        "companion"
+      ],
+      "role_affinity": [
+        "hacker",
+        "engineer"
+      ],
+      "file": "parts/pet/robot_drone.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        70,
+        62,
+        91,
+        79
+      ],
+      "notes": ""
+    },
+    {
+      "id": "owl",
+      "layer": "pet",
+      "display_zh": "猫头鹰",
+      "display_en": "Owl",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 85,
+      "tags": [
+        "knowledge",
+        "night"
+      ],
+      "role_affinity": [
+        "scholar",
+        "oracle"
+      ],
+      "file": "parts/pet/owl.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        74,
+        62,
+        89,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "cat",
+      "layer": "pet",
+      "display_zh": "小黑猫",
+      "display_en": "Black Cat",
+      "rarity": "uncommon",
+      "weight": 60,
+      "z_index": 85,
+      "tags": [
+        "mystery",
+        "cute"
+      ],
+      "role_affinity": [
+        "oracle",
+        "bard"
+      ],
+      "file": "parts/pet/cat.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        72,
+        60,
+        93,
+        83
+      ],
+      "notes": ""
+    },
+    {
+      "id": "seedling_sprite",
+      "layer": "pet",
+      "display_zh": "芽苗精灵",
+      "display_en": "Seedling Sprite",
+      "rarity": "rare",
+      "weight": 25,
+      "z_index": 85,
+      "tags": [
+        "nature",
+        "growth"
+      ],
+      "role_affinity": [
+        "farmer",
+        "healer"
+      ],
+      "file": "parts/pet/seedling_sprite.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        72,
+        64,
+        92,
+        85
+      ],
+      "notes": ""
+    },
+    {
+      "id": "data_orb_pet",
+      "layer": "pet",
+      "display_zh": "数据灵球",
+      "display_en": "Data Orb Pet",
+      "rarity": "epic",
+      "weight": 10,
+      "z_index": 85,
+      "tags": [
+        "cyber",
+        "mystic"
+      ],
+      "role_affinity": [
+        "hacker",
+        "oracle"
+      ],
+      "file": "parts/pet/data_orb_pet.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        72,
+        67,
+        91,
+        82
+      ],
+      "notes": ""
+    },
+    {
+      "id": "tiny_dog",
+      "layer": "pet",
+      "display_zh": "小狗",
+      "display_en": "Tiny Dog",
+      "rarity": "common",
+      "weight": 100,
+      "z_index": 85,
+      "tags": [
+        "friendly",
+        "team"
+      ],
+      "role_affinity": [
+        "merchant",
+        "bard",
+        "explorer"
+      ],
+      "file": "parts/pet/tiny_dog.png",
+      "canvas": {
+        "w": 96,
+        "h": 96
+      },
+      "anchor": {
+        "x": 0,
+        "y": 0
+      },
+      "bbox": [
+        72,
+        66,
+        93,
+        86
+      ],
+      "notes": ""
+    }
+  ],
+  "compatibility_rules": {
+    "layer_order": [
+      "shadow",
+      "side_prop",
+      "aura",
+      "back",
+      "base_body",
+      "shoes",
+      "outfit",
+      "face",
+      "hair",
+      "headgear",
+      "hand_item",
+      "pet"
+    ],
+    "canvas": {
+      "w": 96,
+      "h": 96,
+      "unit": "px",
+      "transparent_png": true,
+      "recommended_export_scale": [
+        2,
+        3,
+        4
+      ]
+    },
+    "z_index": {
+      "shadow": 0,
+      "side_prop": 5,
+      "aura": 8,
+      "back": 10,
+      "base_body": 20,
+      "shoes": 30,
+      "outfit": 40,
+      "face": 50,
+      "hair": 60,
+      "headgear": 70,
+      "hand_item": 80,
+      "pet": 85
+    },
+    "sampling": {
+      "choose_one_from_required_layers": [
+        "base_body",
+        "face",
+        "outfit",
+        "shoes"
+      ],
+      "optional_layers": [
+        "shadow",
+        "side_prop",
+        "aura",
+        "back",
+        "hair",
+        "headgear",
+        "hand_item",
+        "pet"
+      ],
+      "role_affinity_bonus": 30,
+      "tag_affinity_bonus": 12,
+      "rarity_weight_applies": true,
+      "avoid_duplicate_semantics": [
+        {
+          "rule": "avoid_many_big_head_layers",
+          "layers": [
+            "hair",
+            "headgear"
+          ],
+          "note": "大帽子与大体积发型同时出现时，建议 headgear 优先覆盖 hair。"
+        },
+        {
+          "rule": "magic_or_cyber_or_nature_style",
+          "tags": [
+            "magic",
+            "cyber",
+            "nature"
+          ],
+          "note": "同一角色可以混合，但主视觉建议只保留一个主题标签。"
+        }
+      ]
+    },
+    "agent_trait_to_visual_mapping": {
+      "analysis_high": {
+        "prefer_tags": [
+          "knowledge",
+          "analysis",
+          "tech"
+        ],
+        "visual_cues": [
+          "glasses",
+          "book",
+          "terminal",
+          "circuit"
+        ]
+      },
+      "creativity_high": {
+        "prefer_tags": [
+          "creative",
+          "music",
+          "magic"
+        ],
+        "visual_cues": [
+          "sparkle",
+          "lute",
+          "orb",
+          "bright hair"
+        ]
+      },
+      "risk_tolerance_high": {
+        "prefer_tags": [
+          "fire",
+          "battle",
+          "explore"
+        ],
+        "visual_cues": [
+          "torch",
+          "sword",
+          "embers",
+          "ranger gear"
+        ]
+      },
+      "empathy_high": {
+        "prefer_tags": [
+          "heal",
+          "care",
+          "friendly"
+        ],
+        "visual_cues": [
+          "hearts",
+          "medkit",
+          "plant",
+          "soft palette"
+        ]
+      },
+      "autonomy_high": {
+        "prefer_tags": [
+          "navigation",
+          "stealth",
+          "cyber"
+        ],
+        "visual_cues": [
+          "map",
+          "visor",
+          "beacon",
+          "compact silhouette"
+        ]
+      },
+      "collaboration_high": {
+        "prefer_tags": [
+          "social",
+          "team",
+          "trade"
+        ],
+        "visual_cues": [
+          "coin pouch",
+          "banner",
+          "pet companion"
+        ]
+      },
+      "memory_depth_high": {
+        "prefer_tags": [
+          "knowledge",
+          "paper",
+          "mystic"
+        ],
+        "visual_cues": [
+          "scroll",
+          "book",
+          "owl",
+          "stars"
+        ]
+      },
+      "curiosity_high": {
+        "prefer_tags": [
+          "explore",
+          "science",
+          "nature"
+        ],
+        "visual_cues": [
+          "compass",
+          "vial",
+          "plant",
+          "torch"
+        ]
+      }
+    }
+  },
+  "exported_files": {
+    "parts_root": "parts/",
+    "spritesheets": "spritesheets/",
+    "spritesheets_labelled": "spritesheets_labelled/",
+    "previews": [
+      "previews/example_agents_12.png",
+      "previews/all_parts_overview.png"
+    ],
+    "example_agents": [
+      "previews/agent_explorer.png",
+      "previews/agent_scholar.png",
+      "previews/agent_guardian.png",
+      "previews/agent_alchemist.png",
+      "previews/agent_engineer.png",
+      "previews/agent_merchant.png",
+      "previews/agent_healer.png",
+      "previews/agent_hacker.png",
+      "previews/agent_farmer.png",
+      "previews/agent_pilot.png",
+      "previews/agent_bard.png",
+      "previews/agent_oracle.png"
+    ]
+  }
+}

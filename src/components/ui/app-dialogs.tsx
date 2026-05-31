@@ -139,8 +139,8 @@ function AppDialogHost({
   const tone = dialog.tone ?? (dialog.kind === "confirm" ? "warning" : "default");
   const isPrompt = dialog.kind === "prompt";
   const isAlert = dialog.kind === "alert";
-  const confirmText = dialog.confirmText ?? (isAlert ? "知道了" : isPrompt ? "保存" : "确认");
-  const cancelText = dialog.cancelText ?? "取消";
+  const confirmText = dialog.confirmText ?? (isAlert ? "actions.ok" : isPrompt ? "actions.save" : "actions.confirm");
+  const cancelText = dialog.cancelText ?? "actions.cancel";
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onCancel(); }}>

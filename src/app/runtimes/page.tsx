@@ -66,12 +66,12 @@ export default function AiProvidersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.cbc56f948bb"
-        title="ui.generated.c9d17053058"
-        description="ui.generated.c79ccc10ac0"
+        eyebrow="ui.common.resources.providerProfile"
+        title="ui.common.resources.providerProfile"
+        description="nav.runtimes.description"
         badges={[
-          { label: `${snapshot.providers.length} ${t("ui.common.count.interfaces", "个接口")}`, variant: "accent" },
-          { label: `${t("ui.common.enabled", "启用")} ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },
+          { label: `${snapshot.providers.length} ${t("ui.common.count.interfaces")}`, variant: "accent" },
+          { label: `${t("ui.common.enabled")} ${snapshot.providers.filter((provider) => provider.isEnabled).length}`, variant: "success" },
         ]}
       />
 
@@ -102,21 +102,21 @@ export default function AiProvidersPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.cab63588ee3"
-          title="ui.generated.c872007130b"
-          description="ui.generated.cfcef883aee"
+          eyebrow="ui.common.resources.providerProfile"
+          title="ui.common.resources.providerProfile"
+          description="nav.runtimes.description"
           action={
             <Dialog>
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  {t("ui.generated.ccaf3f1f123", "新增模型服务")}
+                  {t("ui.generated.ccaf3f1f123")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(94vw,860px)]">
                 <DialogHeader>
-                  <DialogTitle>{t("ui.generated.ccaf3f1f123", "新增模型服务")}</DialogTitle>
-                  <DialogDescription>{t("ui.generated.cb112cd2d2f", "录入一个可供运行时调用的模型服务。")}</DialogDescription>
+                  <DialogTitle>{t("ui.generated.ccaf3f1f123")}</DialogTitle>
+                  <DialogDescription>{t("ui.generated.cb112cd2d2f")}</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
 	                  <ProviderProfileForm
@@ -134,7 +134,7 @@ export default function AiProvidersPage() {
 	                      configJson: "{}",
 	                      isEnabled: 1,
 	                    }}
-                    title={t("ui.generated.ccaf3f1f123", "新增模型服务")}
+                    title={t("ui.generated.ccaf3f1f123")}
                   />
                 </DialogBody>
               </DialogContent>
@@ -145,13 +145,13 @@ export default function AiProvidersPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>{t("ui.generated.cbc56f948bb", "模型服务")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.c269a00cd6b", "接口风格")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.cb5bff31cdd", "默认模型")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.cecde946b92", "模型数量")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.ceb9d53ce7f", "能力摘要")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
-                <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.cbc56f948bb")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c269a00cd6b")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.cb5bff31cdd")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.cecde946b92")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.ceb9d53ce7f")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c62e951a692")}</DataTableHead>
+                <DataTableHead align="right">{t("ui.generated.cf3ea6d345e")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -168,7 +168,7 @@ export default function AiProvidersPage() {
                     <DataTableCell>{provider.defaultModel}</DataTableCell>
                     <DataTableCell>{models.length}</DataTableCell>
                     <DataTableCell>
-                      <div className="text-sm text-[var(--ink)]">{`${t("ui.generated.caa23f730d0", "推理能力")} ${t(String(config.reasoning), String(config.reasoning))}`}</div>
+                      <div className="text-sm text-[var(--ink)]">{`${t("ui.generated.caa23f730d0")} ${t(String(config.reasoning), String(config.reasoning))}`}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">Headers {config.headers}</div>
                     </DataTableCell>
                     <DataTableCell>

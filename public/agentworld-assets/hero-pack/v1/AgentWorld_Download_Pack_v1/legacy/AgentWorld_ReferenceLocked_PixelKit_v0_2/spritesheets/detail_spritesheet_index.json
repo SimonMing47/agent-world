@@ -1,0 +1,14 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "detail_overlay_reference",
+      "path": "parts/detail/detail_overlay_reference.png"
+    }
+  ]
+}

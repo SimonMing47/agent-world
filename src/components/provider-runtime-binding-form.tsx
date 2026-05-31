@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { editableSecretValue, isEnvSecretReference, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
@@ -70,6 +71,7 @@ export function ProviderRuntimeBindingForm({
   onSaved,
 }: ProviderRuntimeBindingFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const parsedConfig = parseConfig(binding.configJson);
@@ -116,11 +118,11 @@ export function ProviderRuntimeBindingForm({
       JSON.parse(form.envJson);
       const config = JSON.parse(form.configJson) as unknown;
       if (form.apiKeyRef.trim().toLowerCase().startsWith("env:") || hasEnvReference(config)) {
-        throw new Error("运行配置不再支持 env: 环境变量引用，请直接在这里填写配置值。");
+        throw new Error(text("runtimeBinding.errors.envReferencesUnsupported"));
       }
     } catch {
       setIsSaving(false);
-      setMessage("运行配置 JSON 不正确，或仍包含 env: 环境变量引用。");
+      setMessage(text("runtimeBinding.errors.invalidConfigJson"));
       return;
     }
 
@@ -273,11 +275,11 @@ export function ProviderRuntimeBindingForm({
             />
           </FieldGroup>
           <FieldGroup
-            label="API Key 覆盖"
+            label="runtimeBinding.apiKey.label"
             hint={
               hasLegacyApiKeyRef
-                ? "已检测到旧环境变量引用，请直接填写 API Key 后保存。默认隐藏，需要查看时点击显示。"
-                : "可选。直接保存该运行绑定的 API Key；默认隐藏，需要查看时点击显示。"
+                ? "runtimeBinding.apiKey.legacyHint"
+                : "runtimeBinding.apiKey.hint"
             }
             className="md:col-span-2"
           >

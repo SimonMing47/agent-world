@@ -1,0 +1,39 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "ground_arcane_blue",
+      "path": "parts/ground/ground_arcane_blue.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "ground_ember",
+      "path": "parts/ground/ground_ember.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "ground_moss_glow",
+      "path": "parts/ground/ground_moss_glow.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "ground_none",
+      "path": "parts/ground/ground_none.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "ground_reference_stone_shadow",
+      "path": "parts/ground/ground_reference_stone_shadow.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "ground_stone_shadow",
+      "path": "parts/ground/ground_stone_shadow.png"
+    }
+  ]
+}

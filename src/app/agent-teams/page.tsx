@@ -194,7 +194,7 @@ export default async function AgentTeamsPage() {
               <DialogContent className="w-[min(96vw,1180px)]">
                 <DialogHeader>
                   <DialogTitle>ui.generated.c77ea648602</DialogTitle>
-                  <DialogDescription>用 TEAM.md 定义团队，再把成员形象摆成可点击的编队。</DialogDescription>
+                  <DialogDescription>agentTeams.create.description</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <AgentTeamForm
@@ -279,7 +279,7 @@ export default async function AgentTeamsPage() {
                       </div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{teamMembers.length} {t("ui.generated.ce8bf2e8cb2", "个成员")}</div>
+                      <div>{teamMembers.length} {t("ui.generated.ce8bf2e8cb2")}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {roleSummary || "ui.generated.caf1c75f2b4"}
                       </div>
@@ -421,7 +421,7 @@ export default async function AgentTeamsPage() {
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
                               <DialogTitle>ui.generated.ca7f814c0a4 {team.name}</DialogTitle>
-                              <DialogDescription>点击成员形象配置单个 Agent，点击空白区域配置团队。</DialogDescription>
+                              <DialogDescription>agentTeams.editor.description</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <AgentTeamForm

@@ -25,7 +25,6 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateWithPack } from "@/lib/language-pack";
-import { translateSessionMode, translateStatus } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
 import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
@@ -106,6 +105,7 @@ export default async function RuntimeInteractionsPage() {
   const languagePack = getActiveLanguagePack();
   const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
     translateWithPack(languagePack, key, fallback, params);
+  const label = (group: string, value: string) => t(`labels.${group}.${value}`, value);
   const authContext = await getRequestAuthContext();
   const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
   const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
@@ -153,27 +153,27 @@ export default async function RuntimeInteractionsPage() {
         title="console.interactions.title"
         description="console.interactions.pageDescription"
         badges={[
-          { label: `${runtimeSessions.length} ${t("ui.common.count.sessions", "个会话")}`, variant: "accent" },
-          { label: `${runningSessions.length} ${t("ui.common.detail.running", "个运行中")}`, variant: "neutral" },
+          { label: `${runtimeSessions.length} ${t("ui.common.count.sessions")}`, variant: "accent" },
+          { label: `${runningSessions.length} ${t("ui.common.detail.running")}`, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "ui.generated.c4d72abd2e9",
+            label: "console.interactions.summary.sessions",
             value: runtimeSessions.length,
-            detail: `${runningSessions.length} ${t("ui.common.detail.running", "个运行中")}`,
+            detail: `${runningSessions.length} ${t("ui.common.detail.running")}`,
           },
           {
-            label: "ui.generated.c6f6a995823",
+            label: "console.interactions.summary.teamSessions",
             value: teamSessions.length,
             detail: "console.interactions.summary.teamDetail",
           },
           {
-            label: "ui.generated.c8e175e7aa9",
+            label: "ui.common.resources.runtimeBinding",
             value: runtimeBindings.length,
-            detail: `${providerProfiles.length} ${t("ui.common.detail.modelServicesSelectable", "个可选模型服务")}`,
+            detail: `${providerProfiles.length} ${t("ui.common.detail.modelServicesSelectable")}`,
           },
         ]}
       />
@@ -226,10 +226,10 @@ export default async function RuntimeInteractionsPage() {
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("ui.generated.c836ffe0e10", "会话")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.ced0eea8f20", "模式")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
-                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.session")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.mode")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.status")}</DataTableHead>
+                    <DataTableHead align="right">{t("console.interactions.columns.actions")}</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
@@ -239,9 +239,9 @@ export default async function RuntimeInteractionsPage() {
                         <div className="font-medium text-[var(--ink)]">{session.title}</div>
                         <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.model}</div>
                       </DataTableCell>
-                      <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
+                      <DataTableCell>{label("sessionMode", session.mode)}</DataTableCell>
                       <DataTableCell>
-                        <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
+                        <Badge variant={statusVariant(session.status)}>{label("status", session.status)}</Badge>
                       </DataTableCell>
                       <DataTableCell align="right">
                         <Link href={`/interactions/${session.id}`} className="text-sm font-medium text-[var(--accent)]">
@@ -254,9 +254,9 @@ export default async function RuntimeInteractionsPage() {
               </DataTable>
             ) : (
               <PanelBody>
-                <div className="aw-compact-empty">
-                  <div className="aw-compact-empty__title">{t("console.interactions.recent.empty")}</div>
-                  <div className="aw-compact-empty__description">从这里回到最近的单 Agent 或多 Agent 运行。</div>
+                  <div className="aw-compact-empty">
+                    <div className="aw-compact-empty__title">{t("console.interactions.recent.empty")}</div>
+                  <div className="aw-compact-empty__description">{t("console.interactions.recent.emptyDescription")}</div>
                 </div>
               </PanelBody>
             )}
@@ -274,13 +274,13 @@ export default async function RuntimeInteractionsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("ui.generated.c836ffe0e10", "会话")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.ced0eea8f20", "模式")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c8e175e7aa9", "执行配置")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c98fd0cbd9c", "所属团队")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
-                    <DataTableHead>{t("ui.generated.c093dea88c9", "更新时间")}</DataTableHead>
-                    <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.session")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.mode")}</DataTableHead>
+                    <DataTableHead>{t("ui.common.resources.runtimeBinding")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.model")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.status")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.updatedAt")}</DataTableHead>
+                    <DataTableHead align="right">{t("console.interactions.columns.actions")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -292,11 +292,11 @@ export default async function RuntimeInteractionsPage() {
                       <div className="font-medium text-[var(--ink)]">{session.title}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
                     </DataTableCell>
-                    <DataTableCell>{translateSessionMode(session.mode)}</DataTableCell>
-                    <DataTableCell>{runtime?.name ?? t("ui.generated.c53215c3826", "未绑定")}</DataTableCell>
+                    <DataTableCell>{label("sessionMode", session.mode)}</DataTableCell>
+                    <DataTableCell>{runtime?.name ?? t("console.interactions.defaultRuntimeBinding")}</DataTableCell>
                     <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
-                      <Badge variant={statusVariant(session.status)}>{translateStatus(session.status)}</Badge>
+                      <Badge variant={statusVariant(session.status)}>{label("status", session.status)}</Badge>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(session.updatedAt)}</DataTableCell>
                     <DataTableCell align="right">
