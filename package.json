@@ -14,7 +14,7 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "test:coverage": "node --import tsx --test --experimental-test-coverage \"src/**/*.test.ts\"",
     "lint": "eslint .",
-    "i18n:audit": "node scripts/i18n-audit.mjs",
+    "i18n:audit": "node scripts/i18n-audit.mjs && tsx scripts/i18n-en-audit.ts",
     "config-data:audit": "node scripts/config-data-audit.mjs",
     "quality:audit": "node scripts/repo-quality-audit.mjs",
     "security:audit": "node scripts/security-baseline-audit.mjs",

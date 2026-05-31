@@ -75,7 +75,7 @@ export function SidebarNav({
         <button
           type="button"
           aria-expanded={!collapsed}
-          aria-label={collapsed ? "展开侧栏" : "收起侧栏"}
+          aria-label={collapsed ? "navigation.sidebar.expand" : "navigation.sidebar.collapse"}
           data-sidebar-toggle="edge"
           onClick={onToggleCollapse}
           className="group absolute bottom-0 right-[-14px] top-14 z-30 hidden w-7 cursor-ew-resize items-stretch justify-center outline-none focus:outline-none lg:flex"

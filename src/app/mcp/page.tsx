@@ -47,9 +47,9 @@ export default async function McpPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="MCP"
-        title="ui.generated.c0950f9419b"
-        description="ui.generated.cec6d685a99"
+        eyebrow="ui.common.resources.mcpServer"
+        title="nav.mcp.label"
+        description="nav.mcp.description"
         badges={[
           { label: <>{servers.length} ui.common.count.servers</>, variant: "accent" },
           { label: <>{servers.filter((server) => server.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
@@ -58,9 +58,9 @@ export default async function McpPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.cab63588ee3"
-          title="ui.generated.c847752d637"
-          description="ui.generated.c88fd702a14"
+          eyebrow="ui.common.resources.mcpServer"
+          title="ui.common.resources.mcpServer"
+          description="nav.mcp.description"
           action={
             <Dialog>
               <DialogTrigger asChild>

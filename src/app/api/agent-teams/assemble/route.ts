@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
 import { assembleAgentTeamDraft } from "@/server/agent-team-core";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "团队组建失败。" },
+      {
+        ok: false,
+        error: error instanceof Error
+          ? error.message
+          : uiText("ui.api.errors.assembleAgentTeamFailed", "Agent Team assembly failed."),
+      },
       { status: 400 },
     );
   }

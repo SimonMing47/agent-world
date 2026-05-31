@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { editableSecretValue, isEnvSecretReference, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
@@ -88,6 +89,7 @@ export function ProviderProfileForm({
   onSaved,
 }: ProviderProfileFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const parsedConfig = parseConfig(provider.configJson);
@@ -132,11 +134,11 @@ export function ProviderProfileForm({
         hasEnvReference(config) ||
         hasEnvReference(headers)
       ) {
-        throw new Error("模型配置不再支持 env: 环境变量引用，请直接在这里填写配置值。");
+        throw new Error(text("providerProfile.errors.envReferencesUnsupported"));
       }
     } catch {
       setIsSaving(false);
-      setMessage("模型配置 JSON 不正确，或仍包含 env: 环境变量引用。");
+      setMessage(text("providerProfile.errors.invalidConfigJson"));
       return;
     }
 
@@ -278,8 +280,8 @@ export function ProviderProfileForm({
             label="API Key"
             hint={
               hasLegacyApiKeyRef
-                ? "已检测到旧环境变量引用，请直接填写 API Key 后保存。默认隐藏，需要查看时点击显示。"
-                : "直接保存模型服务 API Key。默认隐藏，需要查看时点击显示。"
+                ? "providerProfile.apiKey.legacyHint"
+                : "providerProfile.apiKey.hint"
             }
             className="md:col-span-2"
           >

@@ -15,7 +15,7 @@ import {
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { uiText } from "@/lib/language-pack";
+import { useLanguageText } from "@/components/language-pack-provider";
 
 type RetrievalHit = {
   id: string;
@@ -42,6 +42,7 @@ export function KnowledgeRetrievalTestDialog({
   knowledgeSpaceId: string;
   knowledgeSpaceName: string;
 }) {
+  const text = useLanguageText();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,11 +67,11 @@ export function KnowledgeRetrievalTestDialog({
         hits?: RetrievalHit[];
       };
       if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error ?? uiText("knowledge.retrieval.errors.failed"));
+        throw new Error(payload.error ?? text("knowledge.retrieval.errors.failed"));
       }
       setHits(payload.hits ?? []);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : uiText("knowledge.retrieval.errors.failed"));
+      setError(nextError instanceof Error ? nextError.message : text("knowledge.retrieval.errors.failed"));
       setHits([]);
     } finally {
       setLoading(false);
@@ -82,13 +83,13 @@ export function KnowledgeRetrievalTestDialog({
       <DialogTrigger asChild>
         <Button size="sm" variant="ghost">
           <Search className="h-4 w-4" />
-          knowledge.retrieval.action
+          {text("knowledge.retrieval.action")}
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[min(96vw,960px)]">
         <DialogHeader>
-          <DialogTitle>{uiText("knowledge.retrieval.dialogTitle", undefined, { name: knowledgeSpaceName })}</DialogTitle>
-          <DialogDescription>knowledge.retrieval.dialogDescription</DialogDescription>
+          <DialogTitle>{text("knowledge.retrieval.dialogTitle", undefined, { name: knowledgeSpaceName })}</DialogTitle>
+          <DialogDescription>{text("knowledge.retrieval.dialogDescription")}</DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-5">
           <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-4">
@@ -97,25 +98,27 @@ export function KnowledgeRetrievalTestDialog({
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="space-y-1">
-                <div className="text-sm font-semibold text-[var(--ink)]">knowledge.retrieval.tipTitle</div>
-                <p className="text-sm leading-6 text-[var(--ink-muted)]">knowledge.retrieval.tipDescription</p>
+                <div className="text-sm font-semibold text-[var(--ink)]">{text("knowledge.retrieval.tipTitle")}</div>
+                <p className="text-sm leading-6 text-[var(--ink-muted)]">{text("knowledge.retrieval.tipDescription")}</p>
               </div>
             </div>
           </div>
 
           <div className="grid gap-2 md:grid-cols-3">
             {[
-              ["L0", "空间摘要召回", "先用知识空间全局 Abstract 做向量召回和快速过滤。"],
-              ["L1", "空间概览重排", "再用知识空间全局 Overview 理解目录结构并重排。"],
-              ["L2", "原文读取", "最后读取完整 Markdown，只有这一层可编辑。"],
+              ["L0", "knowledge.retrieval.layers.l0.title", "knowledge.retrieval.layers.l0.description"],
+              ["L1", "knowledge.retrieval.layers.l1.title", "knowledge.retrieval.layers.l1.description"],
+              ["L2", "knowledge.retrieval.layers.l2.title", "knowledge.retrieval.layers.l2.description"],
             ].map(([level, title, description]) => (
               <div key={level} className="rounded-2xl border border-[var(--line)] bg-white px-3 py-3">
                 <div className="flex items-center justify-between gap-2">
                   <Badge variant={level === "L2" ? "accent" : "neutral"}>{level}</Badge>
-                  <span className="text-[11px] text-[var(--ink-subtle)]">{level === "L2" ? "可编辑" : "只读索引"}</span>
+                  <span className="text-[11px] text-[var(--ink-subtle)]">
+                    {text(level === "L2" ? "knowledge.retrieval.editMode.editable" : "knowledge.retrieval.editMode.readOnlyIndex")}
+                  </span>
                 </div>
-                <div className="mt-2 text-sm font-semibold text-[var(--ink)]">{title}</div>
-                <p className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{description}</p>
+                <div className="mt-2 text-sm font-semibold text-[var(--ink)]">{text(title)}</div>
+                <p className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{text(description)}</p>
               </div>
             ))}
           </div>
@@ -125,12 +128,12 @@ export function KnowledgeRetrievalTestDialog({
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="knowledge.retrieval.queryPlaceholder"
+                placeholder={text("knowledge.retrieval.queryPlaceholder")}
               />
             </FieldGroup>
             <div className="flex items-end">
               <Button type="button" variant="primary" onClick={runTest} disabled={loading}>
-                {loading ? "knowledge.retrieval.running" : "knowledge.retrieval.run"}
+                {text(loading ? "knowledge.retrieval.running" : "knowledge.retrieval.run")}
               </Button>
             </div>
           </div>
@@ -139,9 +142,9 @@ export function KnowledgeRetrievalTestDialog({
 
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-[var(--ink)]">knowledge.retrieval.resultsTitle</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">{text("knowledge.retrieval.resultsTitle")}</div>
               <Badge variant="neutral">
-                {uiText("knowledge.retrieval.resultsCount", undefined, { count: hits.length })}
+                {text("knowledge.retrieval.resultsCount", undefined, { count: hits.length })}
               </Badge>
             </div>
 
@@ -155,7 +158,7 @@ export function KnowledgeRetrievalTestDialog({
                         <div className="mt-1 break-all font-mono text-xs text-[var(--ink-subtle)]">{hit.vikingUri}</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="accent">{uiText("knowledge.retrieval.score", undefined, { score: hit.score })}</Badge>
+                        <Badge variant="accent">{text("knowledge.retrieval.score", undefined, { score: hit.score })}</Badge>
                         <Badge variant="neutral">{hit.layer}</Badge>
                         <Badge variant="success">{hit.syncStatus}</Badge>
                       </div>
@@ -171,8 +174,8 @@ export function KnowledgeRetrievalTestDialog({
                                 <span className="text-sm font-semibold text-[var(--ink)]">{level.label}</span>
                               </div>
                               <div className="inline-flex items-center gap-2 text-xs text-[var(--ink-subtle)]">
-                                <span>{level.editable ? "可编辑" : "只读"}</span>
-                                <span>score {level.score}</span>
+                                <span>{text(level.editable ? "knowledge.retrieval.editMode.editable" : "knowledge.retrieval.editMode.readOnly")}</span>
+                                <span>{text("knowledge.retrieval.levelScore", undefined, { score: level.score })}</span>
                               </div>
                             </div>
                             <div className="mt-1 text-xs leading-5 text-[var(--ink-subtle)]">{level.purpose}</div>
@@ -186,7 +189,7 @@ export function KnowledgeRetrievalTestDialog({
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-6 text-sm leading-7 text-[var(--ink-muted)]">
-                {query.trim() ? uiText("knowledge.retrieval.empty") : uiText("knowledge.retrieval.idle")}
+                {query.trim() ? text("knowledge.retrieval.empty") : text("knowledge.retrieval.idle")}
               </div>
             )}
           </div>

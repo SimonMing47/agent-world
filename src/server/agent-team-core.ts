@@ -154,8 +154,14 @@ export async function optimizeAgentTeamDraft(args: {
         {
           role: "user",
           content: [
-            "你是 AgentWorld 的 Agent Team 配置设计师。请优化一个团队定义。",
-            "要求：只返回 JSON；保留 TEAM.md 单文档形式；围绕当前团队目标强化 Leader 分派、成员职责、上下文隔离和结果汇总；不要输出解释性文本。",
+            uiText(
+              "ui.server.agentTeam.optimization.promptRole",
+              "You are AgentWorld's Agent Team configuration designer. Optimize one team definition.",
+            ),
+            uiText(
+              "ui.server.agentTeam.optimization.promptRequirements",
+              "Requirements: return JSON only; keep the single TEAM.md document form; strengthen Leader delegation, member responsibilities, context isolation, and result aggregation around the current team goal; do not output explanatory text.",
+            ),
             'JSON schema: {"name":"string","slug":"string","description":"string","orchestrationPrompt":"string","workflowType":"string","teamStructure":"string","teamObjective":"string","aggregationMethod":"string","conflictResolution":"string","splitStrategy":"string","members":[{"memberRole":"string","workInstruction":"string","status":"string"}],"notes":["string"]}',
             `Current name: ${args.team.name ?? ""}`,
             `Current description: ${args.team.description ?? ""}`,
@@ -179,13 +185,18 @@ export async function optimizeAgentTeamDraft(args: {
   );
 
   if (response.stopReason === "error") {
-    throw new Error(response.errorMessage ?? "Agent Team optimization failed");
+    throw new Error(response.errorMessage ?? uiText("ui.server.agentTeam.optimization.failed", "Agent Team optimization failed."));
   }
 
   const rawText = flattenVisibleText(response);
   const parsed = extractJsonObject<AgentTeamOptimizationSuggestion>(rawText);
   if (!parsed) {
-    throw new Error("默认模型没有返回可解析的团队配置 JSON。");
+    throw new Error(
+      uiText(
+        "ui.server.agentTeam.optimization.parseJsonFailed",
+        "The default model did not return parseable team configuration JSON.",
+      ),
+    );
   }
 
   return {
@@ -235,7 +246,14 @@ function sanitizeAssemblySuggestion(
       return {
         agentDefinitionId: member.agentDefinitionId,
         memberRole: normalizeText(member.memberRole, agent?.role || `member-${index + 1}`),
-        workInstruction: normalizeText(member.workInstruction, `${agent?.name ?? "Agent"} 根据团队目标完成分派任务。`),
+        workInstruction: normalizeText(
+          member.workInstruction,
+          uiText(
+            "ui.server.agentTeam.assembly.defaultSelectedMemberWorkInstruction",
+            "{agentName} completes delegated work according to the team goal.",
+            { agentName: agent?.name ?? "Agent" },
+          ),
+        ),
         status: normalizeStatus(member.status),
         position: index,
         isLeader: Boolean(member.isLeader),
@@ -262,7 +280,13 @@ function sanitizeAssemblySuggestion(
         description: normalizeText(agent.description),
         systemPrompt,
         memberRole,
-        workInstruction: normalizeText(agent.workInstruction, "根据 Leader 分派的局部上下文输出可合并的专业结论。"),
+        workInstruction: normalizeText(
+          agent.workInstruction,
+          uiText(
+            "ui.server.agentTeam.assembly.defaultNewAgentWorkInstruction",
+            "Produce a mergeable expert conclusion from the local context delegated by the Leader.",
+          ),
+        ),
         tags: Array.isArray(agent.tags) ? agent.tags.map(String).filter(Boolean).slice(0, 8) : ["team-generated"],
         isLeader: Boolean(agent.isLeader) && !selectedMembers.some((member) => member.isLeader),
         rationale: normalizeText(agent.rationale),
@@ -274,18 +298,31 @@ function sanitizeAssemblySuggestion(
     selectedMembers.push({
       agentDefinitionId: args.availableAgents[0].id,
       memberRole: args.availableAgents[0].role || "leader",
-      workInstruction: "根据团队目标进行初始拆解、执行和汇总。",
+      workInstruction: uiText(
+        "ui.server.agentTeam.assembly.fallbackLeaderWorkInstruction",
+        "Perform the initial breakdown, execution, and summary according to the team goal.",
+      ),
       status: "active",
       position: 0,
       isLeader: true,
-      rationale: "默认保底选择第一个可用 Agent。",
+      rationale: uiText(
+        "ui.server.agentTeam.assembly.fallbackLeaderRationale",
+        "Default fallback selects the first available Agent.",
+      ),
     });
   }
 
   return {
     name: normalizeText(suggestion.name, args.team.name ?? "Agent Team"),
     slug: slugify(normalizeText(suggestion.slug, suggestion.name ?? args.team.name ?? "agent-team")),
-    description: normalizeText(suggestion.description, args.team.description ?? "由现有 Agent 和必要新增 Agent 组建的执行团队。"),
+    description: normalizeText(
+      suggestion.description,
+      args.team.description ??
+        uiText(
+          "ui.server.agentTeam.assembly.defaultTeamDescription",
+          "An execution team assembled from existing Agents and necessary new Agents.",
+        ),
+    ),
     orchestrationPrompt: normalizeText(suggestion.orchestrationPrompt, args.team.orchestrationPrompt ?? ""),
     workflowType: normalizeText(suggestion.workflowType, args.team.workflowType ?? "parallel"),
     teamStructure: normalizeText(suggestion.teamStructure, "leader_worker"),
@@ -312,11 +349,23 @@ export async function assembleAgentTeamDraft(args: {
         {
           role: "user",
           content: [
-            "你是 AgentWorld 的 Agent Team 组建设计师。请根据团队目标，从现有 Agent 中选择成员组建团队。",
-            "重要规则：优先选取现有 Agent。只有现有 Agent 明显无法覆盖团队目标所需职责时，才在 newAgents 中建议新增 Agent。不要为了凑人数新增。",
-            "重要规则：selectedMembers.agentDefinitionId 必须来自 Available agents 的 id。newAgents 只是待确认草案，不能假设已经创建。",
-            "重要规则：团队必须有一个 Leader。尽量从现有 Agent 中选 Leader；如果确实没有合适 Leader，才把新 Leader 放入 newAgents。",
-            "只返回 JSON，不要输出解释性文本。",
+            uiText(
+              "ui.server.agentTeam.assembly.promptRole",
+              "You are AgentWorld's Agent Team assembly designer. Select members from existing Agents according to the team goal.",
+            ),
+            uiText(
+              "ui.server.agentTeam.assembly.promptExistingAgentsRule",
+              "Important rule: prefer existing Agents. Suggest new Agents in newAgents only when existing Agents clearly cannot cover the responsibilities required by the team goal. Do not add new Agents just to fill seats.",
+            ),
+            uiText(
+              "ui.server.agentTeam.assembly.promptMemberIdsRule",
+              "Important rule: selectedMembers.agentDefinitionId must come from the id values in Available agents. newAgents are only pending drafts and must not be assumed to already exist.",
+            ),
+            uiText(
+              "ui.server.agentTeam.assembly.promptLeaderRule",
+              "Important rule: the team must have one Leader. Prefer choosing the Leader from existing Agents; only put a new Leader in newAgents when no suitable existing Leader is available.",
+            ),
+            uiText("ui.server.agentTeam.assembly.promptJsonOnly", "Return JSON only and do not output explanatory text."),
             'JSON schema: {"name":"string","slug":"string","description":"string","orchestrationPrompt":"string","workflowType":"string","teamStructure":"string","teamObjective":"string","aggregationMethod":"string","conflictResolution":"string","splitStrategy":"string","selectedMembers":[{"agentDefinitionId":"string","memberRole":"string","workInstruction":"string","status":"active","position":0,"isLeader":true,"rationale":"string"}],"newAgents":[{"tempId":"string","name":"string","role":"string","description":"string","systemPrompt":"string","memberRole":"string","workInstruction":"string","tags":["string"],"isLeader":false,"rationale":"string"}],"notes":["string"]}',
             `Team draft:\n${JSON.stringify(args.team, null, 2)}`,
             `Available agents:\n${JSON.stringify(
@@ -346,13 +395,18 @@ export async function assembleAgentTeamDraft(args: {
   );
 
   if (response.stopReason === "error") {
-    throw new Error(response.errorMessage ?? "Agent Team assembly failed");
+    throw new Error(response.errorMessage ?? uiText("ui.server.agentTeam.assembly.failed", "Agent Team assembly failed."));
   }
 
   const rawText = flattenVisibleText(response);
   const parsed = extractJsonObject<Partial<AgentTeamAssemblySuggestion>>(rawText);
   if (!parsed) {
-    throw new Error("默认模型没有返回可解析的团队组建 JSON。");
+    throw new Error(
+      uiText(
+        "ui.server.agentTeam.assembly.parseJsonFailed",
+        "The default model did not return parseable team assembly JSON.",
+      ),
+    );
   }
 
   return {

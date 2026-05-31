@@ -1,0 +1,25 @@
+{
+  "selection_rules": {
+    "creative_high": [
+      "face.smirk.v1",
+      "face.grin.v2",
+      "hand_item.staff_purple_orb.v2"
+    ],
+    "discipline_high": [
+      "headgear.cap_captain.v2",
+      "outfit_top.coat_healer.v2",
+      "bottom.robe_black_cross.v2"
+    ],
+    "exploration_high": [
+      "headgear.hood_green_trim.v1",
+      "outfit_top.coat_ranger.v1",
+      "hand_item.pickaxe.v2"
+    ],
+    "tech_high": [
+      "headgear.hood_cyber.v2",
+      "outfit_top.jacket_tactical.v2",
+      "back_accessory.jetpack_dual.v2"
+    ]
+  },
+  "compose_pseudocode": "for layer in composition_order: load selected trait image and place in order as reference or visual slot"
+}

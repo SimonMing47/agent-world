@@ -45,7 +45,7 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : uiText("common.messages.saveFailed", "保存失败") },
+      { ok: false, error: error instanceof Error ? error.message : uiText("common.messages.saveFailed") },
       { status: 400 },
     );
   }

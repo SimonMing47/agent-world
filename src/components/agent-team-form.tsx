@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, Bot, CheckCircle2, Circle, ClipboardList, Loader2, Plus, Sparkles, Target, Trash2, UserPlus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { PixelAgentAvatar } from "@/components/pixel-agent-avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -132,23 +133,23 @@ type AssemblyProgressStep = {
 const ASSEMBLY_PROGRESS_STEPS: Array<Omit<AssemblyProgressStep, "status">> = [
   {
     key: "intent",
-    label: "读取团队意图",
-    description: "把目标、说明和当前团队设置整理成组建上下文。",
+    label: "agentTeam.form.assembly.steps.intent.label",
+    description: "agentTeam.form.assembly.steps.intent.description",
   },
   {
     key: "inventory",
-    label: "扫描可用 Agent",
-    description: "检查现有 Agent 的角色、能力标签和可见性。",
+    label: "agentTeam.form.assembly.steps.inventory.label",
+    description: "agentTeam.form.assembly.steps.inventory.description",
   },
   {
     key: "gap",
-    label: "分析能力缺口",
-    description: "判断现有成员是否足够，必要时生成待确认的新 Agent。",
+    label: "agentTeam.form.assembly.steps.gap.label",
+    description: "agentTeam.form.assembly.steps.gap.description",
   },
   {
     key: "draft",
-    label: "生成团队编队",
-    description: "输出成员分工、Leader 建议和团队协作说明。",
+    label: "agentTeam.form.assembly.steps.draft.label",
+    description: "agentTeam.form.assembly.steps.draft.description",
   },
 ];
 
@@ -200,22 +201,8 @@ function newMemberDraft(agentDefinitionId = ""): MemberDraft {
   };
 }
 
-function defaultTeamSoul(name: string) {
-  return `# TEAM.md - 你们是谁
-
-_你们不是一串 Agent 列表。你们是为了一个明确目标临时组成的协作团队。_
-
-## 团队目标
-
-根据当前团队目标完成任务，并把过程拆解为可交接、可审计、可合并的成员贡献。
-
-## 核心原则
-
-**先理解目标，再组建分工。** Leader 先接收指令，再根据目标和上下文决定需要哪些成员参与。
-
-**分工要有差异。** 每个成员只处理被明确分派的局部上下文，避免全员共享无关信息。
-
-**输出要能落地。** 每个结论都要包含判断依据、风险说明和下一步建议。${name ? `\n\n## 当前队名\n\n${name}` : ""}`;
+function defaultTeamSoul(name: string, text: (key: string, fallback?: string, params?: Record<string, string | number>) => string) {
+  return text("agentTeam.form.defaultTeamSoul", undefined, { name });
 }
 
 function defaultHarnessConfigJson() {
@@ -247,6 +234,7 @@ function defaultPermissionPolicyJson() {
 
 export function AgentTeamForm(props: AgentTeamFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const workflow = parseWorkflowDefinition(props.team.workflowDefinitionJson);
   const [isSaving, setIsSaving] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -267,7 +255,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     description: props.team.description,
     visibility: props.team.visibility,
     workflowType: props.team.workflowType,
-    orchestrationPrompt: props.team.orchestrationPrompt || defaultTeamSoul(props.team.name),
+    orchestrationPrompt: props.team.orchestrationPrompt || defaultTeamSoul(props.team.name, text),
     teamStructure: workflow.teamStructure,
     teamObjective: workflow.teamObjective,
     aggregationMethod: workflow.aggregationMethod,
@@ -312,7 +300,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     const selectedMembers = suggestion.selectedMembers.map((member, index) => ({
       ...newMemberDraft(member.agentDefinitionId),
       memberRole: member.memberRole || "member",
-      workInstruction: member.workInstruction || "根据团队目标完成分派任务。",
+      workInstruction: member.workInstruction || text("agentTeam.form.defaults.memberWorkInstruction"),
       position: index,
       status: member.status || "active",
     }));
@@ -323,7 +311,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         return {
           ...newMemberDraft(agent.id),
           memberRole: draft.memberRole || draft.role || "member",
-          workInstruction: draft.workInstruction || "根据 Leader 分派的局部上下文输出可合并的专业结论。",
+          workInstruction: draft.workInstruction || text("agentTeam.form.defaults.newAgentWorkInstruction"),
           position: selectedMembers.length + index,
           status: "active",
         };
@@ -350,7 +338,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       aggregationMethod: suggestion.aggregationMethod || current.aggregationMethod,
       conflictResolution: suggestion.conflictResolution || current.conflictResolution,
       splitStrategy: suggestion.splitStrategy || current.splitStrategy,
-      orchestrationPrompt: suggestion.orchestrationPrompt || current.orchestrationPrompt || defaultTeamSoul(suggestion.name || current.name),
+      orchestrationPrompt: suggestion.orchestrationPrompt || current.orchestrationPrompt || defaultTeamSoul(suggestion.name || current.name, text),
       maxConcurrency: String(Math.max(1, Math.min(8, nextMembers.length || Number(current.maxConcurrency || 1)))),
     }));
     setMembers(nextMembers);
@@ -417,19 +405,19 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         suggestion?: AssemblySuggestion;
         error?: string;
       };
-      if (!response.ok || !payload.suggestion) throw new Error(payload.error ?? "团队组建失败。");
+      if (!response.ok || !payload.suggestion) throw new Error(payload.error ?? text("agentTeam.form.messages.assemblyFailed"));
       updateAssemblyProgress(3, "done");
       if (payload.suggestion.newAgents.length) {
         setPendingAssembly(payload.suggestion);
         setAssemblyDialogOpen(false);
-        setMessage("默认模型认为现有 Agent 不完全够用，需要确认是否新增 Agent。");
+        setMessage(text("agentTeam.form.messages.newAgentsRequired"));
         return;
       }
       applyAssemblySuggestion(payload.suggestion);
       setAssemblyDialogOpen(false);
-      setMessage("已根据团队目标从现有 Agent 中完成团队组建。");
+      setMessage(text("agentTeam.form.messages.assemblyCompleted"));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "团队组建失败。");
+      setMessage(error instanceof Error ? error.message : text("agentTeam.form.messages.assemblyFailed"));
     } finally {
       setIsAssembling(false);
     }
@@ -439,7 +427,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     const agentId = crypto.randomUUID();
     const systemPrompt = draft.systemPrompt.trim();
     if (!systemPrompt) {
-      throw new Error(`新增 Agent ${draft.name} 缺少 systemPrompt，请重新组建或先手动创建 Agent。`);
+      throw new Error(text("agentTeam.form.messages.newAgentMissingSystemPrompt", undefined, { name: draft.name }));
     }
     const toolBindings: string[] = [];
     const tags = Array.from(new Set(["team-generated", ...(draft.tags ?? [])].map((tag) => tag.trim()).filter(Boolean)));
@@ -492,7 +480,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       }),
     });
     const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!response.ok || payload.ok === false) throw new Error(payload.error ?? `新增 Agent ${draft.name} 失败。`);
+    if (!response.ok || payload.ok === false) throw new Error(payload.error ?? text("agentTeam.form.messages.createAgentFailed", undefined, { name: draft.name }));
     return { tempId: draft.tempId, agent };
   }
 
@@ -508,10 +496,10 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       setAgentDefinitionOptions((current) => [...createdAgents.map((item) => item.agent), ...current]);
       applyAssemblySuggestion(pendingAssembly, createdAgents);
       setPendingAssembly(null);
-      setMessage(`已新增 ${createdAgents.length} 个 Agent，并完成团队组建。`);
+      setMessage(text("agentTeam.form.messages.createdAgentsAndAssembled", undefined, { count: createdAgents.length }));
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "新增 Agent 失败。");
+      setMessage(error instanceof Error ? error.message : text("agentTeam.form.messages.createAgentGenericFailed"));
     } finally {
       setIsCreatingAgents(false);
     }
@@ -521,7 +509,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     if (!pendingAssembly) return;
     applyAssemblySuggestion({ ...pendingAssembly, newAgents: [] });
     setPendingAssembly(null);
-    setMessage("已跳过新增，只使用现有 Agent 组建团队。");
+    setMessage(text("agentTeam.form.messages.existingAgentsOnly"));
   }
 
   async function optimizeTeam() {
@@ -533,7 +521,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           team: { ...form, workflowDefinitionJson: buildWorkflowDefinitionJson(), members },
-          optimizationGoal: "围绕当前团队目标优化团队定义，保留 TEAM.md 单文档形式，并强化 Leader 分派、成员职责和上下文隔离。",
+          optimizationGoal: text("agentTeam.form.optimizationGoal"),
         }),
       });
       const payload = (await response.json()) as {
@@ -552,7 +540,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         };
         error?: string;
       };
-      if (!response.ok || !payload.suggestion) throw new Error(payload.error ?? "团队配置优化失败。");
+      if (!response.ok || !payload.suggestion) throw new Error(payload.error ?? text("agentTeam.form.messages.optimizeFailed"));
       const suggestion = payload.suggestion;
       setForm((current) => ({
         ...current,
@@ -574,7 +562,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             : agentDefinitionOptions.slice(0, Math.min(3, agentDefinitionOptions.length)).map((definition, index) => ({
                 ...newMemberDraft(definition.id),
                 memberRole: definition.role || `member-${index + 1}`,
-                workInstruction: "根据团队目标完成分派任务。",
+                workInstruction: text("agentTeam.form.defaults.memberWorkInstruction"),
                 position: index,
               }));
           return base.map((member, index) => ({
@@ -585,9 +573,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
           }));
         });
       }
-      setMessage("已用默认模型优化团队配置。");
+      setMessage(text("agentTeam.form.messages.optimized"));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "团队配置优化失败。");
+      setMessage(error instanceof Error ? error.message : text("agentTeam.form.messages.optimizeFailed"));
     } finally {
       setIsOptimizing(false);
     }
@@ -613,22 +601,22 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
     if (!form.name.trim()) {
       setIsSaving(false);
-      setMessage("名称不能为空。");
+      setMessage(text("agentTeam.form.validation.nameRequired"));
       return null;
     }
     if (!form.businessTeamId.trim()) {
       setIsSaving(false);
-      setMessage("请选择业务团队。");
+      setMessage(text("agentTeam.form.validation.businessTeamRequired"));
       return null;
     }
     if (normalizedMembers.length === 0) {
       setIsSaving(false);
-      setMessage("请至少选择一个 Agent 成员。");
+      setMessage(text("agentTeam.form.validation.memberRequired"));
       return null;
     }
     if (!selectedLeaderId) {
       setIsSaving(false);
-      setMessage("请选择 Agent 团队 Leader。");
+      setMessage(text("ui.common.agentTeamLeaderRequired"));
       return null;
     }
 
@@ -662,12 +650,12 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
     setIsSaving(false);
     const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
     if (!response.ok || payload.ok === false) {
-      setMessage(payload.error ?? "保存 Agent 团队失败。");
+      setMessage(payload.error ?? text("agentTeam.form.messages.saveFailed"));
       return null;
     }
 
     setForm((current) => ({ ...current, id: teamId }));
-    setMessage("已保存。");
+    setMessage(text("common.messages.saved"));
     if (closeAfterSave) props.onSaved?.();
     router.refresh();
     return teamId;
@@ -691,11 +679,11 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         body: JSON.stringify({ teamId }),
       });
       const payload = (await response.json()) as { sessionId?: string; error?: string };
-      if (!response.ok || !payload.sessionId) throw new Error(payload.error ?? "创建任务会话失败。");
+      if (!response.ok || !payload.sessionId) throw new Error(payload.error ?? text("agentTeam.form.messages.createSessionFailed"));
       router.push(`/interactions/${payload.sessionId}`);
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "创建任务会话失败。");
+      setMessage(error instanceof Error ? error.message : text("agentTeam.form.messages.createSessionFailed"));
     } finally {
       setIsLaunching(false);
     }
@@ -712,9 +700,9 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <Users className="h-4 w-4" />
-                团队编队
+                agentTeam.form.formation.title
               </div>
-              <div className="mt-1 text-xs text-[var(--ink-muted)]">点击成员配置单个 Agent；点击空白区域配置团队。</div>
+              <div className="mt-1 text-xs text-[var(--ink-muted)]">agentTeam.form.formation.description</div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -728,7 +716,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 disabled={isAssembling || isCreatingAgents}
               >
                 <Sparkles className="h-4 w-4" />
-                {isAssembling ? "组建中" : "团队组建"}
+                {isAssembling ? "agentTeam.form.actions.assembling" : "agentTeam.form.actions.assembleTeam"}
               </Button>
               <Button
                 type="button"
@@ -743,7 +731,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 }}
               >
                 <Plus className="h-4 w-4" />
-                添加成员
+                agentTeam.form.actions.addMember
               </Button>
             </div>
           </div>
@@ -770,24 +758,26 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                   <PixelAgentAvatar
                     config={parsePixelAgentAvatarConfig(agent?.avatarConfigJson, `${agent?.name ?? member.memberRole}-${index}`)}
                     capabilityProfile={capability}
+                    seed={`${agent?.id ?? member.id}:${agent?.name ?? member.memberRole}:${index}`}
+                    roleSlot={index}
                     size="team"
                     className="mx-auto"
                   />
-                  <div className="flex h-6 w-full items-center justify-center truncate text-xs font-semibold text-[var(--ink)]">{agent?.name ?? "未选择 Agent"}</div>
+                  <div className="flex h-6 w-full items-center justify-center truncate text-xs font-semibold text-[var(--ink)]">{agent?.name ?? text("agentTeam.form.empty.unselectedAgent")}</div>
                   <div className="h-[66px] w-full rounded-[8px] bg-[var(--surface-muted)] px-2 py-1 text-left">
-                    <div className="text-[10px] font-medium uppercase text-[var(--ink-subtle)]">角色</div>
+                    <div className="text-[10px] font-medium uppercase text-[var(--ink-subtle)]">agentTeam.form.fields.role</div>
                     <div
                       className="mt-0.5 overflow-hidden break-words text-[11px] font-medium leading-4 text-[var(--ink)]"
                       style={{ display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: 2 }}
                     >
                       {member.memberRole}
                     </div>
-                    <div className="mt-1 text-[11px] text-[var(--ink-muted)]">武器 · {weapon}</div>
+                    <div className="mt-1 text-[11px] text-[var(--ink-muted)]">{text("agent.capability.weaponPrefix")} {text(weapon)}</div>
                   </div>
                 </button>
               );
             }) : (
-              <div className="max-w-sm text-center text-sm text-[var(--ink-muted)]">还没有成员。可以先填写团队目标，再用团队组建从现有 Agent 中自动选人。</div>
+              <div className="max-w-sm text-center text-sm text-[var(--ink-muted)]">agentTeam.form.empty.members</div>
             )}
           </div>
         </section>
@@ -795,26 +785,26 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         <aside className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
             {selectedMember ? <Bot className="h-4 w-4" /> : <Users className="h-4 w-4" />}
-            {selectedMember ? "成员配置" : "团队配置"}
+            {selectedMember ? "agentTeam.form.memberConfig.title" : "agentTeam.form.teamConfig.title"}
           </div>
           <div className="mt-1 text-xs text-[var(--ink-muted)]">
-            {selectedMember ? "修改当前成员的 Agent、角色和工作指令。" : "修改团队身份、归属和整体目标。"}
+            {selectedMember ? "agentTeam.form.memberConfig.description" : "agentTeam.form.teamConfig.description"}
           </div>
 
           {selectedMember ? (
             <div className="mt-4 space-y-3">
               <FieldGroup label="Agent">
                 <Select value={selectedMember.agentDefinitionId} onChange={(event) => updateMember(selectedMember.id, { agentDefinitionId: event.target.value })}>
-                  <option value="">请选择 Agent</option>
+                  <option value="">agentTeam.form.empty.selectAgent</option>
                   {agentDefinitionOptions.map((agent) => (
                     <option key={agent.id} value={agent.id}>{agent.name}</option>
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="角色">
+              <FieldGroup label="agentTeam.form.fields.role">
                 <Input value={selectedMember.memberRole} onChange={(event) => updateMember(selectedMember.id, { memberRole: event.target.value })} />
               </FieldGroup>
-              <FieldGroup label="工作指令">
+              <FieldGroup label="agentTeam.form.fields.workInstruction">
                 <Textarea value={selectedMember.workInstruction} onChange={(event) => updateMember(selectedMember.id, { workInstruction: event.target.value })} rows={5} />
               </FieldGroup>
               <div className="flex items-center justify-between gap-3">
@@ -832,13 +822,13 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                   }}
                 >
                   <Trash2 className="h-4 w-4" />
-                  移除
+                  actions.remove
                 </Button>
               </div>
             </div>
           ) : (
             <div className="mt-4 space-y-3">
-              <FieldGroup label="团队名称">
+              <FieldGroup label="agentTeam.form.fields.teamName">
                 <Input
                   value={form.name}
                   onChange={(event) =>
@@ -848,18 +838,18 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                       slug: current.id ? current.slug : slugify(event.target.value),
                     }))
                   }
-                  placeholder="目标执行小队"
+                  placeholder="agentTeam.form.placeholders.teamName"
                 />
               </FieldGroup>
-              <FieldGroup label="业务团队">
+              <FieldGroup label="terminology.businessTeam">
                 <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value })}>
-                  <option value="">请选择</option>
+                  <option value="">common.select.placeholder</option>
                   {props.businessTeamOptions.map((team) => (
                     <option key={team.id} value={team.id}>{team.name}</option>
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label="目标">
+              <FieldGroup label="agentTeam.form.fields.objective">
                 <Textarea value={form.teamObjective} onChange={(event) => setForm({ ...form, teamObjective: event.target.value })} rows={5} />
               </FieldGroup>
             </div>
@@ -868,12 +858,12 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       </div>
 
       <details className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4" open>
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">TEAM.md <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">团队定义与协作原则</span></summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">TEAM.md <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">agentTeam.form.sections.teamSoul.description</span></summary>
         <div className="mt-4 space-y-3">
           <div className="flex justify-end">
             <Button type="button" size="sm" variant="secondary" onClick={optimizeTeam} disabled={isOptimizing}>
               <Sparkles className="h-4 w-4" />
-              {isOptimizing ? "优化中" : "AI 优化"}
+              {isOptimizing ? "agentTeam.form.actions.optimizing" : "agentTeam.form.actions.aiOptimize"}
             </Button>
           </div>
           <Textarea className="min-h-[300px] font-mono text-xs leading-5" value={form.orchestrationPrompt} onChange={(event) => setForm({ ...form, orchestrationPrompt: event.target.value })} />
@@ -881,60 +871,60 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       </details>
 
       <details className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">基础与运行配置 <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">Slug、可见性、工作流和执行策略</span></summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">agentTeam.form.sections.runtime.title <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">agentTeam.form.sections.runtime.description</span></summary>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <FieldGroup label="Slug"><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: slugify(event.target.value) })} /></FieldGroup>
-          <FieldGroup label="默认执行策略">
+          <FieldGroup label="agentTeam.form.fields.defaultExecutionPolicy">
             <Select value={form.defaultExecutionPolicyId} onChange={(event) => setForm({ ...form, defaultExecutionPolicyId: event.target.value })}>
-              <option value="">不绑定</option>
+              <option value="">common.select.none</option>
               {props.executionPolicyOptions.map((policy) => <option key={policy.id} value={policy.id}>{policy.name}</option>)}
             </Select>
           </FieldGroup>
-          <FieldGroup label="工作流类型">
+          <FieldGroup label="agentTeam.form.fields.workflowType">
             <Select value={form.workflowType} onChange={(event) => setForm({ ...form, workflowType: event.target.value })}>
-              <option value="parallel">并行</option>
-              <option value="sequential">串行</option>
+              <option value="parallel">labels.workflow.parallel</option>
+              <option value="sequential">labels.workflow.sequential</option>
               <option value="dag">DAG</option>
-              <option value="hierarchical">分层</option>
+              <option value="hierarchical">agentTeam.form.workflow.hierarchical</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="可见性">
+          <FieldGroup label="common.fields.visibility">
             <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
-              <option value="team">团队可见</option>
-              <option value="global">全局可见</option>
-              <option value="personal">个人可见</option>
-              <option value="public">公开</option>
+              <option value="team">labels.visibility.team</option>
+              <option value="global">labels.visibility.global</option>
+              <option value="personal">labels.visibility.personal</option>
+              <option value="public">labels.visibility.public</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="团队结构">
+          <FieldGroup label="agentTeam.form.fields.teamStructure">
             <Select value={form.teamStructure} onChange={(event) => setForm({ ...form, teamStructure: event.target.value })}>
               <option value="leader_worker">Leader / Worker</option>
-              <option value="collaborative">协同</option>
-              <option value="inspector_publisher">检查 / 发布</option>
-              <option value="custom">自定义</option>
+              <option value="collaborative">agentTeam.form.teamStructure.collaborative</option>
+              <option value="inspector_publisher">agentTeam.form.teamStructure.inspectorPublisher</option>
+              <option value="custom">agentTeam.form.teamStructure.custom</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="最大并发"><Input value={form.maxConcurrency} onChange={(event) => setForm({ ...form, maxConcurrency: event.target.value })} type="number" /></FieldGroup>
-          <FieldGroup label="超时分钟"><Input value={form.timeoutMinutes} onChange={(event) => setForm({ ...form, timeoutMinutes: event.target.value })} type="number" /></FieldGroup>
-          <FieldGroup label="成功率阈值"><Input value={form.successRateThreshold} onChange={(event) => setForm({ ...form, successRateThreshold: event.target.value })} type="number" /></FieldGroup>
-          <FieldGroup label="拆分策略"><Input value={form.splitStrategy} onChange={(event) => setForm({ ...form, splitStrategy: event.target.value })} /></FieldGroup>
-          <FieldGroup label="说明" className="md:col-span-2 xl:col-span-3">
+          <FieldGroup label="agentTeam.form.fields.maxConcurrency"><Input value={form.maxConcurrency} onChange={(event) => setForm({ ...form, maxConcurrency: event.target.value })} type="number" /></FieldGroup>
+          <FieldGroup label="agentTeam.form.fields.timeoutMinutes"><Input value={form.timeoutMinutes} onChange={(event) => setForm({ ...form, timeoutMinutes: event.target.value })} type="number" /></FieldGroup>
+          <FieldGroup label="agentTeam.form.fields.successRateThreshold"><Input value={form.successRateThreshold} onChange={(event) => setForm({ ...form, successRateThreshold: event.target.value })} type="number" /></FieldGroup>
+          <FieldGroup label="agentTeam.form.fields.splitStrategy"><Input value={form.splitStrategy} onChange={(event) => setForm({ ...form, splitStrategy: event.target.value })} /></FieldGroup>
+          <FieldGroup label="common.fields.description" className="md:col-span-2 xl:col-span-3">
             <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} />
           </FieldGroup>
         </div>
       </details>
 
       <details className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">共享权限 <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">跨业务团队访问范围</span></summary>
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">agentTeam.form.sections.sharing.title <span className="ml-2 text-xs font-normal text-[var(--ink-muted)]">agentTeam.form.sections.sharing.description</span></summary>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {props.businessTeamOptions.map((team) => (
             <label key={team.id} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm">
               <span>{team.name}</span>
               <Select className="w-32" value={shareMap[team.id] ?? ""} onChange={(event) => setShareMap((current) => ({ ...current, [team.id]: event.target.value }))}>
-                <option value="">不共享</option>
-                <option value="viewer">查看</option>
-                <option value="operator">运行</option>
-                <option value="editor">编辑</option>
+                <option value="">agentTeam.form.sharing.notShared</option>
+                <option value="viewer">actions.view</option>
+                <option value="operator">agentTeam.form.sharing.operator</option>
+                <option value="editor">actions.edit</option>
               </Select>
             </label>
           ))}
@@ -949,24 +939,24 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       >
         <DialogContent className="w-[min(94vw,720px)]">
           <DialogHeader>
-            <DialogTitle>团队意图发现与组建</DialogTitle>
-            <DialogDescription>先明确团队意图，再让默认模型扫描 Agent 能力并生成成员编队。</DialogDescription>
+            <DialogTitle>agentTeam.form.assembly.dialogTitle</DialogTitle>
+            <DialogDescription>agentTeam.form.assembly.dialogDescription</DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-4">
-            <FieldGroup label="团队意图">
+            <FieldGroup label="agentTeam.form.assembly.intentLabel">
               <Textarea
                 value={assemblyIntent}
                 onChange={(event) => setAssemblyIntent(event.target.value)}
                 rows={5}
                 disabled={isAssembling}
-                placeholder="例如：组建一个可以拆解需求、修改代码、验证结果并输出 PR 说明的研发执行团队。"
+                placeholder="agentTeam.form.assembly.intentPlaceholder"
               />
             </FieldGroup>
 
             <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                 <Target className="h-4 w-4" />
-                初步进度
+                agentTeam.form.assembly.progressTitle
               </div>
               <div className="mt-3 grid gap-2">
                 {assemblyProgress.map((step) => (
@@ -981,8 +971,8 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[var(--ink)]">{step.label}</div>
-                      <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{step.description}</div>
+                      <div className="text-sm font-medium text-[var(--ink)]">{text(step.label)}</div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">{text(step.description)}</div>
                     </div>
                   </div>
                 ))}
@@ -991,11 +981,11 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setAssemblyDialogOpen(false)} disabled={isAssembling}>
-                取消
+                actions.cancel
               </Button>
               <Button type="button" variant="primary" onClick={() => void assembleTeam()} disabled={isAssembling}>
                 <Sparkles className="h-4 w-4" />
-                {isAssembling ? "组建中" : "开始组建"}
+                {isAssembling ? "agentTeam.form.actions.assembling" : "agentTeam.form.actions.startAssembly"}
               </Button>
             </div>
           </DialogBody>
@@ -1010,8 +1000,8 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       >
         <DialogContent className="w-[min(94vw,760px)]">
           <DialogHeader>
-            <DialogTitle>确认新增 Agent</DialogTitle>
-            <DialogDescription>默认模型认为当前目标需要补齐能力。确认后才会新增 Agent；取消新增时只使用现有成员组建团队。</DialogDescription>
+            <DialogTitle>agentTeam.form.newAgents.dialogTitle</DialogTitle>
+            <DialogDescription>agentTeam.form.newAgents.dialogDescription</DialogDescription>
           </DialogHeader>
           <DialogBody className="space-y-4">
             {pendingAssembly ? (
@@ -1019,7 +1009,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 <div className="rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Users className="h-4 w-4" />
-                    已选现有 Agent
+                    agentTeam.form.newAgents.selectedExistingTitle
                   </div>
                   <div className="mt-3 grid gap-2">
                     {pendingAssembly.selectedMembers.length ? pendingAssembly.selectedMembers.map((member) => {
@@ -1032,7 +1022,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                         </div>
                       );
                     }) : (
-                      <div className="rounded-lg bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">没有找到足够合适的现有 Agent。</div>
+                      <div className="rounded-lg bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">agentTeam.form.newAgents.noExistingAgents</div>
                     )}
                   </div>
                 </div>
@@ -1040,7 +1030,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                 <div className="rounded-xl border border-[rgba(245,158,11,0.35)] bg-[rgba(245,158,11,0.08)] p-4">
                   <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <AlertTriangle className="h-4 w-4 text-[rgb(180,83,9)]" />
-                    将新增的 Agent
+                    agentTeam.form.newAgents.toCreateTitle
                   </div>
                   <div className="mt-3 grid gap-2">
                     {pendingAssembly.newAgents.map((agent) => (
@@ -1061,15 +1051,15 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
 
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button type="button" variant="ghost" onClick={useExistingAgentsOnly} disabled={isCreatingAgents}>
-                    只用现有 Agent
+                    agentTeam.form.actions.useExistingAgentsOnly
                   </Button>
                   <Button type="button" variant="primary" onClick={confirmAssemblyWithNewAgents} disabled={isCreatingAgents || !form.businessTeamId}>
                     <UserPlus className="h-4 w-4" />
-                    {isCreatingAgents ? "新增中" : "确认新增并组建"}
+                    {isCreatingAgents ? "agentTeam.form.actions.creatingAgents" : "agentTeam.form.actions.confirmCreateAgents"}
                   </Button>
                 </div>
                 {!form.businessTeamId ? (
-                  <div className="text-xs text-[var(--danger)]">请先选择业务团队，新增 Agent 需要归属团队。</div>
+                  <div className="text-xs text-[var(--danger)]">agentTeam.form.validation.businessTeamRequiredForNewAgent</div>
                 ) : null}
               </>
             ) : null}
@@ -1081,10 +1071,10 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="secondary" onClick={launchCodeReviewSession} disabled={isSaving || isLaunching}>
           <ClipboardList className="h-4 w-4" />
-          {isLaunching ? "创建中" : "生成任务并开启会话"}
+          {isLaunching ? "agentTeam.form.actions.creating" : "agentTeam.form.actions.launchSession"}
         </Button>
         <Button variant="primary" onClick={save} disabled={isSaving || isLaunching}>
-          {isSaving ? "保存中" : "保存团队"}
+          {isSaving ? "actions.saving" : "agentTeam.form.actions.saveTeam"}
         </Button>
       </div>
     </div>

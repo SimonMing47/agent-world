@@ -1,0 +1,54 @@
+{
+  "layers": [
+    {
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    }
+  ]
+}

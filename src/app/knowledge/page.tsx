@@ -92,6 +92,23 @@ export default async function KnowledgePage() {
   const todayEntryCount = allEntries.filter((entry) => isSameDay(entry.createdAt, now)).length;
   const uniqueConsumers = new Set(bindings.map((binding) => `${binding.targetType}:${binding.targetId}`)).size;
   const foundationStatus = getKnowledgeFoundationStatus();
+  const foundationStatusLabelKey =
+    foundationStatus.state === "enabled"
+      ? "settings.knowledgeBase.status.enabled"
+      : foundationStatus.state === "pending_api_key"
+        ? "settings.knowledgeBase.status.apiKeyRequired"
+        : "settings.knowledgeBase.status.unconfigured";
+  const foundationDetailKey =
+    foundationStatus.state === "enabled"
+      ? "settings.knowledgeBase.messages.foundationReady"
+      : foundationStatus.state === "pending_api_key"
+        ? "settings.knowledgeBase.warnings.apiKeyMissing"
+        : "settings.knowledgeBase.warnings.foundationMissing";
+  const foundationLabel = t(foundationStatusLabelKey);
+  const foundationDetail = t(foundationDetailKey);
+  const foundationModelDetail = foundationStatus.model
+    ? `${foundationStatus.model} · ${foundationStatus.provider || t("settings.knowledgeBase.status.unconfigured")}`
+    : "";
 
   const tenantNameById = new Map(visibleTenantSpaces.map((space) => [space.id, space.name]));
   const businessTeamById = new Map(businessTeams.map((team) => [team.id, team]));
@@ -134,7 +151,7 @@ export default async function KnowledgePage() {
 
   const notebookSpaces: KnowledgeNotebookSpace[] = spaces.map((space) => {
     const teamName = space.businessTeamId ? businessTeamById.get(space.businessTeamId)?.name : null;
-    const tenantName = tenantNameById.get(space.tenantSpaceId) ?? t("overview.common.empty", "未配置");
+    const tenantName = tenantNameById.get(space.tenantSpaceId) ?? t("overview.common.empty");
     const agentTeamName = space.agentTeamId ? agentTeamById.get(space.agentTeamId)?.name : null;
     const consumers = (consumerGroups.get(space.id) ?? []).sort((left, right) => left.loadOrder - right.loadOrder);
     const consumerName = consumers[0]?.name;
@@ -142,7 +159,7 @@ export default async function KnowledgePage() {
     return {
       ...space,
       tenantName,
-      ownerName: teamName ?? agentTeamName ?? consumerName ?? space.projectKey ?? t("knowledge.spaces.unscoped", "未绑定"),
+      ownerName: teamName ?? agentTeamName ?? consumerName ?? space.projectKey ?? t("knowledge.spaces.unscoped"),
       entryCount: entriesBySpaceId.get(space.id) ?? 0,
     };
   });
@@ -179,25 +196,25 @@ export default async function KnowledgePage() {
   }));
   const metrics: KnowledgeWorkspaceMetric[] = [
     {
-      label: t("knowledge.metrics.spaceCount", "知识空间"),
+      label: t("knowledge.metrics.spaceCount"),
       value: spaces.length,
       detail: t("knowledge.metrics.spaceCountDetail", undefined, {
         count: businessTeams.filter((team) => spaces.some((space) => space.businessTeamId === team.id)).length,
       }),
     },
     {
-      label: t("knowledge.metrics.entryCount", "知识条目"),
+      label: t("knowledge.metrics.entryCount"),
       value: allEntries.length,
       detail: t("knowledge.metrics.entryCountDetail", undefined, { count: todayEntryCount }),
       tone: "accent",
     },
     {
-      label: t("knowledge.metrics.capacity", "内容容量"),
+      label: t("knowledge.metrics.capacity"),
       value: formatBytes(totalBytes),
-      detail: t("knowledge.metrics.capacityDetail", "按当前知识条目的正文规模统计"),
+      detail: t("knowledge.metrics.capacityDetail"),
     },
     {
-      label: t("knowledge.metrics.consumerCount", "绑定使用者"),
+      label: t("knowledge.metrics.consumerCount"),
       value: uniqueConsumers,
       detail: t("knowledge.metrics.consumerCountDetail", undefined, {
         status: snapshot.process.status || "offline",
@@ -209,25 +226,25 @@ export default async function KnowledgePage() {
   return (
     <div className="flex min-h-full flex-col gap-4">
       <PageHeader
-        eyebrow="ui.generated.c1dda51f9e3"
-        title="knowledge.page.title"
-        description="knowledge.page.description"
+        eyebrow="terminology.knowledge"
+        title="nav.knowledge.label"
+        description="nav.knowledge.description"
         className="pb-1"
         badges={[
           {
-            label: snapshot.health.ok ? "knowledge.status.connected" : "knowledge.status.degraded",
+            label: `OpenViking ${t(snapshot.health.ok ? "labels.status.healthy" : "labels.status.degraded")}`,
             variant: snapshot.health.ok ? "success" : "warning",
           },
-          { label: `${spaces.length} ${t("ui.common.count.knowledgeSpaces", "个知识空间")}`, variant: "accent" },
+          { label: `${spaces.length} ${t("ui.common.count.knowledgeSpaces")}`, variant: "accent" },
           {
-            label: `内容理解：${foundationStatus.label}`,
+            label: `${t("settings.knowledgeBase.knowledgeFoundation.label")}: ${foundationLabel}`,
             variant: foundationStatus.state === "enabled" ? "success" : "warning",
           },
         ]}
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild size="md" variant="secondary">
-              <Link href="/skills">knowledge.page.skillAction</Link>
+              <Link href="/skills">nav.skills.label</Link>
             </Button>
             <KnowledgeSpaceForm
               tenantSpaces={tenantSpaceOptions}
@@ -246,10 +263,12 @@ export default async function KnowledgePage() {
             : "border-[#fde68a] bg-[#fffbeb] text-[#713f12]",
         ].join(" ")}
       >
-        <div className="font-semibold">内容理解知识底座 · {foundationStatus.label}</div>
+        <div className="font-semibold">
+          {t("settings.knowledgeBase.knowledgeFoundation.label")} · {foundationLabel}
+        </div>
         <div className="mt-1">
-          {foundationStatus.model ? `${foundationStatus.model} · ${foundationStatus.provider || "provider 未配置"}。` : ""}
-          {foundationStatus.detail}
+          {foundationModelDetail ? `${foundationModelDetail} ` : ""}
+          {foundationDetail}
         </div>
       </section>
 

@@ -1,0 +1,3577 @@
+{
+  "pack_name": "AgentWorld Download Pack v1",
+  "version": "1.0.0",
+  "canvas_recommendation": {
+    "cell_crop_size": "443x443 or 444x443 (from 1774x887 sprite sheets split into 4x2 grid)",
+    "sprite_usage": "These assets are currently delivered as sheet cells / references, not perfectly layered transparent cutouts.",
+    "recommended_final_character_canvas": "256x256 or 512x512",
+    "composition_order": [
+      "ground",
+      "side_prop",
+      "back_accessory",
+      "bottom",
+      "shoes",
+      "outfit_top",
+      "face",
+      "hair",
+      "headgear",
+      "hand_item"
+    ]
+  },
+  "notes": [
+    "本包主要用于给 AgentWorld 提供角色元素参考与组合元数据。",
+    "所有 sheet 都已按 4 列 x 2 行切成独立 cell 图片，放在 crops/ 目录下。",
+    "如果你后续要做真正逐层透明叠加，建议再做一次自动抠图或人工精修。",
+    "legacy/ 中保留了之前生成的 zip 与 json，方便回溯。"
+  ],
+  "layers": [
+    {
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    }
+  ],
+  "assets": [
+    {
+      "trait_id": "headgear.bandana_red_emblem.v1",
+      "name": "bandana_red_emblem",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/bandana_red_emblem_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.hood_green_trim.v1",
+      "name": "hood_green_trim",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/hood_green_trim_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.cap_goggles_red.v1",
+      "name": "cap_goggles_red",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/cap_goggles_red_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.hood_mage_blue.v1",
+      "name": "hood_mage_blue",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/hood_mage_blue_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.samurai_helmet_black_red.v1",
+      "name": "samurai_helmet_black_red",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/samurai_helmet_black_red_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.circlet_royal_red.v1",
+      "name": "circlet_royal_red",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/circlet_royal_red_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.trapper_fur_brown.v1",
+      "name": "trapper_fur_brown",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/trapper_fur_brown_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.visor_cyber_red.v1",
+      "name": "visor_cyber_red",
+      "category": "headgear",
+      "variant": "v1",
+      "sheet_file": "sheets/headgear_v1.png",
+      "crop_file": "crops/headgear/visor_cyber_red_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "hair.bob_plain.v1",
+      "name": "bob_plain",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/bob_plain_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.low_ponytail.v1",
+      "name": "low_ponytail",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/low_ponytail_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.low_bun.v1",
+      "name": "low_bun",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/low_bun_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.short_spiky.v1",
+      "name": "short_spiky",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/short_spiky_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.long_braid.v1",
+      "name": "long_braid",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/long_braid_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.medium_wavy.v1",
+      "name": "medium_wavy",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/medium_wavy_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.topknot.v1",
+      "name": "topknot",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/topknot_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.swept_cyber.v1",
+      "name": "swept_cyber",
+      "category": "hair",
+      "variant": "v1",
+      "sheet_file": "sheets/hair_v1.png",
+      "crop_file": "crops/hair/swept_cyber_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "face.neutral.v1",
+      "name": "neutral",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/neutral_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.stern.v1",
+      "name": "stern",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/stern_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.smirk.v1",
+      "name": "smirk",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/smirk_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.angry.v1",
+      "name": "angry",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/angry_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.surprised.v1",
+      "name": "surprised",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/surprised_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.wink.v1",
+      "name": "wink",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/wink_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.focused.v1",
+      "name": "focused",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/focused_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.happy_closed_eyes.v1",
+      "name": "happy_closed_eyes",
+      "category": "face",
+      "variant": "v1",
+      "sheet_file": "sheets/face_v1.png",
+      "crop_file": "crops/face/happy_closed_eyes_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "outfit_top.tunic_simple.v1",
+      "name": "tunic_simple",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/tunic_simple_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.jacket_mercenary.v1",
+      "name": "jacket_mercenary",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/jacket_mercenary_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.robe_scholar.v1",
+      "name": "robe_scholar",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/robe_scholar_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.coat_ranger.v1",
+      "name": "coat_ranger",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/coat_ranger_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.vest_engineer.v1",
+      "name": "vest_engineer",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/vest_engineer_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.coat_captain.v1",
+      "name": "coat_captain",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/coat_captain_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.wrap_nomad.v1",
+      "name": "wrap_nomad",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/wrap_nomad_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.jacket_cyber.v1",
+      "name": "jacket_cyber",
+      "category": "outfit_top",
+      "variant": "v1",
+      "sheet_file": "sheets/outfit_top_v1.png",
+      "crop_file": "crops/outfit_top/jacket_cyber_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "bottom.patched_pants.v1",
+      "name": "patched_pants",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/patched_pants_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.armored_greaves.v1",
+      "name": "armored_greaves",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/armored_greaves_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.robe_red_split.v1",
+      "name": "robe_red_split",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/robe_red_split_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.cargo_green.v1",
+      "name": "cargo_green",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/cargo_green_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.noble_black_trim.v1",
+      "name": "noble_black_trim",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/noble_black_trim_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.shorts_wrapped.v1",
+      "name": "shorts_wrapped",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/shorts_wrapped_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.hakama_dark.v1",
+      "name": "hakama_dark",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/hakama_dark_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.pants_cyber.v1",
+      "name": "pants_cyber",
+      "category": "bottom",
+      "variant": "v1",
+      "sheet_file": "sheets/bottom_v1.png",
+      "crop_file": "crops/bottom/pants_cyber_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "shoes.boots_brown.v1",
+      "name": "boots_brown",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/boots_brown_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.greaves_silver.v1",
+      "name": "greaves_silver",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/greaves_silver_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.shoes_green.v1",
+      "name": "shoes_green",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/shoes_green_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_fur.v1",
+      "name": "boots_fur",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/boots_fur_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_mage_purple.v1",
+      "name": "boots_mage_purple",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/boots_mage_purple_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_work_brown.v1",
+      "name": "boots_work_brown",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/boots_work_brown_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.sandals_wrap.v1",
+      "name": "sandals_wrap",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/sandals_wrap_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_cyber.v1",
+      "name": "boots_cyber",
+      "category": "shoes",
+      "variant": "v1",
+      "sheet_file": "sheets/shoes_v1.png",
+      "crop_file": "crops/shoes/boots_cyber_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "hand_item.sword_short.v1",
+      "name": "sword_short",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/sword_short_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.staff_red_gem.v1",
+      "name": "staff_red_gem",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/staff_red_gem_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.lantern_staff.v1",
+      "name": "lantern_staff",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/lantern_staff_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.wrench_tool.v1",
+      "name": "wrench_tool",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/wrench_tool_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.grimoire_red.v1",
+      "name": "grimoire_red",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/grimoire_red_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.spear_red_ribbon.v1",
+      "name": "spear_red_ribbon",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/spear_red_ribbon_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.pistol_steampunk.v1",
+      "name": "pistol_steampunk",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/pistol_steampunk_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.banner_red.v1",
+      "name": "banner_red",
+      "category": "hand_item",
+      "variant": "v1",
+      "sheet_file": "sheets/hand_item_v1.png",
+      "crop_file": "crops/hand_item/banner_red_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "side_prop.torch_stand.v1",
+      "name": "torch_stand",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/torch_stand_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.brazier_fire.v1",
+      "name": "brazier_fire",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/brazier_fire_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.lantern_post.v1",
+      "name": "lantern_post",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/lantern_post_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.crystal_blue.v1",
+      "name": "crystal_blue",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/crystal_blue_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.console_steam.v1",
+      "name": "console_steam",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/console_steam_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.banner_post.v1",
+      "name": "banner_post",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/banner_post_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.mushrooms_glow.v1",
+      "name": "mushrooms_glow",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/mushrooms_glow_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.stone_totem.v1",
+      "name": "stone_totem",
+      "category": "side_prop",
+      "variant": "v1",
+      "sheet_file": "sheets/side_prop_v1.png",
+      "crop_file": "crops/side_prop/stone_totem_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "ground.stone_dark.v1",
+      "name": "stone_dark",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/stone_dark_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.stone_moss.v1",
+      "name": "stone_moss",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/stone_moss_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.rocky_sand.v1",
+      "name": "rocky_sand",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/rocky_sand_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.wood_plank.v1",
+      "name": "wood_plank",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/wood_plank_v1.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.metal_plate.v1",
+      "name": "metal_plate",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/metal_plate_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.rune_cyan.v1",
+      "name": "rune_cyan",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/rune_cyan_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.ice_blue.v1",
+      "name": "ice_blue",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/ice_blue_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.lava_cracked.v1",
+      "name": "lava_cracked",
+      "category": "ground",
+      "variant": "v1",
+      "sheet_file": "sheets/ground_v1.png",
+      "crop_file": "crops/ground/lava_cracked_v1.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "headgear.tricorn_feather.v2",
+      "name": "tricorn_feather",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/tricorn_feather_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.hood_cleric_white.v2",
+      "name": "hood_cleric_white",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/hood_cleric_white_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.helmet_miner.v2",
+      "name": "helmet_miner",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/helmet_miner_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.turban_desert.v2",
+      "name": "turban_desert",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/turban_desert_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.cap_captain.v2",
+      "name": "cap_captain",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/cap_captain_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.crown_druid_antlers.v2",
+      "name": "crown_druid_antlers",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/crown_druid_antlers_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.mask_kitsune.v2",
+      "name": "mask_kitsune",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/mask_kitsune_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "headgear.hood_cyber.v2",
+      "name": "hood_cyber",
+      "category": "headgear",
+      "variant": "v2",
+      "sheet_file": "sheets/headgear_v2.png",
+      "crop_file": "crops/headgear/hood_cyber_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "headgear",
+      "z_index": 90,
+      "description": "帽子/头盔/头饰"
+    },
+    {
+      "trait_id": "hair.high_ponytail_red.v2",
+      "name": "high_ponytail_red",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/high_ponytail_red_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.twin_braids.v2",
+      "name": "twin_braids",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/twin_braids_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.bob_bangs.v2",
+      "name": "bob_bangs",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/bob_bangs_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.shoulder_straight.v2",
+      "name": "shoulder_straight",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/shoulder_straight_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.undercut_swept.v2",
+      "name": "undercut_swept",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/undercut_swept_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.messy_curly.v2",
+      "name": "messy_curly",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/messy_curly_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.short_sidebang.v2",
+      "name": "short_sidebang",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/short_sidebang_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "hair.low_ponytail_ribbon.v2",
+      "name": "low_ponytail_ribbon",
+      "category": "hair",
+      "variant": "v2",
+      "sheet_file": "sheets/hair_v2.png",
+      "crop_file": "crops/hair/low_ponytail_ribbon_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "hair",
+      "z_index": 80,
+      "description": "发型"
+    },
+    {
+      "trait_id": "face.laugh_open.v2",
+      "name": "laugh_open",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/laugh_open_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.smug_sideeye.v2",
+      "name": "smug_sideeye",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/smug_sideeye_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.worried.v2",
+      "name": "worried",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/worried_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.sleepy.v2",
+      "name": "sleepy",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/sleepy_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.shout.v2",
+      "name": "shout",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/shout_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.blush_smile.v2",
+      "name": "blush_smile",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/blush_smile_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.grin.v2",
+      "name": "grin",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/grin_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "face.sad.v2",
+      "name": "sad",
+      "category": "face",
+      "variant": "v2",
+      "sheet_file": "sheets/face_v2.png",
+      "crop_file": "crops/face/sad_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "face",
+      "z_index": 70,
+      "description": "面部表情"
+    },
+    {
+      "trait_id": "outfit_top.apron_blacksmith.v2",
+      "name": "apron_blacksmith",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/apron_blacksmith_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.robe_monk.v2",
+      "name": "robe_monk",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/robe_monk_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.coat_pirate.v2",
+      "name": "coat_pirate",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/coat_pirate_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.coat_healer.v2",
+      "name": "coat_healer",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/coat_healer_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.kimono_floral.v2",
+      "name": "kimono_floral",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/kimono_floral_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.armor_ranger.v2",
+      "name": "armor_ranger",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/armor_ranger_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.cloak_mage.v2",
+      "name": "cloak_mage",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/cloak_mage_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "outfit_top.jacket_tactical.v2",
+      "name": "jacket_tactical",
+      "category": "outfit_top",
+      "variant": "v2",
+      "sheet_file": "sheets/outfit_top_v2.png",
+      "crop_file": "crops/outfit_top/jacket_tactical_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "outfit_top",
+      "z_index": 60,
+      "description": "上衣/外套/斗篷"
+    },
+    {
+      "trait_id": "bottom.trousers_sash.v2",
+      "name": "trousers_sash",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/trousers_sash_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.robe_black_cross.v2",
+      "name": "robe_black_cross",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/robe_black_cross_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.pleated_hakama.v2",
+      "name": "pleated_hakama",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/pleated_hakama_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.patched_blue.v2",
+      "name": "patched_blue",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/patched_blue_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.wrapped_tan.v2",
+      "name": "wrapped_tan",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/wrapped_tan_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.ornate_purple.v2",
+      "name": "ornate_purple",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/ornate_purple_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.pants_heavy.v2",
+      "name": "pants_heavy",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/pants_heavy_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "bottom.pants_tech.v2",
+      "name": "pants_tech",
+      "category": "bottom",
+      "variant": "v2",
+      "sheet_file": "sheets/bottom_v2.png",
+      "crop_file": "crops/bottom/pants_tech_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "bottom",
+      "z_index": 40,
+      "description": "裤子/裙摆/下半身造型"
+    },
+    {
+      "trait_id": "shoes.sandals_brown.v2",
+      "name": "sandals_brown",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/sandals_brown_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_pirate_black.v2",
+      "name": "boots_pirate_black",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/boots_pirate_black_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_armor_silver.v2",
+      "name": "boots_armor_silver",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/boots_armor_silver_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.shoes_red_fancy.v2",
+      "name": "shoes_red_fancy",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/shoes_red_fancy_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_snow_fur.v2",
+      "name": "boots_snow_fur",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/boots_snow_fur_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.clogs_wood.v2",
+      "name": "clogs_wood",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/clogs_wood_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.wraps_cream.v2",
+      "name": "wraps_cream",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/wraps_cream_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "shoes.boots_future_purple.v2",
+      "name": "boots_future_purple",
+      "category": "shoes",
+      "variant": "v2",
+      "sheet_file": "sheets/shoes_v2.png",
+      "crop_file": "crops/shoes/boots_future_purple_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "shoes",
+      "z_index": 50,
+      "description": "鞋子/靴子"
+    },
+    {
+      "trait_id": "hand_item.hammer_war.v2",
+      "name": "hammer_war",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/hammer_war_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.scroll_sealed.v2",
+      "name": "scroll_sealed",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/scroll_sealed_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.staff_purple_orb.v2",
+      "name": "staff_purple_orb",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/staff_purple_orb_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.pickaxe.v2",
+      "name": "pickaxe",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/pickaxe_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.fan_red.v2",
+      "name": "fan_red",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/fan_red_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.crossbow_hand.v2",
+      "name": "crossbow_hand",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/crossbow_hand_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.staff_key.v2",
+      "name": "staff_key",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/staff_key_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "hand_item.banner_blue.v2",
+      "name": "banner_blue",
+      "category": "hand_item",
+      "variant": "v2",
+      "sheet_file": "sheets/hand_item_v2.png",
+      "crop_file": "crops/hand_item/banner_blue_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "hand_item",
+      "z_index": 100,
+      "description": "手持武器/道具"
+    },
+    {
+      "trait_id": "back_accessory.backpack_small.v2",
+      "name": "backpack_small",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/backpack_small_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.quiver_pack.v2",
+      "name": "quiver_pack",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/quiver_pack_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.cape_red.v2",
+      "name": "cape_red",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/cape_red_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.mantle_fur.v2",
+      "name": "mantle_fur",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/mantle_fur_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.jetpack_dual.v2",
+      "name": "jetpack_dual",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/jetpack_dual_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.scroll_pack.v2",
+      "name": "scroll_pack",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/scroll_pack_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.wings_crystal.v2",
+      "name": "wings_crystal",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/wings_crystal_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "back_accessory.banner_back.v2",
+      "name": "banner_back",
+      "category": "back_accessory",
+      "variant": "v2",
+      "sheet_file": "sheets/back_accessory_v2.png",
+      "crop_file": "crops/back_accessory/banner_back_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "back_accessory",
+      "z_index": 30,
+      "description": "背部挂件/披风/喷气背包/旗帜"
+    },
+    {
+      "trait_id": "side_prop.chest_gold.v2",
+      "name": "chest_gold",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/chest_gold_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.herbs_planter.v2",
+      "name": "herbs_planter",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/herbs_planter_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.obelisk_rune.v2",
+      "name": "obelisk_rune",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/obelisk_rune_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.mailbox_red.v2",
+      "name": "mailbox_red",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/mailbox_red_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.lectern_book.v2",
+      "name": "lectern_book",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/lectern_book_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.forge_anvil.v2",
+      "name": "forge_anvil",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/forge_anvil_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.drone_pad.v2",
+      "name": "drone_pad",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/drone_pad_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "side_prop.hourglass.v2",
+      "name": "hourglass",
+      "category": "side_prop",
+      "variant": "v2",
+      "sheet_file": "sheets/side_prop_v2.png",
+      "crop_file": "crops/side_prop/hourglass_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "side_prop",
+      "z_index": 20,
+      "description": "角色旁边的环境物件/展示道具"
+    },
+    {
+      "trait_id": "ground.swamp_mud.v2",
+      "name": "swamp_mud",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/swamp_mud_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.marble_white.v2",
+      "name": "marble_white",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/marble_white_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.carpet_red.v2",
+      "name": "carpet_red",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/carpet_red_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.ruins_column.v2",
+      "name": "ruins_column",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/ruins_column_v2.png",
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.grate_rust.v2",
+      "name": "grate_rust",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/grate_rust_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.bamboo_platform.v2",
+      "name": "bamboo_platform",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/bamboo_platform_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.magic_purple.v2",
+      "name": "magic_purple",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/magic_purple_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    },
+    {
+      "trait_id": "ground.leaves_autumn.v2",
+      "name": "leaves_autumn",
+      "category": "ground",
+      "variant": "v2",
+      "sheet_file": "sheets/ground_v2.png",
+      "crop_file": "crops/ground/leaves_autumn_v2.png",
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows_total": 2,
+        "cols_total": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "layer": "ground",
+      "z_index": 10,
+      "description": "角色脚下地面/平台"
+    }
+  ]
+}

@@ -106,11 +106,11 @@ export function KnowledgeSpaceForm({
         }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "保存空间失败");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("knowledge.spaceForm.errors.saveFailed"));
       setOpen(false);
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "保存空间失败");
+      setErrorMessage(error instanceof Error ? error.message : text("knowledge.spaceForm.errors.saveFailed"));
     } finally {
       setPending(false);
     }
@@ -138,15 +138,15 @@ export function KnowledgeSpaceForm({
         <DialogBody>
           <form action={submit} className="grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <FieldGroup label={text("common.fields.name", "名称")}>
-                <Input name="name" required defaultValue={space?.name} placeholder={text("common.placeholders.name", "输入名称")} />
+              <FieldGroup label={text("common.fields.name")}>
+                <Input name="name" required defaultValue={space?.name} placeholder={text("common.placeholders.name")} />
               </FieldGroup>
               <FieldGroup label="Slug">
                 <Input name="slug" defaultValue={space?.slug} placeholder="slug" />
               </FieldGroup>
               <FieldGroup label={text("terminology.tenantSpace")}>
                 <Select value={tenantSpaceId} onChange={(event) => setTenantSpaceId(event.target.value)}>
-                  <option value="">{text("common.select.placeholder", "请选择")}</option>
+                  <option value="">{text("common.select.placeholder")}</option>
                   {tenantSpaces.map((spaceOption) => (
                     <option key={spaceOption.id} value={spaceOption.id}>
                       {spaceOption.name}
@@ -154,17 +154,17 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label={text("knowledge.fields.spaceType", "知识空间类型")}>
+              <FieldGroup label={text("knowledge.fields.spaceType")}>
                 <Select value={spaceType} onChange={(event) => setSpaceType(event.target.value)}>
-                  <option value="global">{text("ui.common.knowledgeType.global", "全局")}</option>
-                  <option value="team">{text("ui.common.knowledgeType.team", "团队")}</option>
-                  <option value="project">{text("ui.common.knowledgeType.project", "项目")}</option>
-                  <option value="agent_team">{text("ui.common.knowledgeType.agentTeam", "Agent 团队")}</option>
+                  <option value="global">{text("ui.common.knowledgeType.global")}</option>
+                  <option value="team">{text("ui.common.knowledgeType.team")}</option>
+                  <option value="project">{text("ui.common.knowledgeType.project")}</option>
+                  <option value="agent_team">{text("ui.common.knowledgeType.agentTeam")}</option>
                 </Select>
               </FieldGroup>
               <FieldGroup label={text("terminology.businessTeam")}>
                 <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>
-                  <option value="">{text("common.select.placeholder", "请选择")}</option>
+                  <option value="">{text("common.select.placeholder")}</option>
                   {businessTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -174,7 +174,7 @@ export function KnowledgeSpaceForm({
               </FieldGroup>
               <FieldGroup label={text("terminology.agentTeam")}>
                 <Select name="agentTeamId" disabled={spaceType !== "agent_team"} defaultValue={space?.agentTeamId ?? ""}>
-                  <option value="">{text("common.select.none", "不绑定")}</option>
+                  <option value="">{text("common.select.none")}</option>
                   {availableAgentTeams.map((team) => (
                     <option key={team.id} value={team.id}>
                       {team.name}
@@ -182,17 +182,17 @@ export function KnowledgeSpaceForm({
                   ))}
                 </Select>
               </FieldGroup>
-              <FieldGroup label={text("knowledge.fields.projectKey", "项目标识")}>
-                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder={text("knowledge.fields.projectKey", "项目标识")} />
+              <FieldGroup label={text("knowledge.fields.projectKey")}>
+                <Input name="projectKey" disabled={spaceType !== "project"} defaultValue={space?.projectKey ?? ""} placeholder={text("knowledge.fields.projectKey")} />
               </FieldGroup>
-              <FieldGroup label={text("common.fields.visibility", "可见性")}>
+              <FieldGroup label={text("common.fields.visibility")}>
                 <Select name="visibility" defaultValue={space?.visibility ?? (spaceType === "global" ? "global" : "team")}>
                   <option value="global">{text("labels.visibility.global")}</option>
                   <option value="team">{text("labels.visibility.team")}</option>
                   <option value="private">{text("labels.visibility.private")}</option>
                 </Select>
               </FieldGroup>
-              <FieldGroup label={text("common.fields.status", "状态")}>
+              <FieldGroup label={text("common.fields.status")}>
                 <Select name="status" defaultValue={space?.status ?? "active"}>
                   <option value="active">{text("labels.status.active")}</option>
                   <option value="paused">{text("labels.status.paused")}</option>
@@ -200,15 +200,15 @@ export function KnowledgeSpaceForm({
                 </Select>
               </FieldGroup>
             </div>
-            <FieldGroup label={text("common.fields.description", "说明")}>
+            <FieldGroup label={text("common.fields.description")}>
               <Textarea
                 name="description"
                 rows={4}
                 defaultValue={space?.description}
-                placeholder={text("common.placeholders.description", "补充用途、边界与约束")}
+                placeholder={text("common.placeholders.description")}
               />
             </FieldGroup>
-            <FieldGroup label={text("knowledge.fields.retentionPolicy", "归档策略")}>
+            <FieldGroup label={text("knowledge.fields.retentionPolicy")}>
               <Textarea
                 name="retentionPolicyJson"
                 rows={4}
@@ -223,7 +223,7 @@ export function KnowledgeSpaceForm({
               >
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="min-w-0">
-                  <div className="font-semibold">保存空间失败</div>
+                  <div className="font-semibold">{text("knowledge.spaceForm.errors.saveFailed")}</div>
                   <div className="mt-1 leading-6">{errorMessage}</div>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { AgentCapabilityProfilePanel, AgentCapabilityRadar } from "@/components/
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { PixelAgentAvatar, PixelAgentAvatarEditor } from "@/components/pixel-agent-avatar";
 import { Select } from "@/components/ui/select";
@@ -18,7 +19,6 @@ import {
   type AgentCapabilityKey,
   type AgentCapabilityProfile,
 } from "@/lib/agent-capability-profile";
-import { uiText } from "@/lib/language-pack";
 import { parsePixelAgentAvatarConfig } from "@/lib/pixel-agent-avatar";
 
 type AgentDefinitionFormProps = {
@@ -121,20 +121,20 @@ function slugify(value: string) {
     .slice(0, 60);
 }
 
-const soulOptimizationGoal =
-  "基于当前 Agent 数据记录优化 systemPrompt/SOUL.md。只返回适合保存到 agent_definitions.system_prompt 的完整内容，不套用页面默认角色模板，不拆成 description 和 systemPrompt 两段。";
+const soulOptimizationGoalKey = "agentDefinition.optimize.goal";
 
 const workspaceToolOptions = [
-  { value: "search_repo", label: "Search Repo" },
-  { value: "read_file", label: "Read File" },
-  { value: "list_dir", label: "List Directory" },
+  { value: "search_repo", labelKey: "agentDefinition.tools.searchRepo" },
+  { value: "read_file", labelKey: "agentDefinition.tools.readFile" },
+  { value: "list_dir", labelKey: "agentDefinition.tools.listDirectory" },
 ];
 const registeredToolNames = new Set(workspaceToolOptions.map((tool) => tool.value));
 
 const capabilityScoreOptions = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
-function toolLabel(toolName: string) {
-  return workspaceToolOptions.find((tool) => tool.value === toolName)?.label ?? toolName;
+function toolLabel(toolName: string, text: ReturnType<typeof useLanguageText>) {
+  const option = workspaceToolOptions.find((tool) => tool.value === toolName);
+  return option ? text(option.labelKey) : toolName;
 }
 
 function registeredToolsOnly(values: string[]) {
@@ -205,6 +205,7 @@ function FormSection({
 
 export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -339,7 +340,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       JSON.parse(capabilityProfileJson);
     } catch {
       setIsSaving(false);
-      setMessage("capability_profile_json 必须是有效 JSON。");
+      setMessage(text("agentDefinition.errors.capabilityProfileJson"));
       return;
     }
     const definitionChanged =
@@ -417,7 +418,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         definition: buildDraftPayload(),
-        optimizationGoal: soulOptimizationGoal,
+        optimizationGoal: text(soulOptimizationGoalKey),
       }),
     });
 
@@ -452,7 +453,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       description: suggestion.description || current.description,
       systemPrompt: suggestion.systemPrompt || current.systemPrompt,
     }));
-    setMessage(uiText("ui.common.optimizationApplied", undefined, {
+    setMessage(text("ui.common.optimizationApplied", undefined, {
       notes: suggestion.notes.length ? `: ${suggestion.notes.join("; ")}` : "",
     }));
   }
@@ -467,13 +468,11 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold text-[var(--ink)]">Agent 数据记录</h3>
-            <p className="mt-1 text-xs leading-5 text-[var(--ink-subtle)]">
-              名称、角色、描述和 systemPrompt 都直接来自这一条 Agent 数据，不再由页面生成默认角色模板。
-            </p>
+            <h3 className="text-base font-semibold text-[var(--ink)]">{text("agentDefinition.record.title")}</h3>
+            <p className="mt-1 text-xs leading-5 text-[var(--ink-subtle)]">{text("agentDefinition.record.description")}</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            <FieldGroup label="ui.generated.c77666602cc">
+            <FieldGroup label="common.fields.name">
               <Input
                 value={form.name}
                 onChange={(event) =>
@@ -486,18 +485,18 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                 placeholder="agent-name"
               />
             </FieldGroup>
-            <FieldGroup label="ui.generated.c6b26695e4d">
+            <FieldGroup label="agentDefinition.fields.role">
               <Input
                 value={form.role}
                 onChange={(event) => setForm({ ...form, role: event.target.value })}
                 placeholder="role-key"
               />
             </FieldGroup>
-            <FieldGroup label="ui.generated.ce5d671f7b9" className="md:col-span-2">
+            <FieldGroup label="common.fields.description" className="md:col-span-2">
               <Textarea
                 value={form.description}
                 onChange={(event) => setForm({ ...form, description: event.target.value })}
-                placeholder="保存到 agent_definitions.description"
+                placeholder={text("agentDefinition.placeholders.description")}
               />
             </FieldGroup>
             <div className="space-y-2 md:col-span-2">
@@ -507,19 +506,19 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                     systemPrompt / SOUL.md
                   </div>
                   <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
-                    保存到 agent_definitions.system_prompt；新建时不会自动填入页面模板。
+                    {text("agentDefinition.systemPrompt.hint")}
                   </div>
                 </div>
                 <Button type="button" size="sm" variant="secondary" onClick={optimize} disabled={isOptimizing}>
                   <Sparkles className="h-4 w-4" />
-                  {isOptimizing ? "优化中" : "AI 优化"}
+                  {isOptimizing ? "agentDefinition.actions.optimizing" : "agentDefinition.actions.optimize"}
                 </Button>
               </div>
               <Textarea
                 className="min-h-[360px] font-mono text-xs leading-5"
                 value={form.systemPrompt}
                 onChange={(event) => setForm({ ...form, systemPrompt: event.target.value })}
-                placeholder="从数据库记录加载；新建 Agent 时请在这里填写 systemPrompt / SOUL.md。"
+                placeholder={text("agentDefinition.placeholders.systemPrompt")}
               />
             </div>
           </div>
@@ -527,21 +526,26 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <aside className="hidden border-l border-[var(--line)] pl-5 lg:block">
           <div className="sticky top-4 space-y-5">
             <div className="flex flex-col items-center text-center">
-              <PixelAgentAvatar config={form.avatarConfig} capabilityProfile={storedCapabilityProfile} size="lg" />
+              <PixelAgentAvatar
+                config={form.avatarConfig}
+                capabilityProfile={storedCapabilityProfile}
+                seed={`${form.id}:${form.name}:${form.role}`}
+                size="lg"
+              />
               <div className="mt-3 max-w-full">
-                <div className="truncate text-sm font-semibold text-[var(--ink)]">{form.name || "New Agent"}</div>
-                <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">{form.role || "role pending"}</div>
+                <div className="truncate text-sm font-semibold text-[var(--ink)]">{form.name || text("agentDefinition.preview.newAgent")}</div>
+                <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">{form.role || text("agentDefinition.preview.rolePending")}</div>
               </div>
             </div>
             <div className="space-y-3 rounded-xl bg-white/55 px-3 py-3">
-              <div className="text-xs font-medium text-[var(--ink)]">能力画像</div>
+              <div className="text-xs font-medium text-[var(--ink)]">{text("agentDefinition.capability.title")}</div>
               <div className="flex justify-center">
                 <AgentCapabilityRadar profile={storedCapabilityProfile} size="sm" />
               </div>
               <div className="space-y-2">
                 {leadingCapabilityScores.map((score) => (
                   <div key={score.key} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="text-[var(--ink-muted)]">{score.label}</span>
+                    <span className="text-[var(--ink-muted)]">{text(score.label)}</span>
                     <span className="font-mono text-[var(--ink)]">{score.value}</span>
                   </div>
                 ))}
@@ -555,9 +559,9 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       </div>
 
       <FormSection
-        title="形象与能力"
-        description="形象与能力画像从当前 Agent 数据记录读取；页面不再根据角色关键词生成能力说明。"
-        meta="来自数据库"
+        title={text("agentDefinition.avatarSection.title")}
+        description={text("agentDefinition.avatarSection.description")}
+        meta={text("agentDefinition.avatarSection.meta")}
       >
         <div className="space-y-4">
           <PixelAgentAvatarEditor
@@ -571,7 +575,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             {agentCapabilityDimensions.map((dimension) => {
               const score = storedCapabilityProfile.scores.find((item) => item.key === dimension.key)?.value ?? 50;
               return (
-                <FieldGroup key={dimension.key} label={dimension.label}>
+                <FieldGroup key={dimension.key} label={text(dimension.label)}>
                   <Select
                     value={String(score)}
                     onChange={(event) =>
@@ -600,7 +604,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         </div>
       </FormSection>
 
-      <FormSection title="基础发布" description="设置标识、状态、归属、可见范围和标签。" meta={form.status}>
+      <FormSection title={text("agentDefinition.publishSection.title")} description={text("agentDefinition.publishSection.description")} meta={form.status}>
         <div className="grid gap-3 md:grid-cols-2">
           <FieldGroup label="Slug">
             <Input
@@ -609,7 +613,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               placeholder="agent-slug"
             />
           </FieldGroup>
-          <FieldGroup label="ui.generated.c62e951a692">
+          <FieldGroup label="common.fields.status">
             <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
               {["draft", "ready", "disabled"].map((value) => (
                 <option key={value} value={value}>
@@ -618,12 +622,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c26f30fd79b">
+          <FieldGroup label="agentDefinition.fields.ownerTeam">
             <Select
               value={form.ownerBusinessTeamId}
               onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
             >
-              <option value="">ui.generated.c8c577dc72c</option>
+              <option value="">{text("common.select.unassigned")}</option>
               {props.businessTeamOptions.map((team) => (
                 <option key={team.id} value={team.id}>
                   {team.name}
@@ -631,7 +635,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c747b74cec9">
+          <FieldGroup label="common.fields.visibility">
             <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
               {["personal", "team", "global"].map((value) => (
                 <option key={value} value={value}>
@@ -640,7 +644,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.cb303d0833d">
+          <FieldGroup label="agentDefinition.fields.memoryScope">
             <Select
               value={form.memoryScope}
               onChange={(event) => setForm({ ...form, memoryScope: event.target.value })}
@@ -652,7 +656,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.cae0a7afece" hint="ui.generated.cb0a3fe2b3f">
+          <FieldGroup label="common.fields.tags" hint="agentDefinition.fields.tagsHint">
             <Textarea
               value={form.tagsText}
               onChange={(event) => setForm({ ...form, tagsText: event.target.value })}
@@ -662,9 +666,13 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         </div>
       </FormSection>
 
-      <FormSection title="模型与运行" description="配置默认模型服务、运行绑定、审批模式和工具调用上限。" meta={form.model || "未配置"}>
+      <FormSection
+        title={text("agentDefinition.runtimeSection.title")}
+        description={text("agentDefinition.runtimeSection.description")}
+        meta={form.model || text("ui.common.unconfigured")}
+      >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="ui.generated.cbff226d7bb">
+          <FieldGroup label="agentDefinition.fields.providerProfile">
             <Select
               value={form.defaultProviderProfileId}
               onChange={(event) => {
@@ -679,7 +687,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                 });
               }}
             >
-              <option value="">ui.generated.c382f4b5559</option>
+              <option value="">{text("common.select.none")}</option>
               {props.providerOptions.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.name}
@@ -687,12 +695,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c53215c3826">
+          <FieldGroup label="agentDefinition.fields.runtimeBinding">
             <Select
               value={form.defaultRuntimeBindingId}
               onChange={(event) => setForm({ ...form, defaultRuntimeBindingId: event.target.value })}
             >
-              <option value="">ui.generated.c382f4b5559</option>
+              <option value="">{text("common.select.none")}</option>
               {props.runtimeBindingOptions.map((binding) => (
                 <option key={binding.id} value={binding.id}>
                   {binding.name}
@@ -700,13 +708,13 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c98fd0cbd9c">
+          <FieldGroup label="agentDefinition.fields.model">
             <Select
               value={form.model}
               onChange={(event) => setForm({ ...form, model: event.target.value })}
               disabled={!providerHint}
             >
-              <option value="">ui.common.unconfigured</option>
+              <option value="">{text("ui.common.unconfigured")}</option>
               {modelOptions.map((model) => (
                 <option key={model} value={model}>
                   {model}
@@ -714,7 +722,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c1072712e57">
+          <FieldGroup label="agentDefinition.fields.approvalMode">
             <Select
               value={form.harnessApprovalMode}
               onChange={(event) => setForm({ ...form, harnessApprovalMode: event.target.value })}
@@ -726,7 +734,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c66778fdee4">
+          <FieldGroup label="agentDefinition.fields.thinkingLevel">
             <Select
               value={form.harnessThinkingLevel}
               onChange={(event) => setForm({ ...form, harnessThinkingLevel: event.target.value })}
@@ -738,7 +746,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c8d8f100fb8">
+          <FieldGroup label="agentDefinition.fields.humanIntervention">
             <Select
               value={form.harnessHumanIntervention}
               onChange={(event) => setForm({ ...form, harnessHumanIntervention: event.target.value })}
@@ -750,7 +758,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c1d5b5d429d">
+          <FieldGroup label="agentDefinition.fields.maxToolCalls">
             <Input
               type="number"
               min="0"
@@ -763,12 +771,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
       </FormSection>
 
       <FormSection
-        title="工具与权限"
-        description="工具绑定、允许/禁止工具和仓库/记忆/密钥访问都保留为可配置项。"
-        meta={`${fromMultiline(form.toolBindingsText).length} 个工具`}
+        title={text("agentDefinition.toolsSection.title")}
+        description={text("agentDefinition.toolsSection.description")}
+        meta={text("agentDefinition.meta.toolCount", undefined, { count: fromMultiline(form.toolBindingsText).length })}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="ui.generated.ca9bb8be05e" hint="ui.generated.cdda0bc2a23" className="md:col-span-2">
+          <FieldGroup label="agentDefinition.fields.toolBindings" hint="agentDefinition.fields.toolBindingsHint" className="md:col-span-2">
             <div className="grid gap-2 sm:grid-cols-3">
               {workspaceToolOptions.map((tool) => (
                 <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
@@ -782,17 +790,19 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                       }))
                     }
                   />
-                  {tool.label}
+                  {text(tool.labelKey)}
                 </label>
               ))}
             </div>
             {selectedToolBindings.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).length ? (
               <div className="mt-2 text-xs text-[var(--warning)]">
-                已忽略未注册工具：{selectedToolBindings.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", ")}
+                {text("agentDefinition.messages.unregisteredTools", undefined, {
+                  tools: selectedToolBindings.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", "),
+                })}
               </div>
             ) : null}
           </FieldGroup>
-          <FieldGroup label="ui.generated.cbd88dd3a1e">
+          <FieldGroup label="agentDefinition.fields.repositoryAccess">
             <Select
               value={form.permissionRepositoryAccess}
               onChange={(event) => setForm({ ...form, permissionRepositoryAccess: event.target.value })}
@@ -804,7 +814,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.ca3ecb68a4c">
+          <FieldGroup label="agentDefinition.fields.memoryAccess">
             <Select
               value={form.permissionMemoryAccess}
               onChange={(event) => setForm({ ...form, permissionMemoryAccess: event.target.value })}
@@ -816,7 +826,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.cfd93ad7cdf">
+          <FieldGroup label="agentDefinition.fields.secretAccess">
             <Select
               value={form.permissionSecretAccess}
               onChange={(event) => setForm({ ...form, permissionSecretAccess: event.target.value })}
@@ -828,7 +838,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="ui.generated.cae64ad83d4" hint="ui.generated.c1ddb62084f">
+          <FieldGroup label="agentDefinition.fields.allowedTools" hint="agentDefinition.fields.allowedToolsHint">
             <div className="grid gap-2">
               {workspaceToolOptions.map((tool) => (
                 <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
@@ -842,12 +852,12 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                       }))
                     }
                   />
-                  {toolLabel(tool.value)}
+                  {toolLabel(tool.value, text)}
                 </label>
               ))}
             </div>
           </FieldGroup>
-          <FieldGroup label="ui.generated.c35a905110b" hint="ui.generated.ca1312208ca" className="md:col-span-2">
+          <FieldGroup label="agentDefinition.fields.deniedTools" hint="agentDefinition.fields.deniedToolsHint" className="md:col-span-2">
             <div className="grid gap-2 sm:grid-cols-3">
               {workspaceToolOptions.map((tool) => (
                 <label key={tool.value} className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink-muted)]">
@@ -861,20 +871,26 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                       }))
                     }
                   />
-                  {toolLabel(tool.value)}
+                  {toolLabel(tool.value, text)}
                 </label>
               ))}
             </div>
             {selectedDeniedTools.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).length ? (
               <div className="mt-2 text-xs text-[var(--warning)]">
-                已忽略未注册工具：{selectedDeniedTools.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", ")}
+                {text("agentDefinition.messages.unregisteredTools", undefined, {
+                  tools: selectedDeniedTools.filter((tool) => !workspaceToolOptions.some((option) => option.value === tool)).join(", "),
+                })}
               </div>
             ) : null}
           </FieldGroup>
         </div>
       </FormSection>
 
-      <FormSection title="共享范围" description="按业务团队控制这个 Agent 的共享范围。" meta={`${form.shareBusinessTeamIds.length} 个团队`}>
+      <FormSection
+        title={text("agentDefinition.sharingSection.title")}
+        description={text("agentDefinition.sharingSection.description")}
+        meta={text("agentDefinition.meta.teamCount", undefined, { count: form.shareBusinessTeamIds.length })}
+      >
         <div className="grid gap-2 sm:grid-cols-2">
           {props.businessTeamOptions.map((team) => (
             <label key={team.id} className="flex items-center gap-2 text-sm text-[var(--ink-muted)]">

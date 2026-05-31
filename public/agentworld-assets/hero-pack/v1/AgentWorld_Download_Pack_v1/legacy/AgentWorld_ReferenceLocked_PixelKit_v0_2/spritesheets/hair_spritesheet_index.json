@@ -1,0 +1,44 @@
+{
+  "tile_size": [
+    256,
+    256
+  ],
+  "columns": 4,
+  "items": [
+    {
+      "tile_index": 0,
+      "trait_id": "hair_auburn",
+      "path": "parts/hair/hair_auburn.png"
+    },
+    {
+      "tile_index": 1,
+      "trait_id": "hair_blue_black",
+      "path": "parts/hair/hair_blue_black.png"
+    },
+    {
+      "tile_index": 2,
+      "trait_id": "hair_dark_red_tail",
+      "path": "parts/hair/hair_dark_red_tail.png"
+    },
+    {
+      "tile_index": 3,
+      "trait_id": "hair_forest",
+      "path": "parts/hair/hair_forest.png"
+    },
+    {
+      "tile_index": 4,
+      "trait_id": "hair_reference_dark_ponytail",
+      "path": "parts/hair/hair_reference_dark_ponytail.png"
+    },
+    {
+      "tile_index": 5,
+      "trait_id": "hair_silver_tail",
+      "path": "parts/hair/hair_silver_tail.png"
+    },
+    {
+      "tile_index": 6,
+      "trait_id": "hair_violet_tail",
+      "path": "parts/hair/hair_violet_tail.png"
+    }
+  ]
+}

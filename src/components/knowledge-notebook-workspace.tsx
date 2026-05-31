@@ -38,6 +38,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { useAppDialogs } from "@/components/ui/app-dialogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,28 +216,28 @@ type KnowledgeImportDialogState = {
 const draftId = "__draft__";
 
 const sourceTypeOptions = [
-  { value: "manual", label: "手动整理" },
+  { value: "manual", label: "knowledge.sourceType.manual" },
   { value: "skill", label: "Skill" },
-  { value: "inspection_context", label: "巡检上下文" },
-  { value: "inspection_finding", label: "巡检发现" },
-  { value: "inspection_feedback", label: "巡检反馈" },
+  { value: "inspection_context", label: "knowledge.sourceType.inspectionContext" },
+  { value: "inspection_finding", label: "knowledge.sourceType.inspectionFinding" },
+  { value: "inspection_feedback", label: "knowledge.sourceType.inspectionFeedback" },
 ];
 
 function typeLabel(type: string) {
   const labels: Record<string, string> = {
-    global: "全局",
-    team: "团队",
-    project: "项目",
-    agent_team: "Agent 团队",
+    global: "ui.common.knowledgeType.global",
+    team: "ui.common.knowledgeType.team",
+    project: "ui.common.knowledgeType.project",
+    agent_team: "ui.common.knowledgeType.agentTeam",
   };
   return labels[type] ?? type;
 }
 
 function visibilityLabel(visibility: string) {
   const labels: Record<string, string> = {
-    private: "私有",
-    team: "团队可见",
-    global: "全局可见",
+    private: "labels.visibility.private",
+    team: "labels.visibility.team",
+    global: "labels.visibility.global",
   };
   return labels[visibility] ?? visibility;
 }
@@ -257,22 +258,22 @@ function syncStatusVariant(status: string): "neutral" | "accent" | "success" | "
 }
 
 function syncStatusLabel(status: string) {
-  if (status === "remote_failed_local_shadow") return "同步：仅本地保存";
-  if (status === "remote_pending_retry") return "同步：OpenViking 忙，稍后重试";
-  if (status.startsWith("remote_")) return "同步：OpenViking 已同步";
-  if (status === "local_shadow") return "同步：本地草稿";
-  if (status === "draft") return "同步：待保存";
-  return status ? `同步：${status}` : "同步：待保存";
+  if (status === "remote_failed_local_shadow") return "knowledge.sync.localOnly";
+  if (status === "remote_pending_retry") return "knowledge.sync.openVikingBusy";
+  if (status.startsWith("remote_")) return "knowledge.sync.openVikingSynced";
+  if (status === "local_shadow") return "knowledge.sync.localDraft";
+  if (status === "draft") return "knowledge.sync.pendingSave";
+  return status || "knowledge.sync.pendingSave";
 }
 
 function saveStateLabel(state: SaveState) {
   const labels: Record<SaveState, string> = {
-    idle: "保存：无未保存修改",
-    dirty: "保存：有未保存修改",
-    saving: "保存：自动保存中",
-    saved: "保存：已保存",
-    error: "保存：保存失败",
-    conflict: "保存：版本冲突",
+    idle: "knowledge.saveState.idle",
+    dirty: "knowledge.saveState.dirty",
+    saving: "knowledge.saveState.saving",
+    saved: "knowledge.saveState.saved",
+    error: "knowledge.saveState.error",
+    conflict: "knowledge.saveState.conflict",
   };
   return labels[state];
 }
@@ -317,8 +318,13 @@ function metadataForDraft(draft: DraftEntry) {
   };
 }
 
-function createBlankDraft(spaceId: string, parentFolderId: string | null = null, nodeType: "note" | "folder" = "note"): DraftEntry {
-  const title = nodeType === "folder" ? "新建目录" : "未命名知识";
+function createBlankDraft(
+  spaceId: string,
+  parentFolderId: string | null = null,
+  nodeType: "note" | "folder" = "note",
+  text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
+): DraftEntry {
+  const title = nodeType === "folder" ? text("knowledge.defaults.newFolderTitle") : text("knowledge.defaults.untitledEntryTitle");
   const metadata = {
     notebookNodeType: nodeType,
     parentFolderId,
@@ -331,7 +337,7 @@ function createBlankDraft(spaceId: string, parentFolderId: string | null = null,
     scopeKey: "manual",
     skillId: "",
     title,
-    contentMd: nodeType === "folder" ? "" : "# 未命名知识\n\n",
+    contentMd: nodeType === "folder" ? "" : text("knowledge.defaults.untitledEntryMarkdown"),
     metadataJson: JSON.stringify(metadata, null, 2),
     sourceType: "manual",
     vikingUri: "",
@@ -516,32 +522,32 @@ function markdownOutline(value: string) {
 function openVikingLayerMeta(level: OpenVikingIndexLevel) {
   if (level === "L0") {
     return {
-      label: "L0 空间摘要索引",
-      description: "Abstract，知识空间全局一份，用于向量召回、快速过滤和空间级列表感知。",
+      label: "knowledge.openViking.layers.l0.label",
+      description: "knowledge.openViking.layers.l0.description",
       editable: false,
     };
   }
   if (level === "L1") {
     return {
-      label: "L1 空间概览索引",
-      description: "Overview，知识空间全局一份，用于理解空间结构、目录递归、重排细化和内容导航。",
+      label: "knowledge.openViking.layers.l1.label",
+      description: "knowledge.openViking.layers.l1.description",
       editable: false,
     };
   }
   return {
-    label: "L2 原文知识",
-    description: "Details，单篇完整 Markdown 原文，按需读取，也是唯一可编辑层。",
+    label: "knowledge.openViking.layers.l2.label",
+    description: "knowledge.openViking.layers.l2.description",
     editable: true,
   };
 }
 
 function openVikingEntryLayerUri(entry: KnowledgeNotebookEntry | DraftEntry) {
-  const uri = entry.vikingUri || "未同步到 OpenViking";
+  const uri = entry.vikingUri || "knowledge.openViking.uri.unsynced";
   return uri;
 }
 
 function openVikingSpaceLayerUri(space: KnowledgeNotebookSpace | undefined, level: Exclude<OpenVikingIndexLevel, "L2">) {
-  const uri = space?.vikingUri || "未选择知识空间";
+  const uri = space?.vikingUri || "knowledge.openViking.uri.noSpaceSelected";
   return level === "L0" ? `abstract(${uri})` : `overview(${uri})`;
 }
 
@@ -549,8 +555,9 @@ function openVikingSpaceLayerPreview(
   space: KnowledgeNotebookSpace | undefined,
   entries: KnowledgeNotebookEntry[],
   level: Exclude<OpenVikingIndexLevel, "L2">,
+  text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
 ) {
-  if (!space) return "请选择知识空间后查看空间级索引。";
+  if (!space) return text("knowledge.openViking.preview.selectSpaceFirst");
   const notes = entries.filter((entry) => nodeTypeOf(entry) !== "folder");
   const folders = entries.filter((entry) => nodeTypeOf(entry) === "folder");
 
@@ -559,13 +566,13 @@ function openVikingSpaceLayerPreview(
       .slice(0, 16)
       .map((entry) => {
         const plain = stripMarkdownForIndex(entry.contentMd);
-        return `- ${entry.title}: ${truncateText(plain || "暂无正文", 96)}`;
+        return `- ${entry.title}: ${truncateText(plain || text("knowledge.openViking.preview.noBody"), 96)}`;
       });
     return [
-      `${space.name} 的空间级摘要索引。`,
-      `${notes.length} 篇知识，${folders.length} 个目录。`,
+      text("knowledge.openViking.preview.spaceAbstractTitle", undefined, { name: space.name }),
+      text("knowledge.openViking.preview.spaceStats", undefined, { entries: notes.length, folders: folders.length }),
       "",
-      summaries.length ? summaries.join("\n") : "当前空间还没有可汇总的知识正文。",
+      summaries.length ? summaries.join("\n") : text("knowledge.openViking.preview.noSummarizableBody"),
     ].join("\n");
   }
 
@@ -573,16 +580,16 @@ function openVikingSpaceLayerPreview(
     .slice(0, 24)
     .map((entry) => {
       const outline = markdownOutline(entry.contentMd);
-      return `## ${entry.title}\n${outline || truncateText(stripMarkdownForIndex(entry.contentMd) || "暂无结构", 220)}`;
+      return `## ${entry.title}\n${outline || truncateText(stripMarkdownForIndex(entry.contentMd) || text("knowledge.openViking.preview.noStructure"), 220)}`;
     });
   return [
-    `# ${space.name} 空间概览`,
+    text("knowledge.openViking.preview.spaceOverviewTitle", undefined, { name: space.name }),
     "",
-    `- 知识数量：${notes.length}`,
-    `- 目录数量：${folders.length}`,
-    `- OpenViking URI：${space.vikingUri}`,
+    text("knowledge.openViking.preview.entryCountLine", undefined, { count: notes.length }),
+    text("knowledge.openViking.preview.folderCountLine", undefined, { count: folders.length }),
+    `- OpenViking URI: ${space.vikingUri}`,
     "",
-    outlines.length ? outlines.join("\n\n") : "当前空间还没有可用于概览索引的知识正文。",
+    outlines.length ? outlines.join("\n\n") : text("knowledge.openViking.preview.noOverviewBody"),
   ].join("\n");
 }
 
@@ -594,6 +601,7 @@ function openVikingLayerItems(
   entry: KnowledgeNotebookEntry | DraftEntry,
   space: KnowledgeNotebookSpace | undefined,
   spaceEntries: KnowledgeNotebookEntry[],
+  text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
 ): OpenVikingLayerItem[] {
   const spaceItems = (["L0", "L1"] as const).map((level) => {
     const meta = openVikingLayerMeta(level);
@@ -602,7 +610,7 @@ function openVikingLayerItems(
       label: meta.label,
       description: meta.description,
       uri: openVikingSpaceLayerUri(space, level),
-      preview: openVikingSpaceLayerPreview(space, spaceEntries, level),
+      preview: openVikingSpaceLayerPreview(space, spaceEntries, level, text),
       editable: meta.editable,
       scope: "space" as const,
     };
@@ -627,32 +635,33 @@ function openVikingQuerySteps(
   draft: DraftEntry,
   activeLevel: OpenVikingIndexLevel,
   query: string,
+  text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
 ): OpenVikingQueryStep[] {
-  const queryText = query.trim() || draft.title.trim() || "当前知识";
+  const queryText = query.trim() || draft.title.trim() || text("knowledge.openViking.query.currentKnowledge");
   const scope = space?.vikingUri || draft.vikingUri || "viking://resources/agentworld";
   const target = draft.vikingUri || scope;
 
   return [
     {
       level: "L0",
-      label: "摘要召回",
-      description: `用「${queryText}」在知识空间全局 L0 摘要索引做向量召回，先定位候选知识。`,
+      label: text("knowledge.openViking.query.l0.label"),
+      description: text("knowledge.openViking.query.l0.description", undefined, { query: queryText }),
       uri: `find(query, target_uri=${scope}, level=0)`,
       active: activeLevel === "L0",
       editable: false,
     },
     {
       level: "L1",
-      label: "概览重排",
-      description: "读取知识空间全局 Overview，理解空间结构、关键点和上下文后再重排。",
+      label: text("knowledge.openViking.query.l1.label"),
+      description: text("knowledge.openViking.query.l1.description"),
       uri: `overview(${scope})`,
       active: activeLevel === "L1",
       editable: false,
     },
     {
       level: "L2",
-      label: "原文读取",
-      description: "最后按 URI 读取完整原文；这一层才进入编辑、保存、版本管理。",
+      label: text("knowledge.openViking.query.l2.label"),
+      description: text("knowledge.openViking.query.l2.description"),
       uri: `read(${target})`,
       active: activeLevel === "L2",
       editable: true,
@@ -990,14 +999,55 @@ function codeLineTone(language: string, line: string) {
 
 function CodeBlock({ code, info }: { code: string; info: string }) {
   const [copied, setCopied] = useState(false);
+  const text = useLanguageText();
   const { language, label, meta } = parseCodeFenceInfo(info);
   const lines = code.split("\n");
   const lineDigits = Math.max(2, String(lines.length).length);
 
-  async function copyCode() {
+  function copyWithSelectionFallback() {
+    const textarea = document.createElement("textarea");
+    textarea.value = code;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-1000px";
+    textarea.style.left = "-1000px";
+    document.body.appendChild(textarea);
+    const selection = document.getSelection();
+    const selectedRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    textarea.focus();
+    textarea.select();
     try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+      if (selectedRange && selection) {
+        selection.removeAllRanges();
+        selection.addRange(selectedRange);
+      }
+    }
+  }
+
+  async function copyCode() {
+    let didCopy = copyWithSelectionFallback();
+    try {
+      const permission =
+        !didCopy && navigator.permissions
+          ? await navigator.permissions.query({ name: "clipboard-write" as PermissionName }).catch(() => null)
+          : null;
+      if (
+        !didCopy &&
+        permission?.state !== "denied" &&
+        window.isSecureContext &&
+        document.hasFocus() &&
+        navigator.clipboard?.writeText
+      ) {
+        await navigator.clipboard.writeText(code);
+        didCopy = true;
+      }
+      setCopied(didCopy);
+      if (!didCopy) return;
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
@@ -1015,10 +1065,10 @@ function CodeBlock({ code, info }: { code: string; info: string }) {
           type="button"
           onClick={() => void copyCode()}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/6 px-2.5 text-xs font-medium text-[#d7e0ee] transition-colors hover:bg-white/10"
-          aria-label="复制代码"
+          aria-label={text("knowledge.notebook.code.copy")}
         >
           {copied ? <Check className="h-3.5 w-3.5 text-[#a6e3a1]" /> : <Copy className="h-3.5 w-3.5" />}
-          {copied ? "已复制" : "复制"}
+          {copied ? text("knowledge.notebook.code.copied") : text("knowledge.notebook.code.copy")}
         </button>
       </div>
       <div className="overflow-auto">
@@ -1065,7 +1115,7 @@ function MermaidDiagram({ chart }: { chart: string }) {
         if (!cancelled) setSvg(result.svg);
       })
       .catch((nextError: unknown) => {
-        if (!cancelled) setError(nextError instanceof Error ? nextError.message : "Mermaid 渲染失败");
+        if (!cancelled) setError(nextError instanceof Error ? nextError.message : "knowledge.markdown.mermaid.renderFailed");
       });
     return () => {
       cancelled = true;
@@ -1086,7 +1136,7 @@ function MermaidDiagram({ chart }: { chart: string }) {
       {svg ? (
         <div className="min-w-fit [&_svg]:mx-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
       ) : (
-        <div className="py-10 text-center text-sm text-[var(--ink-subtle)]">Mermaid 渲染中</div>
+        <div className="py-10 text-center text-sm text-[var(--ink-subtle)]">knowledge.markdown.mermaid.rendering</div>
       )}
     </div>
   );
@@ -1331,7 +1381,7 @@ function MarkdownPreview({
               {typeof item.checked === "boolean" ? (
                 <button
                   type="button"
-                  aria-label={item.checked ? "标记为未完成" : "标记为完成"}
+                  aria-label={item.checked ? "knowledge.markdown.task.markIncomplete" : "knowledge.markdown.task.markComplete"}
                   aria-pressed={item.checked}
                   onClick={() => {
                     if (typeof item.lineIndex === "number") onTaskToggle?.(item.lineIndex, !item.checked);
@@ -1407,7 +1457,7 @@ function MarkdownPreview({
   if (!nodes.length) {
     return (
       <div className="flex h-full min-h-[460px] items-center justify-center text-sm text-[var(--ink-subtle)]">
-        暂无预览
+        knowledge.markdown.preview.empty
       </div>
     );
   }
@@ -1442,6 +1492,8 @@ function ContextMenu({
   onRenameEntry: (entry: KnowledgeNotebookEntry) => void;
   onDeleteEntry: (entry: KnowledgeNotebookEntry) => void;
 }) {
+  const text = useLanguageText();
+
   if (!state) return null;
 
   let space: KnowledgeNotebookSpace | null = null;
@@ -1467,59 +1519,59 @@ function ContextMenu({
         <>
           <button className={itemClass} onClick={() => { onOpenEntry(entry); onClose(); }}>
             <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
-            打开
+            {text("actions.open")}
           </button>
           <button className={itemClass} onClick={() => { onNewNote(entrySpaceId, entryParentId); onClose(); }}>
             <FileText className="h-4 w-4 text-[var(--ink-subtle)]" />
-            {nodeTypeOf(entry) === "folder" ? "在目录中新建知识" : "新建同级知识"}
+            {text(nodeTypeOf(entry) === "folder" ? "knowledge.context.newEntryInsideFolder" : "knowledge.context.newSiblingEntry")}
           </button>
           <button className={itemClass} onClick={() => { onNewFolder(entrySpaceId, entryParentId); onClose(); }}>
             <FolderPlus className="h-4 w-4 text-[var(--ink-subtle)]" />
-            {nodeTypeOf(entry) === "folder" ? "新建子目录" : "新建同级目录"}
+            {text(nodeTypeOf(entry) === "folder" ? "knowledge.context.newChildFolder" : "knowledge.context.newSiblingFolder")}
           </button>
           <button className={itemClass} onClick={() => { onRenameEntry(entry); onClose(); }}>
             <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
-            重命名
+            {text("actions.rename")}
           </button>
           <div className="my-1 h-px bg-[var(--line)]" />
           <button className={cn(itemClass, "text-[var(--danger)]")} onClick={() => { onDeleteEntry(entry); onClose(); }}>
             <Trash2 className="h-4 w-4" />
-            {nodeTypeOf(entry) === "folder" ? "删除目录" : "删除知识"}
+            {text(nodeTypeOf(entry) === "folder" ? "knowledge.actions.deleteFolder" : "knowledge.actions.deleteEntry")}
           </button>
         </>
       ) : (
         <>
           <button className={itemClass} disabled={!entrySpaceId} onClick={() => { onNewNote(entrySpaceId); onClose(); }}>
             <FileText className="h-4 w-4 text-[var(--ink-subtle)]" />
-            新建知识
+            {text("knowledge.actions.newEntry")}
           </button>
           <button className={itemClass} disabled={!entrySpaceId} onClick={() => { onNewFolder(entrySpaceId); onClose(); }}>
             <FolderPlus className="h-4 w-4 text-[var(--ink-subtle)]" />
-            新建目录
+            {text("knowledge.actions.newFolder")}
           </button>
           <div className="my-1 h-px bg-[var(--line)]" />
           <button className={itemClass} onClick={() => { onCreateSpace("team", space?.id); onClose(); }}>
             <Folder className="h-4 w-4 text-[var(--ink-subtle)]" />
-            新建团队空间
+            {text("knowledge.actions.newTeamSpace")}
           </button>
           <button className={itemClass} onClick={() => { onCreateSpace("project", space?.id); onClose(); }}>
             <Folder className="h-4 w-4 text-[var(--ink-subtle)]" />
-            新建项目空间
+            {text("knowledge.actions.newProjectSpace")}
           </button>
           <button className={itemClass} onClick={() => { onCreateSpace("agent_team", space?.id); onClose(); }}>
             <Folder className="h-4 w-4 text-[var(--ink-subtle)]" />
-            新建 Agent 空间
+            {text("knowledge.actions.newAgentSpace")}
           </button>
           {space ? (
             <>
               <div className="my-1 h-px bg-[var(--line)]" />
               <button className={itemClass} onClick={() => { onEditSpace(space); onClose(); }}>
                 <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
-                编辑空间
+                {text("knowledge.actions.editSpace")}
               </button>
               <button className={cn(itemClass, "text-[var(--danger)]")} onClick={() => { onDeleteSpace(space); onClose(); }}>
                 <Trash2 className="h-4 w-4" />
-                删除空间
+                {text("knowledge.actions.deleteSpace")}
               </button>
             </>
           ) : null}
@@ -1612,15 +1664,15 @@ function SpaceQuickDialog({
         }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "保存空间失败");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? "knowledge.spaceForm.errors.saveFailed");
       onClose();
       router.refresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "保存空间失败";
+      const message = error instanceof Error ? error.message : "knowledge.spaceForm.errors.saveFailed";
       setErrorMessage(message);
       setPending(false);
       void showAlert({
-        title: "保存空间失败",
+        title: "knowledge.spaceForm.errors.saveFailed",
         description: message,
         tone: "danger",
       });
@@ -1636,79 +1688,79 @@ function SpaceQuickDialog({
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-5 py-4">
           <div>
             <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--ink-subtle)]">Knowledge Space</div>
-            <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{editing ? "编辑知识空间" : "新建知识空间"}</div>
+            <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{editing ? "knowledge.spaceForm.editTitle" : "knowledge.spaceForm.createTitle"}</div>
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose} aria-label="关闭">
+          <Button size="icon" variant="ghost" onClick={onClose} aria-label="actions.close">
             <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
-          <FieldGroup label="名称">
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="空间名称" />
+          <FieldGroup label="common.fields.name">
+            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="knowledge.spaceForm.placeholders.name" />
           </FieldGroup>
           <FieldGroup label="Slug">
             <Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} placeholder="slug" />
           </FieldGroup>
-          <FieldGroup label="租户空间">
+          <FieldGroup label="terminology.tenantSpace">
             <Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>
               {tenantSpaces.map((space) => (
                 <option key={space.id} value={space.id}>{space.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="空间类型">
+          <FieldGroup label="knowledge.fields.spaceType">
             <Select value={form.spaceType} onChange={(event) => setForm({ ...form, spaceType: event.target.value })}>
-              <option value="global">全局</option>
-              <option value="team">团队</option>
-              <option value="project">项目</option>
-              <option value="agent_team">Agent 团队</option>
+              <option value="global">ui.common.knowledgeType.global</option>
+              <option value="team">ui.common.knowledgeType.team</option>
+              <option value="project">ui.common.knowledgeType.project</option>
+              <option value="agent_team">ui.common.knowledgeType.agentTeam</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="业务团队">
+          <FieldGroup label="terminology.businessTeam">
             <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value, agentTeamId: "" })}>
-              <option value="">不绑定</option>
+              <option value="">common.select.none</option>
               {businessTeams.map((team) => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="Agent 团队">
+          <FieldGroup label="terminology.agentTeam">
             <Select
               value={form.agentTeamId}
               disabled={form.spaceType !== "agent_team"}
               onChange={(event) => setForm({ ...form, agentTeamId: event.target.value })}
             >
-              <option value="">不绑定</option>
+              <option value="">common.select.none</option>
               {availableAgentTeams.map((team) => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="项目标识">
+          <FieldGroup label="knowledge.fields.projectKey">
             <Input
               value={form.projectKey}
               disabled={form.spaceType !== "project"}
               onChange={(event) => setForm({ ...form, projectKey: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="可见性">
+          <FieldGroup label="common.fields.visibility">
             <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
-              <option value="global">全局可见</option>
-              <option value="team">团队可见</option>
-              <option value="private">私有</option>
+              <option value="global">labels.visibility.global</option>
+              <option value="team">labels.visibility.team</option>
+              <option value="private">labels.visibility.private</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="状态">
+          <FieldGroup label="common.fields.status">
             <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-              <option value="active">启用</option>
-              <option value="paused">暂停</option>
-              <option value="archived">归档</option>
+              <option value="active">labels.status.active</option>
+              <option value="paused">labels.status.paused</option>
+              <option value="archived">labels.status.archived</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="归档策略">
+          <FieldGroup label="knowledge.fields.retentionPolicy">
             <Textarea value={form.retentionPolicyJson} onChange={(event) => setForm({ ...form, retentionPolicyJson: event.target.value })} className="min-h-20 font-mono text-xs" />
           </FieldGroup>
-          <FieldGroup label="说明" className="md:col-span-2">
+          <FieldGroup label="common.fields.description" className="md:col-span-2">
             <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-24" />
           </FieldGroup>
         </div>
@@ -1719,15 +1771,15 @@ function SpaceQuickDialog({
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0">
-              <div className="font-semibold">保存空间失败</div>
+              <div className="font-semibold">knowledge.spaceForm.errors.saveFailed</div>
               <div className="mt-1 leading-6">{errorMessage}</div>
             </div>
           </div>
         ) : null}
         <div className="flex justify-end gap-2 border-t border-[var(--line)] px-5 py-4">
-          <Button onClick={onClose}>取消</Button>
+          <Button onClick={onClose}>actions.cancel</Button>
           <Button variant="primary" onClick={saveSpace} disabled={pending || !form.name.trim()}>
-            {pending ? "保存中" : "保存空间"}
+            {pending ? "actions.saving" : "knowledge.actions.saveSpace"}
           </Button>
         </div>
         </div>
@@ -1753,13 +1805,14 @@ export function KnowledgeNotebookWorkspace({
   metrics: KnowledgeWorkspaceMetric[];
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const { alert: showAlert, confirm: showConfirm, prompt: showPrompt, dialogHost } = useAppDialogs();
   const initialEntry = entries[0];
   const initialSpaceId = initialEntry?.knowledgeSpaceId ?? "";
   const [entriesState, setEntriesState] = useState(entries);
   const [selectedSpaceId, setSelectedSpaceId] = useState(initialSpaceId);
   const [selectedEntryId, setSelectedEntryId] = useState(initialEntry?.id ?? draftId);
-  const [draft, setDraft] = useState<DraftEntry>(() => (initialEntry ? toDraft(initialEntry) : createBlankDraft(initialSpaceId)));
+  const [draft, setDraft] = useState<DraftEntry>(() => (initialEntry ? toDraft(initialEntry) : createBlankDraft(initialSpaceId, null, "note", text)));
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -1892,20 +1945,20 @@ export function KnowledgeNotebookWorkspace({
   const totalEntries = entriesState.filter((entry) => nodeTypeOf(entry) !== "folder").length;
   const totalFolders = entriesState.filter((entry) => nodeTypeOf(entry) === "folder").length;
   const selectedLayerItems = useMemo(
-    () => openVikingLayerItems(draft, activeSpace, activeSpaceEntries),
-    [activeSpace, activeSpaceEntries, draft],
+    () => openVikingLayerItems(draft, activeSpace, activeSpaceEntries, text),
+    [activeSpace, activeSpaceEntries, draft, text],
   );
   const selectedLayerItem = selectedLayerItems.find((item) => item.level === selectedIndexLevel) ?? selectedLayerItems[2];
   const querySteps = useMemo(
-    () => openVikingQuerySteps(activeSpace, draft, selectedIndexLevel, query),
-    [activeSpace, draft, query, selectedIndexLevel],
+    () => openVikingQuerySteps(activeSpace, draft, selectedIndexLevel, query, text),
+    [activeSpace, draft, query, selectedIndexLevel, text],
   );
   const isIndexReadOnly = selectedIndexLevel !== "L2";
   const activeContentSize = isIndexReadOnly
     ? formatBytes(new TextEncoder().encode(selectedLayerItem.preview).length)
     : contentSize;
   const activeTitle = isIndexReadOnly
-    ? `${activeSpace?.name ?? "知识空间"} · ${selectedLayerItem.label}`
+    ? `${activeSpace?.name ?? "terminology.knowledge"} · ${selectedLayerItem.label}`
     : draft.title;
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
@@ -1954,10 +2007,10 @@ export function KnowledgeNotebookWorkspace({
         error?: string;
         versions?: KnowledgeEntryVersion[];
       };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "读取历史版本失败");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? "knowledge.versions.errors.loadFailed");
       setVersions(result.versions ?? []);
     } catch (error) {
-      setVersionsError(error instanceof Error ? error.message : "读取历史版本失败");
+      setVersionsError(error instanceof Error ? error.message : "knowledge.versions.errors.loadFailed");
       setVersions([]);
     } finally {
       setVersionsLoading(false);
@@ -1997,7 +2050,7 @@ export function KnowledgeNotebookWorkspace({
             layer: currentDraft.layer.trim() || (currentDraft.nodeType === "folder" ? "notebook/folder" : "manual"),
             scopeKey: currentDraft.scopeKey.trim() || "manual",
             skillId: currentDraft.skillId.trim() || null,
-            title: currentDraft.title.trim() || (currentDraft.nodeType === "folder" ? "新建目录" : "未命名知识"),
+            title: currentDraft.title.trim() || (currentDraft.nodeType === "folder" ? text("knowledge.defaults.newFolderTitle") : text("knowledge.defaults.untitledEntryTitle")),
             contentMd: currentDraft.contentMd,
             metadataJson: JSON.stringify(metadata, null, 2),
             sourceType: currentDraft.sourceType,
@@ -2021,14 +2074,14 @@ export function KnowledgeNotebookWorkspace({
             if (draftRef.current === currentDraft) {
               setConflictEntry(result.currentEntry ?? null);
               setSaveState("conflict");
-              setSaveError(result.error ?? "知识已被其他编辑者更新，请先合并后再保存。");
+              setSaveError(result.error ?? "knowledge.messages.conflictBeforeSave");
             }
             saveResult = "conflict";
             return;
           }
 
           if (!response.ok || result.ok === false || !result.entry) {
-            throw new Error(result.error ?? "保存失败");
+            throw new Error(result.error ?? "common.messages.saveFailed");
           }
 
           updateEntryState(result.entry);
@@ -2038,7 +2091,7 @@ export function KnowledgeNotebookWorkspace({
             replaceDraft(toDraft(result.entry), "saved", false);
             setSaveError(null);
             setConflictEntry(null);
-            setMessage(silent ? "已自动保存" : "已保存到知识库");
+            setMessage(silent ? "knowledge.messages.autoSaved" : "knowledge.messages.savedToKnowledgeBase");
             if (versionsOpen) void loadVersions(result.entry.id);
           }
           router.refresh();
@@ -2046,8 +2099,8 @@ export function KnowledgeNotebookWorkspace({
         } catch (error) {
           if (draftRef.current === currentDraft) {
             setSaveState("error");
-            setSaveError(error instanceof Error ? error.message : "保存失败");
-            setMessage(error instanceof Error ? error.message : "保存失败");
+            setSaveError(error instanceof Error ? error.message : "common.messages.saveFailed");
+            setMessage(error instanceof Error ? error.message : "common.messages.saveFailed");
           }
           saveResult = "error";
         } finally {
@@ -2060,7 +2113,7 @@ export function KnowledgeNotebookWorkspace({
 
       return savePromise;
     },
-    [loadVersions, replaceDraft, router, spaces.length, updateEntryState, versionsOpen],
+    [loadVersions, replaceDraft, router, spaces.length, text, updateEntryState, versionsOpen],
   );
 
   useEffect(() => {
@@ -2089,7 +2142,7 @@ export function KnowledgeNotebookWorkspace({
           if (dirtyRef.current) {
             setConflictEntry(remoteEntry);
             setSaveState("conflict");
-            setSaveError("检测到其他编辑者已经保存了新版本，自动保存已暂停。");
+            setSaveError(text("knowledge.messages.autoSavePausedByConflict"));
             return;
           }
 
@@ -2097,12 +2150,12 @@ export function KnowledgeNotebookWorkspace({
           setSelectedEntryId(remoteEntry.id);
           setSelectedSpaceId(remoteEntry.knowledgeSpaceId ?? "");
           setSaveError(null);
-          setMessage("已同步其他编辑者的最新版本");
+          setMessage("knowledge.messages.syncedLatestVersion");
         })
         .catch(() => undefined);
     }, 15000);
     return () => window.clearInterval(interval);
-  }, [draft.id, replaceDraft, updateEntryState]);
+  }, [draft.id, replaceDraft, text, updateEntryState]);
 
   function handleWorkspaceBlur(event: FocusEvent<HTMLElement>) {
     const nextTarget = event.relatedTarget;
@@ -2143,18 +2196,18 @@ export function KnowledgeNotebookWorkspace({
 
   async function saveBeforeNavigation() {
     if (saveStateRef.current === "conflict") {
-      setMessage("当前知识存在版本冲突，请先处理冲突后再切换。");
+      setMessage("knowledge.messages.resolveConflictBeforeSwitch");
       return false;
     }
     if (!dirtyRef.current && !pendingSaveRef.current) return true;
 
     const result = await saveCurrentDraft({ silent: true });
     if (result === "error") {
-      setMessage("当前知识保存失败，已停留在当前知识，避免丢失修改。");
+      setMessage(text("knowledge.messages.stayedAfterSaveFailed"));
       return false;
     }
     if (result === "conflict") {
-      setMessage("当前知识存在版本冲突，请先处理冲突后再切换。");
+      setMessage("knowledge.messages.resolveConflictBeforeSwitch");
       return false;
     }
     return true;
@@ -2202,7 +2255,7 @@ export function KnowledgeNotebookWorkspace({
     setSelectedEntryId(`space:${space.id}:${level}`);
     setSelectedIndexLevel(level);
     replaceDraft({
-      ...createBlankDraft(space.id, null, "folder"),
+      ...createBlankDraft(space.id, null, "folder", text),
       title: `${space.name} · ${openVikingLayerMeta(level).label}`,
       layer: "openviking/space-index",
       scopeKey: space.slug || vikingScopeLabel(space.vikingUri),
@@ -2213,7 +2266,7 @@ export function KnowledgeNotebookWorkspace({
     setConflictEntry(null);
     setVersionsOpen(false);
     setPropertiesOpen(false);
-    setMessage(`${space.name} 的 ${openVikingLayerMeta(level).label} 是知识空间全局索引，只读展示；每篇知识只保留 L2 原文。`);
+    setMessage(text("knowledge.messages.spaceIndexReadOnly", undefined, { name: space.name, layer: text(openVikingLayerMeta(level).label) }));
   }
 
   async function startNewEntry(spaceId = selectedSpaceId, parentFolderId: string | null = null, nodeType: "note" | "folder" = "note") {
@@ -2232,7 +2285,7 @@ export function KnowledgeNotebookWorkspace({
     setSelectedSpaceId(nextSpaceId);
     setSelectedEntryId(draftId);
     setSelectedIndexLevel("L2");
-    replaceDraft(createBlankDraft(nextSpaceId, parentFolderId, nodeType));
+    replaceDraft(createBlankDraft(nextSpaceId, parentFolderId, nodeType, text));
     setSaveError(null);
     setConflictEntry(null);
     setVersionsOpen(false);
@@ -2242,7 +2295,7 @@ export function KnowledgeNotebookWorkspace({
 
   async function saveDraft() {
     if (isIndexReadOnly) {
-      setMessage("当前是 OpenViking 索引层，只读展示；请切换到 L2 原文知识后编辑保存。");
+      setMessage("knowledge.messages.indexLayerReadOnlyEdit");
       return;
     }
     await saveCurrentDraft({ force: true });
@@ -2259,7 +2312,7 @@ export function KnowledgeNotebookWorkspace({
           body: JSON.stringify({ id }),
         });
         const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-        if (!response.ok || result.ok === false) throw new Error(result.error ?? "删除失败");
+        if (!response.ok || result.ok === false) throw new Error(result.error ?? "common.messages.deleteFailed");
       }
 
       const nextEntries = entriesState.filter((entry) => !ids.includes(entry.id));
@@ -2275,10 +2328,10 @@ export function KnowledgeNotebookWorkspace({
       } else {
         await startNewEntry(draft.knowledgeSpaceId);
       }
-      setMessage("已删除");
+      setMessage("common.messages.deleted");
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "删除失败");
+      setMessage(error instanceof Error ? error.message : "common.messages.deleteFailed");
     } finally {
       setPending(false);
     }
@@ -2286,11 +2339,13 @@ export function KnowledgeNotebookWorkspace({
 
   async function deleteEntry(entry: KnowledgeNotebookEntry) {
     const ids = nodeTypeOf(entry) === "folder" ? descendantIds(entriesState, entry.id) : [entry.id];
-    const label = nodeTypeOf(entry) === "folder" ? `目录「${entry.title}」及其中 ${ids.length - 1} 个子项` : `知识「${entry.title}」`;
+    const label = nodeTypeOf(entry) === "folder"
+      ? text("knowledge.delete.folderLabel", undefined, { title: entry.title, count: ids.length - 1 })
+      : text("knowledge.delete.entryLabel", undefined, { title: entry.title });
     const confirmed = await showConfirm({
-      title: "删除确认",
-      description: `确定删除${label}？这个操作不能撤销。`,
-      confirmText: "删除",
+      title: "common.dialog.deleteConfirmTitle",
+      description: text("knowledge.delete.confirmDescription", undefined, { label }),
+      confirmText: "actions.delete",
       tone: "danger",
     });
     if (!confirmed) return;
@@ -2299,7 +2354,7 @@ export function KnowledgeNotebookWorkspace({
 
   async function deleteDraft() {
     if (isIndexReadOnly) {
-      setMessage("索引层由 OpenViking 生成，不能删除；请切换到 L2 原文知识后管理知识。");
+      setMessage(text("knowledge.messages.indexLayerCannotDelete"));
       return;
     }
     if (!draft.id) {
@@ -2312,11 +2367,11 @@ export function KnowledgeNotebookWorkspace({
 
   async function renameEntry(entry: KnowledgeNotebookEntry) {
     const nextTitle = (await showPrompt({
-      title: "重命名",
-      description: "输入新的知识名称。",
+      title: "actions.rename",
+      description: "knowledge.rename.description",
       defaultValue: entry.title,
-      placeholder: "知识名称",
-      confirmText: "保存",
+      placeholder: "knowledge.rename.placeholder",
+      confirmText: "actions.save",
     }))?.trim();
     if (!nextTitle || nextTitle === entry.title) return;
     const currentDraft = toDraft(entry);
@@ -2346,17 +2401,17 @@ export function KnowledgeNotebookWorkspace({
       };
       if (response.status === 409) {
         if (result.currentEntry) updateEntryState(result.currentEntry);
-        throw new Error(result.error ?? "知识已被其他编辑者更新，请刷新后重命名。");
+        throw new Error(result.error ?? text("knowledge.rename.conflict"));
       }
-      if (!response.ok || result.ok === false || !result.entry) throw new Error(result.error ?? "重命名失败");
+      if (!response.ok || result.ok === false || !result.entry) throw new Error(result.error ?? text("knowledge.rename.failed"));
       updateEntryState(result.entry);
       if (selectedEntryId === entry.id) replaceDraft(toDraft(result.entry));
       router.refresh();
     } catch (error) {
       setPending(false);
       await showAlert({
-        title: "重命名失败",
-        description: error instanceof Error ? error.message : "重命名失败",
+        title: "knowledge.rename.failed",
+        description: error instanceof Error ? error.message : text("knowledge.rename.failed"),
         tone: "danger",
       });
     } finally {
@@ -2366,9 +2421,9 @@ export function KnowledgeNotebookWorkspace({
 
   async function deleteSpace(space: KnowledgeNotebookSpace) {
     const confirmed = await showConfirm({
-      title: "删除知识空间",
-      description: `确定删除知识空间「${space.name}」？空间内知识不会在这里批量删除，请确认已经迁移。`,
-      confirmText: "删除空间",
+      title: "knowledge.space.deleteTitle",
+      description: text("knowledge.space.deleteDescription", undefined, { name: space.name }),
+      confirmText: "knowledge.actions.deleteSpace",
       tone: "danger",
     });
     if (!confirmed) return;
@@ -2380,13 +2435,13 @@ export function KnowledgeNotebookWorkspace({
         body: JSON.stringify({ id: space.id }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "删除空间失败");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("knowledge.space.deleteFailed"));
       router.refresh();
     } catch (error) {
       setPending(false);
       await showAlert({
-        title: "删除空间失败",
-        description: error instanceof Error ? error.message : "删除空间失败",
+        title: "knowledge.space.deleteFailed",
+        description: error instanceof Error ? error.message : text("knowledge.space.deleteFailed"),
         tone: "danger",
       });
     } finally {
@@ -2429,23 +2484,23 @@ export function KnowledgeNotebookWorkspace({
         if (result.currentEntry) updateEntryState(result.currentEntry);
         setConflictEntry(result.currentEntry ?? null);
         setSaveState("conflict");
-        setSaveError(result.error ?? "恢复失败，当前知识已经被其他编辑者更新。");
+        setSaveError(result.error ?? "knowledge.versions.restoreConflict");
         return;
       }
 
-      if (!response.ok || result.ok === false || !result.entry) throw new Error(result.error ?? "恢复历史版本失败");
+      if (!response.ok || result.ok === false || !result.entry) throw new Error(result.error ?? "knowledge.versions.restoreFailed");
       updateEntryState(result.entry);
       replaceDraft(toDraft(result.entry), "saved", false);
       setSelectedEntryId(result.entry.id);
       setSelectedSpaceId(result.entry.knowledgeSpaceId ?? "");
       setSelectedIndexLevel("L2");
       setConflictEntry(null);
-      setMessage(`已恢复到 R${version.revision}`);
+      setMessage(text("knowledge.versions.restored", undefined, { revision: version.revision }));
       void loadVersions(result.entry.id);
       router.refresh();
     } catch (error) {
       setSaveState("error");
-      setSaveError(error instanceof Error ? error.message : "恢复历史版本失败");
+      setSaveError(error instanceof Error ? error.message : "knowledge.versions.restoreFailed");
     } finally {
       setPending(false);
     }
@@ -2492,7 +2547,7 @@ export function KnowledgeNotebookWorkspace({
       const importedIds = new Set(nextEntries.map((entry) => entry.id));
       return [...nextEntries, ...current.filter((entry) => !importedIds.has(entry.id))];
     });
-    setMessage(`已归档 ${nextEntries.length} 条知识`);
+    setMessage(text("knowledge.import.messages.archivedEntries", undefined, { count: nextEntries.length }));
     router.refresh();
 
     const canNavigate = await saveBeforeNavigation();
@@ -2546,15 +2601,15 @@ export function KnowledgeNotebookWorkspace({
         openKnowledgeImport(hasDirectory ? "directory" : "files", files);
       })
       .catch((error) => {
-        setMessage(error instanceof Error ? error.message : "目录读取失败");
+        setMessage(error instanceof Error ? error.message : "knowledge.import.errors.directoryReadFailed");
       });
   }
 
   function PaneModeControls() {
     const modes: Array<{ value: PaneMode; label: string; icon: typeof SplitSquareHorizontal }> = [
-      { value: "split", label: "双栏", icon: SplitSquareHorizontal },
-      { value: "editor", label: "编辑", icon: Edit3 },
-      { value: "preview", label: "预览", icon: Eye },
+      { value: "split", label: "knowledge.pane.split", icon: SplitSquareHorizontal },
+      { value: "editor", label: "actions.edit", icon: Edit3 },
+      { value: "preview", label: "knowledge.pane.preview", icon: Eye },
     ];
     return (
       <div className="inline-flex items-center rounded-full border border-[var(--line)] bg-white p-0.5 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
@@ -2573,7 +2628,7 @@ export function KnowledgeNotebookWorkspace({
               )}
             >
               <Icon className="h-3.5 w-3.5" />
-              {mode.label}
+              {text(mode.label)}
             </button>
           );
         })}
@@ -2593,7 +2648,7 @@ export function KnowledgeNotebookWorkspace({
         <div className="group flex w-full items-start gap-1.5">
           <button
             type="button"
-            aria-label={collapsed ? "展开目录" : "收起目录"}
+            aria-label={collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory"}
             onClick={(event) => {
               event.stopPropagation();
               if (children.length) toggleVikingPath(pathId);
@@ -2623,7 +2678,7 @@ export function KnowledgeNotebookWorkspace({
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium text-[var(--ink)]">{entry.title}</div>
               <div className="mt-0.5 truncate text-xs text-[var(--ink-subtle)]">
-                {isFolder ? `${children.length} 个子项` : `${entry.scopeKey} · L2 可编辑原文`}
+                {isFolder ? text("knowledge.tree.childCount", undefined, { count: children.length }) : text("knowledge.tree.entryLayerMeta", undefined, { scope: entry.scopeKey })}
               </div>
             </div>
             {isFolder ? (
@@ -2669,13 +2724,13 @@ export function KnowledgeNotebookWorkspace({
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-semibold text-[var(--ink)]">{meta.label}</span>
                 <span className="mt-0.5 block truncate text-[10px] text-[var(--ink-subtle)]">
-                  空间全局一份 · {notes.length} 篇知识 · {folders.length} 个目录
+                  {text("knowledge.openViking.spaceIndexStats", undefined, { entries: notes.length, folders: folders.length })}
                 </span>
                 <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--ink-subtle)]">
                   {openVikingSpaceLayerUri(space, level)}
                 </span>
               </span>
-              <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">只读</span>
+              <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">knowledge.labels.readOnly</span>
             </button>
           );
         })}
@@ -2733,8 +2788,8 @@ export function KnowledgeNotebookWorkspace({
           <div className="flex items-center gap-4 rounded-[22px] bg-white px-5 py-4 text-[var(--ink)] shadow-[0_16px_44px_rgba(15,23,42,0.1)]">
             <UploadCloud className="h-6 w-6 text-[var(--accent-strong)]" />
             <div>
-              <div className="text-sm font-semibold">拖入后选择归档位置</div>
-              <div className="mt-1 text-xs text-[var(--ink-subtle)]">文件或目录会按知识树结构写入 OpenViking 对应空间。</div>
+              <div className="text-sm font-semibold">knowledge.drop.title</div>
+              <div className="mt-1 text-xs text-[var(--ink-subtle)]">knowledge.drop.description</div>
             </div>
           </div>
         </div>
@@ -2747,7 +2802,7 @@ export function KnowledgeNotebookWorkspace({
             className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"
           >
             {metricsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            知识库状态
+            {text("knowledge.status.title")}
             <CircleDot className="h-3.5 w-3.5 text-[#16a34a]" />
           </button>
           <div className="flex flex-wrap items-center gap-2">
@@ -2789,9 +2844,9 @@ export function KnowledgeNotebookWorkspace({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-subtle)]">Knowledge Tree</div>
-                <div className="mt-1 text-lg font-semibold tracking-normal text-[var(--ink)]">知识树</div>
+                <div className="mt-1 text-lg font-semibold tracking-normal text-[var(--ink)]">{text("knowledge.tree.title")}</div>
               </div>
-              <Button size="icon" variant="ghost" aria-label="新建知识" onClick={() => void startNewEntry()}>
+              <Button size="icon" variant="ghost" aria-label="knowledge.actions.newEntry" onClick={() => void startNewEntry()}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -2801,16 +2856,16 @@ export function KnowledgeNotebookWorkspace({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--ink-subtle)]"
-                placeholder="搜索知识"
+                placeholder="knowledge.search.placeholder"
               />
             </label>
             <div className="mt-3 flex items-center gap-2 text-xs text-[var(--ink-subtle)]">
               <BookOpen className="h-3.5 w-3.5" />
-              <span>{spaces.length} 个空间</span>
+              <span>{text("knowledge.tree.spaceCount", undefined, { count: spaces.length })}</span>
               <span className="h-1 w-1 rounded-full bg-[var(--ink-subtle)]/40" />
-              <span>{totalFolders} 个目录</span>
+              <span>{text("knowledge.tree.folderCount", undefined, { count: totalFolders })}</span>
               <span className="h-1 w-1 rounded-full bg-[var(--ink-subtle)]/40" />
-              <span>{totalEntries} 篇知识</span>
+              <span>{text("knowledge.tree.entryCount", undefined, { count: totalEntries })}</span>
             </div>
           </div>
 
@@ -2828,7 +2883,7 @@ export function KnowledgeNotebookWorkspace({
                       <button
                         type="button"
                         aria-expanded={!isCollapsed}
-                        aria-label={isCollapsed ? `展开知识空间 ${space.name}` : `收起知识空间 ${space.name}`}
+                        aria-label={isCollapsed ? text("knowledge.tree.expandSpace", undefined, { name: space.name }) : text("knowledge.tree.collapseSpace", undefined, { name: space.name })}
                         onClick={() => toggleSpaceCollapse(space.id)}
                         onContextMenu={(event) => openContextMenu(event, { type: "space", spaceId: space.id })}
                         className={cn(
@@ -2871,7 +2926,7 @@ export function KnowledgeNotebookWorkspace({
                               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[var(--ink-subtle)] hover:bg-white/80"
                             >
                               <Plus className="h-4 w-4" />
-                              新建知识
+                              knowledge.actions.newEntry
                             </button>
                           )}
                         </div>
@@ -2882,7 +2937,7 @@ export function KnowledgeNotebookWorkspace({
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/70 px-4 py-8 text-center text-sm text-[var(--ink-subtle)]">
-                暂无知识空间
+                knowledge.empty.noSpaces
               </div>
             )}
           </div>
@@ -2893,13 +2948,13 @@ export function KnowledgeNotebookWorkspace({
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-[260px] flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
-                  <span>{activeSpace?.tenantName ?? "未绑定租户"}</span>
+                  <span>{activeSpace?.tenantName ?? text("knowledge.fallback.unboundTenant")}</span>
                   <ChevronRight className="h-3.5 w-3.5" />
-                  <span>{activeSpace?.name ?? "未选择空间"}</span>
+                  <span>{activeSpace?.name ?? text("knowledge.fallback.noSpaceSelected")}</span>
                   {draft.parentFolderId ? (
                     <>
                       <ChevronRight className="h-3.5 w-3.5" />
-                      <span>{entriesState.find((entry) => entry.id === draft.parentFolderId)?.title ?? "目录"}</span>
+                      <span>{entriesState.find((entry) => entry.id === draft.parentFolderId)?.title ?? "knowledge.node.folder"}</span>
                     </>
                   ) : null}
                 </div>
@@ -2908,7 +2963,7 @@ export function KnowledgeNotebookWorkspace({
                     <div className="text-3xl font-semibold tracking-normal text-[var(--ink)]">{activeTitle}</div>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.04)] px-3 py-1 text-xs font-medium text-[var(--ink-subtle)]">
                       <CircleDot className="h-3.5 w-3.5" />
-                      {selectedLayerItem.label} · 知识空间全局索引，只读展示
+                      {text("knowledge.openViking.selectedLayerMeta", undefined, { layer: text(selectedLayerItem.label) })}
                     </div>
                   </div>
                 ) : (
@@ -2917,39 +2972,39 @@ export function KnowledgeNotebookWorkspace({
                     onChange={(event) => updateDraft((current) => ({ ...current, title: event.target.value }))}
                     onBlur={flushDraftOnBlur}
                     className="mt-2 h-auto rounded-none border-0 bg-transparent px-0 py-0 text-3xl font-semibold tracking-normal shadow-none focus:ring-0"
-                    placeholder="知识标题"
+                    placeholder="knowledge.placeholders.entryTitle"
                   />
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <Button variant="secondary" onClick={() => openKnowledgeImport("url")} disabled={!spaces.length}>
                   <Globe2 className="h-4 w-4" />
-                  知识发现
+                  knowledge.actions.discover
                 </Button>
                 <Button variant="secondary" onClick={() => openKnowledgeImport("files")} disabled={!spaces.length}>
                   <UploadCloud className="h-4 w-4" />
-                  拖入归档
+                  knowledge.actions.importDrop
                 </Button>
                 <Button variant="secondary" onClick={() => openKnowledgeImport("directory")} disabled={!spaces.length}>
                   <FolderPlus className="h-4 w-4" />
-                  目录导入
+                  knowledge.actions.importDirectory
                 </Button>
                 {activeSpace ? <KnowledgeRetrievalTestDialog knowledgeSpaceId={activeSpace.id} knowledgeSpaceName={activeSpace.name} /> : null}
                 <Button variant="secondary" onClick={() => void startNewEntry(draft.knowledgeSpaceId, draft.parentFolderId, "note")}>
                   <Plus className="h-4 w-4" />
-                  新建
+                  actions.create
                 </Button>
                 <Button variant="ghost" onClick={deleteDraft} disabled={pending || isIndexReadOnly}>
                   <Trash2 className="h-4 w-4" />
-                  删除
+                  actions.delete
                 </Button>
                 <Button variant="secondary" onClick={toggleVersions} disabled={!draft.id || isIndexReadOnly}>
                   <History className="h-4 w-4" />
-                  版本
+                  knowledge.versions.title
                 </Button>
                 <Button variant="primary" onClick={saveDraft} disabled={pending || !spaces.length || isIndexReadOnly}>
                   <Save className="h-4 w-4" />
-                  {pending ? "保存中" : "保存"}
+                  {pending ? "actions.saving" : "actions.save"}
                 </Button>
               </div>
             </div>
@@ -2957,22 +3012,22 @@ export function KnowledgeNotebookWorkspace({
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
                 <Badge variant={isIndexReadOnly ? "neutral" : draft.nodeType === "folder" ? "accent" : syncStatusVariant(draft.syncStatus)}>
-                  {isIndexReadOnly ? "空间索引" : draft.nodeType === "folder" ? "目录" : syncStatusLabel(draft.syncStatus)}
+                  {isIndexReadOnly ? "knowledge.labels.spaceIndex" : draft.nodeType === "folder" ? "knowledge.node.folder" : syncStatusLabel(draft.syncStatus)}
                 </Badge>
                 {isIndexReadOnly || draft.nodeType !== "folder" ? (
                   <Badge variant={selectedLayerItem.editable ? "accent" : "neutral"}>
-                    {selectedLayerItem.level} · {selectedLayerItem.editable ? "可编辑原文" : "只读索引"}
+                    {selectedLayerItem.level} · {selectedLayerItem.editable ? text("knowledge.labels.editableSource") : text("knowledge.labels.readOnlyIndex")}
                   </Badge>
                 ) : null}
-                {isIndexReadOnly ? <Badge variant="neutral">只读视图</Badge> : <Badge variant={saveStateVariant(saveState)}>{saveStateLabel(saveState)}</Badge>}
+                {isIndexReadOnly ? <Badge variant="neutral">knowledge.labels.readOnlyView</Badge> : <Badge variant={saveStateVariant(saveState)}>{saveStateLabel(saveState)}</Badge>}
                 {!isIndexReadOnly && draft.revision ? <span>R{draft.revision}</span> : null}
                 <span>{activeContentSize}</span>
                 {isIndexReadOnly ? (
-                  <span>空间级生成视图</span>
+                  <span>knowledge.labels.spaceGeneratedView</span>
                 ) : draft.updatedAt || draft.createdAt ? (
                   <span>{formatDateTime(draft.updatedAt || draft.createdAt)}</span>
                 ) : (
-                  <span>未保存</span>
+                  <span>{text("knowledge.labels.unsaved")}</span>
                 )}
                 {!isIndexReadOnly && draft.updatedBy ? <span>{draft.updatedBy}</span> : null}
                 {activeSpace ? (
@@ -2993,7 +3048,7 @@ export function KnowledgeNotebookWorkspace({
                   onClick={() => setPropertiesOpen((value) => !value)}
                 >
                   {propertiesOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                  属性
+                  {text("knowledge.properties.title")}
                 </button>
               </div>
             </div>
@@ -3002,7 +3057,7 @@ export function KnowledgeNotebookWorkspace({
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
                   {saveError}
-                  {conflictEntry ? ` 当前最新版本是 R${conflictEntry.revision}，保存于 ${formatDateTime(conflictEntry.updatedAt || conflictEntry.createdAt)}。` : ""}
+                  {conflictEntry ? text("knowledge.messages.conflictLatestVersion", undefined, { revision: conflictEntry.revision, time: formatDateTime(conflictEntry.updatedAt || conflictEntry.createdAt) }) : ""}
                 </span>
               </div>
             ) : null}
@@ -3018,9 +3073,9 @@ export function KnowledgeNotebookWorkspace({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Search className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    OpenViking 多层查询路径
+                    {text("knowledge.openViking.queryPathTitle")}
                   </div>
-                  <span className="text-xs text-[var(--ink-subtle)]">L0/L1 为空间全局只读索引，L2 原文可编辑</span>
+                  <span className="text-xs text-[var(--ink-subtle)]">{text("knowledge.openViking.queryPathDescription")}</span>
                 </div>
                 <div className="mt-3 grid gap-2 xl:grid-cols-3">
                   {querySteps.map((step) => (
@@ -3045,7 +3100,7 @@ export function KnowledgeNotebookWorkspace({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <Badge variant={step.editable ? "accent" : "neutral"}>{step.level}</Badge>
-                        <span className="text-[11px] font-medium text-[var(--ink-subtle)]">{step.editable ? "可编辑" : "只读索引"}</span>
+                        <span className="text-[11px] font-medium text-[var(--ink-subtle)]">{text(step.editable ? "knowledge.labels.editable" : "knowledge.labels.readOnlyIndex")}</span>
                       </div>
                       <div className="mt-2 text-sm font-semibold text-[var(--ink)]">{step.label}</div>
                       <div className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--ink-muted)]">{step.description}</div>
@@ -3061,16 +3116,16 @@ export function KnowledgeNotebookWorkspace({
                 <div className="flex items-center justify-between gap-3">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <History className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    最近 3 个历史版本
+                    knowledge.versions.recentTitle
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => void loadVersions()} disabled={versionsLoading || !draft.id}>
-                    刷新
+                    actions.refresh
                   </Button>
                 </div>
                 {versionsError ? <div className="mt-2 text-xs text-[var(--warning)]">{versionsError}</div> : null}
                 <div className="mt-3 grid gap-2 md:grid-cols-3">
                   {versionsLoading ? (
-                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">读取历史版本中</div>
+                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">knowledge.versions.loading</div>
                   ) : versions.length ? (
                     versions.map((version) => (
                       <div key={version.id} className="rounded-xl border border-[var(--line)] bg-white px-3 py-3">
@@ -3085,12 +3140,12 @@ export function KnowledgeNotebookWorkspace({
                         </div>
                         <Button className="mt-3 w-full" size="sm" variant="secondary" onClick={() => void restoreVersion(version)} disabled={pending}>
                           <RotateCcw className="h-3.5 w-3.5" />
-                          恢复
+                          knowledge.versions.restore
                         </Button>
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">暂无历史版本</div>
+                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">knowledge.versions.empty</div>
                   )}
                 </div>
               </div>
@@ -3098,7 +3153,7 @@ export function KnowledgeNotebookWorkspace({
 
             {propertiesOpen && !isIndexReadOnly ? (
               <div className="mt-4 grid gap-3 rounded-2xl bg-[rgba(250,251,253,0.78)] p-3 md:grid-cols-2 xl:grid-cols-6">
-                <FieldGroup label="知识空间">
+                <FieldGroup label="terminology.knowledge">
                   <Select
                     value={draft.knowledgeSpaceId}
                     onBlur={flushDraftOnBlur}
@@ -3107,19 +3162,19 @@ export function KnowledgeNotebookWorkspace({
                       setSelectedSpaceId(event.target.value);
                     }}
                   >
-                    <option value="">未分配</option>
+                    <option value="">common.select.unassigned</option>
                     {spaces.map((space) => (
                       <option key={space.id} value={space.id}>{space.name}</option>
                     ))}
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="类型">
+                <FieldGroup label="common.fields.type">
                   <Select value={draft.nodeType} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, nodeType: event.target.value === "folder" ? "folder" : "note" }))}>
-                    <option value="note">知识</option>
-                    <option value="folder">目录</option>
+                    <option value="note">terminology.knowledge</option>
+                    <option value="folder">knowledge.node.folder</option>
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="来源">
+                <FieldGroup label="common.fields.source">
                   <Select value={draft.sourceType} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, sourceType: event.target.value }))}>
                     {sourceTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
@@ -3151,14 +3206,14 @@ export function KnowledgeNotebookWorkspace({
                       </div>
                       <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink-muted)]">{selectedLayerItem.description}</p>
                     </div>
-                    <Badge variant="neutral">只读索引</Badge>
+                    <Badge variant="neutral">{text("knowledge.labels.readOnlyIndex")}</Badge>
                   </div>
                   <div className="mt-4 rounded-2xl bg-[rgba(15,23,42,0.035)] px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">OpenViking API</div>
                     <div className="mt-1 break-all font-mono text-xs text-[var(--ink-muted)]">{selectedLayerItem.uri}</div>
                   </div>
                   <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.78)] px-5 py-5 text-sm leading-7 text-[var(--ink)]">
-                    {selectedLayerItem.preview || "索引内容等待 OpenViking 生成。"}
+                    {selectedLayerItem.preview || "knowledge.openViking.preview.waiting"}
                   </div>
                 </div>
               </div>
@@ -3180,7 +3235,7 @@ export function KnowledgeNotebookWorkspace({
                 <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown 编辑
+                    Markdown {text("actions.edit")}
                   </div>
                 </div>
                 <Textarea
@@ -3189,10 +3244,10 @@ export function KnowledgeNotebookWorkspace({
                   onBlur={flushDraftOnBlur}
                   onKeyDown={handleMarkdownKeyDown}
                   className="min-h-[620px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0"
-                  placeholder={draft.nodeType === "folder" ? "目录说明..." : "开始编写知识..."}
+                  placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
                 />
                 <details className="border-t border-[var(--line)] px-5 py-4">
-                  <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">元数据 JSON</summary>
+                  <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
                   <Textarea
                     value={draft.metadataJson}
                     onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
@@ -3211,9 +3266,9 @@ export function KnowledgeNotebookWorkspace({
                 <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <SplitSquareHorizontal className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown 预览
+                    Markdown {text("knowledge.pane.preview")}
                   </div>
-                  <Badge variant="neutral">Preview</Badge>
+                  <Badge variant="neutral">{text("knowledge.pane.preview")}</Badge>
                 </div>
                 <div className="min-h-[620px] flex-1 overflow-auto">
                   <MarkdownPreview

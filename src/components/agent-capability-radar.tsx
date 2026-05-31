@@ -6,6 +6,7 @@ import {
   type AgentCapabilityKey,
   type AgentCapabilityProfile,
 } from "@/lib/agent-capability-profile";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { cn } from "@/lib/utils";
 
 function polarPoint(center: number, radius: number, index: number, total: number, valueScale = 1) {
@@ -34,6 +35,7 @@ export function AgentCapabilityRadar({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
+  const text = useLanguageText();
   const center = 100;
   const radius = size === "sm" ? 64 : 70;
   const dimensions = agentCapabilityDimensions;
@@ -54,7 +56,7 @@ export function AgentCapabilityRadar({
         className,
       )}
     >
-      <svg viewBox={viewBox} className="h-full w-full" aria-label="Agent 能力雷达图">
+      <svg viewBox={viewBox} className="h-full w-full" aria-label={text("agent.capability.radar.ariaLabel")}>
         {[0.25, 0.5, 0.75, 1].map((scale) => (
           <polygon
             key={scale}
@@ -99,7 +101,7 @@ export function AgentCapabilityRadar({
                   fontSize="10"
                   fontWeight="600"
                 >
-                  {dimension.label}
+                  {text(dimension.label)}
                 </text>
               );
             })
@@ -110,6 +112,7 @@ export function AgentCapabilityRadar({
 }
 
 export function AgentCapabilityProfilePanel({ value }: { value: AgentCapabilityProfile }) {
+  const text = useLanguageText();
   return (
     <div className="grid gap-5 rounded-xl border border-[var(--line)] bg-[var(--surface-muted)] p-4 lg:grid-cols-[auto_1fr]">
       <div className="flex items-center justify-center">
@@ -118,13 +121,13 @@ export function AgentCapabilityProfilePanel({ value }: { value: AgentCapabilityP
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
           <SlidersHorizontal className="h-4 w-4" />
-          数据库能力画像
+          {text("agent.capability.profilePanel.title")}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {agentCapabilityDimensions.map((dimension) => (
             <div key={dimension.key} className="space-y-2">
               <div className="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--ink-subtle)]">
-                <span>{dimension.label}</span>
+                <span>{text(dimension.label)}</span>
                 <span className="font-mono text-[var(--ink)]">{scoreValue(value, dimension.key)}</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-white">

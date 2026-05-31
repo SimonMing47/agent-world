@@ -1,0 +1,49 @@
+[
+  {
+    "agent_id": "scout_01",
+    "display_name": "Scout Ranger",
+    "traits": {
+      "ground": "ground.stone_moss.v1",
+      "side_prop": "side_prop.crystal_blue.v1",
+      "bottom": "bottom.cargo_green.v1",
+      "shoes": "shoes.boots_work_brown.v1",
+      "outfit_top": "outfit_top.coat_ranger.v1",
+      "face": "face.focused.v1",
+      "hair": "hair.low_ponytail.v1",
+      "headgear": "headgear.hood_green_trim.v1",
+      "hand_item": "hand_item.spear_red_ribbon.v1"
+    }
+  },
+  {
+    "agent_id": "mage_01",
+    "display_name": "Arcane Scholar",
+    "traits": {
+      "ground": "ground.magic_purple.v2",
+      "side_prop": "side_prop.hourglass.v2",
+      "back_accessory": "back_accessory.wings_crystal.v2",
+      "bottom": "bottom.ornate_purple.v2",
+      "shoes": "shoes.boots_mage_purple.v1",
+      "outfit_top": "outfit_top.cloak_mage.v2",
+      "face": "face.smug_sideeye.v2",
+      "hair": "hair.medium_wavy.v1",
+      "headgear": "headgear.circlet_royal_red.v1",
+      "hand_item": "hand_item.staff_purple_orb.v2"
+    }
+  },
+  {
+    "agent_id": "engineer_01",
+    "display_name": "Tech Engineer",
+    "traits": {
+      "ground": "ground.metal_plate.v1",
+      "side_prop": "side_prop.drone_pad.v2",
+      "back_accessory": "back_accessory.jetpack_dual.v2",
+      "bottom": "bottom.pants_tech.v2",
+      "shoes": "shoes.boots_future_purple.v2",
+      "outfit_top": "outfit_top.jacket_tactical.v2",
+      "face": "face.worried.v2",
+      "hair": "hair.swept_cyber.v1",
+      "headgear": "headgear.hood_cyber.v2",
+      "hand_item": "hand_item.wrench_tool.v1"
+    }
+  }
+]

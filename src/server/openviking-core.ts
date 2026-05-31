@@ -691,24 +691,33 @@ function retrievalLevelsForEntry(
   const levels: KnowledgeRetrievalTestLevelHit[] = [
     {
       level: "L0",
-      label: "空间摘要索引召回",
-      purpose: "Abstract：知识空间全局一份，用于向量召回、快速过滤和空间级列表感知。",
+      label: uiText("ui.server.openViking.retrievalLevels.l0.label", "Space abstract index recall"),
+      purpose: uiText(
+        "ui.server.openViking.retrievalLevels.l0.purpose",
+        "Abstract: one global knowledge-space summary for vector recall, quick filtering, and space-level list awareness.",
+      ),
       score: scoreTerms(entry.title, queryTerms, 6) + scoreTerms(l0Text, queryTerms, 1),
       excerpt: buildExcerpt(l0Text, query),
       editable: false,
     },
     {
       level: "L1",
-      label: "空间概览索引重排",
-      purpose: "Overview：知识空间全局一份，用于理解空间结构、目录递归和重排细化。",
+      label: uiText("ui.server.openViking.retrievalLevels.l1.label", "Space overview index rerank"),
+      purpose: uiText(
+        "ui.server.openViking.retrievalLevels.l1.purpose",
+        "Overview: one global knowledge-space overview for understanding space structure, recursive directories, and reranking refinement.",
+      ),
       score: scoreTerms(entry.title, queryTerms, 4) + scoreTerms(l1Text, queryTerms, 2),
       excerpt: buildExcerpt(l1Text, query),
       editable: false,
     },
     {
       level: "L2",
-      label: "原文知识读取",
-      purpose: "Details：完整 Markdown 原文，按需读取并允许编辑。",
+      label: uiText("ui.server.openViking.retrievalLevels.l2.label", "Original knowledge read"),
+      purpose: uiText(
+        "ui.server.openViking.retrievalLevels.l2.purpose",
+        "Details: full original Markdown, read on demand and editable.",
+      ),
       score: scoreTerms(entry.title, queryTerms, 5) + scoreTerms(l2Text, queryTerms, 3),
       excerpt: buildExcerpt(entry.contentMd, query),
       editable: true,

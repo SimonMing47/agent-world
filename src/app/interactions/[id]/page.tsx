@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeInteractionConsole } from "@/components/runtime-interaction-console";
-import { translateHumanIntervention, translateSessionMode, translateStatus } from "@/lib/presentation";
+import { translateWithPack } from "@/lib/language-pack";
 import { formatDateTime } from "@/lib/utils";
 import { buildAgentHarnessExecutionProfile } from "@/server/agent-harness-core";
 import { getRequestAuthContext } from "@/server/auth-core";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getRuntimeSessionDetail } from "@/server/runtime-session-core";
 
 function statusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
@@ -22,6 +23,10 @@ export default async function RuntimeInteractionDetailPage({
   const resolved = await params;
   const detail = getRuntimeSessionDetail(resolved.id);
   const authContext = await getRequestAuthContext();
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
+  const label = (group: string, value: string) => t(`labels.${group}.${value}`, value);
 
   if (!detail) {
     notFound();
@@ -52,12 +57,12 @@ export default async function RuntimeInteractionDetailPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.c5446baecd9"
+        eyebrow="console.interactions.detail.eyebrow"
         title={detail.session.title}
-        description="ui.generated.c9ae641eb8d"
+        description="console.interactions.detail.description"
         badges={[
-          { label: translateSessionMode(detail.session.mode), variant: "neutral" },
-          { label: translateStatus(detail.session.status), variant: statusVariant(detail.session.status) },
+          { label: label("sessionMode", detail.session.mode), variant: "neutral" },
+          { label: label("status", detail.session.status), variant: statusVariant(detail.session.status) },
           { label: detail.session.model, variant: "accent" },
         ]}
       />
@@ -116,38 +121,39 @@ export default async function RuntimeInteractionDetailPage({
         ]}
         compactFacts={[
           {
-            label: "ui.generated.c8e175e7aa9",
-            value: detail.runtimeBinding?.name ?? "ui.generated.c3bf179d8d0",
+            label: "ui.common.resources.runtimeBinding",
+            value: detail.runtimeBinding?.name ?? "ui.common.unbound",
             detail: detail.runtimeDescriptor?.executionMode ?? "unknown",
           },
           {
-            label: "ui.generated.cbc56f948bb",
-            value: detail.providerProfile?.name ?? "ui.generated.c3bf179d8d0",
+            label: "ui.common.resources.providerProfile",
+            value: detail.providerProfile?.name ?? "ui.common.unbound",
             detail: detail.session.model,
           },
           {
-            label: "ui.generated.c2bca55a7ed",
-            value: detail.agentDefinition?.name ?? "ui.generated.c72077749f7",
+            label: "ui.common.resources.agent",
+            value: detail.agentDefinition?.name ?? "ui.common.none",
             detail: harnessProfile
               ? `${harnessProfile.approvalMode} · ${harnessProfile.thinkingLevel}`
-              : "ui.generated.c7ff55ad2c8",
+              : "console.interactions.detail.unboundDefaultProfile",
           },
           {
-            label: "ui.generated.c70f970c1fc",
-            value: detail.agentTeam?.name ?? "ui.generated.c72077749f7",
+            label: "ui.common.resources.agentTeam",
+            value: detail.agentTeam?.name ?? "ui.common.none",
             detail: detail.agentTeam
               ? <>{detail.agents.length} ui.common.count.members</>
-              : "ui.generated.c8aa0dfdca3",
+              : "console.interactions.detail.singleAgentSession",
           },
           {
-            label: "ui.generated.c8d8f100fb8",
-            value: translateHumanIntervention(
+            label: "ui.common.humanCollaboration",
+            value: label(
+              "humanIntervention",
               harnessProfile?.humanIntervention ?? detail.runtimeDescriptor?.humanIntervention ?? "manual",
             ),
             detail: displayCreatedBy,
           },
           {
-            label: "ui.generated.c093dea88c9",
+            label: "ui.common.updatedAt",
             value: formatDateTime(detail.session.updatedAt),
             detail: <>ui.common.createdAtPrefix {formatDateTime(detail.session.createdAt)}</>,
           },

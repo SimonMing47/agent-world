@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FieldGroup } from "@/components/ui/form-field";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, formatBytes } from "@/lib/utils";
@@ -73,6 +74,7 @@ type ImportResult = {
 };
 
 const maxClientFileChars = 900_000;
+type TranslateText = ReturnType<typeof useLanguageText>;
 
 type WebkitFileSystemEntry = {
   isFile: boolean;
@@ -105,13 +107,13 @@ function fileKey(file: File, index: number) {
   return `${file.name}:${file.size}:${file.lastModified}:${index}`;
 }
 
-function fileRelativePath(source: KnowledgeImportFileSource) {
+function fileRelativePath(source: KnowledgeImportFileSource, fallbackName = "ui.knowledgeImport.defaults.droppedKnowledge") {
   const browserPath = (source.file as File & { webkitRelativePath?: string }).webkitRelativePath;
-  return (source.relativePath || browserPath || source.file.name || "拖入知识").replace(/\\/g, "/").replace(/^\/+/, "");
+  return (source.relativePath || browserPath || source.file.name || fallbackName).replace(/\\/g, "/").replace(/^\/+/, "");
 }
 
 function fileNameFromPath(path: string, fallback: string) {
-  return path.split("/").filter(Boolean).pop() || fallback || "拖入知识";
+  return path.split("/").filter(Boolean).pop() || fallback || "ui.knowledgeImport.defaults.droppedKnowledge";
 }
 
 function fileListSources(files: File[]) {
@@ -181,8 +183,9 @@ export async function knowledgeImportFilesFromDataTransfer(dataTransfer: DataTra
   return fileListSources(Array.from(dataTransfer.files ?? []));
 }
 
-async function readFileItem(source: KnowledgeImportFileSource, index: number): Promise<FileImportItem> {
-  const relativePath = fileRelativePath(source);
+async function readFileItem(source: KnowledgeImportFileSource, index: number, text: TranslateText): Promise<FileImportItem> {
+  const fallbackName = text("ui.knowledgeImport.defaults.droppedKnowledge");
+  const relativePath = fileRelativePath(source, fallbackName);
   const name = fileNameFromPath(relativePath, source.file.name);
   try {
     const content = await source.file.text();
@@ -205,7 +208,7 @@ async function readFileItem(source: KnowledgeImportFileSource, index: number): P
       size: source.file.size,
       content: "",
       truncated: false,
-      error: error instanceof Error ? error.message : "文件读取失败",
+      error: error instanceof Error ? error.message : text("ui.knowledgeImport.errors.fileReadFailed"),
     };
   }
 }
@@ -231,6 +234,7 @@ export function KnowledgeImportDialog({
   onOpenChange: (open: boolean) => void;
   onImported: (entries: KnowledgeImportEntry[]) => void;
 }) {
+  const text = useLanguageText();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const directoryInputRef = useRef<HTMLInputElement>(null);
   const [activeMode, setActiveMode] = useState<KnowledgeImportMode>(mode);
@@ -266,11 +270,11 @@ export function KnowledgeImportDialog({
     if (!open || !files.length) return;
     setActiveMode(isDirectoryLike(files) ? "directory" : "files");
     setReadingFiles(true);
-    void Promise.all(files.map((file, index) => readFileItem(file, index))).then((items) => {
+    void Promise.all(files.map((file, index) => readFileItem(file, index, text))).then((items) => {
       setFileItems(items);
       setReadingFiles(false);
     });
-  }, [files, open]);
+  }, [files, open, text]);
 
   useEffect(() => {
     if (!parentFolderId) return;
@@ -282,7 +286,7 @@ export function KnowledgeImportDialog({
     setActiveMode(nextMode ?? (isDirectoryLike(nextFiles) ? "directory" : "files"));
     setError(null);
     setReadingFiles(true);
-    void Promise.all(nextFiles.map((file, index) => readFileItem(file, index))).then((items) => {
+    void Promise.all(nextFiles.map((file, index) => readFileItem(file, index, text))).then((items) => {
       setFileItems(items);
       setReadingFiles(false);
     });
@@ -308,7 +312,7 @@ export function KnowledgeImportDialog({
       })
       .catch((dropError) => {
         setReadingFiles(false);
-        setError(dropError instanceof Error ? dropError.message : "目录读取失败");
+        setError(dropError instanceof Error ? dropError.message : text("ui.knowledgeImport.errors.directoryReadFailed"));
       });
   }
 
@@ -318,17 +322,17 @@ export function KnowledgeImportDialog({
 
   async function submit() {
     if (!spaceId) {
-      setError("请选择要归档的知识空间");
+      setError(text("ui.knowledgeImport.errors.spaceRequired"));
       return;
     }
     const urls = splitUrls(urlText);
     const usableFiles = fileItems.filter((file) => file.content && !file.error);
     if (activeMode === "url" && !urls.length) {
-      setError("请输入至少一个 URL");
+      setError(text("ui.knowledgeImport.errors.urlRequired"));
       return;
     }
     if ((activeMode === "files" || activeMode === "directory") && !usableFiles.length) {
-      setError(activeMode === "directory" ? "请拖入或选择一个可读取的目录知识库" : "请拖入或选择至少一个可读取的文本文件");
+      setError(text(activeMode === "directory" ? "ui.knowledgeImport.errors.directoryRequired" : "ui.knowledgeImport.errors.fileRequired"));
       return;
     }
 
@@ -357,35 +361,41 @@ export function KnowledgeImportDialog({
       });
       const result = (await response.json().catch(() => ({}))) as ImportResult;
       if (!response.ok || result.ok === false || !result.entries?.length) {
-        throw new Error(result.error ?? "知识归档失败");
+        throw new Error(result.error ?? text("ui.knowledgeImport.errors.importFailed"));
       }
       onImported(result.entries);
       onOpenChange(false);
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : "知识归档失败");
+      setError(importError instanceof Error ? importError.message : text("ui.knowledgeImport.errors.importFailed"));
     } finally {
       setPending(false);
     }
   }
 
   const selectedSpace = spaces.find((space) => space.id === spaceId);
-  const submitText = activeMode === "url" ? "开始发现" : activeMode === "directory" ? "导入目录知识库" : "归档知识";
+  const submitText = text(
+    activeMode === "url"
+      ? "knowledge.import.actions.discover"
+      : activeMode === "directory"
+        ? "knowledge.import.actions.importDirectory"
+        : "knowledge.import.actions.archive",
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(94vw,780px)] rounded-[24px]">
         <DialogHeader className="px-5 py-4">
-          <DialogTitle>知识发现与拖入归档</DialogTitle>
+          <DialogTitle>{text("knowledge.import.dialog.title")}</DialogTitle>
           <DialogDescription>
-            通过 URL 自动抓取正文，也可以导入单篇文档或 Skill 这样的目录知识库，并保留目录结构。
+            {text("knowledge.import.dialog.description")}
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-5 px-5 py-4">
           <div className="inline-flex rounded-full border border-[var(--line)] bg-[rgba(250,251,253,0.9)] p-1">
             {[
-              { value: "url" as const, label: "URL 发现", icon: Globe2 },
-              { value: "files" as const, label: "单文档", icon: FileText },
-              { value: "directory" as const, label: "目录知识库", icon: Archive },
+              { value: "url" as const, label: "knowledge.import.modes.url", icon: Globe2 },
+              { value: "files" as const, label: "knowledge.import.modes.files", icon: FileText },
+              { value: "directory" as const, label: "knowledge.import.modes.directory", icon: Archive },
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -401,14 +411,14 @@ export function KnowledgeImportDialog({
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" />
-                  {item.label}
+                  {text(item.label)}
                 </button>
               );
             })}
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <FieldGroup label="知识空间">
+            <FieldGroup label="knowledge.import.fields.space">
               <Select value={spaceId} onChange={(event) => setSpaceId(event.target.value)}>
                 {spaces.map((space) => (
                   <option key={space.id} value={space.id}>
@@ -417,9 +427,12 @@ export function KnowledgeImportDialog({
                 ))}
               </Select>
             </FieldGroup>
-            <FieldGroup label="归档位置" hint={selectedSpace ? `当前空间：${selectedSpace.name}` : undefined}>
+            <FieldGroup
+              label="knowledge.import.fields.location"
+              hint={selectedSpace ? text("knowledge.import.fields.locationHint", undefined, { name: selectedSpace.name }) : undefined}
+            >
               <Select value={parentFolderId} onChange={(event) => setParentFolderId(event.target.value)}>
-                <option value="">空间根目录</option>
+                <option value="">{text("knowledge.import.fields.rootFolder")}</option>
                 {folderOptions.map((folder) => (
                   <option key={folder.id} value={folder.id}>
                     {"　".repeat(Math.max(0, folder.depth))}
@@ -431,7 +444,7 @@ export function KnowledgeImportDialog({
           </div>
 
           {activeMode === "url" ? (
-            <FieldGroup label="发现 URL" hint="支持多行 URL。导入后会保留来源链接、抓取时间和页面描述。">
+            <FieldGroup label="knowledge.import.fields.url" hint="knowledge.import.fields.urlHint">
               <Textarea
                 value={urlText}
                 onChange={(event) => setUrlText(event.target.value)}
@@ -452,23 +465,21 @@ export function KnowledgeImportDialog({
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-[var(--ink)]">
-                      {activeMode === "directory" ? "把 Skill 或知识库目录拖到这里" : "把知识文件拖到这里"}
+                      {text(activeMode === "directory" ? "knowledge.import.drop.directoryTitle" : "knowledge.import.drop.filesTitle")}
                     </div>
                     <div className="mt-1 text-xs text-[var(--ink-subtle)]">
-                      {activeMode === "directory"
-                        ? "会保留目录层级，目录变成知识树目录，文件变成可编辑知识。"
-                        : "支持 Markdown、TXT、代码文件等可读取文本内容。"}
+                      {text(activeMode === "directory" ? "knowledge.import.drop.directoryDescription" : "knowledge.import.drop.filesDescription")}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
                     <UploadCloud className="h-4 w-4" />
-                    选择文件
+                    {text("knowledge.import.actions.chooseFiles")}
                   </Button>
                   <Button type="button" variant="secondary" onClick={() => directoryInputRef.current?.click()}>
                     <Archive className="h-4 w-4" />
-                    选择目录
+                    {text("knowledge.import.actions.chooseDirectory")}
                   </Button>
                 </div>
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput} />
@@ -479,7 +490,7 @@ export function KnowledgeImportDialog({
                 {readingFiles ? (
                   <div className="flex items-center gap-2 rounded-2xl bg-white px-3 py-3 text-sm text-[var(--ink-subtle)]">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    正在读取文件
+                    {text("knowledge.import.states.readingFiles")}
                   </div>
                 ) : fileItems.length ? (
                   fileItems.map((file) => (
@@ -491,7 +502,7 @@ export function KnowledgeImportDialog({
                           {file.relativePath !== file.name ? <span className="max-w-[320px] truncate font-mono">{file.relativePath}</span> : null}
                           <span>{file.type || "text/plain"}</span>
                           <span>{formatBytes(file.size)}</span>
-                          {file.truncated ? <Badge variant="warning">已截取</Badge> : null}
+                          {file.truncated ? <Badge variant="warning">{text("knowledge.import.states.truncated")}</Badge> : null}
                           {file.error ? <span className="text-[var(--danger)]">{file.error}</span> : null}
                         </div>
                       </div>
@@ -499,7 +510,7 @@ export function KnowledgeImportDialog({
                   ))
                 ) : (
                   <div className="rounded-2xl bg-white/70 px-3 py-6 text-center text-sm text-[var(--ink-subtle)]">
-                    {activeMode === "directory" ? "还没有目录内容，拖入 Skill 目录或点击选择目录。" : "还没有文件，拖入后会在这里预览归档清单。"}
+                    {text(activeMode === "directory" ? "knowledge.import.empty.directory" : "knowledge.import.empty.files")}
                   </div>
                 )}
               </div>
@@ -514,11 +525,11 @@ export function KnowledgeImportDialog({
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
-              取消
+              {text("actions.cancel")}
             </Button>
             <Button type="button" variant="primary" onClick={() => void submit()} disabled={pending || readingFiles || !spaces.length}>
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : activeMode === "url" ? <Globe2 className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-              {pending ? "处理中" : submitText}
+              {pending ? text("knowledge.import.states.processing") : submitText}
             </Button>
           </div>
         </DialogBody>

@@ -105,10 +105,11 @@ export function translateWithPack(
   fallback?: string,
   params?: Record<string, string | number>,
 ) {
+  const phraseOverride = pack.phrases[keyOrPhrase];
   const byPath = getPathValue(pack, keyOrPhrase);
   const value =
+    phraseOverride ??
     (typeof byPath === "string" ? byPath : undefined) ??
-    pack.phrases[keyOrPhrase] ??
     fallback ??
     keyOrPhrase;
 

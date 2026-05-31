@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { uiText } from "@/lib/language-pack";
 import { execute, queryOne, type SystemSetting } from "@/server/db";
 
 export const KNOWLEDGE_BASE_SETTINGS_KEY = "knowledge-base";
@@ -210,7 +211,9 @@ function normalizeUrl(value: string, fallback: string) {
   try {
     return new URL(nextValue).toString().replace(/\/+$/, "");
   } catch {
-    throw new Error("OpenViking Base URL 格式不正确");
+    throw new Error(
+      uiText("ui.server.knowledgeBase.errors.invalidBaseUrl", "OpenViking Base URL format is invalid."),
+    );
   }
 }
 
@@ -218,7 +221,11 @@ function normalizePositiveNumberText(value: string, fallback: string, label: str
   const nextValue = value.trim() || fallback;
   const numeric = Number(nextValue);
   if (!Number.isFinite(numeric) || numeric <= 0) {
-    throw new Error(`${label} 必须是大于 0 的数字`);
+    throw new Error(
+      uiText("ui.server.knowledgeBase.errors.positiveNumberRequired", "{label} must be a number greater than 0.", {
+        label,
+      }),
+    );
   }
   return String(nextValue);
 }
@@ -228,7 +235,11 @@ function normalizeOptionalPositiveNumberText(value: string, label: string) {
   if (!nextValue) return "";
   const numeric = Number(nextValue);
   if (!Number.isFinite(numeric) || numeric <= 0) {
-    throw new Error(`${label} 必须是大于 0 的数字`);
+    throw new Error(
+      uiText("ui.server.knowledgeBase.errors.positiveNumberRequired", "{label} must be a number greater than 0.", {
+        label,
+      }),
+    );
   }
   return nextValue;
 }
@@ -236,7 +247,9 @@ function normalizeOptionalPositiveNumberText(value: string, label: string) {
 function normalizePort(value: string, fallback: string) {
   const nextValue = normalizePositiveNumberText(value, fallback, "OpenViking Port");
   const numeric = Number(nextValue);
-  if (numeric > 65535) throw new Error("OpenViking Port 不能大于 65535");
+  if (numeric > 65535) {
+    throw new Error(uiText("ui.server.knowledgeBase.errors.portTooLarge", "OpenViking Port must not exceed 65535."));
+  }
   return nextValue;
 }
 
@@ -250,7 +263,13 @@ function normalizeCorsOrigins(value: string, fallback: string) {
 
 function assertNoEnvSecretReference(value: string, label: string) {
   if (value.trim().toLowerCase().startsWith("env:")) {
-    throw new Error(`${label} 不再支持 env: 环境变量引用，请直接保存配置值。`);
+    throw new Error(
+      uiText(
+        "ui.server.knowledgeBase.errors.envSecretReferenceUnsupported",
+        "{label} no longer supports env: environment variable references. Save the configuration value directly.",
+        { label },
+      ),
+    );
   }
 }
 
@@ -347,8 +366,11 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
   if (!setting.vlmProvider || !setting.vlmModel) {
     return {
       state: "missing_model",
-      label: "未配置",
-      detail: "尚未选择内容理解模型，知识底座只能使用原文和检索索引。",
+      label: uiText("settings.knowledgeBase.status.unconfigured", "Not configured"),
+      detail: uiText(
+        "ui.server.knowledgeBase.foundationStatus.missingModel.detail",
+        "No content understanding model is selected; the knowledge foundation can only use original content and retrieval indexes.",
+      ),
       provider: setting.vlmProvider,
       model: setting.vlmModel,
       canWriteVlmConfig,
@@ -357,8 +379,11 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
   if (!canWriteVlmConfig) {
     return {
       state: "pending_api_key",
-      label: "待补 API Key",
-      detail: "内容理解模型已经选定，但缺少可直接保存的 API Key；OpenViking 暂不会写入 VLM 配置。",
+      label: uiText("settings.knowledgeBase.status.apiKeyRequired", "API key required"),
+      detail: uiText(
+        "ui.server.knowledgeBase.foundationStatus.pendingApiKey.detail",
+        "A content understanding model is selected, but no directly savable API key is available; OpenViking will not write the VLM configuration yet.",
+      ),
       provider: setting.vlmProvider,
       model: setting.vlmModel,
       canWriteVlmConfig,
@@ -366,8 +391,11 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
   }
   return {
     state: "enabled",
-    label: "已启用",
-    detail: "内容理解模型会作为 OpenViking L0 摘要、L1 概览和多层语义结构的知识底座。",
+    label: uiText("settings.knowledgeBase.status.enabled", "Enabled"),
+    detail: uiText(
+      "ui.server.knowledgeBase.foundationStatus.enabled.detail",
+      "The content understanding model will serve as the knowledge foundation for OpenViking L0 summaries, L1 overviews, and layered semantic structure.",
+    ),
     provider: setting.vlmProvider,
     model: setting.vlmModel,
     canWriteVlmConfig,
@@ -377,7 +405,12 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
 export function getKnowledgeBaseConfigWarnings(setting = getKnowledgeBaseSettings()) {
   const foundation = getKnowledgeFoundationStatus(setting);
   if (foundation.state === "enabled") return [];
-  return [`内容理解知识底座${foundation.label}：${foundation.detail}`];
+  return [
+    uiText("ui.server.knowledgeBase.foundationWarning", "Content understanding foundation {label}: {detail}", {
+      label: foundation.label,
+      detail: foundation.detail,
+    }),
+  ];
 }
 
 export function getKnowledgeBaseSettings() {

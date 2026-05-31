@@ -289,15 +289,15 @@ export default async function BusinessTeamsPage() {
         title="ui.generated.c1b746595c2"
         description="ui.generated.c32315d277c"
         badges={[
-          { label: `${businessTeams.length} ${t("ui.common.count.teams", "个团队")}`, variant: "accent" },
-          { label: `${totalActiveMembers} ${t("ui.common.count.activeMembers", "名活跃成员")}`, variant: "neutral" },
+          { label: `${businessTeams.length} ${t("ui.common.count.teams")}`, variant: "accent" },
+          { label: `${totalActiveMembers} ${t("ui.common.count.activeMembers")}`, variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
-          { label: "ui.generated.c2b90028ff3", value: businessTeams.length, detail: `${activeTeamCount} ${t("ui.common.detail.enabled", "个已启用")}` },
-          { label: "ui.generated.c7de0251fdd", value: members.length, detail: `${totalActiveMembers} ${t("ui.common.detail.enabled", "个已启用")}` },
+          { label: "ui.generated.c2b90028ff3", value: businessTeams.length, detail: `${activeTeamCount} ${t("ui.common.detail.enabled")}` },
+          { label: "ui.generated.c7de0251fdd", value: members.length, detail: `${totalActiveMembers} ${t("ui.common.detail.enabled")}` },
           { label: "ui.generated.cd4f6dd33b7", value: agentTeams.length, detail: "ui.generated.cc90de61dca" },
           { label: "ui.generated.cc371224569", value: taskBlueprints.length, detail: "ui.generated.cc90de61dca" },
         ]}
@@ -379,15 +379,15 @@ export default async function BusinessTeamsPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <div className="text-[var(--ink)]">{tenantName}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{parent ? `${t("ui.common.parentPrefix", "上级：")}${parent.name}` : t("ui.generated.c3c5b0132ad", "无上级团队")}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{parent ? `${t("ui.common.parentPrefix")}${parent.name}` : t("ui.generated.c3c5b0132ad")}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{summary.activeMemberCount} / {summary.memberCount}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} {t("ui.common.count.agentTeams", "个 Agent 团队")}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.agentTeamCount} {t("ui.common.count.agentTeams")}</div>
                       </DataTableCell>
                       <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{summary.taskBlueprintCount} {t("ui.generated.cc5680a85b1", "个任务")}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.knowledgeSpaceCount} {t("ui.generated.c4b183f17ca", "个知识空间")}</div>
+                        <div className="font-medium text-[var(--ink)]">{summary.taskBlueprintCount} {t("ui.generated.cc5680a85b1")}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.knowledgeSpaceCount} {t("ui.generated.c4b183f17ca")}</div>
                       </DataTableCell>
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{money(team.balance)} / {money(team.creditLimit)}</div>
@@ -441,18 +441,18 @@ export default async function BusinessTeamsPage() {
                             teamsByParent={teamsByParent}
                             summaries={summaries}
                             labels={{
-                              members: t("ui.generated.cc1ee9f0190", "成员"),
-                              agentTeams: t("ui.generated.cd4f6dd33b7", "Agent 团队"),
-                              tasks: t("ui.generated.c3172b317f9", "任务"),
-                              childTeams: t("ui.generated.c99dfa3e2ed", "个子团队"),
+                              members: t("ui.generated.cc1ee9f0190"),
+                              agentTeams: t("ui.generated.cd4f6dd33b7"),
+                              tasks: t("ui.generated.c3172b317f9"),
+                              childTeams: t("ui.generated.c99dfa3e2ed"),
                             }}
                           />
                         ))}
                       </div>
                     ) : (
                       <div className="aw-compact-empty">
-                        <div className="aw-compact-empty__title">{t("businessTeams.tree.emptyTitle", "当前没有团队结构")}</div>
-                        <div className="aw-compact-empty__description">{t("businessTeams.tree.emptyDescription", "可以先创建顶层团队，后续再补充子部门和任务配置。")}</div>
+                        <div className="aw-compact-empty__title">{t("businessTeams.tree.emptyTitle")}</div>
+                        <div className="aw-compact-empty__description">{t("businessTeams.tree.emptyDescription")}</div>
                       </div>
                     )}
                   </section>

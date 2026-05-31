@@ -101,8 +101,8 @@ export default function RuntimeBindingsPage() {
         title="ui.generated.c94a82a5175"
         description="ui.generated.c88de2a0e95"
         badges={[
-          { label: `${snapshot.providerRuntimeBindings.length} ${t("ui.common.count.runtimeBindings", "个执行配置")}`, variant: "accent" },
-          { label: `${t("ui.common.enabled", "启用")} ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
+          { label: `${snapshot.providerRuntimeBindings.length} ${t("ui.common.count.runtimeBindings")}`, variant: "accent" },
+          { label: `${t("ui.common.enabled")} ${snapshot.providerRuntimeBindings.filter((binding) => binding.isEnabled === 1).length}`, variant: "success" },
         ]}
       />
 
@@ -125,18 +125,18 @@ export default function RuntimeBindingsPage() {
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  {t("ui.generated.c189e8fb772", "新增执行配置")}
+                  {t("ui.generated.c189e8fb772")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>{t("ui.generated.c189e8fb772", "新增执行配置")}</DialogTitle>
-                  <DialogDescription>{t("ui.generated.cf3fd2c809a", "绑定团队默认运行时、模型服务与工作目录。")}</DialogDescription>
+                  <DialogTitle>{t("ui.generated.c189e8fb772")}</DialogTitle>
+                  <DialogDescription>{t("ui.generated.cf3fd2c809a")}</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <ProviderRuntimeBindingForm
                     embedded
-                    title={t("ui.generated.c189e8fb772", "新增执行配置")}
+                    title={t("ui.generated.c189e8fb772")}
                     tenantSpaceOptions={tenantSpaceOptions}
                     providerOptions={providerOptions}
                     adapterOptions={adapterOptions}
@@ -152,12 +152,12 @@ export default function RuntimeBindingsPage() {
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>{t("ui.generated.c8e175e7aa9", "执行配置")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.c26f30fd79b", "业务团队")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.cbff226d7bb", "默认模型服务")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.c86e118291e", "Base URL / 命令")}</DataTableHead>
-                <DataTableHead>{t("ui.generated.c62e951a692", "状态")}</DataTableHead>
-                <DataTableHead align="right">{t("ui.generated.cf3ea6d345e", "操作")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c8e175e7aa9")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c26f30fd79b")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.cbff226d7bb")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c86e118291e")}</DataTableHead>
+                <DataTableHead>{t("ui.generated.c62e951a692")}</DataTableHead>
+                <DataTableHead align="right">{t("ui.generated.cf3ea6d345e")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>

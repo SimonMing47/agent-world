@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
 import { optimizeAgentTeamDraft } from "@/server/agent-team-core";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : "团队配置优化失败。" },
+      {
+        ok: false,
+        error: error instanceof Error
+          ? error.message
+          : uiText("ui.api.errors.optimizeAgentTeamFailed", "Agent Team optimization failed."),
+      },
       { status: 400 },
     );
   }

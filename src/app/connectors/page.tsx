@@ -47,9 +47,9 @@ export default async function ConnectorsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.cc2dd028659"
-        title="ui.generated.c2e8b3a3fbd"
-        description="ui.generated.c2ba69224c6"
+        eyebrow="ui.common.resources.connector"
+        title="nav.connectors.label"
+        description="nav.connectors.description"
         badges={[
           { label: <>{connectors.length} ui.common.count.connectors</>, variant: "accent" },
           { label: <>{connectors.filter((connector) => connector.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
@@ -58,9 +58,9 @@ export default async function ConnectorsPage() {
 
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.c41e5243e2d"
-          title="ui.generated.cba5246c3e5"
-          description="ui.generated.c296bebb476"
+          eyebrow="ui.common.resources.connector"
+          title="ui.common.resources.connector"
+          description="nav.connectors.description"
           action={
             <Dialog>
               <DialogTrigger asChild>

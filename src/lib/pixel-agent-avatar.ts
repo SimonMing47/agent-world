@@ -1,4 +1,6 @@
 import type { AgentCapabilityKey } from "@/lib/agent-capability-profile";
+import { agentWorldHeroPackId, normalizeAgentWorldHeroTraits } from "@/lib/agentworld-hero-assets";
+import type { AgentWorldHeroPackId, AgentWorldHeroTraits } from "@/lib/agentworld-hero-assets";
 
 export type PixelAgentAvatarConfig = {
   skin: string;
@@ -12,6 +14,8 @@ export type PixelAgentAvatarConfig = {
   mouthStyle: "line" | "smile" | "dot";
   accessory: "none" | "glasses" | "headset" | "badge";
   weaponKey: "auto" | AgentCapabilityKey;
+  assetPack: AgentWorldHeroPackId;
+  assetTraits?: AgentWorldHeroTraits;
 };
 
 export const skinOptions = ["#f3bf91", "#d99062", "#9b6042", "#f0cfa9", "#c57854", "#6f4938"];
@@ -61,6 +65,7 @@ export function defaultPixelAgentAvatarConfig(seedValue = "agent"): PixelAgentAv
     mouthStyle: pick(mouthStyleOptions, seed, 19),
     accessory: pick(accessoryOptions, seed, 23),
     weaponKey: "auto",
+    assetPack: agentWorldHeroPackId,
   };
 }
 
@@ -76,6 +81,8 @@ export function parsePixelAgentAvatarConfig(raw: string | null | undefined, seed
     const mouthStyle = mouthStyleOptions.includes(parsed.mouthStyle ?? "line") ? parsed.mouthStyle : fallback.mouthStyle;
     const accessory = accessoryOptions.includes(parsed.accessory ?? "none") ? parsed.accessory : fallback.accessory;
     const weaponKey = weaponKeyOptions.includes(parsed.weaponKey ?? "auto") ? parsed.weaponKey : fallback.weaponKey;
+    const assetPack = parsed.assetPack === agentWorldHeroPackId ? parsed.assetPack : fallback.assetPack;
+    const assetTraits = normalizeAgentWorldHeroTraits(parsed.assetTraits);
 
     return {
       ...fallback,
@@ -86,6 +93,8 @@ export function parsePixelAgentAvatarConfig(raw: string | null | undefined, seed
       mouthStyle: mouthStyle ?? fallback.mouthStyle,
       accessory: accessory ?? fallback.accessory,
       weaponKey: weaponKey ?? fallback.weaponKey,
+      assetPack,
+      assetTraits,
     };
   } catch {
     return fallback;
