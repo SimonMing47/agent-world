@@ -28,11 +28,14 @@ const bareKeys = new Set<string>();
 const quotedDottedKeyPattern = /["'`]([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_-]+)+)["'`]/g;
 const bareLanguageKeyPattern =
   /\b(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|developmentAccess|identityAccess|knowledge|labels|nav|overview|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+\b/g;
+const languageKeyValuePattern =
+  /^(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|developmentAccess|identityAccess|knowledge|labels|nav|overview|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/;
 const languageKeyPrefixPattern =
   /^(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|developmentAccess|identityAccess|knowledge|labels|nav|overview|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\./;
 const quotedStringPattern = /(["'`])(?:\\.|(?!\1)[\s\S])*\1/g;
 const codeAccessPattern = /\.(trim|toLowerCase|map|slice)$/;
 const codeAccessKeys = new Set(["settings.languageConfiguration.languageName"]);
+const cjkPattern = /\p{Script=Han}/u;
 
 function isProbableCodeAccess(key: string) {
   return codeAccessPattern.test(key) || codeAccessKeys.has(key);
@@ -56,7 +59,7 @@ function shouldResolveToText(key: string) {
 
 const offenders = [...usedKeys]
   .map((key) => [key, translateWithPack(enUSLanguagePack, key)] as const)
-  .filter(([key, value]) => !isProbableCodeAccess(key) && ((value === key && shouldResolveToText(key)) || /\p{Script=Han}/u.test(value)));
+  .filter(([key, value]) => !isProbableCodeAccess(key) && ((value === key && shouldResolveToText(key)) || cjkPattern.test(value)));
 
 if (offenders.length > 0) {
   console.error("i18n audit failed: en-US resolves raw keys or CJK fallback for referenced keys:");
@@ -66,4 +69,26 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-console.log("en-US audit passed: referenced language keys resolve without raw-key or CJK fallback.");
+const languagePackValueOffenders: Array<[string, string, string]> = [];
+function walkLanguagePackValues(value: unknown, currentPath: string) {
+  if (typeof value === "string") {
+    if (cjkPattern.test(value)) languagePackValueOffenders.push([currentPath, value, "CJK fallback"]);
+    if (languageKeyValuePattern.test(value)) languagePackValueOffenders.push([currentPath, value, "raw key"]);
+    return;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  for (const [key, nextValue] of Object.entries(value as Record<string, unknown>)) {
+    walkLanguagePackValues(nextValue, currentPath ? `${currentPath}.${key}` : key);
+  }
+}
+
+walkLanguagePackValues(enUSLanguagePack, "");
+if (languagePackValueOffenders.length > 0) {
+  console.error("i18n audit failed: en-US language pack still contains raw-key or CJK values:");
+  for (const [key, value, reason] of languagePackValueOffenders.sort(([left], [right]) => left.localeCompare(right))) {
+    console.error(`  - ${key} (${reason}): ${value.replace(/\n/g, "\\n").slice(0, 180)}`);
+  }
+  process.exit(1);
+}
+
+console.log("en-US audit passed: referenced language keys and full language pack resolve without raw-key or CJK fallback.");
