@@ -1,7 +1,8 @@
-import { uiText } from "@/lib/language-pack";
+import { translateWithPack, uiText } from "@/lib/language-pack";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 
 function translate(group: string, value: string) {
-  return uiText(`labels.${group}.${value}`, value);
+  return translateWithPack(getActiveLanguagePack(), `labels.${group}.${value}`, value);
 }
 
 export function translateStatus(value: string) {

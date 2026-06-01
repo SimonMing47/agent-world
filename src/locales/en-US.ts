@@ -2,7 +2,35 @@ import { zhCNLanguagePack } from "@/locales/zh-CN";
 import { enUSPhraseOverrides } from "@/locales/en-US-phrases";
 import type { LanguagePack } from "@/lib/language-pack";
 
-export const enUSLanguagePack = {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function applyPathPhraseOverrides(pack: LanguagePack, overrides: Record<string, string>) {
+  const output = JSON.parse(JSON.stringify(pack)) as LanguagePack;
+
+  for (const [path, value] of Object.entries(overrides)) {
+    const segments = path.split(".");
+    if (segments.length < 2) continue;
+
+    let current: Record<string, unknown> = output;
+    for (const segment of segments.slice(0, -1)) {
+      const next = current[segment];
+      if (!isRecord(next)) {
+        current = {};
+        break;
+      }
+      current = next;
+    }
+
+    const leaf = segments.at(-1);
+    if (leaf && typeof current[leaf] === "string") current[leaf] = value;
+  }
+
+  return output;
+}
+
+const enUSLanguagePackBase = {
   ...zhCNLanguagePack,
   id: "en-US",
   locale: "en-US",
@@ -23,6 +51,8 @@ export const enUSLanguagePack = {
     runtime: "Runtime Binding",
     modelProvider: "Model Service",
     trace: "Execution Trace",
+    connector: "Connector",
+    codebase: "Codebase",
     knowledge: "Knowledge Base",
   },
   actions: {
@@ -1348,3 +1378,5 @@ export const enUSLanguagePack = {
     },
   },
 } satisfies LanguagePack;
+
+export const enUSLanguagePack = applyPathPhraseOverrides(enUSLanguagePackBase, enUSPhraseOverrides);
