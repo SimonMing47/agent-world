@@ -84,13 +84,35 @@ export OPENVIKING_SERVER_BIN="\${OPENVIKING_SERVER_BIN:-$ROOT/thirdparty/openvik
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
 export OPENVIKING_CLI_CONFIG_FILE="\${OPENVIKING_CLI_CONFIG_FILE:-$ROOT/data/openviking/ovcli.conf}"
 OPENVIKING_PID=""
+openviking_glibc_compatible() {
+  if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" = "1" ]; then
+    return 0
+  fi
+  case "$OPENVIKING_SERVER_BIN" in
+    "$ROOT/thirdparty/openviking/bin/openviking-server"*) ;;
+    *) return 0 ;;
+  esac
+  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
+  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
+  if [ -z "\${current_glibc}" ]; then
+    return 0
+  fi
+  first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
+  if [ "\${first_version}" != "\${min_glibc}" ]; then
+    echo "[agentworld] OpenViking auto-start skipped: bundled OpenViking requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}. Set OPENVIKING_SERVER_BIN to a compatible binary, OPENVIKING_BASE_URL to a remote service, or AGENTWORLD_OPENVIKING_AUTO_START=0." >&2
+    return 1
+  fi
+  return 0
+}
 if [ "\${AGENTWORLD_OPENVIKING_AUTO_START}" != "0" ]; then
   OPENVIKING_BASE_URL="\${OPENVIKING_BASE_URL:-http://127.0.0.1:1933}"
-  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL + '/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
     mkdir -p "$ROOT/data/openviking"
-    "$OPENVIKING_SERVER_BIN" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
-    OPENVIKING_PID="$!"
-    export OPENVIKING_PID
+    if openviking_glibc_compatible; then
+      "$OPENVIKING_SERVER_BIN" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
+      OPENVIKING_PID="$!"
+      export OPENVIKING_PID
+    fi
   fi
 fi
 cleanup() {
@@ -110,6 +132,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
+if [ "$(uname -s 2>/dev/null || true)" = "Linux" ] && [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" != "1" ]; then
+  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
+  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
+  if [ -n "\${current_glibc}" ]; then
+    first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
+    if [ "\${first_version}" != "\${min_glibc}" ]; then
+      echo "OpenViking bundled binary requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}." >&2
+      exit 1
+    fi
+  fi
+fi
 exec "$ROOT/thirdparty/openviking/bin/openviking-server" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
 `;
 
