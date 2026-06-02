@@ -750,7 +750,7 @@ CREATE TABLE IF NOT EXISTS inspection_skills (
   updated_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
+CREATE TABLE IF NOT EXISTS knowledge_entries (
   id TEXT PRIMARY KEY,
   knowledge_space_id TEXT,
   layer TEXT NOT NULL,
@@ -769,7 +769,7 @@ CREATE TABLE IF NOT EXISTS openviking_knowledge_entries (
   revision INTEGER NOT NULL DEFAULT 1
 );
 
-CREATE TABLE IF NOT EXISTS openviking_knowledge_entry_versions (
+CREATE TABLE IF NOT EXISTS knowledge_entry_versions (
   id TEXT PRIMARY KEY,
   entry_id TEXT NOT NULL,
   revision INTEGER NOT NULL,

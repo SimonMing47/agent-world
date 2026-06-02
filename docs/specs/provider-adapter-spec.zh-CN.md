@@ -159,7 +159,7 @@ action request -> policy evaluation -> allow | ask | deny
 - 调用工具。
 - 使用 Secret 引用。
 - 写入代码平台评论、邮件或 IM。
-- 写入 OpenViking 记忆空间。
+- 写入 AgentWorld 知识引擎 记忆空间。
 
 `allow` 动作必须记录 permission_decision 事件。`ask` 动作必须返回 needs_human，并由调度器创建人工处理项。`deny` 动作必须停止对应动作，并向事件流写入拒绝原因。
 

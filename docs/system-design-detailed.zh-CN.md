@@ -2,7 +2,7 @@
 
 ## 1. 范围
 
-本文描述 AgentWorld 的完整实现边界：领域模型、前后端排布、任务执行过程、插件扩展、OpenViking 记忆集成、核心案例和 Linux 发布方式。
+本文描述 AgentWorld 的完整实现边界：领域模型、前后端排布、任务执行过程、插件扩展、AgentWorld 知识引擎 记忆集成、核心案例和 Linux 发布方式。
 
 本项目尚未上线，因此领域名、数据库表、API 路径和文件名均按目标形态直接收敛，不保留旧路径兼容。
 
@@ -41,7 +41,7 @@ package "Extension Plane" {
 }
 
 package "Knowledge & Environment" {
-  component "OpenViking" as OpenViking
+  component "AgentWorld 知识引擎" as AgentWorld 知识引擎
   component "执行环境 / Codebase / Secret Ref" as Environment
 }
 
@@ -60,7 +60,7 @@ TaskEngine --> Policy
 TaskEngine --> Runtime
 TaskEngine --> Observability
 TaskEngine --> Environment
-TaskEngine --> OpenViking
+TaskEngine --> AgentWorld 知识引擎
 Runtime --> PluginRegistry
 PluginRegistry --> RepoPlugin
 PluginRegistry --> WebhookPlugin
@@ -75,7 +75,7 @@ Scheduler --> DB
 TaskEngine --> DB
 Observability --> DB
 Environment --> DB
-OpenViking --> DB
+AgentWorld 知识引擎 --> DB
 @enduml
 ```
 
@@ -90,7 +90,7 @@ participant "TaskRun 状态机" as Run
 participant "权限服务" as Policy
 participant "Runtime Adapter" as Runtime
 participant "插件" as Plugin
-participant "OpenViking" as Memory
+participant "AgentWorld 知识引擎" as Memory
 participant "事件流" as Event
 
 Trigger -> API: 提交 manual / webhook / schedule 触发
@@ -286,7 +286,7 @@ Agent 团队是可运营服务单元，负责：
 
 ### 2.10 记忆层
 
-记忆层基于 OpenViking，负责：
+记忆层基于 AgentWorld 知识引擎，负责：
 
 - 记忆层定义。
 - Skill 管理。
@@ -299,7 +299,7 @@ Agent 团队是可运营服务单元，负责：
 
 - `knowledge_layers`
 - `inspection_skills`
-- `openviking_knowledge_entries`
+- `knowledge-engine_knowledge_entries`
 
 ## 3. 后端设计
 
@@ -327,12 +327,12 @@ package "Core Services" {
 package "Adapters & Integrations" {
   [runtime-adapter-core]
   [provider-core]
-  [openviking-core]
+  [knowledge-engine-core]
   [official codehub plugin]
 }
 
 database "SQLite" as DB
-component "OpenViking Server" as OV
+component "AgentWorld 知识引擎 Server" as OV
 
 [Task Blueprint API] --> [queries.ts]
 [Task Run API] --> [scheduler-core]
@@ -345,10 +345,10 @@ component "OpenViking Server" as OV
 [runtime-adapter-core] --> [plugin-sdk-core]
 [plugin-sdk-core] --> [official codehub plugin]
 [runtime-session-core] --> [output-publisher-core]
-[runtime-session-core] --> [openviking-core]
+[runtime-session-core] --> [knowledge-engine-core]
 [queries.ts] --> DB
 [output-publisher-core] --> DB
-[openviking-core] --> OV
+[knowledge-engine-core] --> OV
 @enduml
 ```
 
@@ -451,7 +451,7 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 - 任务蓝图。
 - Webhook。
 
-## 5. OpenViking 集成
+## 5. AgentWorld 知识引擎 集成
 
 ### 5.0 集成架构图
 
@@ -461,10 +461,10 @@ skinparam componentStyle rectangle
 
 node "Linux Host" {
   component "AgentWorld App" as App
-  component "OpenViking Server Binary" as OV
+  component "AgentWorld 知识引擎 Server Binary" as OV
   database "SQLite agentworld.db" as DB
-  folder "data/openviking" as OVData
-  folder "thirdparty/openviking/bin" as ThirdParty
+  folder "data/knowledge-engine" as OVData
+  folder "data/knowledge-engine/bin" as ThirdParty
 }
 
 component "Knowledge UI / API" as KnowledgeUI
@@ -488,28 +488,28 @@ KnowledgeUI --> OV : 管理知识空间 / 条目
 
 ### 5.1 集成方式
 
-OpenViking 通过服务端二进制直接集成，不依赖容器运行时。
+AgentWorld 知识引擎 通过服务端二进制直接集成，不依赖容器运行时。
 
 查找顺序：
 
-1. `OPENVIKING_SERVER_BIN`
-2. `thirdparty/openviking/bin/openviking-server-${platform}-${arch}`
-3. `thirdparty/openviking/bin/openviking-server`
+1. `KNOWLEDGE_ENGINE_SERVER_BIN`
+2. `data/knowledge-engine/bin/knowledge-engine-server-${platform}-${arch}`
+3. `data/knowledge-engine/bin/knowledge-engine-server`
 
-Linux 发布包要求本地提供匹配架构的 `thirdparty/openviking/bin/openviking-server-linux-${arch}`、`.xz` 或 `.xz.part-*` 制品，支持 `x64` 与 `arm64`。内网源码安装不会从公网下载或构建 OpenViking 二进制。
+Linux 发布包要求本地提供匹配架构的 `data/knowledge-engine/bin/knowledge-engine-server-linux-${arch}`、`.xz` 或 `.xz.part-*` 制品，支持 `x64` 与 `arm64`。内网源码安装不会从公网下载或构建 AgentWorld 知识引擎 二进制。
 
 ### 5.2 目录结构
 
 ```text
-thirdparty/openviking/
+data/knowledge-engine/
   README.md
   manifest.json
   bin/
-    openviking-server-${platform}-${arch}
-    openviking-server-linux-x64
-    openviking-server-linux-arm64.xz.part-*
+    knowledge-engine-server-${platform}-${arch}
+    knowledge-engine-server-linux-x64
+    knowledge-engine-server-linux-arm64.xz.part-*
   wheels/
-data/openviking/
+data/knowledge-engine/
   ov.conf
   ovcli.conf
   workspace/
@@ -517,29 +517,29 @@ data/openviking/
 
 ### 5.3 脚本
 
-- `pnpm openviking:prepare`：生成服务端配置和 CLI 配置。
-- `pnpm openviking:cli-config`：刷新 CLI 配置。
-- `pnpm openviking:init`：调用 OpenViking server init。
-- `pnpm openviking:doctor`：调用 OpenViking doctor。
-- `pnpm openviking:start`：启动服务端二进制。
-- `pnpm openviking:smoke`：验证 health、write、read、tree。
-- `pnpm openviking:install`：校验本地 OpenViking 二进制，不执行公网下载。
-- `pnpm openviking:build-binary`：Linux 构建服务端二进制并放入 thirdparty；Python 依赖只允许来自本地 wheelhouse。
+- `pnpm knowledge-engine:prepare`：生成服务端配置和 CLI 配置。
+- `pnpm knowledge-engine:cli-config`：刷新 CLI 配置。
+- `pnpm knowledge-engine:init`：调用 AgentWorld 知识引擎 server init。
+- `pnpm knowledge-engine:doctor`：调用 AgentWorld 知识引擎 doctor。
+- `pnpm knowledge-engine:start`：启动服务端二进制。
+- `pnpm knowledge-engine:smoke`：验证 health、write、read、tree。
+- `pnpm knowledge-engine:install`：校验本地 AgentWorld 知识引擎 二进制，不执行公网下载。
+- `pnpm knowledge-engine:build-binary`：Linux 构建服务端二进制并放入 local-artifacts；Python 依赖只允许来自本地 wheelhouse。
 
-OpenViking doctor 要求 VLM provider/model 配置完整。AgentWorld 不写入假 key，也不猜测私有模型名；部署方通过以下变量完成最小配置：
+AgentWorld 知识引擎 doctor 要求 VLM provider/model 配置完整。AgentWorld 不写入假 key，也不猜测私有模型名；部署方通过以下变量完成最小配置：
 
 ```text
-OPENVIKING_VLM_PROVIDER=
-OPENVIKING_VLM_MODEL=
-OPENVIKING_VLM_API_BASE=
-OPENVIKING_VLM_API_KEY=
+KNOWLEDGE_ENGINE_VLM_PROVIDER=
+KNOWLEDGE_ENGINE_VLM_MODEL=
+KNOWLEDGE_ENGINE_VLM_API_BASE=
+KNOWLEDGE_ENGINE_VLM_API_KEY=
 ```
 
-如需覆盖默认 embedding，可配置 `OPENVIKING_EMBEDDING_PROVIDER`、`OPENVIKING_EMBEDDING_MODEL`、`OPENVIKING_EMBEDDING_API_BASE`、`OPENVIKING_EMBEDDING_API_KEY`、`OPENVIKING_EMBEDDING_DIMENSION`。未配置 VLM 时，`pnpm openviking:init` 会进入 OpenViking 官方初始化向导。
+如需覆盖默认 embedding，可配置 `KNOWLEDGE_ENGINE_EMBEDDING_PROVIDER`、`KNOWLEDGE_ENGINE_EMBEDDING_MODEL`、`KNOWLEDGE_ENGINE_EMBEDDING_API_BASE`、`KNOWLEDGE_ENGINE_EMBEDDING_API_KEY`、`KNOWLEDGE_ENGINE_EMBEDDING_DIMENSION`。未配置 VLM 时，`pnpm knowledge-engine:init` 会进入 AgentWorld 知识引擎 官方初始化向导。
 
 ### 5.4 访问接口
 
-AgentWorld 通过 `openviking-core.ts` 调用：
+AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 
 - `GET /health`
 - `POST /api/v1/content/write`
@@ -554,14 +554,14 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 默认 URI 规划：
 
-- 仓库上下文：`viking://resources/agentworld/code-inspection/repositories`
-- 全局检视经验：`viking://resources/agentworld/code-inspection/global`
-- 安全 Skill：`viking://agent/skills/agentworld/code-inspection/security`
-- 测试 Skill：`viking://agent/skills/agentworld/code-inspection/quality-test`
-- 数据与接口 Skill：`viking://agent/skills/agentworld/code-inspection/data-api`
-- 正确反馈：`viking://user/memories/agentworld/code-inspection/feedback/correct`
-- 误报反馈：`viking://user/memories/agentworld/code-inspection/feedback/incorrect`
-- 解释不足反馈：`viking://user/memories/agentworld/code-inspection/feedback/unclear`
+- 仓库上下文：`agentworld://knowledge/resources/agentworld/code-inspection/repositories`
+- 全局检视经验：`agentworld://knowledge/resources/agentworld/code-inspection/global`
+- 安全 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/security`
+- 测试 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/quality-test`
+- 数据与接口 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/data-api`
+- 正确反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/correct`
+- 误报反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/incorrect`
+- 解释不足反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/unclear`
 
 ## 6. 核心案例
 
@@ -579,12 +579,12 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 1. 代码平台 Webhook 提交 MR diff。
 2. `api/webhooks/:pathKey` 解析 endpoint、任务模板和执行环境。
-3. 写入 MR 上下文到 OpenViking。
+3. 写入 MR 上下文到 AgentWorld 知识引擎。
 4. `submitTaskRun()` 生成可观测任务。
 5. 检视 Skill 按层运行：MR 结构、安全敏感、测试影响、数据与接口。
 6. 生成 MR 评论。
 7. 配置 token 时回写 MR；未配置时只记录本地评论内容。
-8. finding 和人工反馈写回 OpenViking。
+8. finding 和人工反馈写回 AgentWorld 知识引擎。
 
 插件扩展方式：
 
@@ -605,11 +605,11 @@ AgentWorld 通过 `openviking-core.ts` 调用：
 
 1. 调度器按每日模板生成任务。
 2. 环境层选择仓库集合、分支、执行人和工作目录。
-3. 安全 Skill 从 OpenViking 读取安全记忆和历史反馈。
+3. 安全 Skill 从 AgentWorld 知识引擎 读取安全记忆和历史反馈。
 4. Agent 团队执行全量安全扫描。
 5. 生成风险报告。
 6. 邮件插件发送摘要。
-7. 结果和反馈归档到 OpenViking。
+7. 结果和反馈归档到 AgentWorld 知识引擎。
 
 ## 7. 发布设计
 
@@ -620,24 +620,24 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 - `.next/standalone`。
 - `.next/static`。
 - Node.js Linux runtime。
-- `thirdparty/openviking/bin/openviking-server-linux-${arch}`、`.xz` 或 `.xz.part-*`，发布时复制为包内 `thirdparty/openviking/bin/openviking-server`。
-- `data/openviking/ov.conf`。
-- `data/openviking/ovcli.conf`。
+- `data/knowledge-engine/bin/knowledge-engine-server-linux-${arch}`、`.xz` 或 `.xz.part-*`，发布时复制为包内 `data/knowledge-engine/bin/knowledge-engine-server`。
+- `data/knowledge-engine/ov.conf`。
+- `data/knowledge-engine/ovcli.conf`。
 - `agentworld` 启动脚本。
-- `openviking-server` 启动脚本。
+- `knowledge-engine-server` 启动脚本。
 
 部署顺序：
 
 1. 配置 `.env` 或导出环境变量。
-2. 启动 `./openviking-server`。
+2. 启动 `./knowledge-engine-server`。
 3. 启动 `./agentworld`。
-4. 执行 `pnpm openviking:smoke` 或等价 smoke 检查。
+4. 执行 `pnpm knowledge-engine:smoke` 或等价 smoke 检查。
 
 ## 8. 可靠性和扩展性
 
 - 幂等：任务提交、Webhook、节点推进和知识写入可重试。
 - 可观测：事件流、trace id、节点状态、成本、策略命中和人工干预持久化。
-- 降级：OpenViking 远端不可用时保留本地影子索引。
+- 降级：AgentWorld 知识引擎 远端不可用时保留本地影子索引。
 - 安全：密钥只保存 secret ref；插件权限与运行约束对齐。
 - 扩展：新增代码平台、通知渠道、Provider 和 Skill 只新增插件或扩展包。
 - 上线前可演进：当前没有兼容历史数据包袱，可继续打磨字段和模型命名。
@@ -646,10 +646,10 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 
 - Provider 执行层：`provider-core.ts`、`runtime-adapter-core.ts`、`runtime-provider-config.ts`、`runtime-session-core.ts`
 - Agent 定义层：`registry-core.ts`、`agent-teams/page.tsx`
-- 工具 / Skill 管理层：`execution-policy-core.ts`、`plugin-core.ts`、`openviking-core.ts`
+- 工具 / Skill 管理层：`execution-policy-core.ts`、`plugin-core.ts`、`knowledge-engine-core.ts`
 - 多 Agent 编排层：`planner-core.ts`、`executor-core.ts`、`invocation-core.ts`
 - Agent 团队任务执行层：`queries.ts`、`trace-core.ts`、`task-runs/[id]/page.tsx`
 - 业务团队管理层：`tenant-space-core.ts`、`access-grant-core.ts`
 - 任务执行展示层：`environment-core.ts`、`scheduler-core.ts`、`page.tsx`、`task-runs/[id]/page.tsx`
 - 环境层：`execution_environments`、`settings/page.tsx`
-- 记忆层：`openviking-core.ts`、`knowledge/page.tsx`
+- 记忆层：`knowledge-engine-core.ts`、`knowledge/page.tsx`

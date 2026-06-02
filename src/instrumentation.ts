@@ -1,4 +1,4 @@
 export async function register() {
-  // OpenViking is started by AgentWorld launch scripts instead of Next
-  // instrumentation, so production build tracing stays limited to app code.
+  // The knowledge engine runs in-process through SQLite and local files, so
+  // production build tracing stays limited to app code.
 }

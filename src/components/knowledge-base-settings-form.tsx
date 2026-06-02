@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import type { KnowledgeBaseSettings, OpenVikingModelDefaults } from "@/server/knowledge-base-settings";
+import type { KnowledgeBaseSettings, KnowledgeModelDefaults } from "@/server/knowledge-base-settings";
 
 type ProviderOption = {
   id: string;
@@ -28,35 +27,12 @@ type TextFieldKey = Exclude<
   "provider" | "enabled" | "autoStart" | "corsOrigins" | "vlmProviderProfileId" | "embeddingProviderProfileId"
 >;
 
-const connectionFields: Array<{ field: TextFieldKey; labelKey: string; hintKey?: string }> = [
-  { field: "baseUrl", labelKey: "fields.baseUrl.label", hintKey: "fields.baseUrl.hint" },
-  { field: "host", labelKey: "fields.host.label" },
-  { field: "port", labelKey: "fields.port.label" },
-  { field: "timeoutSeconds", labelKey: "fields.timeoutSeconds.label" },
-];
-
-const runtimeFields: Array<{ field: TextFieldKey; labelKey: string; hintKey?: string }> = [
-  { field: "serverBin", labelKey: "fields.serverBin.label", hintKey: "fields.serverBin.hint" },
-  { field: "configPath", labelKey: "fields.configPath.label", hintKey: "fields.configPath.hint" },
-  { field: "cliConfigPath", labelKey: "fields.cliConfigPath.label", hintKey: "fields.cliConfigPath.hint" },
-];
-
-const identityFields: Array<{ field: TextFieldKey; labelKey: string; type?: string }> = [
-  { field: "apiKey", labelKey: "fields.apiKey.label", type: "password" },
-  { field: "account", labelKey: "fields.account.label" },
-  { field: "user", labelKey: "fields.user.label" },
-  { field: "agentId", labelKey: "fields.agentId.label" },
-];
-
 const storageFields: Array<{ field: TextFieldKey; labelKey: string }> = [
   { field: "storageWorkspace", labelKey: "fields.storageWorkspace.label" },
-  { field: "agfsBackend", labelKey: "fields.agfsBackend.label" },
   { field: "vectorDbBackend", labelKey: "fields.vectorDbBackend.label" },
-  { field: "lockTimeoutSeconds", labelKey: "fields.lockTimeoutSeconds.label" },
-  { field: "lockExpireSeconds", labelKey: "fields.lockExpireSeconds.label" },
 ];
 
-const LOCAL_EMBEDDING_SELECT_VALUE = "__openviking_local_embedding__";
+const LOCAL_EMBEDDING_SELECT_VALUE = "__agentworld_local_embedding__";
 
 const KB_PREFIX = "settings.knowledgeBase";
 const KNOWLEDGE_FOUNDATION_LABEL_KEY = "knowledgeFoundation.label";
@@ -76,7 +52,7 @@ function parseConfig(value: string) {
   }
 }
 
-function openVikingProviderName(provider: ProviderOption) {
+function knowledgeProviderName(provider: ProviderOption) {
   const apiStyle = provider.apiStyle.trim();
   if (apiStyle === "openai-compatible" || apiStyle.startsWith("openai")) return "openai";
   if (apiStyle === "azure-openai") return "azure";
@@ -93,7 +69,7 @@ function optionalConfigText(config: Record<string, unknown>, keys: string[]) {
   return "";
 }
 
-function applyLocalEmbeddingSettings(setting: KnowledgeBaseSettings, modelDefaults: OpenVikingModelDefaults) {
+function applyLocalEmbeddingSettings(setting: KnowledgeBaseSettings, modelDefaults: KnowledgeModelDefaults) {
   return {
     ...setting,
     embeddingProviderProfileId: modelDefaults.embedding.providerProfileId,
@@ -130,7 +106,7 @@ function applyProviderToSettings(
     return {
       ...setting,
       vlmProviderProfileId: provider.id,
-      vlmProvider: openVikingProviderName(provider),
+      vlmProvider: knowledgeProviderName(provider),
       vlmModel,
       vlmApiBase,
       vlmApiKey,
@@ -143,7 +119,7 @@ function applyProviderToSettings(
   return {
     ...setting,
     embeddingProviderProfileId: provider.id,
-    embeddingProvider: openVikingProviderName(provider),
+    embeddingProvider: knowledgeProviderName(provider),
     embeddingModel,
     embeddingApiBase,
     embeddingApiKey,
@@ -167,7 +143,7 @@ function contentFoundationStatusKey(setting: KnowledgeBaseSettings) {
 function applyDefaultModelSettings(
   setting: KnowledgeBaseSettings,
   providerOptions: ProviderOption[],
-  modelDefaults: OpenVikingModelDefaults,
+  modelDefaults: KnowledgeModelDefaults,
   options: { force?: boolean } = {},
 ) {
   const defaultProvider =
@@ -192,7 +168,7 @@ function applyDefaultModelSettings(
   return next;
 }
 
-function usesLocalEmbeddingPreset(setting: KnowledgeBaseSettings, modelDefaults: OpenVikingModelDefaults) {
+function usesLocalEmbeddingPreset(setting: KnowledgeBaseSettings, modelDefaults: KnowledgeModelDefaults) {
   return (
     setting.embeddingProvider === modelDefaults.embedding.provider
     && setting.embeddingModel === modelDefaults.embedding.model
@@ -261,7 +237,7 @@ export function KnowledgeBaseSettingsForm({
 }: {
   setting: KnowledgeBaseSettings;
   providerOptions: ProviderOption[];
-  modelDefaults: OpenVikingModelDefaults;
+  modelDefaults: KnowledgeModelDefaults;
 }) {
   const router = useRouter();
   const text = useLanguageText();
@@ -476,7 +452,7 @@ export function KnowledgeBaseSettingsForm({
           <div className="grid gap-4 md:grid-cols-2">
             <FieldGroup label={kbText("fields.provider.label")}>
               <Select value={form.provider} disabled>
-                <option value="openviking">OpenViking</option>
+                <option value="native">AgentWorld Knowledge</option>
               </Select>
             </FieldGroup>
             <FieldGroup label={kbText("fields.logLevel.label")}>
@@ -497,39 +473,6 @@ export function KnowledgeBaseSettingsForm({
               />
               {kbText("fields.enabled.label")}
             </label>
-            <label className="flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--ink-muted)]">
-              <input
-                type="checkbox"
-                checked={form.autoStart}
-                onChange={(event) => update("autoStart", event.target.checked)}
-              />
-              {kbText("fields.autoStart.label")}
-            </label>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection title={kbText("sections.connection.title")} description={kbText("sections.connection.description")}>
-          <div className="grid gap-4 md:grid-cols-2">
-            {connectionFields.map((item) => renderInput(item))}
-          </div>
-          <FieldGroup label={kbText("fields.corsOrigins.label")} hint={kbText("fields.corsOrigins.hint")}>
-            <Textarea
-              className="min-h-[120px] font-mono text-xs"
-              value={form.corsOrigins}
-              onChange={(event) => update("corsOrigins", event.target.value)}
-            />
-          </FieldGroup>
-        </SettingsSection>
-
-        <SettingsSection title={kbText("sections.runtime.title")} description={kbText("sections.runtime.description")}>
-          <div className="grid gap-4 md:grid-cols-2">
-            {runtimeFields.map((item) => renderInput(item))}
-          </div>
-        </SettingsSection>
-
-        <SettingsSection title={kbText("sections.identity.title")} description={kbText("sections.identity.description")}>
-          <div className="grid gap-4 md:grid-cols-2">
-            {identityFields.map((item) => renderInput(item))}
           </div>
         </SettingsSection>
 
@@ -583,20 +526,8 @@ export function KnowledgeBaseSettingsForm({
         </div>
         <div className="mt-4 space-y-3 text-xs text-[var(--ink-muted)]">
           <div>
-            <div className="font-medium text-[var(--ink)]">{kbText("summary.serviceAddress")}</div>
-            <div className="mt-1 break-all font-mono">{form.baseUrl}</div>
-          </div>
-          <div>
-            <div className="font-medium text-[var(--ink)]">{kbText("summary.listen")}</div>
-            <div className="mt-1 font-mono">{form.host}:{form.port}</div>
-          </div>
-          <div>
-            <div className="font-medium text-[var(--ink)]">{kbText("summary.configFile")}</div>
-            <div className="mt-1 break-all font-mono">{form.configPath}</div>
-          </div>
-          <div>
-            <div className="font-medium text-[var(--ink)]">{kbText("summary.cliConfig")}</div>
-            <div className="mt-1 break-all font-mono">{form.cliConfigPath}</div>
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.storageWorkspace")}</div>
+            <div className="mt-1 break-all font-mono">{form.storageWorkspace}</div>
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-[var(--line)] pt-3">
             <div>
@@ -604,8 +535,8 @@ export function KnowledgeBaseSettingsForm({
               <div>{form.enabled ? text("ui.common.boolean.yes") : text("ui.common.boolean.no")}</div>
             </div>
             <div>
-              <div className="font-medium text-[var(--ink)]">{kbText("summary.autoStart")}</div>
-              <div>{form.autoStart ? text("ui.common.boolean.yes") : text("ui.common.boolean.no")}</div>
+              <div className="font-medium text-[var(--ink)]">{kbText("fields.vectorDbBackend.label")}</div>
+              <div>{form.vectorDbBackend}</div>
             </div>
           </div>
           <div className="border-t border-[var(--line)] pt-3">

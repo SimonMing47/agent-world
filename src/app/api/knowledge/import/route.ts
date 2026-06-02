@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextResponse } from "next/server";
-import { upsertKnowledgeEntry } from "@/server/openviking-core";
+import { upsertKnowledgeEntry } from "@/server/knowledge-engine";
 import { getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";

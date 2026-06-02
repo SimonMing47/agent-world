@@ -13,8 +13,9 @@ import {
   type ProviderRuntimeBinding,
 } from "@/server/db";
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
-import { writeLayeredKnowledge } from "@/server/openviking-core";
+import { writeLayeredKnowledge } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 
 export type SkillDraft = {
   id?: string;
@@ -237,7 +238,10 @@ function resolveDefaultProviderRuntime() {
 }
 
 export function listSkills() {
-  return queryAll<InspectionSkill>("SELECT * FROM inspection_skills ORDER BY layer ASC, name ASC");
+  return queryAll<InspectionSkill>("SELECT * FROM inspection_skills ORDER BY layer ASC, name ASC").map((skill) => ({
+    ...skill,
+    vikingUri: skill.vikingUri ? normalizeKnowledgeUri(skill.vikingUri) : null,
+  }));
 }
 
 export function upsertSkill(input: SkillDraft) {
@@ -315,7 +319,7 @@ export function discoverSkillsFromRepository(input: {
   }
 }
 
-export async function syncSkillToOpenViking(skillId: string) {
+export async function syncSkillToKnowledgeEngine(skillId: string) {
   const skill = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
   if (!skill) throw new Error(uiText("ui.generated.cd4fe99088a"));
 

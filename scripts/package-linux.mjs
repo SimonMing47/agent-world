@@ -1,30 +1,18 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  ensurePlatformServerBin,
-  platformServerBin,
-  root,
-  writeCliConfig,
-  writeServerConfig,
-} from "./openviking-common.mjs";
 
 if (process.platform !== "linux" && process.env.AGENTWORLD_ALLOW_NON_LINUX_PACKAGE !== "1") {
   console.error("Build the Linux release bundle on Linux to avoid platform-specific Next.js output.");
   process.exit(1);
 }
 
+const root = process.cwd();
 const appVersion = process.env.npm_package_version ?? "0.1.0";
-const nodeVersion = process.env.AGENTWORLD_BUNDLE_NODE_VERSION ?? process.versions.node;
 const bundlePlatform = process.env.AGENTWORLD_BUNDLE_PLATFORM ?? "linux";
 const bundleArch = process.env.AGENTWORLD_BUNDLE_ARCH ?? process.arch;
-const nodeArch = bundleArch === "x64" ? "x64" : bundleArch === "arm64" ? "arm64" : bundleArch;
 const bundleId = `${bundlePlatform}-${bundleArch}`;
 const outDir = path.join(root, "dist", `agentworld-${bundleId}-${appVersion}`);
-const defaultNodeTar = path.join(root, "thirdparty", "node", `node-v${nodeVersion}-${bundlePlatform}-${nodeArch}.tar.xz`);
-const nodeTar = path.resolve(process.env.AGENTWORLD_NODE_RUNTIME_TARBALL ?? defaultNodeTar);
-const linuxServerBin = ensurePlatformServerBin(bundlePlatform, bundleArch);
-const expectedLinuxServerBin = platformServerBin(bundlePlatform, bundleArch);
 
 function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: root, stdio: "inherit", ...options });
@@ -36,40 +24,18 @@ function copyDir(from, to) {
   fs.cpSync(from, to, { recursive: true, force: true });
 }
 
-if (!linuxServerBin || !fs.existsSync(linuxServerBin)) {
-  console.error(`OpenViking ${bundleId} binary is missing: ${path.relative(root, expectedLinuxServerBin)}`);
-  console.error("Build it on a matching Linux builder with pnpm openviking:build-binary, or place an approved internal binary/archive there.");
-  process.exit(1);
-}
-
-if (!fs.existsSync(nodeTar)) {
-  console.error(`Node.js runtime archive is missing: ${nodeTar}`);
-  console.error("Place the approved internal archive at thirdparty/node/, or set AGENTWORLD_NODE_RUNTIME_TARBALL.");
-  process.exit(1);
-}
-
-writeServerConfig();
-writeCliConfig();
 run("pnpm", ["build"]);
 
 fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 
-run("tar", ["-xJf", nodeTar, "-C", outDir]);
-fs.renameSync(
-  path.join(outDir, `node-v${nodeVersion}-${bundlePlatform}-${nodeArch}`),
-  path.join(outDir, "runtime-node"),
-);
-
 copyDir(path.join(root, ".next", "standalone"), path.join(outDir, "app"));
 copyDir(path.join(root, ".next", "server", "chunks"), path.join(outDir, "app", ".next", "server", "chunks"));
 copyDir(path.join(root, ".next", "static"), path.join(outDir, "app", ".next", "static"));
 copyDir(path.join(root, "public"), path.join(outDir, "app", "public"));
-copyDir(path.join(root, "thirdparty"), path.join(outDir, "thirdparty"));
-fs.copyFileSync(linuxServerBin, path.join(outDir, "thirdparty", "openviking", "bin", "openviking-server"));
-fs.chmodSync(path.join(outDir, "thirdparty", "openviking", "bin", "openviking-server"), 0o755);
-copyDir(path.join(root, "data", "openviking"), path.join(outDir, "data", "openviking"));
 copyDir(path.join(root, "docs"), path.join(outDir, "docs"));
+fs.mkdirSync(path.join(outDir, "data", "knowledge-engine", "shadow"), { recursive: true });
+fs.mkdirSync(path.join(outDir, "data", "knowledge-engine", "packs"), { recursive: true });
 
 const launcher = `#!/usr/bin/env bash
 set -euo pipefail
@@ -79,112 +45,12 @@ export NODE_ENV="\${NODE_ENV:-production}"
 export PORT="\${PORT:-7369}"
 export HOSTNAME="\${HOSTNAME:-0.0.0.0}"
 export NODE_OPTIONS="\${NODE_OPTIONS:-} --no-warnings=ExperimentalWarning"
-export AGENTWORLD_OPENVIKING_AUTO_START="\${AGENTWORLD_OPENVIKING_AUTO_START:-1}"
-export OPENVIKING_SERVER_BIN="\${OPENVIKING_SERVER_BIN:-$ROOT/thirdparty/openviking/bin/openviking-server}"
-export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
-export OPENVIKING_CLI_CONFIG_FILE="\${OPENVIKING_CLI_CONFIG_FILE:-$ROOT/data/openviking/ovcli.conf}"
-OPENVIKING_PID=""
-openviking_glibc_compatible() {
-  if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" = "1" ]; then
-    return 0
-  fi
-  case "$OPENVIKING_SERVER_BIN" in
-    "$ROOT/thirdparty/openviking/bin/openviking-server"*) ;;
-    *) return 0 ;;
-  esac
-  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
-  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
-  if [ -z "\${current_glibc}" ]; then
-    return 0
-  fi
-  first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
-  if [ "\${first_version}" != "\${min_glibc}" ]; then
-    echo "[agentworld] Bundled OpenViking requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}. Trying Python OpenViking fallback." >&2
-    return 1
-  fi
-  return 0
-}
-openviking_python() {
-  for candidate in "\${OPENVIKING_PYTHON:-}" "$ROOT/.venv-openviking/bin/python" python3 python; do
-    if [ -n "$candidate" ] && "$candidate" -c 'import openviking_cli.server_bootstrap' >/dev/null 2>&1; then
-      printf '%s' "$candidate"
-      return 0
-    fi
-  done
-  return 1
-}
-start_openviking() {
-  if openviking_glibc_compatible; then
-    "$OPENVIKING_SERVER_BIN" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
-    OPENVIKING_PID="$!"
-    export OPENVIKING_PID
-    return 0
-  fi
-  python_runtime="$(openviking_python || true)"
-  if [ -n "\${python_runtime}" ]; then
-    echo "[agentworld] Starting OpenViking with Python runtime: \${python_runtime}" >&2
-    "$python_runtime" -c 'from openviking_cli.server_bootstrap import main; main()' --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
-    OPENVIKING_PID="$!"
-    export OPENVIKING_PID
-    return 0
-  fi
-  echo "[agentworld] OpenViking startup failed: provide a compatible OPENVIKING_SERVER_BIN, run pnpm openviking:install-python, configure OPENVIKING_PYTHON, or set OPENVIKING_BASE_URL to a remote service." >&2
-  return 1
-}
-if [ "\${AGENTWORLD_OPENVIKING_AUTO_START}" != "0" ]; then
-  OPENVIKING_BASE_URL="\${OPENVIKING_BASE_URL:-http://127.0.0.1:1933}"
-  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL + '/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
-    mkdir -p "$ROOT/data/openviking"
-    start_openviking || true
-  fi
-fi
-cleanup() {
-  if [ -n "\${OPENVIKING_PID}" ]; then
-    kill "\${OPENVIKING_PID}" >/dev/null 2>&1 || true
-  fi
-}
-trap cleanup EXIT INT TERM
-exec "$ROOT/runtime-node/bin/node" "$ROOT/app/server.js"
+mkdir -p "$ROOT/data/knowledge-engine/shadow" "$ROOT/data/knowledge-engine/packs"
+exec node "$ROOT/app/server.js"
 `;
 
 fs.writeFileSync(path.join(outDir, "agentworld"), launcher);
 fs.chmodSync(path.join(outDir, "agentworld"), 0o755);
-
-const openvikingLauncher = `#!/usr/bin/env bash
-set -euo pipefail
-ROOT="$(cd "$(dirname "$0")" && pwd)"
-cd "$ROOT"
-export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
-openviking_python() {
-  for candidate in "\${OPENVIKING_PYTHON:-}" "$ROOT/.venv-openviking/bin/python" python3 python; do
-    if [ -n "$candidate" ] && "$candidate" -c 'import openviking_cli.server_bootstrap' >/dev/null 2>&1; then
-      printf '%s' "$candidate"
-      return 0
-    fi
-  done
-  return 1
-}
-if [ "$(uname -s 2>/dev/null || true)" = "Linux" ] && [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" != "1" ]; then
-  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
-  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
-  if [ -n "\${current_glibc}" ]; then
-    first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
-    if [ "\${first_version}" != "\${min_glibc}" ]; then
-      python_runtime="$(openviking_python || true)"
-      if [ -n "\${python_runtime}" ]; then
-        echo "OpenViking bundled binary requires glibc >= \${min_glibc}; using Python runtime: \${python_runtime}" >&2
-        exec "$python_runtime" -c 'from openviking_cli.server_bootstrap import main; main()' --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
-      fi
-      echo "OpenViking bundled binary requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}. Install Python runtime with pnpm openviking:install-python or set OPENVIKING_SERVER_BIN to a compatible binary." >&2
-      exit 1
-    fi
-  fi
-fi
-exec "$ROOT/thirdparty/openviking/bin/openviking-server" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
-`;
-
-fs.writeFileSync(path.join(outDir, "openviking-server"), openvikingLauncher);
-fs.chmodSync(path.join(outDir, "openviking-server"), 0o755);
 
 fs.writeFileSync(
   path.join(outDir, "README.txt"),
@@ -194,11 +60,9 @@ fs.writeFileSync(
     "",
     "1. Edit .env or export required environment variables.",
     "2. Start AgentWorld: ./agentworld",
-    "3. AgentWorld starts OpenViking automatically when AGENTWORLD_OPENVIKING_AUTO_START=1.",
-    "4. Optional manual OpenViking start: ./openviking-server",
+    "3. AgentWorld uses its built-in SQLite-backed knowledge engine.",
     "",
-    "This bundle includes a Node.js runtime and expects the OpenViking server binary under thirdparty/openviking/bin/openviking-server.",
-    "On older glibc hosts, install a Python OpenViking runtime and set OPENVIKING_PYTHON, or set OPENVIKING_SERVER_BIN to a compatible binary.",
+    "This bundle expects Node.js to be available on the target host and does not require an external knowledge service.",
   ].join("\n"),
 );
 
