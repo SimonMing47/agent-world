@@ -5,7 +5,7 @@ import { uiText } from "@/lib/language-pack";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   if (!authContext) {
     return NextResponse.json({ ok: false, error: uiText("identityAccess.errors.signInRequired") }, { status: 401 });
   }

@@ -140,13 +140,37 @@ function assertCleanWorktree() {
   }
 }
 
+
+function canRunOpenVikingPython(python) {
+  const result = spawnSync(python, ["-c", "import openviking_cli.server_bootstrap"], {
+    cwd: root,
+    stdio: "ignore",
+    shell: process.platform === "win32",
+  });
+  return !result.error && result.status === 0;
+}
+
+function hasOpenVikingPythonRuntime() {
+  const candidates = [
+    process.env.OPENVIKING_PYTHON,
+    path.join(root, ".venv-openviking", "bin", "python"),
+    "python3",
+    "python",
+  ].filter(Boolean);
+  return candidates.some((candidate) => {
+    const resolved = candidate.includes(path.sep) ? path.resolve(candidate) : candidate;
+    if (candidate.includes(path.sep) && !fs.existsSync(resolved)) return false;
+    return canRunOpenVikingPython(resolved);
+  });
+}
+
 function hasOpenVikingRuntime() {
   const candidates = [
     process.env.OPENVIKING_SERVER_BIN,
     path.join(root, "thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
     path.join(root, "thirdparty", "openviking", "bin", "openviking-server"),
   ].filter(Boolean);
-  return candidates.some((candidate) => fs.existsSync(path.resolve(candidate)));
+  return candidates.some((candidate) => fs.existsSync(path.resolve(candidate))) || hasOpenVikingPythonRuntime();
 }
 
 function ensureOpenViking(options) {
@@ -158,8 +182,8 @@ function ensureOpenViking(options) {
   if (!hasOpenVikingRuntime()) {
     fail([
       "OpenViking runtime is missing.",
-      "Offline installs do not download binaries.",
-      `Place the vetted binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, or set OPENVIKING_SERVER_BIN.`,
+      "Offline installs do not download binaries unless OPENVIKING_ALLOW_NETWORK_INSTALL=1 is set for pnpm openviking:install-python.",
+      `Place the vetted binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, set OPENVIKING_SERVER_BIN, or run pnpm openviking:install-python.`,
       "Use --skip-openviking only when an internal OpenViking service is already configured.",
     ].join("\n"));
   }
@@ -270,6 +294,7 @@ Environment:
   PORT                         AgentWorld port. Default: 7369.
   AGENTWORLD_OPENVIKING_AUTO_START=0 disables launcher-managed OpenViking startup.
   OPENVIKING_BASE_URL          OpenViking endpoint. Default: http://127.0.0.1:1933.
+  OPENVIKING_PYTHON            Python with openviking_cli installed for older glibc fallback.
 `);
 }
 
