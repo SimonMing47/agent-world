@@ -1,5 +1,6 @@
 import { uiText } from "@/lib/language-pack";
 export type PluginCapability =
+  | "auth_sso"
   | "provider"
   | "tool"
   | "skill"
@@ -36,6 +37,13 @@ export type PluginExtensionPoint = {
 
 export function listPluginExtensionPoints(): PluginExtensionPoint[] {
   return [
+    {
+      id: "identity-auth",
+      name: uiText("plugins.extension.identityAuth.name"),
+      accepts: ["auth_sso"],
+      implementationContract: uiText("plugins.extension.identityAuth.contract"),
+      noCoreChangeRule: uiText("plugins.extension.identityAuth.noCoreChange"),
+    },
     {
       id: "provider-runtime",
       name: uiText("ui.generated.ccccb1f3b93"),

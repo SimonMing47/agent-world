@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DevelopmentAccessSettingsForm } from "@/components/development-access-settings-form";
 import { KnowledgeBaseSettingsForm } from "@/components/knowledge-base-settings-form";
 import { LanguagePackSettingsForm } from "@/components/language-pack-settings-form";
 import { PageHeader } from "@/components/page-header";
@@ -19,19 +18,11 @@ import {
 } from "@/components/ui/data-table";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateWithPack } from "@/lib/language-pack";
-import { getDevelopmentAccessSettings } from "@/server/auth-core";
 import { getKnowledgeBaseSettings, getOpenVikingModelDefaults } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getSettingsSnapshot } from "@/server/queries";
 
 const systemEntries = [
-  {
-    name: "developmentAccess.settings.title",
-    href: "#development-access",
-    group: "ui.generated.c918a0a7cf1",
-    scope: "developmentAccess.scope.label",
-    description: "developmentAccess.settings.description",
-  },
   {
     name: "ui.common.resources.languagePack",
     href: "#language-pack",
@@ -177,12 +168,6 @@ const settingsNavItems: SettingsNavItem[] = [
 	    description: "settings.nav.knowledge.description",
 	    meta: "OpenViking",
 	  },
-  {
-    id: "development-access",
-    label: "developmentAccess.settings.title",
-    description: "developmentAccess.settings.description",
-	    meta: "settings.meta.development",
-	  },
 	  {
 	    id: "language-pack",
 	    label: "ui.common.resources.languagePack",
@@ -211,7 +196,6 @@ export default function SettingsPage() {
   const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
     translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
-  const developmentAccessSetting = getDevelopmentAccessSettings();
   const knowledgeBaseSetting = getKnowledgeBaseSettings();
   const openVikingModelDefaults = getOpenVikingModelDefaults();
   const localizedSettingsNavItems = settingsNavItems.map((item) => ({
@@ -265,16 +249,6 @@ export default function SettingsPage() {
               isEnabled: provider.isEnabled,
             }))}
           />
-        </SettingsCollapsiblePanel>
-
-        <SettingsCollapsiblePanel
-          id="development-access"
-          eyebrow={t("developmentAccess.scope.label")}
-	          title={t("developmentAccess.settings.title")}
-	          description={t("developmentAccess.settings.description")}
-	          meta={t("settings.meta.developmentEntry")}
-        >
-          <DevelopmentAccessSettingsForm setting={developmentAccessSetting} />
         </SettingsCollapsiblePanel>
 
         <SettingsCollapsiblePanel

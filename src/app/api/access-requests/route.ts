@@ -19,6 +19,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await ensureAdmin();
+  if (denied) return denied;
   const body = (await request.json()) as Parameters<typeof upsertAccessRequest>[0];
   if (!body.email?.trim() || !body.name?.trim()) {
     return NextResponse.json({ ok: false, error: uiText("identityAccess.errors.nameEmailRequired") }, { status: 400 });
