@@ -22,8 +22,8 @@ function resolveSpaceBusinessTeamId(spaceId: string | null | undefined) {
   return null;
 }
 
-export async function GET() {
-  const authContext = await getRequestAuthContext();
+export async function GET(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   await retryPendingKnowledgeSyncs(3);
   return NextResponse.json({
     entries: listLayeredKnowledge(100).filter((entry) =>
@@ -35,7 +35,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof upsertKnowledgeEntry>[0];
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(body.knowledgeSpaceId));
     const updatedBy = authContext?.user.email || authContext?.user.name || authContext?.user.id || null;
     const entry = await upsertKnowledgeEntry({ ...body, updatedBy });
@@ -67,7 +67,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const entry = listLayeredKnowledge(1000).find((item) => item.id === body.id);
   requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(entry?.knowledgeSpaceId));
   deleteKnowledgeEntry(body.id);

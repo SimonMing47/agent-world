@@ -9,14 +9,14 @@ import { listBusinessTeams } from "@/server/queries";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const authContext = await getRequestAuthContext();
+export async function GET(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   return NextResponse.json({ teams: filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext) });
 }
 
 export async function POST(request: Request) {
   try {
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     const body = (await request.json()) as Parameters<typeof upsertBusinessTeam>[0];
     const existing = body.id ? listBusinessTeams().find((team) => team.id === body.id) : null;
     requireBusinessTeamAccess(authContext, existing?.id ?? body.parentBusinessTeamId ?? null, {
@@ -35,7 +35,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     const body = (await request.json()) as { id: string };
     requireBusinessTeamAccess(authContext, body.id);
     deleteManagedResource({ type: "business-team", id: body.id });
