@@ -508,7 +508,7 @@ SSO 插件是第一类真实验证插件。
 当前基础：
 
 - `auth_provider_configs` 已包含 OIDC 所需的 issuer、authorize、token、userinfo、jwks、client、scopes、mapping 和 config 字段。
-- `auth-adapter-core.ts` 已有 `development_stub`、`oidc_generic`、`assertion_bridge` 的占位。
+- `auth-adapter-core.ts` 保留 `oidc_generic` 与 `assertion_bridge` 通用占位，企业 SSO 差异通过 `auth_sso` 插件能力接入。
 - `auth-core.ts` 已有身份入库、membership、session cookie 和访问白名单逻辑。
 
 目标设计：

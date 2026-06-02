@@ -26,14 +26,14 @@ export default async function RootLayout({
   const languagePack = getActiveLanguagePack();
   const requestHeaders = await headers();
   const pathname = requestHeaders.get("x-agentworld-pathname") ?? "/";
-  const publicPaths = new Set(["/", "/signin", "/access-request"]);
+  const publicPaths = new Set(["/", "/signin"]);
   const authContext = await getRequestAuthContext();
   if (!publicPaths.has(pathname)) {
     if (!authContext) {
       redirect(`/?next=${encodeURIComponent(pathname)}`);
     }
-    if (!authContext.access.allowed) {
-      redirect(`/access-request?next=${encodeURIComponent(pathname)}`);
+    if (authContext.mustChangePassword && pathname !== "/change-password") {
+      redirect(`/change-password?next=${encodeURIComponent(pathname)}`);
     }
   }
   const initials =

@@ -92,6 +92,18 @@ CREATE TABLE IF NOT EXISTS identity_users (
   last_login_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS local_auth_credentials (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  force_password_change INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_password_change_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS identity_user_business_team_memberships (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,

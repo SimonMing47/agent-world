@@ -54,6 +54,13 @@ type Provider = {
   configJson: string;
 };
 
+type SsoPlugin = {
+  id: string;
+  name: string;
+  mountPoint: string;
+  lifecycle: string;
+};
+
 type WhitelistRule = {
   id: string;
   tenantSpaceId: string | null;
@@ -98,11 +105,20 @@ async function submitJson(endpoint: string, method: "POST" | "PATCH" | "DELETE",
 
 function SettingsForm({
   settings,
+  ssoPlugins,
 }: {
   settings: {
     adminContactEmail: string;
     requestMessage: string;
+    passwordLoginEnabled: boolean;
+    registrationEnabled: boolean;
+    ssoLoginEnabled: boolean;
+    ssoPluginId: string;
+    ssoButtonLabel: string;
+    ssoButtonLogoUrl: string;
+    ssoButtonHref: string;
   };
+  ssoPlugins: SsoPlugin[];
 }) {
   const router = useRouter();
   const text = useLanguageText();
@@ -125,17 +141,74 @@ function SettingsForm({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+    <div className="grid gap-4 lg:grid-cols-2">
       <FieldGroup label="identityAccess.settings.fields.adminContactEmail">
         <Input
           value={form.adminContactEmail}
           onChange={(event) => setForm({ ...form, adminContactEmail: event.target.value })}
         />
       </FieldGroup>
+      <FieldGroup label="identityAccess.settings.fields.ssoButtonLabel">
+        <Input
+          value={form.ssoButtonLabel}
+          onChange={(event) => setForm({ ...form, ssoButtonLabel: event.target.value })}
+        />
+      </FieldGroup>
+      <FieldGroup label="identityAccess.settings.fields.ssoPluginId">
+        <Select
+          value={form.ssoPluginId}
+          onChange={(event) => setForm({ ...form, ssoPluginId: event.target.value })}
+        >
+          <option value="">{text("identityAccess.settings.fields.ssoPluginPlaceholder")}</option>
+          {ssoPlugins.map((plugin) => (
+            <option key={plugin.id} value={plugin.id}>
+              {plugin.name}
+            </option>
+          ))}
+        </Select>
+      </FieldGroup>
       <FieldGroup label="identityAccess.settings.fields.requestMessage">
         <Textarea
           value={form.requestMessage}
           onChange={(event) => setForm({ ...form, requestMessage: event.target.value })}
+        />
+      </FieldGroup>
+      <div className="space-y-3">
+        <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--ink-muted)]">
+          <input
+            type="checkbox"
+            checked={form.passwordLoginEnabled}
+            onChange={(event) => setForm({ ...form, passwordLoginEnabled: event.target.checked })}
+          />
+          {text("identityAccess.settings.fields.passwordLoginEnabled")}
+        </label>
+        <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--ink-muted)]">
+          <input
+            type="checkbox"
+            checked={form.registrationEnabled}
+            onChange={(event) => setForm({ ...form, registrationEnabled: event.target.checked })}
+          />
+          {text("identityAccess.settings.fields.registrationEnabled")}
+        </label>
+        <label className="flex items-center gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--ink-muted)]">
+          <input
+            type="checkbox"
+            checked={form.ssoLoginEnabled}
+            onChange={(event) => setForm({ ...form, ssoLoginEnabled: event.target.checked })}
+          />
+          {text("identityAccess.settings.fields.ssoLoginEnabled")}
+        </label>
+      </div>
+      <FieldGroup label="identityAccess.settings.fields.ssoButtonLogoUrl">
+        <Input
+          value={form.ssoButtonLogoUrl}
+          onChange={(event) => setForm({ ...form, ssoButtonLogoUrl: event.target.value })}
+        />
+      </FieldGroup>
+      <FieldGroup label="identityAccess.settings.fields.ssoButtonHref">
+        <Input
+          value={form.ssoButtonHref}
+          onChange={(event) => setForm({ ...form, ssoButtonHref: event.target.value })}
         />
       </FieldGroup>
       <div className="lg:col-span-2 flex items-center justify-between gap-3">
@@ -164,7 +237,7 @@ function ProviderForm({
   const [form, setForm] = useState({
     id: provider?.id ?? "",
     name: provider?.name ?? "",
-    adapterKey: provider?.adapterKey ?? "development_stub",
+    adapterKey: provider?.adapterKey ?? "oidc_generic",
     status: provider?.status ?? "active",
     issuerUrl: provider?.issuerUrl ?? "",
     authorizeUrl: provider?.authorizeUrl ?? "",
@@ -419,6 +492,7 @@ function AccessRequestReview({
 export function IdentityAccessConsole({
   adapters,
   providers,
+  ssoPlugins,
   settings,
   teams,
   whitelistRules,
@@ -427,7 +501,18 @@ export function IdentityAccessConsole({
 }: {
   adapters: Adapter[];
   providers: Provider[];
-  settings: { adminContactEmail: string; requestMessage: string };
+  ssoPlugins: SsoPlugin[];
+  settings: {
+    adminContactEmail: string;
+    requestMessage: string;
+    passwordLoginEnabled: boolean;
+    registrationEnabled: boolean;
+    ssoLoginEnabled: boolean;
+    ssoPluginId: string;
+    ssoButtonLabel: string;
+    ssoButtonLogoUrl: string;
+    ssoButtonHref: string;
+  };
   teams: Option[];
   whitelistRules: WhitelistRule[];
   users: IdentityUser[];
@@ -475,7 +560,7 @@ export function IdentityAccessConsole({
           </span>
         </div>
         <div className="mt-6">
-          <SettingsForm settings={settings} />
+          <SettingsForm settings={settings} ssoPlugins={ssoPlugins} />
         </div>
       </div>
 

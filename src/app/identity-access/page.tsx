@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { IdentityAccessConsole } from "@/components/identity-access-console";
 import { PageHeader } from "@/components/page-header";
 import { getIdentityAccessSettings, getRequestAuthContext, listAccessRequests, listAccessWhitelistRules, listAuthAdapterCatalog, listAuthProviderConfigs, listIdentityUsers } from "@/server/auth-core";
+import { listImportedPluginManifests } from "@/server/extension-core";
 import { listBusinessTeams } from "@/server/queries";
 
 export default async function IdentityAccessPage() {
@@ -21,6 +22,14 @@ export default async function IdentityAccessPage() {
     status: adapter.status,
   }));
   const providers = listAuthProviderConfigs();
+  const ssoPlugins = listImportedPluginManifests()
+    .filter((plugin) => plugin.capability === "auth_sso")
+    .map((plugin) => ({
+      id: plugin.id,
+      name: plugin.name,
+      mountPoint: plugin.mountPoint,
+      lifecycle: plugin.lifecycle,
+    }));
   const settings = getIdentityAccessSettings();
   const teams = listBusinessTeams()
     .filter((team) => team.status !== "deleted")
@@ -44,6 +53,7 @@ export default async function IdentityAccessPage() {
       <IdentityAccessConsole
         adapters={adapters}
         providers={providers}
+        ssoPlugins={ssoPlugins}
         settings={settings}
         teams={teams}
         whitelistRules={whitelistRules}
