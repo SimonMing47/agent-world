@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         access: result.context.access,
       },
     });
-    response.cookies.set(buildAuthSessionCookieValue(result.sessionToken));
+    response.cookies.set(buildAuthSessionCookieValue(result.sessionToken, request));
     return response;
   } catch (error) {
     const message = error instanceof Error ? uiText(error.message, error.message) : uiText("identityAccess.register.errors.failed");
