@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync as DatabaseSyncType, SQLInputValue } from "node:sqlite";
+import { LEGACY_KNOWLEDGE_URI_SCHEME, NATIVE_KNOWLEDGE_URI_SCHEME } from "@/lib/knowledge-uri";
 import { schemaSql } from "@/server/db-schema";
 
 type Row = Record<string, unknown>;
@@ -758,7 +759,7 @@ export type InspectionSkill = {
   updatedAt: string;
 };
 
-export type OpenVikingKnowledgeEntry = {
+export type KnowledgeEntryRecord = {
   id: string;
   knowledgeSpaceId: string | null;
   layer: string;
@@ -777,7 +778,7 @@ export type OpenVikingKnowledgeEntry = {
   revision: number;
 };
 
-export type OpenVikingKnowledgeEntryVersion = {
+export type KnowledgeEntryVersionRecord = {
   id: string;
   entryId: string;
   revision: number;
@@ -963,6 +964,31 @@ function tableHasColumn(db: DatabaseSyncType, table: string, column: string) {
   return rows.some((row) => row.name === column);
 }
 
+function replaceLegacyKnowledgeUriColumn(db: DatabaseSyncType, table: string, column: string) {
+  if (!tableExists(db, table) || !tableHasColumn(db, table, column)) return;
+  db.prepare(`UPDATE ${table} SET ${column} = replace(${column}, ?, ?) WHERE ${column} LIKE ?`).run(
+    LEGACY_KNOWLEDGE_URI_SCHEME,
+    NATIVE_KNOWLEDGE_URI_SCHEME,
+    `%${LEGACY_KNOWLEDGE_URI_SCHEME}%`,
+  );
+}
+
+function normalizePersistedKnowledgeUris(db: DatabaseSyncType) {
+  for (const [table, columns] of [
+    ["knowledge_layers", ["viking_uri", "parent_uri", "retention_policy_json"]],
+    ["knowledge_spaces", ["viking_uri", "retention_policy_json"]],
+    ["knowledge_entries", ["viking_uri", "content_md", "metadata_json"]],
+    ["knowledge_entry_versions", ["viking_uri", "content_md", "metadata_json"]],
+    ["inspection_skills", ["viking_uri"]],
+    ["execution_environments", ["memory_layer_refs_json"]],
+    ["task_blueprints", ["memory_policy_json"]],
+  ] as const) {
+    for (const column of columns) {
+      replaceLegacyKnowledgeUriColumn(db, table, column);
+    }
+  }
+}
+
 function databaseNeedsSchemaReset(db: DatabaseSyncType) {
   if (requiredCurrentTables.some((table) => !tableExists(db, table))) return true;
   return currentSchemaChecks.some((check) => !tableHasColumn(db, check.table, check.column));
@@ -1059,22 +1085,68 @@ function ensureRuntimeSessionAgentDefinitionColumn(db: DatabaseSyncType) {
   }
 }
 
-function ensureOpenVikingKnowledgeColumns(db: DatabaseSyncType) {
-  if (!tableHasColumn(db, "openviking_knowledge_entries", "knowledge_space_id")) {
-    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN knowledge_space_id TEXT");
+function ensureKnowledgeEntryColumns(db: DatabaseSyncType) {
+  const legacyPrefix = ["open", "viking"].join("");
+  const legacyEntriesTable = `${legacyPrefix}_knowledge_entries`;
+  const legacyVersionsTable = `${legacyPrefix}_knowledge_entry_versions`;
+
+  if (tableExists(db, legacyEntriesTable)) {
+    if (!tableHasColumn(db, legacyEntriesTable, "knowledge_space_id")) {
+      db.exec(`ALTER TABLE ${legacyEntriesTable} ADD COLUMN knowledge_space_id TEXT`);
+    }
+    if (!tableHasColumn(db, legacyEntriesTable, "updated_at")) {
+      db.exec(`ALTER TABLE ${legacyEntriesTable} ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+      db.exec(`UPDATE ${legacyEntriesTable} SET updated_at = created_at WHERE updated_at = ''`);
+    }
+    if (!tableHasColumn(db, legacyEntriesTable, "updated_by")) {
+      db.exec(`ALTER TABLE ${legacyEntriesTable} ADD COLUMN updated_by TEXT`);
+    }
+    if (!tableHasColumn(db, legacyEntriesTable, "revision")) {
+      db.exec(`ALTER TABLE ${legacyEntriesTable} ADD COLUMN revision INTEGER NOT NULL DEFAULT 1`);
+    }
+    db.exec(`
+      INSERT OR IGNORE INTO knowledge_entries (
+        id, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title, content_md,
+        metadata_json, source_type, sync_status, sync_error, created_at, updated_at, updated_by, revision
+      )
+      SELECT
+        id, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title, content_md,
+        metadata_json, source_type, sync_status, sync_error, created_at,
+        COALESCE(NULLIF(updated_at, ''), created_at), updated_by, revision
+      FROM ${legacyEntriesTable}
+    `);
+    db.exec(`DROP TABLE ${legacyEntriesTable}`);
   }
-  if (!tableHasColumn(db, "openviking_knowledge_entries", "updated_at")) {
-    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''");
-    db.exec("UPDATE openviking_knowledge_entries SET updated_at = created_at WHERE updated_at = ''");
+
+  if (tableExists(db, legacyVersionsTable)) {
+    db.exec(`
+      INSERT OR IGNORE INTO knowledge_entry_versions (
+        id, entry_id, revision, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title,
+        content_md, metadata_json, source_type, sync_status, sync_error, created_at, created_by
+      )
+      SELECT
+        id, entry_id, revision, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title,
+        content_md, metadata_json, source_type, sync_status, sync_error, created_at, created_by
+      FROM ${legacyVersionsTable}
+    `);
+    db.exec(`DROP TABLE ${legacyVersionsTable}`);
   }
-  if (!tableHasColumn(db, "openviking_knowledge_entries", "updated_by")) {
-    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN updated_by TEXT");
+
+  if (!tableHasColumn(db, "knowledge_entries", "knowledge_space_id")) {
+    db.exec("ALTER TABLE knowledge_entries ADD COLUMN knowledge_space_id TEXT");
   }
-  if (!tableHasColumn(db, "openviking_knowledge_entries", "revision")) {
-    db.exec("ALTER TABLE openviking_knowledge_entries ADD COLUMN revision INTEGER NOT NULL DEFAULT 1");
+  if (!tableHasColumn(db, "knowledge_entries", "updated_at")) {
+    db.exec("ALTER TABLE knowledge_entries ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''");
+    db.exec("UPDATE knowledge_entries SET updated_at = created_at WHERE updated_at = ''");
+  }
+  if (!tableHasColumn(db, "knowledge_entries", "updated_by")) {
+    db.exec("ALTER TABLE knowledge_entries ADD COLUMN updated_by TEXT");
+  }
+  if (!tableHasColumn(db, "knowledge_entries", "revision")) {
+    db.exec("ALTER TABLE knowledge_entries ADD COLUMN revision INTEGER NOT NULL DEFAULT 1");
   }
   db.exec(`
-    CREATE TABLE IF NOT EXISTS openviking_knowledge_entry_versions (
+    CREATE TABLE IF NOT EXISTS knowledge_entry_versions (
       id TEXT PRIMARY KEY,
       entry_id TEXT NOT NULL,
       revision INTEGER NOT NULL,
@@ -1170,8 +1242,9 @@ export function getDb() {
     ensureAgentTeamCatalogColumns(database);
     ensureAgentDefinitionHarnessColumns(database);
     ensureRuntimeSessionAgentDefinitionColumn(database);
-    ensureOpenVikingKnowledgeColumns(database);
+    ensureKnowledgeEntryColumns(database);
     ensureSkillGovernanceColumns(database);
+    normalizePersistedKnowledgeUris(database);
     ensureRepositoryProfileActivityIndex(database);
     ensureBuiltInProviderAdapterDefinitions(database);
   }

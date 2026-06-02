@@ -116,7 +116,7 @@ Finding 是任务输出中的结构化问题或结论，不等同于普通日志
 - `location`：可选位置，如仓库、文件、行号、URL、资源 ID。
 - `recommendation`：建议处理方式。
 - `status`：open、acknowledged、fixed、false_positive、accepted_risk、dismissed。
-- `feedbackRef`：写回 OpenViking 用户记忆的反馈引用。
+- `feedbackRef`：写回 AgentWorld 知识引擎 用户记忆的反馈引用。
 
 Finding 必须可追溯到事件流、Artifact、输入和相关 Skill 版本。
 
@@ -161,7 +161,7 @@ canceled
 - `planning` 生成 TaskRunPlan 和节点。
 - `waiting_environment` 表示 Environment Snapshot 尚未就绪或预检失败后等待修复。
 - `waiting_human` 只能由 ask 权限、人工节点或风险门禁触发。
-- `degraded` 表示主路径失败但存在受控降级，例如 OpenViking 远端不可用并写入本地影子索引。
+- `degraded` 表示主路径失败但存在受控降级，例如 AgentWorld 知识引擎 远端不可用并写入本地影子索引。
 - `succeeded`、`failed`、`canceled` 为终态。
 
 节点状态机由编排规格定义，但必须向 TaskRun 聚合。
@@ -203,10 +203,10 @@ spec:
       filesystem.write: deny
   memory:
     readScopes:
-      - viking://resources/agentworld/code-inspection/repositories
-      - viking://agent/skills/agentworld/code-inspection/security
+      - agentworld://knowledge/resources/agentworld/code-inspection/repositories
+      - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
     writeScopes:
-      - viking://user/memories/agentworld/code-inspection/feedback
+      - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
   outputs:
     findings:
       enabled: true
@@ -238,10 +238,10 @@ spec:
       repo.write: deny
   memory:
     readScopes:
-      - viking://agent/skills/agentworld/code-inspection/security
-      - viking://user/memories/agentworld/code-inspection/feedback
+      - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+      - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
     writeScopes:
-      - viking://resources/agentworld/code-inspection/global
+      - agentworld://knowledge/resources/agentworld/code-inspection/global
   outputs:
     artifacts:
       - type: report

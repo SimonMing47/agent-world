@@ -162,7 +162,7 @@ Agent 团队共享以下上下文：
 - TaskRun 输入快照。
 - Environment Snapshot。
 - Blueprint 权限快照。
-- OpenViking 记忆读取结果。
+- AgentWorld 知识引擎 记忆读取结果。
 - 上游节点输出。
 - Finding 和 Artifact 引用。
 - 事件流和 Trace Span。

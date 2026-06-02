@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/data-table";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { translateWithPack } from "@/lib/language-pack";
-import { getKnowledgeBaseSettings, getOpenVikingModelDefaults } from "@/server/knowledge-base-settings";
+import { getKnowledgeBaseSettings, getKnowledgeModelDefaults } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getSettingsSnapshot } from "@/server/queries";
 
@@ -34,7 +34,7 @@ const systemEntries = [
     name: "settings.knowledge.title",
     href: "#knowledge-base",
     group: "ui.generated.c918a0a7cf1",
-    scope: "OpenViking",
+    scope: "settings.knowledge.engineName",
     description: "settings.knowledge.description",
   },
   {
@@ -76,7 +76,7 @@ const systemEntries = [
     name: "nav.knowledge.label",
     href: "/knowledge",
     group: "ui.generated.cfad8b39e99",
-    scope: "OpenViking",
+    scope: "settings.knowledge.engineName",
     description: "nav.knowledge.description",
   },
   {
@@ -166,7 +166,7 @@ const settingsNavItems: SettingsNavItem[] = [
 	    id: "knowledge-base",
 	    label: "settings.knowledge.title",
 	    description: "settings.nav.knowledge.description",
-	    meta: "OpenViking",
+	    meta: "settings.knowledge.engineName",
 	  },
 	  {
 	    id: "language-pack",
@@ -197,7 +197,7 @@ export default function SettingsPage() {
     translateWithPack(languagePack, key, fallback, params);
   const snapshot = getSettingsSnapshot();
   const knowledgeBaseSetting = getKnowledgeBaseSettings();
-  const openVikingModelDefaults = getOpenVikingModelDefaults();
+  const knowledgeModelDefaults = getKnowledgeModelDefaults();
   const localizedSettingsNavItems = settingsNavItems.map((item) => ({
     ...item,
     label: t(item.label),
@@ -214,7 +214,7 @@ export default function SettingsPage() {
         badges={[
           { label: `${snapshot.providers.length} ${t("ui.common.count.modelServices")}`, variant: "accent" },
           { label: `${snapshot.environments.length} ${t("ui.common.count.environments")}`, variant: "neutral" },
-          { label: knowledgeBaseSetting.provider === "openviking" ? "OpenViking" : knowledgeBaseSetting.provider, variant: "neutral" },
+          { label: knowledgeBaseSetting.provider === "native" ? "AgentWorld Knowledge" : knowledgeBaseSetting.provider, variant: "neutral" },
         ]}
       />
 
@@ -233,11 +233,11 @@ export default function SettingsPage() {
 	          eyebrow={t("settings.general.system")}
 	          title={t("settings.knowledge.title")}
 	          description={t("settings.knowledge.panelDescription")}
-	          meta="OpenViking"
+	          meta="AgentWorld Knowledge"
         >
           <KnowledgeBaseSettingsForm
             setting={knowledgeBaseSetting}
-            modelDefaults={openVikingModelDefaults}
+            modelDefaults={knowledgeModelDefaults}
             providerOptions={snapshot.providers.map((provider) => ({
               id: provider.id,
               name: provider.name,

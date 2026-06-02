@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { uiText } from "@/lib/language-pack";
-import { runKnowledgeRetrievalTest } from "@/server/openviking-core";
+import { runKnowledgeRetrievalTest } from "@/server/knowledge-engine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

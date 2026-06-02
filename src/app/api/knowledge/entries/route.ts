@@ -5,7 +5,7 @@ import {
   listLayeredKnowledge,
   retryPendingKnowledgeSyncs,
   upsertKnowledgeEntry,
-} from "@/server/openviking-core";
+} from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
 import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import { listKnowledgeSpaces } from "@/server/knowledge-core";

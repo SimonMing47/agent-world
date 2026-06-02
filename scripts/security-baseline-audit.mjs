@@ -7,12 +7,10 @@ const ignoredDirectories = new Set([
   ".git",
   ".next",
   ".playwright-cli",
-  ".venv-openviking",
   "data",
   "dist",
   "node_modules",
   "output",
-  "thirdparty",
 ]);
 const allowedExtensions = new Set([".ts", ".tsx", ".js", ".mjs"]);
 
@@ -58,10 +56,8 @@ const warnRules = [
 ];
 
 const approvedSecretEnvFiles = new Set([
-  "src/server/openviking-core.ts",
-  "src/server/openviking-process.ts",
-  "scripts/openviking-common.mjs",
-  "scripts/openviking-smoke.mjs",
+  "src/server/knowledge-engine.ts",
+  "src/server/knowledge-base-settings.ts",
 ]);
 
 function walk(entry, files = []) {
