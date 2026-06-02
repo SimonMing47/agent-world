@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readOpenVikingContent } from "@/server/openviking-core";
+import { readKnowledgeContent } from "@/server/knowledge-engine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "level must be L0, L1, or L2" }, { status: 400 });
   }
 
-  const content = await readOpenVikingContent(uri, level as "L0" | "L1" | "L2");
+  const content = await readKnowledgeContent(uri, level as "L0" | "L1" | "L2");
 
   return NextResponse.json({
     ok: true,

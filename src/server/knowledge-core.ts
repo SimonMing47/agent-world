@@ -11,8 +11,9 @@ import {
   type TaskBlueprint,
   type TaskRun,
 } from "@/server/db";
-import { getOpenVikingHealth, getOpenVikingTree } from "@/server/openviking-core";
+import { getKnowledgeEngineHealth, getKnowledgeEngineTree } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -83,10 +84,28 @@ function resolveKnowledgeSpaceSlug(input: { id?: string; slug?: string | null; n
 function dedupeByUri<T extends { vikingUri: string }>(items: T[]) {
   const seen = new Set<string>();
   return items.filter((item) => {
-    if (seen.has(item.vikingUri)) return false;
-    seen.add(item.vikingUri);
+    const normalizedUri = normalizeKnowledgeUri(item.vikingUri);
+    if (seen.has(normalizedUri)) return false;
+    seen.add(normalizedUri);
     return true;
   });
+}
+
+function normalizeKnowledgeSpaceRecord<T extends KnowledgeSpace>(space: T): T {
+  return {
+    ...space,
+    vikingUri: normalizeKnowledgeUri(space.vikingUri),
+    retentionPolicyJson: replaceLegacyKnowledgeUriText(space.retentionPolicyJson),
+  };
+}
+
+function normalizeKnowledgeLayerRecord<T extends KnowledgeLayer>(layer: T): T {
+  return {
+    ...layer,
+    vikingUri: normalizeKnowledgeUri(layer.vikingUri),
+    parentUri: layer.parentUri ? normalizeKnowledgeUri(layer.parentUri) : null,
+    retentionPolicyJson: replaceLegacyKnowledgeUriText(layer.retentionPolicyJson),
+  };
 }
 
 function buildSpaceUri(args: {
@@ -99,21 +118,21 @@ function buildSpaceUri(args: {
   const teamSlug = slugify(args.businessTeamSlug ?? "global");
   const projectKey = args.projectKey ? slugify(args.projectKey) : null;
   if (args.spaceType === "agent_team") {
-    return `viking://agent/skills/agentworld/teams/${teamSlug}/agent-teams/${slugify(args.agentTeamSlug ?? args.slug)}`;
+    return `agentworld://knowledge/agent/teams/${teamSlug}/agent-teams/${slugify(args.agentTeamSlug ?? args.slug)}`;
   }
   if (args.spaceType === "project") {
-    return `viking://resources/agentworld/teams/${teamSlug}/projects/${projectKey ?? slugify(args.slug)}`;
+    return `agentworld://knowledge/resources/teams/${teamSlug}/projects/${projectKey ?? slugify(args.slug)}`;
   }
   if (args.spaceType === "team") {
-    return `viking://resources/agentworld/teams/${teamSlug}/${slugify(args.slug)}`;
+    return `agentworld://knowledge/resources/teams/${teamSlug}/${slugify(args.slug)}`;
   }
-  return `viking://resources/agentworld/global/${slugify(args.slug)}`;
+  return `agentworld://knowledge/resources/global/${slugify(args.slug)}`;
 }
 
 export function listKnowledgeSpaces() {
   return queryAll<KnowledgeSpace>(
     "SELECT * FROM knowledge_spaces WHERE status <> 'deleted' ORDER BY CASE space_type WHEN 'global' THEN 0 WHEN 'team' THEN 1 WHEN 'project' THEN 2 WHEN 'agent_team' THEN 3 ELSE 9 END, name ASC",
-  );
+  ).map(normalizeKnowledgeSpaceRecord);
 }
 
 export function listKnowledgeSpaceBindings() {
@@ -208,7 +227,8 @@ export function createKnowledgeSpace(input: {
     });
   }
 
-  return queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", id);
+  const created = queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", id);
+  return created ? normalizeKnowledgeSpaceRecord(created) : null;
 }
 
 export function upsertKnowledgeSpace(input: {
@@ -278,7 +298,8 @@ export function upsertKnowledgeSpace(input: {
     nowIso(),
     input.id,
   );
-  return queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", input.id);
+  const updated = queryOne<KnowledgeSpace>("SELECT * FROM knowledge_spaces WHERE id = ?", input.id);
+  return updated ? normalizeKnowledgeSpaceRecord(updated) : null;
 }
 
 export function deleteKnowledgeSpace(id: string) {
@@ -321,7 +342,7 @@ function layerUrisFromEnvironment(environment: ExecutionEnvironment | null) {
     `SELECT * FROM knowledge_layers WHERE layer_key IN (${layerKeys.map(() => "?").join(",")}) AND is_enabled = 1`,
     ...layerKeys,
   );
-  return layers.map((layer) => ({
+  return layers.map(normalizeKnowledgeLayerRecord).map((layer) => ({
     source: "environment_layer",
     name: layer.name,
     vikingUri: layer.vikingUri,
@@ -334,22 +355,22 @@ function directRefsFromMemoryPolicy(blueprint: TaskBlueprint) {
   const policy = parseRecord(blueprint.memoryPolicyJson);
   const requiredSpaces = parseStringArray(policy.requiredSpaces).map((uri, index) => ({
     source: "blueprint_required",
-    name: uri,
-    vikingUri: uri,
+    name: normalizeKnowledgeUri(uri),
+    vikingUri: normalizeKnowledgeUri(uri),
     accessLevel: "read",
     loadOrder: 100 + index,
   }));
   const skillSpaces = parseStringArray(policy.skillSpaces).map((uri, index) => ({
     source: "blueprint_skill",
-    name: uri,
-    vikingUri: uri,
+    name: normalizeKnowledgeUri(uri),
+    vikingUri: normalizeKnowledgeUri(uri),
     accessLevel: "read",
     loadOrder: 140 + index,
   }));
   const archiveOutputTo = parseStringArray(policy.archiveOutputTo).map((uri, index) => ({
     source: "blueprint_archive",
-    name: uri,
-    vikingUri: uri,
+    name: normalizeKnowledgeUri(uri),
+    vikingUri: normalizeKnowledgeUri(uri),
     accessLevel: "archive",
     loadOrder: 180 + index,
   }));
@@ -450,7 +471,7 @@ export async function buildTaskRunKnowledgeRetrieval(taskRun: TaskRun) {
       ? (knowledgeContext.loadRefs as Array<{ vikingUri?: string }>).map((ref) => ref.vikingUri).filter(Boolean)
       : [],
   );
-  const health = await getOpenVikingHealth();
+  const health = await getKnowledgeEngineHealth();
   const refs = [];
 
   for (const uri of loadRefs.slice(0, 6)) {
@@ -458,7 +479,7 @@ export async function buildTaskRunKnowledgeRetrieval(taskRun: TaskRun) {
       refs.push({ uri, status: "degraded", entries: 0 });
       continue;
     }
-    const tree = await getOpenVikingTree(uri, 2).catch(() => []);
+    const tree = await getKnowledgeEngineTree(uri, 2).catch(() => []);
     refs.push({ uri, status: "loaded", entries: tree.length });
   }
 

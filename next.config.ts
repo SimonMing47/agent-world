@@ -7,12 +7,10 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "*": [
       "./.next/**",
-      "./.venv-openviking/**",
       "./data/**",
       "./dist/**",
       "./node_modules/.cache/**",
       "./output/**",
-      "./thirdparty/openviking/bin/**",
       "./next.config.ts",
     ],
   },

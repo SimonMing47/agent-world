@@ -18,7 +18,7 @@ import {
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { getKnowledgeFoundationStatus } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
-import { getKnowledgeManagementSnapshot, listLayeredKnowledge, retryPendingKnowledgeSyncs } from "@/server/openviking-core";
+import { getKnowledgeManagementSnapshot, listLayeredKnowledge, retryPendingKnowledgeSyncs } from "@/server/knowledge-engine";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -232,7 +232,7 @@ export default async function KnowledgePage() {
         className="pb-1"
         badges={[
           {
-            label: `OpenViking ${t(snapshot.health.ok ? "labels.status.healthy" : "labels.status.degraded")}`,
+            label: `${t("settings.knowledge.engineName")} ${t(snapshot.health.ok ? "labels.status.healthy" : "labels.status.degraded")}`,
             variant: snapshot.health.ok ? "success" : "warning",
           },
           { label: `${spaces.length} ${t("ui.common.count.knowledgeSpaces")}`, variant: "accent" },

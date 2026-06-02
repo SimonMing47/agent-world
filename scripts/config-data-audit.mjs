@@ -6,7 +6,7 @@ const scanRoots = ["package.json", "src/app", "src/components", "src/server", "s
   path.join(root, entry),
 );
 
-const ignoredDirectories = new Set(["node_modules", ".next", ".git", "data", "output", ".venv-openviking"]);
+const ignoredDirectories = new Set(["node_modules", ".next", ".git", "data", "output"]);
 const allowedExtensions = new Set([".ts", ".tsx", ".js", ".mjs", ".json"]);
 
 const rules = [
@@ -24,7 +24,7 @@ const rules = [
   {
     id: "hardcoded-demo-case",
     pattern:
-      /Open Frontier|platform-team|release-team|pr-vanguard|Shield Inspection|GLM-5\.1 Coding|CodeHub MR Webhook|codehub-mr|task-template-|env-codehub|agent-shield|agent-code-quality|agentworld\.git|new-team|new-tenant|repo-executor|repository-name|viking:\/\/teams\/new-team/,
+      /Open Frontier|platform-team|release-team|pr-vanguard|Shield Inspection|GLM-5\.1 Coding|CodeHub MR Webhook|codehub-mr|task-template-|env-codehub|agent-shield|agent-code-quality|agentworld\.git|new-team|new-tenant|repo-executor|repository-name|agentworld:\/\/knowledge\/teams\/new-team/,
     hint: "Do not hardcode demo teams, task blueprints, agents, codebases, webhooks, or knowledge spaces.",
   },
   {

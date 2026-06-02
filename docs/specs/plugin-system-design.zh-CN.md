@@ -101,7 +101,7 @@ sbom.json
 - `checksums.sha256` 覆盖包内所有文件。
 - `signature.sig` 支持企业内网的离线签名校验。
 - `sbom.json` 推荐提供，用于开源后做供应链审计。
-- 普通插件包不允许携带 native addon 或外部二进制；确需二进制时必须由管理员预置到 `thirdparty/plugins`，并在 manifest 中声明架构和校验和。
+- 普通插件包不允许携带 native addon 或外部二进制；确需二进制时必须由管理员预置到 `plugins/trusted-binaries`，并在 manifest 中声明架构和校验和。
 
 manifest 示例：
 
@@ -212,7 +212,7 @@ data/
     state/
       <pluginId>/
 
-thirdparty/
+local-artifacts/
   plugins/
     <vendor>/<pluginId>/<version>/<os>-<arch>/
 ```
@@ -221,8 +221,8 @@ thirdparty/
 
 - `plugins/official` 是随产品发布的默认插件目录。它只提供“可安装目录”，不自动写入业务配置，符合新装环境干净的要求。
 - `data/plugins` 是管理员通过界面导入后的真实安装目录，不能写入源码目录。
-- `thirdparty/plugins` 只用于管理员离线预置的可信二进制或运行时组件，普通上传插件默认不能写这里。
-- Linux 部署包必须包含 `plugins/official` 和 `thirdparty`，并允许通过 `AGENTWORLD_PLUGIN_DIR` 覆盖数据目录。
+- `plugins/trusted-binaries` 只用于管理员离线预置的可信二进制或运行时组件，普通上传插件默认不能写这里。
+- Linux 部署包必须包含 `plugins/official` 和 `local-artifacts`，并允许通过 `AGENTWORLD_PLUGIN_DIR` 覆盖数据目录。
 
 当前已有的 `plugins/official/codehub/plugin.json` 应迁移或兼容为 `agentworld.plugin.json`。当前 `src/server/plugins/official/codehub.ts` 应逐步改为官方插件包内的 `dist/server.js`，主干只保留 SDK 和加载器。
 
@@ -476,7 +476,7 @@ onHealthCheck
 - `outputPublishers`：进入 Output Publisher Host。
 - `providerAdapters`：进入 Provider Runtime Host。
 - `taskBlueprints` 和 `scheduleTemplates`：导入标准表，但保留插件来源和版本。
-- `skills`：导入 Skill 表和 OpenViking URI 绑定，但必须做团队范围和内容安全校验。
+- `skills`：导入 Skill 表和 AgentWorld 知识引擎 URI 绑定，但必须做团队范围和内容安全校验。
 - `boardViews`：进入看板视图 registry。
 
 运行时隔离：
@@ -554,7 +554,7 @@ Core -> User: set AgentWorld session cookie
 - zip slip、软链逃逸、zip bomb。
 - 上传后执行 `npm install`、`postinstall`、native addon、任意 shell。
 - 第三方插件动态 `import()` 到 Next.js 主进程。
-- 插件读取 `.env`、SQLite 文件、OpenViking 数据目录或任意文件系统路径。
+- 插件读取 `.env`、SQLite 文件、AgentWorld 知识引擎 数据目录或任意文件系统路径。
 - 插件页面加载远程 JS、字体、图片、wasm。
 - 插件伪装或覆盖核心路由、核心菜单和核心 API。
 - 插件菜单只在客户端隐藏但服务端页面仍可访问。

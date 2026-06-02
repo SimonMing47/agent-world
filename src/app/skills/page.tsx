@@ -181,7 +181,7 @@ export default async function SkillsPage() {
                                   { label: "ui.generated.c53d4919c45", value: team?.name ?? "ui.generated.ca5644f4bbf" },
                                   { label: "ui.generated.c986ff01617", value: skill.layer },
                                   { label: "ui.generated.c747b74cec9", value: skill.visibility },
-                                  { label: "OpenViking URI", value: skill.vikingUri ?? "ui.generated.c16f4087b8b" },
+                                  { label: "knowledge.labels.knowledgeUri", value: skill.vikingUri ?? "ui.generated.c16f4087b8b" },
                                   { label: "ui.generated.c62e951a692", value: skill.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188" },
                                 ]}
                               />

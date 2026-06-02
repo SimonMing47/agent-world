@@ -6,7 +6,7 @@ import {
   KnowledgeEntryConflictError,
   listKnowledgeEntryVersions,
   restoreKnowledgeEntryVersion,
-} from "@/server/openviking-core";
+} from "@/server/knowledge-engine";
 import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";

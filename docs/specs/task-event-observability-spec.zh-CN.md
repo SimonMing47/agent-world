@@ -164,7 +164,7 @@ Finding 创建时必须记录：
 - 分类、严重级别和置信度。
 - 关联 Artifact 或代码位置。
 
-Finding 状态变化必须写入 `finding.updated` 事件。人工反馈写回 OpenViking 时必须关联 Finding ID。
+Finding 状态变化必须写入 `finding.updated` 事件。人工反馈写回 AgentWorld 知识引擎 时必须关联 Finding ID。
 
 ## 8. 可靠性状态机事件
 

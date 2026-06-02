@@ -188,7 +188,7 @@ export function ExecutionEnvironmentForm({
             <Textarea value={form.sandboxProfileJson} onChange={(event) => setForm({ ...form, sandboxProfileJson: event.target.value })} placeholder='{"isolation":"process"}' />
           </FieldGroup>
           <FieldGroup label="ui.generated.c08d227d44c" className="md:col-span-2">
-            <Textarea value={form.memoryLayerRefsJson} onChange={(event) => setForm({ ...form, memoryLayerRefsJson: event.target.value })} placeholder='["viking://teams/security/code-inspection/"]' />
+            <Textarea value={form.memoryLayerRefsJson} onChange={(event) => setForm({ ...form, memoryLayerRefsJson: event.target.value })} placeholder='["agentworld://knowledge/teams/security/code-inspection/"]' />
           </FieldGroup>
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">

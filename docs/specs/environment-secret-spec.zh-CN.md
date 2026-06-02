@@ -52,7 +52,7 @@ spec:
     write:
       - artifacts
   memoryDependencies:
-    - viking://resources/agentworld/code-inspection/repositories
+    - agentworld://knowledge/resources/agentworld/code-inspection/repositories
   sandbox:
     mode: reserved
 ```
@@ -81,7 +81,7 @@ resolved:
       purpose: repo.read
       resolvedAt: 2026-05-16T00:00:00Z
   memoryDependencies:
-    - viking://resources/agentworld/code-inspection/repositories
+    - agentworld://knowledge/resources/agentworld/code-inspection/repositories
 status: ready
 ```
 
@@ -99,7 +99,7 @@ Secret 标准字段：
 - `status`：active、rotating、disabled、expired。
 - `lastUsedAt`：最近使用时间。
 
-Secret 值只由 Secret Store 持有。ProviderAdapter 和插件通过受控句柄使用 Secret，不能把 Secret 明文写入事件、日志、Artifact、Finding 或 OpenViking。
+Secret 值只由 Secret Store 持有。ProviderAdapter 和插件通过受控句柄使用 Secret，不能把 Secret 明文写入事件、日志、Artifact、Finding 或 AgentWorld 知识引擎。
 
 ## 6. 权限规则
 
