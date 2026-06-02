@@ -1,7 +1,6 @@
 import { addDays } from "date-fns";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { cache } from "react";
 import { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 import {
   execute,
@@ -29,6 +28,21 @@ const LEGACY_BOOTSTRAP_PASSWORDS = ["AgentWorld@123"];
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function getCookieValueFromHeader(cookieHeader: string | null | undefined, name: string) {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(";")) {
+    const [rawKey, ...rawValue] = part.split("=");
+    if (rawKey?.trim() !== name) continue;
+    const value = rawValue.join("=").trim();
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function normalizeJson(value: unknown, fallback: unknown) {
@@ -661,11 +675,12 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
   };
 }
 
-export const getRequestAuthContext = cache(async function getRequestAuthContext() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(AUTH_SESSION_COOKIE)?.value;
+export async function getRequestAuthContext(request?: Pick<Request, "headers">) {
+  const sessionToken = request
+    ? getCookieValueFromHeader(request.headers.get("cookie"), AUTH_SESSION_COOKIE)
+    : (await cookies()).get(AUTH_SESSION_COOKIE)?.value;
   return getAuthContextBySessionToken(sessionToken);
-});
+}
 
 export function canAccessBusinessTeam(
   authContext: AuthContext | null,

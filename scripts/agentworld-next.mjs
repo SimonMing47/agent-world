@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  getOpenVikingBinaryCompatibility,
   resolveBaseUrl,
   resolveHost,
   resolvePort,
@@ -68,6 +69,12 @@ async function startOpenVikingIfNeeded() {
     console.warn(
       `[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN or provide thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`,
     );
+    return null;
+  }
+
+  const compatibility = getOpenVikingBinaryCompatibility(binary);
+  if (!compatibility.compatible) {
+    console.warn(`[agentworld] OpenViking auto-start skipped: ${compatibility.reason}`);
     return null;
   }
 
