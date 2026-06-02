@@ -4,22 +4,22 @@ import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
-async function ensureAdmin() {
-  const authContext = await getRequestAuthContext();
+async function ensureAdmin(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   if (!authContext || authContext.user.isSystemAdmin !== 1) {
     return NextResponse.json({ ok: false, error: "identityAccess.errors.adminRequired" }, { status: 403 });
   }
   return null;
 }
 
-export async function GET() {
-  const denied = await ensureAdmin();
+export async function GET(request: Request) {
+  const denied = await ensureAdmin(request);
   if (denied) return denied;
   return NextResponse.json({ requests: listAccessRequests() });
 }
 
 export async function POST(request: Request) {
-  const denied = await ensureAdmin();
+  const denied = await ensureAdmin(request);
   if (denied) return denied;
   const body = (await request.json()) as Parameters<typeof upsertAccessRequest>[0];
   if (!body.email?.trim() || !body.name?.trim()) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const denied = await ensureAdmin();
+  const denied = await ensureAdmin(request);
   if (denied) return denied;
   const body = (await request.json()) as Parameters<typeof upsertAccessRequest>[0];
   if (!body.email?.trim() || !body.name?.trim()) {

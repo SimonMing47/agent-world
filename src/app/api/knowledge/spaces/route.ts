@@ -54,8 +54,8 @@ function knowledgeSpaceErrorResponse(error: unknown) {
   return NextResponse.json({ ok: false, error: message }, { status });
 }
 
-export async function GET() {
-  const authContext = await getRequestAuthContext();
+export async function GET(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   const spaces = listKnowledgeSpaces().filter((space) =>
     canAccessBusinessTeam(authContext, resolveSpaceBusinessTeamId(space), { allowGlobal: space.visibility === "global" }),
   );
@@ -67,7 +67,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const body = (await request.json().catch(() => ({}))) as {
     action?: "create_space" | "bind_space";
     name?: string;
@@ -170,7 +170,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const space = listKnowledgeSpaces().find((item) => item.id === body.id);
   requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(space ?? {}), {
     allowGlobal: space?.visibility === "global",

@@ -391,7 +391,7 @@ export async function POST(request: Request) {
     const knowledgeSpaceId = body.knowledgeSpaceId?.trim();
     if (!knowledgeSpaceId) throw new Error(uiText("ui.knowledgeImport.errors.spaceRequired"));
 
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(knowledgeSpaceId));
     const updatedBy = authContext?.user.email || authContext?.user.name || authContext?.user.id || null;
     const importedAt = new Date().toISOString();

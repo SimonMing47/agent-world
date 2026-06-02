@@ -15,7 +15,7 @@ export async function POST(
     actorName?: string;
     deliveryMode?: "queue" | "append" | "interject" | "interrupt";
   };
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const actorName = authContext?.user.name?.trim() || authContext?.user.email?.trim();
 
   if (!body.content?.trim()) {
