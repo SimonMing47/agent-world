@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   const entryId = searchParams.get("entryId");
   if (!entryId) return NextResponse.json({ ok: false, error: "entryId is required" }, { status: 400 });
 
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const entry = getKnowledgeEntry(entryId);
   requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(entry?.knowledgeSpaceId));
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "entryId and versionId are required" }, { status: 400 });
     }
 
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     const entry = getKnowledgeEntry(body.entryId);
     const version = getKnowledgeEntryVersion(body.entryId, body.versionId);
     requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(entry?.knowledgeSpaceId));
