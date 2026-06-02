@@ -2,11 +2,11 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
-  getOpenVikingBinaryCompatibility,
+  buildOpenVikingPythonArgs,
   resolveBaseUrl,
   resolveHost,
   resolvePort,
-  resolveServerBin,
+  resolveOpenVikingServerCommand,
   root,
   writeCliConfig,
   writeServerConfig,
@@ -64,27 +64,31 @@ async function startOpenVikingIfNeeded() {
     return null;
   }
 
-  const binary = resolveServerBin();
-  if (!binary) {
+  const serverCommand = resolveOpenVikingServerCommand();
+  if (!serverCommand) {
     console.warn(
-      `[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN or provide thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`,
+      `[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN, install Python runtime with pnpm openviking:install-python, or provide thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`,
     );
     return null;
   }
-
-  const compatibility = getOpenVikingBinaryCompatibility(binary);
-  if (!compatibility.compatible) {
-    console.warn(`[agentworld] OpenViking auto-start skipped: ${compatibility.reason}`);
+  if (serverCommand.kind === "incompatible") {
+    console.warn(`[agentworld] OpenViking auto-start skipped: ${serverCommand.compatibility.reason}`);
     return null;
   }
 
   const configPath = writeServerConfig();
   writeCliConfig();
 
-  console.log(`[agentworld] Starting OpenViking: ${binary}`);
+  const args = serverCommand.kind === "python"
+    ? buildOpenVikingPythonArgs(configPath)
+    : ["--config", configPath, "--host", resolveHost(), "--port", resolvePort()];
+  if (serverCommand.compatibility.reason) {
+    console.warn(`[agentworld] ${serverCommand.compatibility.reason}`);
+  }
+  console.log(`[agentworld] Starting OpenViking (${serverCommand.kind}): ${serverCommand.command}`);
   const child = spawn(
-    binary,
-    ["--config", configPath, "--host", resolveHost(), "--port", resolvePort()],
+    serverCommand.command,
+    args,
     {
       cwd: root,
       env: {

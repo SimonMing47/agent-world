@@ -29,6 +29,7 @@ Operational rules:
 
 Compatibility notes:
 
-- The bundled Linux OpenViking binaries require glibc 2.35 or newer. On older hosts, AgentWorld skips launcher-managed OpenViking startup instead of repeatedly spawning a binary that exits with a `GLIBC_2.35 not found` loader error.
-- For older Linux distributions, set `OPENVIKING_SERVER_BIN` to an OpenViking binary built on that target, point `OPENVIKING_BASE_URL` at a compatible remote OpenViking service, or set `AGENTWORLD_OPENVIKING_AUTO_START=0` and manage OpenViking separately.
+- The bundled Linux OpenViking binaries require glibc 2.35 or newer. On older hosts, AgentWorld first attempts a configured Python OpenViking runtime instead of repeatedly spawning a binary that exits with a `GLIBC_2.35 not found` loader error.
+- For older Linux distributions, install a source/Python fallback with `pnpm openviking:install-python` (offline wheelhouse by default, or `OPENVIKING_ALLOW_NETWORK_INSTALL=1` for controlled online install) and set `OPENVIKING_PYTHON` if needed; AgentWorld will use that Python runtime when the bundled binary is incompatible.
+- You can also set `OPENVIKING_SERVER_BIN` to an OpenViking binary built on that target, point `OPENVIKING_BASE_URL` at a compatible remote OpenViking service, or set `AGENTWORLD_OPENVIKING_AUTO_START=0` and manage OpenViking separately.
 - Set `OPENVIKING_SKIP_GLIBC_CHECK=1` only when you have independently verified the configured binary is compatible.
