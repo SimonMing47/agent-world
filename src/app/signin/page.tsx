@@ -10,6 +10,10 @@ function normalizeNextPath(value: string | undefined) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/overview";
   }
+  const pathname = value.split("?")[0];
+  if (pathname === "/signin" || pathname === "/change-password") {
+    return "/overview";
+  }
   return value;
 }
 

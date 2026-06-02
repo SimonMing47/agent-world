@@ -6,6 +6,7 @@ export const root = process.cwd();
 export const thirdpartyDir = path.join(root, "thirdparty", "openviking");
 export const thirdpartyBinDir = path.join(thirdpartyDir, "bin");
 export const venvDir = path.join(root, ".venv-openviking");
+export const venvPython = path.join(venvDir, "bin", "python");
 export const configDir = path.join(root, "data", "openviking");
 export const defaultServerBin = path.join(thirdpartyBinDir, "openviking-server");
 export const currentPlatformServerBin = path.join(
@@ -14,6 +15,64 @@ export const currentPlatformServerBin = path.join(
 );
 export const defaultServerConfig = path.join(configDir, "ov.conf");
 export const defaultCliConfig = path.join(configDir, "ovcli.conf");
+
+const bundledLinuxOpenVikingMinGlibc = "2.35";
+
+function parseVersion(value) {
+  const match = String(value ?? "").match(/(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3] ?? "0")];
+}
+
+function compareVersions(left, right) {
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    const leftPart = left[index] ?? 0;
+    const rightPart = right[index] ?? 0;
+    if (leftPart > rightPart) return 1;
+    if (leftPart < rightPart) return -1;
+  }
+  return 0;
+}
+
+function detectHostGlibcVersion() {
+  const getconf = spawnSync("getconf", ["GNU_LIBC_VERSION"], { encoding: "utf8" });
+  const getconfVersion = parseVersion(getconf.stdout);
+  if (getconfVersion) return getconfVersion;
+
+  const ldd = spawnSync("ldd", ["--version"], { encoding: "utf8" });
+  return parseVersion(`${ldd.stdout} ${ldd.stderr}`);
+}
+
+function isBundledOpenVikingBinary(binaryPath) {
+  const resolved = path.resolve(binaryPath);
+  const resolvedBinDir = path.resolve(thirdpartyBinDir);
+  return resolved === path.join(resolvedBinDir, "openviking-server") || resolved.startsWith(`${resolvedBinDir}${path.sep}openviking-server-`);
+}
+
+export function getOpenVikingBinaryCompatibility(binaryPath) {
+  if (process.platform !== "linux" || process.env.OPENVIKING_SKIP_GLIBC_CHECK === "1") {
+    return { compatible: true, reason: null };
+  }
+  if (!isBundledOpenVikingBinary(binaryPath)) {
+    return { compatible: true, reason: null };
+  }
+
+  const required = parseVersion(process.env.OPENVIKING_MIN_GLIBC_VERSION ?? bundledLinuxOpenVikingMinGlibc);
+  const current = detectHostGlibcVersion();
+  if (!required || !current || compareVersions(current, required) >= 0) {
+    return { compatible: true, reason: null };
+  }
+
+  const requiredText = required.slice(0, 2).join(".");
+  const currentText = current.slice(0, 2).join(".");
+  return {
+    compatible: false,
+    reason:
+      `Bundled OpenViking binary requires glibc >= ${requiredText}, but this host has glibc ${currentText}. ` +
+      "Set OPENVIKING_SERVER_BIN to a binary built on a compatible Linux target, install a Python OpenViking runtime with pnpm openviking:install-python, " +
+      "point OPENVIKING_BASE_URL at a remote OpenViking service, or set AGENTWORLD_OPENVIKING_AUTO_START=0 to disable launcher-managed startup.",
+  };
+}
 
 export function platformServerBin(platform = process.platform, arch = process.arch) {
   return path.join(thirdpartyBinDir, `openviking-server-${platform}-${arch}`);
@@ -108,6 +167,72 @@ export function resolveHost() {
 
 export function resolvePort() {
   return String(process.env.OPENVIKING_PORT ?? "1933");
+}
+
+function pythonCandidates() {
+  return [process.env.OPENVIKING_PYTHON, venvPython, "python3", "python"].filter(Boolean);
+}
+
+function canRunOpenVikingPython(python) {
+  const result = spawnSync(python, ["-c", "import openviking_cli.server_bootstrap"], {
+    cwd: root,
+    stdio: "ignore",
+  });
+  return !result.error && result.status === 0;
+}
+
+export function resolveOpenVikingPython() {
+  for (const candidate of pythonCandidates()) {
+    const resolved = candidate.includes(path.sep) ? path.resolve(candidate) : candidate;
+    if (candidate.includes(path.sep) && !fs.existsSync(resolved)) continue;
+    if (canRunOpenVikingPython(resolved)) return resolved;
+  }
+  return null;
+}
+
+export function buildOpenVikingPythonArgs(configPath = resolveServerConfigPath()) {
+  return [
+    "-c",
+    "from openviking_cli.server_bootstrap import main; main()",
+    "--config",
+    configPath,
+    "--host",
+    resolveHost(),
+    "--port",
+    resolvePort(),
+  ];
+}
+
+export function resolveOpenVikingServerCommand() {
+  const binary = resolveServerBin();
+  if (binary) {
+    const compatibility = getOpenVikingBinaryCompatibility(binary);
+    if (compatibility.compatible) {
+      return { kind: "binary", command: binary, args: null, compatibility };
+    }
+
+    const python = resolveOpenVikingPython();
+    if (python) {
+      return {
+        kind: "python",
+        command: python,
+        args: null,
+        compatibility: {
+          compatible: true,
+          reason: `${compatibility.reason} Falling back to Python OpenViking runtime: ${python}.`,
+        },
+      };
+    }
+
+    return { kind: "incompatible", command: binary, args: null, compatibility };
+  }
+
+  const python = resolveOpenVikingPython();
+  if (python) {
+    return { kind: "python", command: python, args: null, compatibility: { compatible: true, reason: null } };
+  }
+
+  return null;
 }
 
 export function resolveServerBin() {

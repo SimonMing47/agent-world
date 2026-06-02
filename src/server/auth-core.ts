@@ -1,7 +1,6 @@
 import { addDays } from "date-fns";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { cache } from "react";
 import { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 import {
   execute,
@@ -29,6 +28,53 @@ const LEGACY_BOOTSTRAP_PASSWORDS = ["AgentWorld@123"];
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function requestUsesHttps(request: Pick<Request, "headers" | "url"> | undefined) {
+  const override = process.env.AGENTWORLD_AUTH_COOKIE_SECURE;
+  if (override === "1" || override?.toLowerCase() === "true") return true;
+  if (override === "0" || override?.toLowerCase() === "false") return false;
+
+  const forwardedProto = request?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+  if (forwardedProto) return forwardedProto === "https";
+
+  const forwarded = request?.headers.get("forwarded") ?? "";
+  const forwardedProtocol = forwarded.match(/(?:^|[;,\s])proto=(https?)/i)?.[1]?.toLowerCase();
+  if (forwardedProtocol) return forwardedProtocol === "https";
+
+  if (request?.url) {
+    try {
+      return new URL(request.url).protocol === "https:";
+    } catch {
+      // Fall through to deployment-level defaults.
+    }
+  }
+
+  const publicBaseUrl = process.env.AGENTWORLD_PUBLIC_BASE_URL;
+  if (publicBaseUrl) {
+    try {
+      return new URL(publicBaseUrl).protocol === "https:";
+    } catch {
+      // Fall through to production default.
+    }
+  }
+
+  return process.env.NODE_ENV === "production";
+}
+
+function getCookieValueFromHeader(cookieHeader: string | null | undefined, name: string) {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(";")) {
+    const [rawKey, ...rawValue] = part.split("=");
+    if (rawKey?.trim() !== name) continue;
+    const value = rawValue.join("=").trim();
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function normalizeJson(value: unknown, fallback: unknown) {
@@ -661,11 +707,12 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
   };
 }
 
-export const getRequestAuthContext = cache(async function getRequestAuthContext() {
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(AUTH_SESSION_COOKIE)?.value;
+export async function getRequestAuthContext(request?: Pick<Request, "headers">) {
+  const sessionToken = request
+    ? getCookieValueFromHeader(request.headers.get("cookie"), AUTH_SESSION_COOKIE)
+    : (await cookies()).get(AUTH_SESSION_COOKIE)?.value;
   return getAuthContextBySessionToken(sessionToken);
-});
+}
 
 export function canAccessBusinessTeam(
   authContext: AuthContext | null,
@@ -712,26 +759,26 @@ export function requireBusinessTeamAccess(
   }
 }
 
-export function buildAuthSessionCookieValue(sessionToken: string) {
+export function buildAuthSessionCookieValue(sessionToken: string, request?: Pick<Request, "headers" | "url">) {
   return {
     name: AUTH_SESSION_COOKIE,
     value: sessionToken,
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: requestUsesHttps(request),
     expires: addDays(new Date(), 7),
   };
 }
 
-export function clearAuthSessionCookie() {
+export function clearAuthSessionCookie(request?: Pick<Request, "headers" | "url">) {
   return {
     name: AUTH_SESSION_COOKIE,
     value: "",
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: requestUsesHttps(request),
     expires: new Date(0),
   };
 }
