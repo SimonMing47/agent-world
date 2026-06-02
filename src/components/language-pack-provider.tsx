@@ -20,7 +20,7 @@ const LanguagePackContext = createContext<LanguagePack>(defaultLanguagePack);
 const localizableAttributes = ["aria-label", "title", "placeholder", "alt"] as const;
 const skippedTextParents = new Set(["SCRIPT", "STYLE", "TEXTAREA"]);
 const inlineLanguageKeyPattern =
-  /\b(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|developmentAccess|identityAccess|knowledge|labels|nav|overview|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+\b/g;
+  /\b(?:actions|agent|agentDefinition|agentTeam|agentTeams|agents|businessTeams|common|console|identityAccess|knowledge|labels|nav|overview|plugins|providerProfile|runtimeBinding|settings|teamWallboard|terminology|ui)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+\b/g;
 
 function preserveOuterWhitespace(value: string, nextValue: string) {
   const leading = value.match(/^\s*/)?.[0] ?? "";

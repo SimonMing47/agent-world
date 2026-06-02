@@ -401,12 +401,14 @@ textarea::placeholder {
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(circle at top, rgba(76, 119, 255, 0.15), transparent 28%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.09), transparent 24%),
-    #07080c;
+    linear-gradient(122deg, rgba(255, 255, 255, 0.1) 0%, transparent 30%),
+    linear-gradient(238deg, rgba(148, 163, 184, 0.1) 0%, transparent 36%),
+    linear-gradient(135deg, #07090d 0%, #11151d 46%, #202530 82%, #353b47 124%);
   color: #f5f7fb;
 }
 
+.aw-intro::before,
+.aw-intro::after,
 .aw-intro__noise,
 .aw-intro__frame {
   pointer-events: none;
@@ -414,36 +416,453 @@ textarea::placeholder {
   inset: 0;
 }
 
+.aw-intro::before {
+  background:
+    linear-gradient(115deg, transparent 0 42%, rgba(255, 255, 255, 0.075) 42.15% 42.3%, transparent 42.48% 100%),
+    linear-gradient(295deg, transparent 0 51%, rgba(255, 255, 255, 0.055) 51.12% 51.28%, transparent 51.48% 100%);
+  opacity: 0.64;
+}
+
+.aw-intro::after {
+  background:
+    linear-gradient(180deg, rgba(4, 8, 18, 0.02), rgba(4, 8, 18, 0.36)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 24%, transparent 74%, rgba(4, 8, 18, 0.34));
+}
+
 .aw-intro__noise {
   background-image:
-    conic-gradient(
-      from 90deg at 1px 1px,
-      rgba(255, 255, 255, 0.052) 0 25%,
-      rgba(255, 255, 255, 0.018) 0 50%,
-      rgba(255, 255, 255, 0.046) 0 75%,
-      rgba(255, 255, 255, 0.012) 0
-    ),
-    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.052) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.052) 1px, transparent 1px);
   background-position:
-    54% 39%,
     center,
     center;
   background-size:
-    168px 168px,
-    84px 84px,
-    84px 84px;
+    72px 72px,
+    72px 72px;
   mask-image:
-    radial-gradient(ellipse 36% 52% at 56% 44%, black 0 32%, transparent 72%),
-    radial-gradient(circle at center, black 38%, transparent 88%);
+    linear-gradient(90deg, transparent, black 22%, black 78%, transparent),
+    linear-gradient(180deg, transparent, black 16%, black 82%, transparent);
   mask-composite: intersect;
-  opacity: 0.18;
+  opacity: 0.22;
 }
 
 .aw-intro__frame {
   inset: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 32px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.2);
+}
+
+.aw-auth-shell {
+  align-items: flex-start !important;
+  isolation: isolate;
+  padding-top: clamp(5.5rem, 13vh, 8.5rem) !important;
+}
+
+.aw-auth-backdrop-logo {
+  pointer-events: none;
+  position: absolute;
+  left: clamp(1.25rem, 6.6vw, 8rem);
+  top: 50%;
+  z-index: 1;
+  height: clamp(18rem, 34vw, 32rem);
+  width: clamp(18rem, 34vw, 32rem);
+  color: rgba(255, 255, 255, 0.26);
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.1))
+    drop-shadow(0 44px 86px rgba(0, 0, 0, 0.22));
+  opacity: 0.86;
+  transform: translateY(-50%);
+}
+
+.aw-auth-backdrop-logo .agentworld-logo__thread--primary {
+  stroke-width: 4.35;
+  opacity: 0.56;
+}
+
+.aw-auth-backdrop-logo .agentworld-logo__thread--bridge {
+  stroke-width: 2.6;
+  opacity: 0.36;
+}
+
+.aw-auth-backdrop-logo .agentworld-logo__thread--glint {
+  stroke-width: 1.2;
+  opacity: 0.46;
+}
+
+.aw-auth-backdrop-logo .agentworld-logo__thread--wake {
+  stroke-width: 1.2;
+  opacity: 0.34;
+}
+
+.aw-auth-shell::before,
+.aw-auth-shell::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+}
+
+.aw-auth-shell::before {
+  display: none;
+}
+
+.aw-auth-shell::after {
+  display: none;
+}
+
+.aw-auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 424px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07) 42%, rgba(8, 12, 20, 0.24)),
+    rgba(15, 18, 26, 0.44);
+  box-shadow:
+    0 24px 70px rgba(3, 7, 18, 0.24),
+    0 2px 18px rgba(103, 232, 249, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  padding: 1.7rem;
+  backdrop-filter: blur(34px) saturate(175%);
+}
+
+.aw-auth-card::before,
+.aw-auth-card::after {
+  pointer-events: none;
+  position: absolute;
+  content: "";
+}
+
+.aw-auth-card::before {
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.36), transparent 18% 70%, rgba(203, 213, 225, 0.08)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 36%);
+  opacity: 0.5;
+}
+
+.aw-auth-card::after {
+  top: 0.6rem;
+  right: 1rem;
+  left: 1rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  opacity: 0.64;
+}
+
+.aw-auth-logo {
+  position: relative;
+  display: flex;
+  height: clamp(5.5rem, 9vw, 8rem);
+  width: clamp(5.5rem, 9vw, 8rem);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: clamp(24px, 2.5vw, 34px);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.1)),
+    rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 24px 58px rgba(3, 7, 18, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(18px) saturate(150%);
+}
+
+.aw-auth-logo .agentworld-logo__thread--primary {
+  stroke-width: 4.8;
+  opacity: 1;
+}
+
+.aw-auth-logo .agentworld-logo__thread--bridge {
+  stroke-width: 2.85;
+  opacity: 0.92;
+}
+
+.aw-auth-logo .agentworld-logo__thread--glint,
+.aw-auth-logo .agentworld-logo__thread--wake {
+  opacity: 0.84;
+}
+
+.aw-auth-title {
+  margin-top: 1.15rem;
+  color: #ffffff;
+  font-size: 1.82rem;
+  font-weight: 650;
+  line-height: 1.16;
+  text-shadow: 0 18px 52px rgba(125, 211, 252, 0.14);
+}
+
+.aw-auth-description {
+  margin-top: 0.55rem;
+  color: rgba(226, 232, 240, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.aw-auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.22rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(3, 7, 18, 0.12);
+}
+
+.aw-auth-mode-button {
+  height: 2.3rem;
+  border-radius: 12px;
+  color: rgba(241, 245, 249, 0.68);
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.aw-auth-mode-button:hover {
+  color: #ffffff;
+}
+
+.aw-auth-mode-button.is-active {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 10px 28px rgba(3, 7, 18, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36);
+  color: #ffffff;
+}
+
+.aw-auth-input {
+  height: 2.8rem;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.045)),
+    rgba(5, 10, 18, 0.2) !important;
+  color: #f8fafc !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.03) !important;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.aw-auth-input:focus {
+  border-color: rgba(186, 230, 253, 0.58) !important;
+  box-shadow:
+    0 0 0 3px rgba(125, 211, 252, 0.1),
+    0 12px 32px rgba(14, 165, 233, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+.aw-auth-form-fields {
+  min-height: 0;
+}
+
+.aw-auth-primary-button {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.36) !important;
+  border-radius: 14px !important;
+  background: rgba(248, 250, 252, 0.94) !important;
+  box-shadow:
+    0 14px 38px rgba(3, 7, 18, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+  font-weight: 700;
+  isolation: isolate;
+  transition:
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.aw-auth-primary-button::after {
+  position: absolute;
+  inset: -110% -18%;
+  z-index: -1;
+  background:
+    conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.72), transparent 32%);
+  content: "";
+  opacity: 0;
+  transform: translateX(-46%) rotate(0deg);
+}
+
+.aw-auth-primary-button:hover {
+  border-color: rgba(255, 255, 255, 0.52) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow:
+    0 18px 50px rgba(15, 23, 42, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.08) !important;
+}
+
+.aw-auth-primary-button.is-charging {
+  animation: aw-auth-button-charge 820ms linear infinite;
+}
+
+.aw-auth-primary-button.is-charging::after {
+  opacity: 0.78;
+  animation: aw-auth-button-sweep 760ms linear infinite;
+}
+
+.aw-auth-card.is-entering {
+  animation: aw-auth-card-enter 1120ms cubic-bezier(0.16, 0.78, 0.18, 1) forwards;
+}
+
+.aw-auth-page--from-welcome .aw-auth-card:not(.is-entering) {
+  animation: aw-auth-card-rise 620ms cubic-bezier(0.2, 0.82, 0.18, 1) both;
+}
+
+.aw-auth-page--from-welcome .aw-auth-shell {
+  animation: aw-auth-shell-rise 720ms cubic-bezier(0.18, 0.84, 0.18, 1) both;
+}
+
+.aw-auth-page--from-welcome .aw-auth-backdrop-logo {
+  animation: aw-auth-backdrop-rise 820ms cubic-bezier(0.18, 0.84, 0.18, 1) both;
+}
+
+.aw-auth-wormhole {
+  pointer-events: none;
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(2, 6, 23, 0.08), rgba(2, 6, 23, 0.2) 36%, rgba(2, 6, 23, 0.02) 72%),
+    rgba(5, 10, 18, 0);
+  animation: aw-auth-wormhole-shell 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole::before,
+.aw-auth-wormhole::after {
+  position: absolute;
+  inset: -18vmax;
+  content: "";
+}
+
+.aw-auth-wormhole::before {
+  background:
+    repeating-conic-gradient(
+      from 0deg,
+      transparent 0deg 2.1deg,
+      rgba(219, 234, 254, 0.16) 2.18deg 2.3deg,
+      transparent 2.44deg 4.2deg
+    );
+  mask-image: radial-gradient(circle at center, transparent 0 6%, black 13% 66%, transparent 84%);
+  opacity: 0;
+  animation: aw-auth-wormhole-spin 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole::after {
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.18) 0 1px, transparent 2px 7%),
+    radial-gradient(circle at center, transparent 0 8%, rgba(148, 163, 184, 0.2) 8.4% 8.8%, transparent 9.2% 100%),
+    radial-gradient(circle at center, rgba(2, 6, 23, 0.7) 0 6%, transparent 18%);
+  opacity: 0;
+  animation: aw-auth-wormhole-cross 1180ms ease forwards;
+}
+
+.aw-auth-wormhole__field {
+  position: absolute;
+  width: min(92vw, 980px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background:
+    repeating-radial-gradient(circle, transparent 0 10px, rgba(219, 234, 254, 0.16) 10.4px 10.8px, transparent 11.2px 24px),
+    conic-gradient(from 90deg, rgba(148, 163, 184, 0.04), rgba(125, 211, 252, 0.16), rgba(255, 255, 255, 0.12), rgba(148, 163, 184, 0.04));
+  filter: drop-shadow(0 0 12px rgba(125, 211, 252, 0.12));
+  mask-image: radial-gradient(circle at center, transparent 0 7%, black 12% 66%, transparent 78%);
+  opacity: 0;
+  transform: perspective(760px) rotateX(64deg) scale(0.24);
+  animation: aw-auth-wormhole-field 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole__lines {
+  position: absolute;
+  inset: 0;
+  transform-origin: center;
+  animation: aw-auth-wormhole-tilt 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole__lines::before,
+.aw-auth-wormhole__lines::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 999px;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.aw-auth-wormhole__lines::before {
+  width: min(26vw, 280px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(226, 232, 240, 0.22);
+  box-shadow:
+    inset 0 0 26px rgba(2, 6, 23, 0.9),
+    0 0 28px rgba(125, 211, 252, 0.08);
+  opacity: 0;
+  animation: aw-auth-wormhole-core 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole__lines::after {
+  width: min(9vw, 96px);
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(2, 6, 23, 0.96), rgba(2, 6, 23, 0.72) 42%, transparent 72%);
+  opacity: 0;
+  animation: aw-auth-wormhole-aperture 1180ms cubic-bezier(0.16, 0.82, 0.22, 1) forwards;
+}
+
+.aw-auth-wormhole__lines span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(56vw, 760px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), rgba(125, 211, 252, 0.34), transparent);
+  box-shadow: 0 0 4px rgba(226, 232, 240, 0.18);
+  opacity: 0;
+  transform: rotate(calc(var(--i) * 3.214deg)) translateX(6px) scaleX(0.035) scaleY(0.42);
+  transform-origin: left center;
+  animation: aw-auth-wormhole-line 1040ms cubic-bezier(0.12, 0.76, 0.22, 1) forwards;
+  animation-delay: calc(var(--i) * 1.25ms);
+}
+
+.aw-auth-sso-button {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.055)),
+    rgba(255, 255, 255, 0.04) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 12px 28px rgba(3, 7, 18, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+.aw-auth-sso-button:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.08)),
+    rgba(255, 255, 255, 0.04) !important;
 }
 
 .aw-intro__content {
@@ -485,9 +904,9 @@ textarea::placeholder {
   background-clip: text;
   font-size: clamp(2.6rem, 6vw, 5.5rem);
   font-weight: 520;
-  line-height: 1.08;
+  line-height: 1.18;
   letter-spacing: 0.01em;
-  padding: 0.04em 0 0.13em;
+  padding: 0.04em 0 0.24em;
   text-shadow: 0 28px 70px rgba(118, 156, 255, 0.08);
   text-wrap: balance;
   -webkit-text-fill-color: transparent;
@@ -665,6 +1084,209 @@ textarea::placeholder {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes aw-auth-button-charge {
+  0%, 100% {
+    box-shadow:
+      0 16px 46px rgba(14, 165, 233, 0.2),
+      0 0 0 0 rgba(125, 211, 252, 0),
+      inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  }
+  50% {
+    box-shadow:
+      0 18px 54px rgba(14, 165, 233, 0.34),
+      0 0 0 5px rgba(125, 211, 252, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.68);
+  }
+}
+
+@keyframes aw-auth-button-sweep {
+  to {
+    transform: translateX(42%) rotate(270deg);
+  }
+}
+
+@keyframes aw-auth-card-enter {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    opacity: 0.95;
+    filter: blur(0);
+    transform: translateY(-2px) scale(0.94);
+  }
+  78% {
+    opacity: 0.48;
+    filter: blur(1.4px);
+    transform: translateY(-8px) scale(0.62);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(-10px) scale(0.32);
+  }
+}
+
+@keyframes aw-auth-card-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(34px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes aw-auth-shell-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(42vh);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aw-auth-backdrop-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(calc(-50% + 8vh));
+  }
+  100% {
+    opacity: 0.86;
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes aw-auth-wormhole-shell {
+  0% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  12% {
+    opacity: 1;
+  }
+  62% {
+    background-color: rgba(5, 10, 18, 0.5);
+  }
+  100% {
+    opacity: 1;
+    background-color: rgba(5, 10, 18, 0.88);
+    transform: scale(1.018);
+  }
+}
+
+@keyframes aw-auth-wormhole-spin {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.68);
+  }
+  24% {
+    opacity: 0.46;
+  }
+  68% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0.05;
+    transform: rotate(132deg) scale(1.5);
+  }
+}
+
+@keyframes aw-auth-wormhole-cross {
+  0%, 18% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.24);
+  }
+  56% {
+    opacity: 0.44;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(18deg) scale(2.1);
+  }
+}
+
+@keyframes aw-auth-wormhole-field {
+  0% {
+    opacity: 0;
+    transform: perspective(760px) rotateX(66deg) rotateZ(0deg) scale(0.16);
+  }
+  20% {
+    opacity: 0.5;
+  }
+  62% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(760px) rotateX(66deg) rotateZ(118deg) scale(1.8);
+  }
+}
+
+@keyframes aw-auth-wormhole-tilt {
+  0% {
+    transform: perspective(900px) rotateX(0deg) scale(0.88);
+  }
+  100% {
+    transform: perspective(900px) rotateX(20deg) scale(1.34);
+  }
+}
+
+@keyframes aw-auth-wormhole-core {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.42);
+  }
+  28% {
+    opacity: 0.44;
+  }
+  76% {
+    opacity: 0.28;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.4);
+  }
+}
+
+@keyframes aw-auth-wormhole-aperture {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  28% {
+    opacity: 0.82;
+  }
+  74% {
+    opacity: 0.64;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(5.8);
+  }
+}
+
+@keyframes aw-auth-wormhole-line {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(var(--i) * 3.214deg)) translateX(2px) scaleX(0.02) scaleY(0.38);
+  }
+  20% {
+    opacity: 0.72;
+  }
+  62% {
+    opacity: 0.66;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--i) * 3.214deg)) translateX(min(44vw, 560px)) scaleX(1.24) scaleY(0.42);
   }
 }
 
@@ -1066,6 +1688,15 @@ textarea::placeholder {
     border-radius: 24px;
   }
 
+  .aw-auth-backdrop-logo {
+    display: none;
+  }
+
+  .aw-auth-shell {
+    align-items: center !important;
+    padding-top: 2.5rem !important;
+  }
+
   .aw-intro__typewriter {
     letter-spacing: 0.08em;
   }
@@ -1093,7 +1724,21 @@ textarea::placeholder {
   .aw-intro__prompt,
   .aw-intro__prompt-cursor,
   .aw-intro__prompt-cursor::after,
-  .aw-intro__enter {
+  .aw-intro__enter,
+  .aw-auth-page--from-welcome .aw-auth-shell,
+  .aw-auth-page--from-welcome .aw-auth-backdrop-logo,
+  .aw-auth-page--from-welcome .aw-auth-card:not(.is-entering),
+  .aw-auth-card.is-entering,
+  .aw-auth-primary-button.is-charging,
+  .aw-auth-primary-button.is-charging::after,
+  .aw-auth-wormhole,
+  .aw-auth-wormhole::before,
+  .aw-auth-wormhole::after,
+  .aw-auth-wormhole__field,
+  .aw-auth-wormhole__lines,
+  .aw-auth-wormhole__lines::before,
+  .aw-auth-wormhole__lines::after,
+  .aw-auth-wormhole__lines span {
     animation: none !important;
   }
 
@@ -1127,5 +1772,13 @@ textarea::placeholder {
   .aw-intro__enter {
     opacity: 1;
     transform: none;
+  }
+
+  .aw-auth-card.is-entering {
+    opacity: 0;
+  }
+
+  .aw-auth-wormhole {
+    background: rgba(5, 10, 18, 0.96);
   }
 }

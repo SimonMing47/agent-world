@@ -12,7 +12,9 @@ export async function GET() {
       ? {
           user: authContext.user,
           access: authContext.access,
+          mustChangePassword: authContext.mustChangePassword,
           memberships: authContext.memberships,
+          primaryBusinessTeam: authContext.primaryBusinessTeam,
           accessibleBusinessTeams: authContext.accessibleBusinessTeams,
           settings: authContext.settings,
         }
