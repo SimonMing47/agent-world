@@ -9,6 +9,6 @@ export async function POST(request: Request) {
     revokeAuthSession(authContext.session.sessionToken);
   }
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(clearAuthSessionCookie());
+  response.cookies.set(clearAuthSessionCookie(request));
   return response;
 }
