@@ -6,8 +6,8 @@ import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const authContext = await getRequestAuthContext();
+export async function GET(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   const snapshot = getTaskBlueprintsSnapshot();
   return NextResponse.json({
     ...snapshot,
@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof upsertTaskBlueprint>[0];
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     requireBusinessTeamAccess(authContext, body.ownerBusinessTeamId);
     const blueprint = upsertTaskBlueprint(body);
     return NextResponse.json({ ok: true, blueprint });
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof upsertTaskBlueprint>[0];
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     requireBusinessTeamAccess(authContext, body.ownerBusinessTeamId);
     const blueprint = upsertTaskBlueprint(body);
     return NextResponse.json({ ok: true, blueprint });
@@ -52,7 +52,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   const body = (await request.json()) as { id: string };
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const blueprint = listTaskBlueprints().find((item) => item.id === body.id);
   requireBusinessTeamAccess(authContext, blueprint?.ownerBusinessTeamId);
   deleteManagedResource({ type: "task-blueprint", id: body.id });

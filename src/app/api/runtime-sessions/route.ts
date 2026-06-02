@@ -12,7 +12,7 @@ export function GET() {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Parameters<typeof createRuntimeSession>[0];
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     const actorName = authContext?.user.name?.trim() || authContext?.user.email?.trim();
     if (!actorName) {
       return NextResponse.json({ ok: false, error: "Not signed in" }, { status: 401 });

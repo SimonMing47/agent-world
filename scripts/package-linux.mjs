@@ -84,13 +84,58 @@ export OPENVIKING_SERVER_BIN="\${OPENVIKING_SERVER_BIN:-$ROOT/thirdparty/openvik
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
 export OPENVIKING_CLI_CONFIG_FILE="\${OPENVIKING_CLI_CONFIG_FILE:-$ROOT/data/openviking/ovcli.conf}"
 OPENVIKING_PID=""
-if [ "\${AGENTWORLD_OPENVIKING_AUTO_START}" != "0" ]; then
-  OPENVIKING_BASE_URL="\${OPENVIKING_BASE_URL:-http://127.0.0.1:1933}"
-  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
-    mkdir -p "$ROOT/data/openviking"
+openviking_glibc_compatible() {
+  if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" = "1" ]; then
+    return 0
+  fi
+  case "$OPENVIKING_SERVER_BIN" in
+    "$ROOT/thirdparty/openviking/bin/openviking-server"*) ;;
+    *) return 0 ;;
+  esac
+  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
+  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
+  if [ -z "\${current_glibc}" ]; then
+    return 0
+  fi
+  first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
+  if [ "\${first_version}" != "\${min_glibc}" ]; then
+    echo "[agentworld] Bundled OpenViking requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}. Trying Python OpenViking fallback." >&2
+    return 1
+  fi
+  return 0
+}
+openviking_python() {
+  for candidate in "\${OPENVIKING_PYTHON:-}" "$ROOT/.venv-openviking/bin/python" python3 python; do
+    if [ -n "$candidate" ] && "$candidate" -c 'import openviking_cli.server_bootstrap' >/dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+start_openviking() {
+  if openviking_glibc_compatible; then
     "$OPENVIKING_SERVER_BIN" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
     OPENVIKING_PID="$!"
     export OPENVIKING_PID
+    return 0
+  fi
+  python_runtime="$(openviking_python || true)"
+  if [ -n "\${python_runtime}" ]; then
+    echo "[agentworld] Starting OpenViking with Python runtime: \${python_runtime}" >&2
+    "$python_runtime" -c 'from openviking_cli.server_bootstrap import main; main()' --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}" > "$ROOT/data/openviking/openviking.log" 2>&1 &
+    OPENVIKING_PID="$!"
+    export OPENVIKING_PID
+    return 0
+  fi
+  echo "[agentworld] OpenViking startup failed: provide a compatible OPENVIKING_SERVER_BIN, run pnpm openviking:install-python, configure OPENVIKING_PYTHON, or set OPENVIKING_BASE_URL to a remote service." >&2
+  return 1
+}
+if [ "\${AGENTWORLD_OPENVIKING_AUTO_START}" != "0" ]; then
+  OPENVIKING_BASE_URL="\${OPENVIKING_BASE_URL:-http://127.0.0.1:1933}"
+  if ! "$ROOT/runtime-node/bin/node" -e "fetch(process.env.OPENVIKING_BASE_URL + '/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; then
+    mkdir -p "$ROOT/data/openviking"
+    start_openviking || true
   fi
 fi
 cleanup() {
@@ -110,6 +155,31 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 export OPENVIKING_CONFIG_FILE="\${OPENVIKING_CONFIG_FILE:-$ROOT/data/openviking/ov.conf}"
+openviking_python() {
+  for candidate in "\${OPENVIKING_PYTHON:-}" "$ROOT/.venv-openviking/bin/python" python3 python; do
+    if [ -n "$candidate" ] && "$candidate" -c 'import openviking_cli.server_bootstrap' >/dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+if [ "$(uname -s 2>/dev/null || true)" = "Linux" ] && [ "\${OPENVIKING_SKIP_GLIBC_CHECK:-0}" != "1" ]; then
+  current_glibc="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}' || true)"
+  min_glibc="\${OPENVIKING_MIN_GLIBC_VERSION:-2.35}"
+  if [ -n "\${current_glibc}" ]; then
+    first_version="$(printf '%s\n%s\n' "\${min_glibc}" "\${current_glibc}" | sort -V | head -n1)"
+    if [ "\${first_version}" != "\${min_glibc}" ]; then
+      python_runtime="$(openviking_python || true)"
+      if [ -n "\${python_runtime}" ]; then
+        echo "OpenViking bundled binary requires glibc >= \${min_glibc}; using Python runtime: \${python_runtime}" >&2
+        exec "$python_runtime" -c 'from openviking_cli.server_bootstrap import main; main()' --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
+      fi
+      echo "OpenViking bundled binary requires glibc >= \${min_glibc}, but this host has glibc \${current_glibc}. Install Python runtime with pnpm openviking:install-python or set OPENVIKING_SERVER_BIN to a compatible binary." >&2
+      exit 1
+    fi
+  fi
+fi
 exec "$ROOT/thirdparty/openviking/bin/openviking-server" --config "$OPENVIKING_CONFIG_FILE" --host "\${OPENVIKING_HOST:-127.0.0.1}" --port "\${OPENVIKING_PORT:-1933}"
 `;
 
@@ -128,6 +198,7 @@ fs.writeFileSync(
     "4. Optional manual OpenViking start: ./openviking-server",
     "",
     "This bundle includes a Node.js runtime and expects the OpenViking server binary under thirdparty/openviking/bin/openviking-server.",
+    "On older glibc hosts, install a Python OpenViking runtime and set OPENVIKING_PYTHON, or set OPENVIKING_SERVER_BIN to a compatible binary.",
   ].join("\n"),
 );
 
