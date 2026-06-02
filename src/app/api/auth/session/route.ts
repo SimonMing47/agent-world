@@ -3,8 +3,8 @@ import { getRequestAuthContext } from "@/server/auth-core";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const authContext = await getRequestAuthContext();
+export async function GET(request: Request) {
+  const authContext = await getRequestAuthContext(request);
   return NextResponse.json({
     ok: true,
     authenticated: Boolean(authContext),
