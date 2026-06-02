@@ -55,6 +55,7 @@ import {
   knowledgeImportFilesFromDataTransfer,
 } from "@/components/knowledge-import-dialog";
 import { KnowledgeRetrievalTestDialog } from "@/components/knowledge-retrieval-test-dialog";
+import { LEGACY_KNOWLEDGE_URI_SCHEME, normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 import { getMarkdownKeyboardEdit } from "@/lib/markdown-editor";
 import { cn, formatBytes, formatDateTime } from "@/lib/utils";
 
@@ -159,18 +160,18 @@ type KnowledgeEntryVersion = {
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error" | "conflict";
 type SaveResult = "saved" | "skipped" | "conflict" | "error";
 
-type OpenVikingTreeNode = {
+type KnowledgeTreeNode = {
   id: string;
   label: string;
   uri: string;
-  children: OpenVikingTreeNode[];
+  children: KnowledgeTreeNode[];
   entries: KnowledgeNotebookEntry[];
 };
 
-type OpenVikingIndexLevel = "L0" | "L1" | "L2";
+type KnowledgeIndexLevel = "L0" | "L1" | "L2";
 
-type OpenVikingLayerItem = {
-  level: OpenVikingIndexLevel;
+type KnowledgeLayerItem = {
+  level: KnowledgeIndexLevel;
   label: string;
   description: string;
   uri: string;
@@ -179,8 +180,8 @@ type OpenVikingLayerItem = {
   scope: "space" | "entry";
 };
 
-type OpenVikingQueryStep = {
-  level: OpenVikingIndexLevel;
+type KnowledgeQueryStep = {
+  level: KnowledgeIndexLevel;
   label: string;
   description: string;
   uri: string;
@@ -217,7 +218,7 @@ const draftId = "__draft__";
 
 const sourceTypeOptions = [
   { value: "manual", label: "knowledge.sourceType.manual" },
-  { value: "skill", label: "Skill" },
+  { value: "skill", label: "terminology.skill" },
   { value: "inspection_context", label: "knowledge.sourceType.inspectionContext" },
   { value: "inspection_finding", label: "knowledge.sourceType.inspectionFinding" },
   { value: "inspection_feedback", label: "knowledge.sourceType.inspectionFeedback" },
@@ -250,6 +251,7 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
 }
 
 function syncStatusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (status === "local_indexed") return "success";
   if (status === "remote_failed_local_shadow") return "warning";
   if (status === "remote_pending_retry") return "warning";
   if (status.startsWith("remote_")) return "success";
@@ -258,9 +260,10 @@ function syncStatusVariant(status: string): "neutral" | "accent" | "success" | "
 }
 
 function syncStatusLabel(status: string) {
+  if (status === "local_indexed") return "knowledge.sync.localIndexed";
   if (status === "remote_failed_local_shadow") return "knowledge.sync.localOnly";
-  if (status === "remote_pending_retry") return "knowledge.sync.openVikingBusy";
-  if (status.startsWith("remote_")) return "knowledge.sync.openVikingSynced";
+  if (status === "remote_pending_retry") return "knowledge.sync.engineBusy";
+  if (status.startsWith("remote_")) return "knowledge.sync.engineIndexed";
   if (status === "local_shadow") return "knowledge.sync.localDraft";
   if (status === "draft") return "knowledge.sync.pendingSave";
   return status || "knowledge.sync.pendingSave";
@@ -366,7 +369,7 @@ function toDraft(entry: KnowledgeNotebookEntry): DraftEntry {
     contentMd: entry.contentMd,
     metadataJson: entry.metadataJson || "{}",
     sourceType: entry.sourceType || "manual",
-    vikingUri: entry.vikingUri,
+    vikingUri: normalizeKnowledgeUri(entry.vikingUri),
     syncStatus: entry.syncStatus,
     syncError: entry.syncError,
     createdAt: entry.createdAt,
@@ -406,65 +409,71 @@ function decodeUriSegment(segment: string) {
   }
 }
 
-function parseVikingUri(uri: string) {
-  const match = /^viking:\/\/([^/]+)\/?(.*)$/.exec(uri.trim());
-  if (!match) return [];
-  const [, host, path] = match;
-  return [host, ...path.split("/").filter(Boolean)].map(decodeUriSegment);
+function parseKnowledgeUri(uri: string) {
+  const value = uri.trim();
+  const nativeMatch = /^agentworld:\/\/knowledge\/?(.*)$/.exec(value);
+  if (nativeMatch) return nativeMatch[1].split("/").filter(Boolean).map(decodeUriSegment);
+
+  const legacyMatch = new RegExp(`^${LEGACY_KNOWLEDGE_URI_SCHEME.replace("://", ":\\/\\/")}([^/]+)\\/?(.*)$`).exec(value);
+  if (!legacyMatch) return [];
+  const [, host, uriPath] = legacyMatch;
+  return [host, ...uriPath.split("/").filter(Boolean)].map(decodeUriSegment);
 }
 
 function sameSegments(left: string[], right: string[]) {
   return left.length === right.length && left.every((part, index) => part === right[index]);
 }
 
-function vikingScopeLabel(uri: string) {
-  const parts = parseVikingUri(uri);
+function knowledgeScopeLabel(uri: string) {
+  const parts = parseKnowledgeUri(uri);
   if (parts[0] === "resources") return "Resources";
   if (parts[0] === "agent" && parts[1] === "skills") return "Agent Skills";
   if (parts[0] === "user" && parts[1] === "memories") return "User Memories";
-  return parts[0] ? `viking://${parts[0]}` : "OpenViking";
+  return parts[0] ? `agentworld://knowledge/${parts[0]}` : "AgentWorld Knowledge";
 }
 
-function vikingScopePrefixLength(uri: string) {
-  const parts = parseVikingUri(uri);
+function knowledgeScopePrefixLength(uri: string) {
+  const parts = parseKnowledgeUri(uri);
   if (parts[0] === "resources" && parts[1] === "agentworld") return 2;
   if (parts[0] === "agent" && parts[1] === "skills" && parts[2] === "agentworld") return 3;
   if (parts[0] === "user" && parts[1] === "memories" && parts[2] === "agentworld") return 3;
   return parts[0] ? 1 : 0;
 }
 
-function vikingRootUri(uri: string) {
-  const parts = parseVikingUri(uri);
-  const prefixLength = vikingScopePrefixLength(uri);
-  return prefixLength ? `viking://${parts.slice(0, prefixLength).join("/")}` : uri;
+function knowledgeRootUri(uri: string) {
+  const parts = parseKnowledgeUri(uri);
+  const prefixLength = knowledgeScopePrefixLength(uri);
+  return prefixLength ? `agentworld://knowledge/${parts.slice(0, prefixLength).join("/")}` : uri;
 }
 
-function vikingDirectoryPath(space: KnowledgeNotebookSpace, entry: KnowledgeNotebookEntry) {
-  const entryParts = parseVikingUri(entry.vikingUri);
-  const spaceParts = parseVikingUri(space.vikingUri);
+function knowledgeDirectoryPath(space: KnowledgeNotebookSpace, entry: KnowledgeNotebookEntry) {
+  const entryUri = normalizeKnowledgeUri(entry.vikingUri);
+  const spaceUri = normalizeKnowledgeUri(space.vikingUri);
+  const entryParts = parseKnowledgeUri(entryUri);
+  const spaceParts = parseKnowledgeUri(spaceUri);
   const entryDirectories = entryParts.slice(0, Math.max(0, entryParts.length - 1));
 
   if (spaceParts.length && sameSegments(entryDirectories.slice(0, spaceParts.length), spaceParts)) {
     const relative = entryDirectories.slice(spaceParts.length);
     return {
-      rootUri: space.vikingUri,
+      rootUri: spaceUri,
       scopeLabel: null as string | null,
       segments: relative.length ? relative : [entry.layer || entry.scopeKey || "manual"],
     };
   }
 
-  const prefixLength = vikingScopePrefixLength(entry.vikingUri);
+  const prefixLength = knowledgeScopePrefixLength(entryUri);
   const scoped = entryDirectories.slice(prefixLength);
-  const scopeLabel = vikingScopeLabel(entry.vikingUri);
+  const scopeLabel = knowledgeScopeLabel(entryUri);
   return {
-    rootUri: vikingRootUri(entry.vikingUri),
+    rootUri: knowledgeRootUri(entryUri),
     scopeLabel,
     segments: [scopeLabel, ...(scoped.length ? scoped : [entry.layer || entry.scopeKey || "manual"])],
   };
 }
 
 function entrySearchText(entry: KnowledgeNotebookEntry) {
-  return normalize(`${entry.title} ${entry.contentMd} ${entry.layer} ${entry.scopeKey} ${entry.vikingUri}`);
+  return normalize(`${entry.title} ${entry.contentMd} ${entry.layer} ${entry.scopeKey} ${normalizeKnowledgeUri(entry.vikingUri)}`);
 }
 
 function filterEntriesWithAncestors(entries: KnowledgeNotebookEntry[], query: string) {
@@ -519,45 +528,44 @@ function markdownOutline(value: string) {
   return bullets.slice(0, 8).join(" / ");
 }
 
-function openVikingLayerMeta(level: OpenVikingIndexLevel) {
+function knowledgeEngineLayerMeta(level: KnowledgeIndexLevel) {
   if (level === "L0") {
     return {
-      label: "knowledge.openViking.layers.l0.label",
-      description: "knowledge.openViking.layers.l0.description",
+      label: "knowledge.engine.layers.l0.label",
+      description: "knowledge.engine.layers.l0.description",
       editable: false,
     };
   }
   if (level === "L1") {
     return {
-      label: "knowledge.openViking.layers.l1.label",
-      description: "knowledge.openViking.layers.l1.description",
+      label: "knowledge.engine.layers.l1.label",
+      description: "knowledge.engine.layers.l1.description",
       editable: false,
     };
   }
   return {
-    label: "knowledge.openViking.layers.l2.label",
-    description: "knowledge.openViking.layers.l2.description",
+    label: "knowledge.engine.layers.l2.label",
+    description: "knowledge.engine.layers.l2.description",
     editable: true,
   };
 }
 
-function openVikingEntryLayerUri(entry: KnowledgeNotebookEntry | DraftEntry) {
-  const uri = entry.vikingUri || "knowledge.openViking.uri.unsynced";
-  return uri;
+function knowledgeEngineEntryLayerUri(entry: KnowledgeNotebookEntry | DraftEntry) {
+  return normalizeKnowledgeUri(entry.vikingUri) || "agentworld://knowledge/pending";
 }
 
-function openVikingSpaceLayerUri(space: KnowledgeNotebookSpace | undefined, level: Exclude<OpenVikingIndexLevel, "L2">) {
-  const uri = space?.vikingUri || "knowledge.openViking.uri.noSpaceSelected";
+function knowledgeEngineSpaceLayerUri(space: KnowledgeNotebookSpace | undefined, level: Exclude<KnowledgeIndexLevel, "L2">) {
+  const uri = normalizeKnowledgeUri(space?.vikingUri) || "agentworld://knowledge/unassigned";
   return level === "L0" ? `abstract(${uri})` : `overview(${uri})`;
 }
 
-function openVikingSpaceLayerPreview(
+function knowledgeEngineSpaceLayerPreview(
   space: KnowledgeNotebookSpace | undefined,
   entries: KnowledgeNotebookEntry[],
-  level: Exclude<OpenVikingIndexLevel, "L2">,
+  level: Exclude<KnowledgeIndexLevel, "L2">,
   text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
 ) {
-  if (!space) return text("knowledge.openViking.preview.selectSpaceFirst");
+  if (!space) return text("knowledge.engine.preview.selectSpaceFirst");
   const notes = entries.filter((entry) => nodeTypeOf(entry) !== "folder");
   const folders = entries.filter((entry) => nodeTypeOf(entry) === "folder");
 
@@ -566,13 +574,13 @@ function openVikingSpaceLayerPreview(
       .slice(0, 16)
       .map((entry) => {
         const plain = stripMarkdownForIndex(entry.contentMd);
-        return `- ${entry.title}: ${truncateText(plain || text("knowledge.openViking.preview.noBody"), 96)}`;
+        return `- ${entry.title}: ${truncateText(plain || text("knowledge.engine.preview.noBody"), 96)}`;
       });
     return [
-      text("knowledge.openViking.preview.spaceAbstractTitle", undefined, { name: space.name }),
-      text("knowledge.openViking.preview.spaceStats", undefined, { entries: notes.length, folders: folders.length }),
+      text("knowledge.engine.preview.spaceAbstractTitle", undefined, { name: space.name }),
+      text("knowledge.engine.preview.spaceStats", undefined, { entries: notes.length, folders: folders.length }),
       "",
-      summaries.length ? summaries.join("\n") : text("knowledge.openViking.preview.noSummarizableBody"),
+      summaries.length ? summaries.join("\n") : text("knowledge.engine.preview.noSummarizableBody"),
     ].join("\n");
   }
 
@@ -580,88 +588,88 @@ function openVikingSpaceLayerPreview(
     .slice(0, 24)
     .map((entry) => {
       const outline = markdownOutline(entry.contentMd);
-      return `## ${entry.title}\n${outline || truncateText(stripMarkdownForIndex(entry.contentMd) || text("knowledge.openViking.preview.noStructure"), 220)}`;
+      return `## ${entry.title}\n${outline || truncateText(stripMarkdownForIndex(entry.contentMd) || text("knowledge.engine.preview.noStructure"), 220)}`;
     });
   return [
-    text("knowledge.openViking.preview.spaceOverviewTitle", undefined, { name: space.name }),
+    text("knowledge.engine.preview.spaceOverviewTitle", undefined, { name: space.name }),
     "",
-    text("knowledge.openViking.preview.entryCountLine", undefined, { count: notes.length }),
-    text("knowledge.openViking.preview.folderCountLine", undefined, { count: folders.length }),
-    `- OpenViking URI: ${space.vikingUri}`,
+    text("knowledge.engine.preview.entryCountLine", undefined, { count: notes.length }),
+    text("knowledge.engine.preview.folderCountLine", undefined, { count: folders.length }),
+    `- Knowledge URI: ${normalizeKnowledgeUri(space.vikingUri)}`,
     "",
-    outlines.length ? outlines.join("\n\n") : text("knowledge.openViking.preview.noOverviewBody"),
+    outlines.length ? outlines.join("\n\n") : text("knowledge.engine.preview.noOverviewBody"),
   ].join("\n");
 }
 
-function openVikingEntryLayerPreview(entry: KnowledgeNotebookEntry | DraftEntry) {
+function knowledgeEngineEntryLayerPreview(entry: KnowledgeNotebookEntry | DraftEntry) {
   return entry.contentMd;
 }
 
-function openVikingLayerItems(
+function knowledgeEngineLayerItems(
   entry: KnowledgeNotebookEntry | DraftEntry,
   space: KnowledgeNotebookSpace | undefined,
   spaceEntries: KnowledgeNotebookEntry[],
   text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
-): OpenVikingLayerItem[] {
+): KnowledgeLayerItem[] {
   const spaceItems = (["L0", "L1"] as const).map((level) => {
-    const meta = openVikingLayerMeta(level);
+    const meta = knowledgeEngineLayerMeta(level);
     return {
       level,
       label: meta.label,
       description: meta.description,
-      uri: openVikingSpaceLayerUri(space, level),
-      preview: openVikingSpaceLayerPreview(space, spaceEntries, level, text),
+      uri: knowledgeEngineSpaceLayerUri(space, level),
+      preview: knowledgeEngineSpaceLayerPreview(space, spaceEntries, level, text),
       editable: meta.editable,
       scope: "space" as const,
     };
   });
-  const meta = openVikingLayerMeta("L2");
+  const meta = knowledgeEngineLayerMeta("L2");
   return [
     ...spaceItems,
     {
       level: "L2",
       label: meta.label,
       description: meta.description,
-      uri: openVikingEntryLayerUri(entry),
-      preview: openVikingEntryLayerPreview(entry),
+      uri: knowledgeEngineEntryLayerUri(entry),
+      preview: knowledgeEngineEntryLayerPreview(entry),
       editable: meta.editable,
       scope: "entry",
     },
   ];
 }
 
-function openVikingQuerySteps(
+function knowledgeEngineQuerySteps(
   space: KnowledgeNotebookSpace | undefined,
   draft: DraftEntry,
-  activeLevel: OpenVikingIndexLevel,
+  activeLevel: KnowledgeIndexLevel,
   query: string,
   text: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
-): OpenVikingQueryStep[] {
-  const queryText = query.trim() || draft.title.trim() || text("knowledge.openViking.query.currentKnowledge");
-  const scope = space?.vikingUri || draft.vikingUri || "viking://resources/agentworld";
-  const target = draft.vikingUri || scope;
+): KnowledgeQueryStep[] {
+  const queryText = query.trim() || draft.title.trim() || text("knowledge.engine.query.currentKnowledge");
+  const scope = normalizeKnowledgeUri(space?.vikingUri) || normalizeKnowledgeUri(draft.vikingUri) || "agentworld://knowledge/resources/agentworld";
+  const target = normalizeKnowledgeUri(draft.vikingUri) || scope;
 
   return [
     {
       level: "L0",
-      label: text("knowledge.openViking.query.l0.label"),
-      description: text("knowledge.openViking.query.l0.description", undefined, { query: queryText }),
+      label: text("knowledge.engine.query.l0.label"),
+      description: text("knowledge.engine.query.l0.description", undefined, { query: queryText }),
       uri: `find(query, target_uri=${scope}, level=0)`,
       active: activeLevel === "L0",
       editable: false,
     },
     {
       level: "L1",
-      label: text("knowledge.openViking.query.l1.label"),
-      description: text("knowledge.openViking.query.l1.description"),
+      label: text("knowledge.engine.query.l1.label"),
+      description: text("knowledge.engine.query.l1.description"),
       uri: `overview(${scope})`,
       active: activeLevel === "L1",
       editable: false,
     },
     {
       level: "L2",
-      label: text("knowledge.openViking.query.l2.label"),
-      description: text("knowledge.openViking.query.l2.description"),
+      label: text("knowledge.engine.query.l2.label"),
+      description: text("knowledge.engine.query.l2.description"),
       uri: `read(${target})`,
       active: activeLevel === "L2",
       editable: true,
@@ -669,23 +677,23 @@ function openVikingQuerySteps(
   ];
 }
 
-function buildOpenVikingTree(space: KnowledgeNotebookSpace, entries: KnowledgeNotebookEntry[]) {
-  const roots: OpenVikingTreeNode[] = [];
-  const nodes = new Map<string, OpenVikingTreeNode>();
+function buildKnowledgeEngineTree(space: KnowledgeNotebookSpace, entries: KnowledgeNotebookEntry[]) {
+  const roots: KnowledgeTreeNode[] = [];
+  const nodes = new Map<string, KnowledgeTreeNode>();
   const rootEntries = entries.filter((entry) => !parentFolderIdOf(entry));
 
-  const getNode = (parentId: string, segment: string, uri: string, bucket: OpenVikingTreeNode[]) => {
+  const getNode = (parentId: string, segment: string, uri: string, bucket: KnowledgeTreeNode[]) => {
     const id = `${parentId}/${segment}`;
     const existing = nodes.get(id);
     if (existing) return existing;
-    const next: OpenVikingTreeNode = { id, label: segment, uri, children: [], entries: [] };
+    const next: KnowledgeTreeNode = { id, label: segment, uri, children: [], entries: [] };
     nodes.set(id, next);
     bucket.push(next);
     return next;
   };
 
   for (const entry of rootEntries) {
-    const path = vikingDirectoryPath(space, entry);
+    const path = knowledgeDirectoryPath(space, entry);
     const segments = path.segments;
     let children = roots;
     let parentId = space.id;
@@ -702,7 +710,7 @@ function buildOpenVikingTree(space: KnowledgeNotebookSpace, entries: KnowledgeNo
     if (leafNode) leafNode.entries.push(entry);
   }
 
-  const sortNodes = (items: OpenVikingTreeNode[]) => {
+  const sortNodes = (items: KnowledgeTreeNode[]) => {
     items.sort((left, right) => left.label.localeCompare(right.label, "zh-CN"));
     for (const item of items) {
       item.entries.sort((left, right) => {
@@ -718,8 +726,8 @@ function buildOpenVikingTree(space: KnowledgeNotebookSpace, entries: KnowledgeNo
   return roots;
 }
 
-function openVikingNodeCount(node: OpenVikingTreeNode): number {
-  return node.entries.length + node.children.reduce((sum, child) => sum + openVikingNodeCount(child), 0);
+function knowledgeEngineNodeCount(node: KnowledgeTreeNode): number {
+  return node.entries.length + node.children.reduce((sum, child) => sum + knowledgeEngineNodeCount(child), 0);
 }
 
 function escapeHtml(value: string) {
@@ -732,6 +740,10 @@ function hashCode(value: string) {
     hash = Math.imul(31, hash) + value.charCodeAt(index) | 0;
   }
   return Math.abs(hash).toString(36);
+}
+
+function svgDataUri(svg: string) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function renderInline(text: string) {
@@ -1094,6 +1106,7 @@ function CodeBlock({ code, info }: { code: string; info: string }) {
 }
 
 function MermaidDiagram({ chart }: { chart: string }) {
+  const text = useLanguageText();
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const id = useMemo(() => `mermaid-${hashCode(chart)}`, [chart]);
@@ -1134,9 +1147,10 @@ function MermaidDiagram({ chart }: { chart: string }) {
   return (
     <div className="my-4 overflow-auto rounded-2xl border border-[var(--line)] bg-white px-4 py-4 shadow-[0_10px_32px_rgba(15,23,42,0.05)]">
       {svg ? (
-        <div className="min-w-fit [&_svg]:mx-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="mx-auto max-w-full" src={svgDataUri(svg)} alt="Mermaid" />
       ) : (
-        <div className="py-10 text-center text-sm text-[var(--ink-subtle)]">knowledge.markdown.mermaid.rendering</div>
+        <div className="py-10 text-center text-sm text-[var(--ink-subtle)]">{text("knowledge.markdown.mermaid.rendering")}</div>
       )}
     </div>
   );
@@ -1246,7 +1260,8 @@ function PlantUmlDiagram({ source }: { source: string }) {
   return (
     <div className="my-4 overflow-auto rounded-2xl border border-[var(--line)] bg-white px-4 py-4 shadow-[0_10px_32px_rgba(15,23,42,0.05)]">
       {svg ? (
-        <div className="min-w-fit [&_svg]:mx-auto [&_svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="mx-auto max-w-full" src={svgDataUri(svg)} alt="PlantUML" />
       ) : (
         <>
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-subtle)]">PlantUML</div>
@@ -1595,6 +1610,7 @@ function SpaceQuickDialog({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const text = useLanguageText();
   const { alert: showAlert, dialogHost } = useAppDialogs();
   const editing = state?.mode === "edit" ? state.space : null;
   const baseBusinessTeamId = editing?.businessTeamId ?? (editing?.agentTeamId ? agentTeams.find((team) => team.id === editing.agentTeamId)?.businessTeamId ?? "" : "");
@@ -1664,15 +1680,15 @@ function SpaceQuickDialog({
         }),
       });
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!response.ok || result.ok === false) throw new Error(result.error ?? "knowledge.spaceForm.errors.saveFailed");
+      if (!response.ok || result.ok === false) throw new Error(result.error ?? text("knowledge.spaceForm.errors.saveFailed"));
       onClose();
       router.refresh();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "knowledge.spaceForm.errors.saveFailed";
+      const message = error instanceof Error ? error.message : text("knowledge.spaceForm.errors.saveFailed");
       setErrorMessage(message);
       setPending(false);
       void showAlert({
-        title: "knowledge.spaceForm.errors.saveFailed",
+        title: text("knowledge.spaceForm.errors.saveFailed"),
         description: message,
         tone: "danger",
       });
@@ -1687,80 +1703,80 @@ function SpaceQuickDialog({
         <div className="w-[min(94vw,760px)] rounded-[24px] border border-[var(--line)] bg-white shadow-[0_28px_90px_rgba(15,23,42,0.22)]">
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] px-5 py-4">
           <div>
-            <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--ink-subtle)]">Knowledge Space</div>
-            <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{editing ? "knowledge.spaceForm.editTitle" : "knowledge.spaceForm.createTitle"}</div>
+            <div className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--ink-subtle)]">{text("terminology.knowledgeSpace")}</div>
+            <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{text(editing ? "knowledge.spaceForm.editTitle" : "knowledge.spaceForm.createTitle")}</div>
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose} aria-label="actions.close">
+          <Button size="icon" variant="ghost" onClick={onClose} aria-label={text("actions.close")}>
             <X className="h-4 w-4" />
           </Button>
         </div>
         <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
-          <FieldGroup label="common.fields.name">
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="knowledge.spaceForm.placeholders.name" />
+          <FieldGroup label={text("common.fields.name")}>
+            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder={text("knowledge.spaceForm.placeholders.name")} />
           </FieldGroup>
           <FieldGroup label="Slug">
             <Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} placeholder="slug" />
           </FieldGroup>
-          <FieldGroup label="terminology.tenantSpace">
+          <FieldGroup label={text("terminology.tenantSpace")}>
             <Select value={form.tenantSpaceId} onChange={(event) => setForm({ ...form, tenantSpaceId: event.target.value })}>
               {tenantSpaces.map((space) => (
                 <option key={space.id} value={space.id}>{space.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="knowledge.fields.spaceType">
+          <FieldGroup label={text("knowledge.fields.spaceType")}>
             <Select value={form.spaceType} onChange={(event) => setForm({ ...form, spaceType: event.target.value })}>
-              <option value="global">ui.common.knowledgeType.global</option>
-              <option value="team">ui.common.knowledgeType.team</option>
-              <option value="project">ui.common.knowledgeType.project</option>
-              <option value="agent_team">ui.common.knowledgeType.agentTeam</option>
+              <option value="global">{text("ui.common.knowledgeType.global")}</option>
+              <option value="team">{text("ui.common.knowledgeType.team")}</option>
+              <option value="project">{text("ui.common.knowledgeType.project")}</option>
+              <option value="agent_team">{text("ui.common.knowledgeType.agentTeam")}</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="terminology.businessTeam">
+          <FieldGroup label={text("terminology.businessTeam")}>
             <Select value={form.businessTeamId} onChange={(event) => setForm({ ...form, businessTeamId: event.target.value, agentTeamId: "" })}>
-              <option value="">common.select.none</option>
+              <option value="">{text("common.select.none")}</option>
               {businessTeams.map((team) => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="terminology.agentTeam">
+          <FieldGroup label={text("terminology.agentTeam")}>
             <Select
               value={form.agentTeamId}
               disabled={form.spaceType !== "agent_team"}
               onChange={(event) => setForm({ ...form, agentTeamId: event.target.value })}
             >
-              <option value="">common.select.none</option>
+              <option value="">{text("common.select.none")}</option>
               {availableAgentTeams.map((team) => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </Select>
           </FieldGroup>
-          <FieldGroup label="knowledge.fields.projectKey">
+          <FieldGroup label={text("knowledge.fields.projectKey")}>
             <Input
               value={form.projectKey}
               disabled={form.spaceType !== "project"}
               onChange={(event) => setForm({ ...form, projectKey: event.target.value })}
             />
           </FieldGroup>
-          <FieldGroup label="common.fields.visibility">
+          <FieldGroup label={text("common.fields.visibility")}>
             <Select value={form.visibility} onChange={(event) => setForm({ ...form, visibility: event.target.value })}>
-              <option value="global">labels.visibility.global</option>
-              <option value="team">labels.visibility.team</option>
-              <option value="private">labels.visibility.private</option>
+              <option value="global">{text("labels.visibility.global")}</option>
+              <option value="team">{text("labels.visibility.team")}</option>
+              <option value="private">{text("labels.visibility.private")}</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="common.fields.status">
+          <FieldGroup label={text("common.fields.status")}>
             <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
-              <option value="active">labels.status.active</option>
-              <option value="paused">labels.status.paused</option>
-              <option value="archived">labels.status.archived</option>
+              <option value="active">{text("labels.status.active")}</option>
+              <option value="paused">{text("labels.status.paused")}</option>
+              <option value="archived">{text("labels.status.archived")}</option>
             </Select>
           </FieldGroup>
-          <FieldGroup label="knowledge.fields.retentionPolicy">
+          <FieldGroup label={text("knowledge.fields.retentionPolicy")}>
             <Textarea value={form.retentionPolicyJson} onChange={(event) => setForm({ ...form, retentionPolicyJson: event.target.value })} className="min-h-20 font-mono text-xs" />
           </FieldGroup>
-          <FieldGroup label="common.fields.description" className="md:col-span-2">
+          <FieldGroup label={text("common.fields.description")} className="md:col-span-2">
             <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="min-h-24" />
           </FieldGroup>
         </div>
@@ -1771,15 +1787,15 @@ function SpaceQuickDialog({
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0">
-              <div className="font-semibold">knowledge.spaceForm.errors.saveFailed</div>
+              <div className="font-semibold">{text("knowledge.spaceForm.errors.saveFailed")}</div>
               <div className="mt-1 leading-6">{errorMessage}</div>
             </div>
           </div>
         ) : null}
         <div className="flex justify-end gap-2 border-t border-[var(--line)] px-5 py-4">
-          <Button onClick={onClose}>actions.cancel</Button>
+          <Button onClick={onClose}>{text("actions.cancel")}</Button>
           <Button variant="primary" onClick={saveSpace} disabled={pending || !form.name.trim()}>
-            {pending ? "actions.saving" : "knowledge.actions.saveSpace"}
+            {text(pending ? "actions.saving" : "knowledge.actions.saveSpace")}
           </Button>
         </div>
         </div>
@@ -1819,7 +1835,7 @@ export function KnowledgeNotebookWorkspace({
   const [metricsOpen, setMetricsOpen] = useState(false);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [paneMode, setPaneMode] = useState<PaneMode>("split");
-  const [selectedIndexLevel, setSelectedIndexLevel] = useState<OpenVikingIndexLevel>("L2");
+  const [selectedIndexLevel, setSelectedIndexLevel] = useState<KnowledgeIndexLevel>("L2");
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -1835,7 +1851,7 @@ export function KnowledgeNotebookWorkspace({
   const [collapsedSpaceIds, setCollapsedSpaceIds] = useState<Set<string>>(
     () => new Set(spaces.filter((space) => space.id !== initialSpaceId).map((space) => space.id)),
   );
-  const [collapsedVikingPaths, setCollapsedVikingPaths] = useState<Set<string>>(() => new Set());
+  const [collapsedKnowledgePaths, setCollapsedKnowledgePaths] = useState<Set<string>>(() => new Set());
   const draftRef = useRef(draft);
   const dirtyRef = useRef(dirty);
   const saveStateRef = useRef(saveState);
@@ -1925,7 +1941,7 @@ export function KnowledgeNotebookWorkspace({
   const filteredSpaces = useMemo(() => {
     if (!normalizedQuery) return spaces;
     return spaces.filter((space) => {
-      const spaceMatch = normalize(`${space.name} ${space.description} ${space.ownerName} ${space.vikingUri}`).includes(normalizedQuery);
+      const spaceMatch = normalize(`${space.name} ${space.description} ${space.ownerName} ${normalizeKnowledgeUri(space.vikingUri)}`).includes(normalizedQuery);
       const entryMatch = (entriesBySpaceId.get(space.id) ?? []).some((entry) =>
         normalize(`${entry.title} ${entry.contentMd} ${entry.layer} ${entry.scopeKey}`).includes(normalizedQuery),
       );
@@ -1945,12 +1961,12 @@ export function KnowledgeNotebookWorkspace({
   const totalEntries = entriesState.filter((entry) => nodeTypeOf(entry) !== "folder").length;
   const totalFolders = entriesState.filter((entry) => nodeTypeOf(entry) === "folder").length;
   const selectedLayerItems = useMemo(
-    () => openVikingLayerItems(draft, activeSpace, activeSpaceEntries, text),
+    () => knowledgeEngineLayerItems(draft, activeSpace, activeSpaceEntries, text),
     [activeSpace, activeSpaceEntries, draft, text],
   );
   const selectedLayerItem = selectedLayerItems.find((item) => item.level === selectedIndexLevel) ?? selectedLayerItems[2];
   const querySteps = useMemo(
-    () => openVikingQuerySteps(activeSpace, draft, selectedIndexLevel, query, text),
+    () => knowledgeEngineQuerySteps(activeSpace, draft, selectedIndexLevel, query, text),
     [activeSpace, draft, query, selectedIndexLevel, text],
   );
   const isIndexReadOnly = selectedIndexLevel !== "L2";
@@ -1958,7 +1974,7 @@ export function KnowledgeNotebookWorkspace({
     ? formatBytes(new TextEncoder().encode(selectedLayerItem.preview).length)
     : contentSize;
   const activeTitle = isIndexReadOnly
-    ? `${activeSpace?.name ?? "terminology.knowledge"} · ${selectedLayerItem.label}`
+    ? `${activeSpace?.name ?? text("terminology.knowledge")} · ${text(selectedLayerItem.label)}`
     : draft.title;
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
@@ -2239,7 +2255,7 @@ export function KnowledgeNotebookWorkspace({
     void selectEntryLayer(entry, "L2");
   }
 
-  async function selectSpaceIndex(space: KnowledgeNotebookSpace, level: Exclude<OpenVikingIndexLevel, "L2">) {
+  async function selectSpaceIndex(space: KnowledgeNotebookSpace, level: Exclude<KnowledgeIndexLevel, "L2">) {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
     const canNavigate = await saveBeforeNavigation().finally(() => {
@@ -2256,17 +2272,17 @@ export function KnowledgeNotebookWorkspace({
     setSelectedIndexLevel(level);
     replaceDraft({
       ...createBlankDraft(space.id, null, "folder", text),
-      title: `${space.name} · ${openVikingLayerMeta(level).label}`,
-      layer: "openviking/space-index",
-      scopeKey: space.slug || vikingScopeLabel(space.vikingUri),
-      vikingUri: space.vikingUri,
+      title: `${space.name} · ${knowledgeEngineLayerMeta(level).label}`,
+      layer: "knowledge/space-index",
+      scopeKey: space.slug || knowledgeScopeLabel(normalizeKnowledgeUri(space.vikingUri)),
+      vikingUri: normalizeKnowledgeUri(space.vikingUri),
       syncStatus: "remote_synced",
     });
     setSaveError(null);
     setConflictEntry(null);
     setVersionsOpen(false);
     setPropertiesOpen(false);
-    setMessage(text("knowledge.messages.spaceIndexReadOnly", undefined, { name: space.name, layer: text(openVikingLayerMeta(level).label) }));
+    setMessage(text("knowledge.messages.spaceIndexReadOnly", undefined, { name: space.name, layer: text(knowledgeEngineLayerMeta(level).label) }));
   }
 
   async function startNewEntry(spaceId = selectedSpaceId, parentFolderId: string | null = null, nodeType: "note" | "folder" = "note") {
@@ -2515,8 +2531,8 @@ export function KnowledgeNotebookWorkspace({
     });
   }
 
-  function toggleVikingPath(pathId: string) {
-    setCollapsedVikingPaths((current) => {
+  function toggleKnowledgePath(pathId: string) {
+    setCollapsedKnowledgePaths((current) => {
       const next = new Set(current);
       if (next.has(pathId)) next.delete(pathId);
       else next.add(pathId);
@@ -2641,7 +2657,7 @@ export function KnowledgeNotebookWorkspace({
     const isFolder = nodeTypeOf(entry) === "folder";
     const children = childEntriesByParentId.get(entry.id) ?? [];
     const pathId = `entry:${entry.id}`;
-    const collapsed = collapsedVikingPaths.has(pathId);
+    const collapsed = collapsedKnowledgePaths.has(pathId);
 
     return (
       <div key={entry.id}>
@@ -2651,7 +2667,7 @@ export function KnowledgeNotebookWorkspace({
             aria-label={collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory"}
             onClick={(event) => {
               event.stopPropagation();
-              if (children.length) toggleVikingPath(pathId);
+              if (children.length) toggleKnowledgePath(pathId);
             }}
             className={cn(
               "mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[var(--ink-subtle)] transition-colors",
@@ -2706,7 +2722,7 @@ export function KnowledgeNotebookWorkspace({
     return (
       <div className="mb-1 space-y-1">
         {(["L0", "L1"] as const).map((level) => {
-          const meta = openVikingLayerMeta(level);
+          const meta = knowledgeEngineLayerMeta(level);
           const active = selectedSpaceId === space.id && selectedIndexLevel === level && selectedLayerItem.scope === "space";
           return (
             <button
@@ -2722,15 +2738,15 @@ export function KnowledgeNotebookWorkspace({
                 {level}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-[var(--ink)]">{meta.label}</span>
+                <span className="block truncate text-xs font-semibold text-[var(--ink)]">{text(meta.label)}</span>
                 <span className="mt-0.5 block truncate text-[10px] text-[var(--ink-subtle)]">
-                  {text("knowledge.openViking.spaceIndexStats", undefined, { entries: notes.length, folders: folders.length })}
+                  {text("knowledge.engine.spaceIndexStats", undefined, { entries: notes.length, folders: folders.length })}
                 </span>
                 <span className="mt-0.5 block truncate font-mono text-[10px] text-[var(--ink-subtle)]">
-                  {openVikingSpaceLayerUri(space, level)}
+                  {knowledgeEngineSpaceLayerUri(space, level)}
                 </span>
               </span>
-              <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">knowledge.labels.readOnly</span>
+              <span className="mt-0.5 text-[10px] font-medium text-[var(--ink-subtle)]">{text("knowledge.labels.readOnly")}</span>
             </button>
           );
         })}
@@ -2738,15 +2754,15 @@ export function KnowledgeNotebookWorkspace({
     );
   }
 
-  function renderOpenVikingNodes(nodes: OpenVikingTreeNode[], space: KnowledgeNotebookSpace, depth = 0): ReactNode {
+  function renderKnowledgeEngineNodes(nodes: KnowledgeTreeNode[], space: KnowledgeNotebookSpace, depth = 0): ReactNode {
     return nodes.map((node) => {
-      const collapsed = collapsedVikingPaths.has(node.id);
-      const count = openVikingNodeCount(node);
+      const collapsed = collapsedKnowledgePaths.has(node.id);
+      const count = knowledgeEngineNodeCount(node);
       return (
         <div key={node.id} className="space-y-0.5">
           <button
             type="button"
-            onClick={() => toggleVikingPath(node.id)}
+            onClick={() => toggleKnowledgePath(node.id)}
             onContextMenu={(event) => openContextMenu(event, { type: "tree", spaceId: space.id })}
             className="group flex w-full items-start gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/80"
             style={{ paddingLeft: `${10 + depth * 13}px` }}
@@ -2765,7 +2781,7 @@ export function KnowledgeNotebookWorkspace({
           </button>
           {!collapsed ? (
             <div className="ml-2 border-l border-[var(--line)]/70 pl-1">
-              {node.children.length ? renderOpenVikingNodes(node.children, space, depth + 1) : null}
+              {node.children.length ? renderKnowledgeEngineNodes(node.children, space, depth + 1) : null}
               {node.entries.map((entry) => renderEntryBranch(entry, depth + 1))}
             </div>
           ) : null}
@@ -2788,8 +2804,8 @@ export function KnowledgeNotebookWorkspace({
           <div className="flex items-center gap-4 rounded-[22px] bg-white px-5 py-4 text-[var(--ink)] shadow-[0_16px_44px_rgba(15,23,42,0.1)]">
             <UploadCloud className="h-6 w-6 text-[var(--accent-strong)]" />
             <div>
-              <div className="text-sm font-semibold">knowledge.drop.title</div>
-              <div className="mt-1 text-xs text-[var(--ink-subtle)]">knowledge.drop.description</div>
+              <div className="text-sm font-semibold">{text("knowledge.drop.title")}</div>
+              <div className="mt-1 text-xs text-[var(--ink-subtle)]">{text("knowledge.drop.description")}</div>
             </div>
           </div>
         </div>
@@ -2843,10 +2859,10 @@ export function KnowledgeNotebookWorkspace({
           <div className="border-b border-[var(--line)] px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-subtle)]">Knowledge Tree</div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text("knowledge.tree.kicker")}</div>
                 <div className="mt-1 text-lg font-semibold tracking-normal text-[var(--ink)]">{text("knowledge.tree.title")}</div>
               </div>
-              <Button size="icon" variant="ghost" aria-label="knowledge.actions.newEntry" onClick={() => void startNewEntry()}>
+              <Button size="icon" variant="ghost" aria-label={text("knowledge.actions.newEntry")} onClick={() => void startNewEntry()}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -2856,7 +2872,7 @@ export function KnowledgeNotebookWorkspace({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 className="min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--ink-subtle)]"
-                placeholder="knowledge.search.placeholder"
+                placeholder={text("knowledge.search.placeholder")}
               />
             </label>
             <div className="mt-3 flex items-center gap-2 text-xs text-[var(--ink-subtle)]">
@@ -2875,7 +2891,7 @@ export function KnowledgeNotebookWorkspace({
                 {filteredSpaces.map((space) => {
                   const spaceEntries = entriesBySpaceId.get(space.id) ?? [];
                   const visibleEntries = filterEntriesWithAncestors(spaceEntries, normalizedQuery);
-                  const treeNodes = buildOpenVikingTree(space, visibleEntries);
+                  const treeNodes = buildKnowledgeEngineTree(space, visibleEntries);
                   const isActiveSpace = selectedSpaceId === space.id || draft.knowledgeSpaceId === space.id;
                   const isCollapsed = collapsedSpaceIds.has(space.id) && !normalizedQuery;
                   return (
@@ -2910,7 +2926,7 @@ export function KnowledgeNotebookWorkspace({
                           }}
                         >
                           <div className="truncate text-sm font-semibold text-[var(--ink)]">{space.name}</div>
-                          <div className="mt-0.5 truncate text-xs text-[var(--ink-subtle)]">{vikingScopeLabel(space.vikingUri)} · {space.ownerName}</div>
+                          <div className="mt-0.5 truncate text-xs text-[var(--ink-subtle)]">{knowledgeScopeLabel(normalizeKnowledgeUri(space.vikingUri))} · {space.ownerName}</div>
                         </div>
                         <Badge variant={statusVariant(space.status)}>{space.entryCount}</Badge>
                       </button>
@@ -2918,7 +2934,7 @@ export function KnowledgeNotebookWorkspace({
                         <div className="ml-7 border-l border-[var(--line)]/80 pl-2.5">
                           {renderSpaceIndexButtons(space, spaceEntries)}
                           {treeNodes.length ? (
-                            renderOpenVikingNodes(treeNodes, space)
+                            renderKnowledgeEngineNodes(treeNodes, space)
                           ) : (
                             <button
                               type="button"
@@ -2926,7 +2942,7 @@ export function KnowledgeNotebookWorkspace({
                               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-[var(--ink-subtle)] hover:bg-white/80"
                             >
                               <Plus className="h-4 w-4" />
-                              knowledge.actions.newEntry
+                              {text("knowledge.actions.newEntry")}
                             </button>
                           )}
                         </div>
@@ -2963,7 +2979,7 @@ export function KnowledgeNotebookWorkspace({
                     <div className="text-3xl font-semibold tracking-normal text-[var(--ink)]">{activeTitle}</div>
                     <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.04)] px-3 py-1 text-xs font-medium text-[var(--ink-subtle)]">
                       <CircleDot className="h-3.5 w-3.5" />
-                      {text("knowledge.openViking.selectedLayerMeta", undefined, { layer: text(selectedLayerItem.label) })}
+                      {text("knowledge.engine.selectedLayerMeta", undefined, { layer: text(selectedLayerItem.label) })}
                     </div>
                   </div>
                 ) : (
@@ -2972,7 +2988,7 @@ export function KnowledgeNotebookWorkspace({
                     onChange={(event) => updateDraft((current) => ({ ...current, title: event.target.value }))}
                     onBlur={flushDraftOnBlur}
                     className="mt-2 h-auto rounded-none border-0 bg-transparent px-0 py-0 text-3xl font-semibold tracking-normal shadow-none focus:ring-0"
-                    placeholder="knowledge.placeholders.entryTitle"
+                    placeholder={text("knowledge.placeholders.entryTitle")}
                   />
                 )}
               </div>
@@ -3012,18 +3028,18 @@ export function KnowledgeNotebookWorkspace({
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
                 <Badge variant={isIndexReadOnly ? "neutral" : draft.nodeType === "folder" ? "accent" : syncStatusVariant(draft.syncStatus)}>
-                  {isIndexReadOnly ? "knowledge.labels.spaceIndex" : draft.nodeType === "folder" ? "knowledge.node.folder" : syncStatusLabel(draft.syncStatus)}
+                      {text(isIndexReadOnly ? "knowledge.labels.spaceIndex" : draft.nodeType === "folder" ? "knowledge.node.folder" : syncStatusLabel(draft.syncStatus))}
                 </Badge>
                 {isIndexReadOnly || draft.nodeType !== "folder" ? (
                   <Badge variant={selectedLayerItem.editable ? "accent" : "neutral"}>
                     {selectedLayerItem.level} · {selectedLayerItem.editable ? text("knowledge.labels.editableSource") : text("knowledge.labels.readOnlyIndex")}
                   </Badge>
                 ) : null}
-                {isIndexReadOnly ? <Badge variant="neutral">knowledge.labels.readOnlyView</Badge> : <Badge variant={saveStateVariant(saveState)}>{saveStateLabel(saveState)}</Badge>}
+                {isIndexReadOnly ? <Badge variant="neutral">{text("knowledge.labels.readOnlyView")}</Badge> : <Badge variant={saveStateVariant(saveState)}>{text(saveStateLabel(saveState))}</Badge>}
                 {!isIndexReadOnly && draft.revision ? <span>R{draft.revision}</span> : null}
                 <span>{activeContentSize}</span>
                 {isIndexReadOnly ? (
-                  <span>knowledge.labels.spaceGeneratedView</span>
+                  <span>{text("knowledge.labels.spaceGeneratedView")}</span>
                 ) : draft.updatedAt || draft.createdAt ? (
                   <span>{formatDateTime(draft.updatedAt || draft.createdAt)}</span>
                 ) : (
@@ -3065,7 +3081,7 @@ export function KnowledgeNotebookWorkspace({
             {isIndexReadOnly ? (
               <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{selectedLayerItem.uri}</div>
             ) : draft.vikingUri ? (
-              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{draft.vikingUri}</div>
+              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{normalizeKnowledgeUri(draft.vikingUri)}</div>
             ) : null}
 
             {isIndexReadOnly || draft.nodeType !== "folder" ? (
@@ -3073,9 +3089,9 @@ export function KnowledgeNotebookWorkspace({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Search className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    {text("knowledge.openViking.queryPathTitle")}
+                    {text("knowledge.engine.queryPathTitle")}
                   </div>
-                  <span className="text-xs text-[var(--ink-subtle)]">{text("knowledge.openViking.queryPathDescription")}</span>
+                  <span className="text-xs text-[var(--ink-subtle)]">{text("knowledge.engine.queryPathDescription")}</span>
                 </div>
                 <div className="mt-3 grid gap-2 xl:grid-cols-3">
                   {querySteps.map((step) => (
@@ -3125,7 +3141,7 @@ export function KnowledgeNotebookWorkspace({
                 {versionsError ? <div className="mt-2 text-xs text-[var(--warning)]">{versionsError}</div> : null}
                 <div className="mt-3 grid gap-2 md:grid-cols-3">
                   {versionsLoading ? (
-                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">knowledge.versions.loading</div>
+                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">{text("knowledge.versions.loading")}</div>
                   ) : versions.length ? (
                     versions.map((version) => (
                       <div key={version.id} className="rounded-xl border border-[var(--line)] bg-white px-3 py-3">
@@ -3145,7 +3161,7 @@ export function KnowledgeNotebookWorkspace({
                       </div>
                     ))
                   ) : (
-                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">knowledge.versions.empty</div>
+                    <div className="rounded-xl bg-white px-3 py-4 text-sm text-[var(--ink-subtle)]">{text("knowledge.versions.empty")}</div>
                   )}
                 </div>
               </div>
@@ -3153,7 +3169,7 @@ export function KnowledgeNotebookWorkspace({
 
             {propertiesOpen && !isIndexReadOnly ? (
               <div className="mt-4 grid gap-3 rounded-2xl bg-[rgba(250,251,253,0.78)] p-3 md:grid-cols-2 xl:grid-cols-6">
-                <FieldGroup label="terminology.knowledge">
+                <FieldGroup label={text("terminology.knowledge")}>
                   <Select
                     value={draft.knowledgeSpaceId}
                     onBlur={flushDraftOnBlur}
@@ -3162,32 +3178,32 @@ export function KnowledgeNotebookWorkspace({
                       setSelectedSpaceId(event.target.value);
                     }}
                   >
-                    <option value="">common.select.unassigned</option>
+                    <option value="">{text("common.select.unassigned")}</option>
                     {spaces.map((space) => (
                       <option key={space.id} value={space.id}>{space.name}</option>
                     ))}
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="common.fields.type">
+                <FieldGroup label={text("common.fields.type")}>
                   <Select value={draft.nodeType} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, nodeType: event.target.value === "folder" ? "folder" : "note" }))}>
-                    <option value="note">terminology.knowledge</option>
-                    <option value="folder">knowledge.node.folder</option>
+                    <option value="note">{text("terminology.knowledge")}</option>
+                    <option value="folder">{text("knowledge.node.folder")}</option>
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="common.fields.source">
+                <FieldGroup label={text("common.fields.source")}>
                   <Select value={draft.sourceType} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, sourceType: event.target.value }))}>
                     {sourceTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
+                      <option key={option.value} value={option.value}>{text(option.label)}</option>
                     ))}
                   </Select>
                 </FieldGroup>
-                <FieldGroup label="Layer">
+                <FieldGroup label={text("knowledge.fields.layer")}>
                   <Input value={draft.layer} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, layer: event.target.value }))} />
                 </FieldGroup>
-                <FieldGroup label="Scope">
+                <FieldGroup label={text("knowledge.fields.scope")}>
                   <Input value={draft.scopeKey} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, scopeKey: event.target.value }))} />
                 </FieldGroup>
-                <FieldGroup label="Skill ID">
+                <FieldGroup label={text("knowledge.fields.skillId")}>
                   <Input value={draft.skillId} onBlur={flushDraftOnBlur} onChange={(event) => updateDraft((current) => ({ ...current, skillId: event.target.value }))} />
                 </FieldGroup>
               </div>
@@ -3202,18 +3218,18 @@ export function KnowledgeNotebookWorkspace({
                     <div>
                       <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                         <CircleDot className="h-4 w-4 text-[var(--accent-strong)]" />
-                        {selectedLayerItem.label}
+                        {text(selectedLayerItem.label)}
                       </div>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink-muted)]">{selectedLayerItem.description}</p>
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--ink-muted)]">{text(selectedLayerItem.description)}</p>
                     </div>
                     <Badge variant="neutral">{text("knowledge.labels.readOnlyIndex")}</Badge>
                   </div>
                   <div className="mt-4 rounded-2xl bg-[rgba(15,23,42,0.035)] px-4 py-3">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">OpenViking API</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text("settings.knowledge.engineName")}</div>
                     <div className="mt-1 break-all font-mono text-xs text-[var(--ink-muted)]">{selectedLayerItem.uri}</div>
                   </div>
                   <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.78)] px-5 py-5 text-sm leading-7 text-[var(--ink)]">
-                    {selectedLayerItem.preview || "knowledge.openViking.preview.waiting"}
+                    {selectedLayerItem.preview || text("knowledge.engine.preview.waiting")}
                   </div>
                 </div>
               </div>

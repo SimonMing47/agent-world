@@ -7,12 +7,10 @@ const ignoredDirectories = new Set([
   ".git",
   ".next",
   ".playwright-cli",
-  ".venv-openviking",
   "data",
   "dist",
   "node_modules",
   "output",
-  "thirdparty",
 ]);
 const allowedExtensions = new Set([".ts", ".tsx", ".js", ".mjs"]);
 

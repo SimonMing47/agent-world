@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { syncInspectionSkillsToOpenViking } from "@/server/openviking-core";
+import { syncInspectionSkillsToKnowledgeEngine } from "@/server/knowledge-engine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const results = await syncInspectionSkillsToOpenViking();
+  const results = await syncInspectionSkillsToKnowledgeEngine();
 
   return NextResponse.json({
     ok: true,

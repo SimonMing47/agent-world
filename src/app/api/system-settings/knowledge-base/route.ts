@@ -6,9 +6,9 @@ import {
   getKnowledgeBaseSettings,
   getKnowledgeFoundationStatus,
   upsertKnowledgeBaseSettings,
-  writeOpenVikingConfigFiles,
   type KnowledgeBaseSettings,
 } from "@/server/knowledge-base-settings";
+import { ensureKnowledgeEngineStorage } from "@/server/knowledge-engine-process";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +35,11 @@ export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as Partial<KnowledgeBaseSettings>;
     const setting = upsertKnowledgeBaseSettings(body, authContext.user.email || authContext.user.name || "system");
-    const files = writeOpenVikingConfigFiles(setting);
+    const storage = ensureKnowledgeEngineStorage();
     return NextResponse.json({
       ok: true,
       setting,
-      files,
+      storage,
       foundation: getKnowledgeFoundationStatus(setting),
       warnings: getKnowledgeBaseConfigWarnings(setting),
     });

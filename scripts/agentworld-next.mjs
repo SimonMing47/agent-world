@@ -1,128 +1,11 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  buildOpenVikingPythonArgs,
-  resolveBaseUrl,
-  resolveHost,
-  resolvePort,
-  resolveOpenVikingServerCommand,
-  root,
-  writeCliConfig,
-  writeServerConfig,
-} from "./openviking-common.mjs";
 
 const mode = process.argv[2] ?? "start";
+const root = process.cwd();
 const defaultAgentWorldPort = "7369";
-const startupTimeoutMs = Number(process.env.OPENVIKING_STARTUP_TIMEOUT_MS ?? "3500");
 const experimentalWarningOption = "--no-warnings=ExperimentalWarning";
-
-function isLocalBaseUrl(value) {
-  try {
-    const url = new URL(value);
-    return ["127.0.0.1", "localhost", "::1", "0.0.0.0"].includes(url.hostname);
-  } catch {
-    return true;
-  }
-}
-
-async function checkHealth(baseUrl, timeoutMs = 900) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(`${baseUrl}/health`, { signal: controller.signal });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function waitForOpenViking(baseUrl) {
-  const deadline = Date.now() + startupTimeoutMs;
-  while (Date.now() < deadline) {
-    if (await checkHealth(baseUrl, 700)) return true;
-    await new Promise((resolve) => setTimeout(resolve, 350));
-  }
-  return false;
-}
-
-async function startOpenVikingIfNeeded() {
-  if (process.env.AGENTWORLD_OPENVIKING_AUTO_START === "0") {
-    return null;
-  }
-
-  const baseUrl = resolveBaseUrl();
-  if (await checkHealth(baseUrl)) {
-    console.log(`[agentworld] OpenViking already healthy at ${baseUrl}`);
-    return null;
-  }
-
-  if (!isLocalBaseUrl(baseUrl)) {
-    console.warn(`[agentworld] Remote OpenViking is not reachable: ${baseUrl}`);
-    return null;
-  }
-
-  const serverCommand = resolveOpenVikingServerCommand();
-  if (!serverCommand) {
-    console.warn(
-      `[agentworld] OpenViking runtime missing. Set OPENVIKING_SERVER_BIN, install Python runtime with pnpm openviking:install-python, or provide thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`,
-    );
-    return null;
-  }
-  if (serverCommand.kind === "incompatible") {
-    console.warn(`[agentworld] OpenViking auto-start skipped: ${serverCommand.compatibility.reason}`);
-    return null;
-  }
-
-  const configPath = writeServerConfig();
-  writeCliConfig();
-
-  const args = serverCommand.kind === "python"
-    ? buildOpenVikingPythonArgs(configPath)
-    : ["--config", configPath, "--host", resolveHost(), "--port", resolvePort()];
-  if (serverCommand.compatibility.reason) {
-    console.warn(`[agentworld] ${serverCommand.compatibility.reason}`);
-  }
-  console.log(`[agentworld] Starting OpenViking (${serverCommand.kind}): ${serverCommand.command}`);
-  const child = spawn(
-    serverCommand.command,
-    args,
-    {
-      cwd: root,
-      env: {
-        ...process.env,
-        OPENVIKING_CONFIG_FILE: configPath,
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-
-  child.stdout.on("data", (chunk) => {
-    const text = String(chunk).trim();
-    if (text) console.log(`[openviking] ${text}`);
-  });
-  child.stderr.on("data", (chunk) => {
-    const text = String(chunk).trim();
-    if (text) console.warn(`[openviking] ${text}`);
-  });
-
-  child.on("exit", (code, signal) => {
-    if (code !== 0 && signal !== "SIGTERM") {
-      console.warn(`[agentworld] OpenViking exited with code=${code ?? "null"} signal=${signal ?? "null"}`);
-    }
-  });
-
-  const healthy = await waitForOpenViking(baseUrl);
-  if (healthy) {
-    console.log(`[agentworld] OpenViking healthy at ${baseUrl}`);
-  } else {
-    console.warn("[agentworld] OpenViking started but health check is still warming up.");
-  }
-
-  return child;
-}
 
 function nextCommand() {
   return path.join(root, "node_modules", ".bin", process.platform === "win32" ? "next.cmd" : "next");
@@ -173,7 +56,6 @@ function ensureStandaloneAssets() {
   );
 }
 
-const openVikingChild = await startOpenVikingIfNeeded();
 const launch = nextLaunch();
 const nextChild = spawn(launch.command, launch.args, {
   cwd: root,
@@ -187,9 +69,6 @@ const nextChild = spawn(launch.command, launch.args, {
 });
 
 function shutdown(signal) {
-  if (openVikingChild && !openVikingChild.killed) {
-    openVikingChild.kill("SIGTERM");
-  }
   if (!nextChild.killed) {
     nextChild.kill(signal);
   }
@@ -200,9 +79,6 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 }
 
 nextChild.on("exit", (code, signal) => {
-  if (openVikingChild && !openVikingChild.killed) {
-    openVikingChild.kill("SIGTERM");
-  }
   if (signal) {
     process.kill(process.pid, signal);
   } else {

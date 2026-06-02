@@ -141,52 +141,11 @@ function assertCleanWorktree() {
 }
 
 
-function canRunOpenVikingPython(python) {
-  const result = spawnSync(python, ["-c", "import openviking_cli.server_bootstrap"], {
-    cwd: root,
-    stdio: "ignore",
-    shell: process.platform === "win32",
-  });
-  return !result.error && result.status === 0;
-}
-
-function hasOpenVikingPythonRuntime() {
-  const candidates = [
-    process.env.OPENVIKING_PYTHON,
-    path.join(root, ".venv-openviking", "bin", "python"),
-    "python3",
-    "python",
-  ].filter(Boolean);
-  return candidates.some((candidate) => {
-    const resolved = candidate.includes(path.sep) ? path.resolve(candidate) : candidate;
-    if (candidate.includes(path.sep) && !fs.existsSync(resolved)) return false;
-    return canRunOpenVikingPython(resolved);
-  });
-}
-
-function hasOpenVikingRuntime() {
-  const candidates = [
-    process.env.OPENVIKING_SERVER_BIN,
-    path.join(root, "thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
-    path.join(root, "thirdparty", "openviking", "bin", "openviking-server"),
-  ].filter(Boolean);
-  return candidates.some((candidate) => fs.existsSync(path.resolve(candidate))) || hasOpenVikingPythonRuntime();
-}
-
-function ensureOpenViking(options) {
-  if (options.skipOpenViking) return;
-
-  pnpm(["openviking:prepare"]);
-  pnpm(["openviking:cli-config"]);
-
-  if (!hasOpenVikingRuntime()) {
-    fail([
-      "OpenViking runtime is missing.",
-      "Offline installs do not download binaries unless OPENVIKING_ALLOW_NETWORK_INSTALL=1 is set for pnpm openviking:install-python.",
-      `Place the vetted binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, set OPENVIKING_SERVER_BIN, or run pnpm openviking:install-python.`,
-      "Use --skip-openviking only when an internal OpenViking service is already configured.",
-    ].join("\n"));
-  }
+function ensureKnowledgeEngine() {
+  const dir = path.join(root, "data", "knowledge-engine");
+  fs.mkdirSync(path.join(dir, "shadow"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "packs"), { recursive: true });
+  info(`Knowledge engine ready: ${path.relative(root, dir)}`);
 }
 
 function install(options = {}) {
@@ -194,7 +153,7 @@ function install(options = {}) {
   ensurePnpm();
   pnpm(["install"]);
   pnpm(["bootstrap"]);
-  ensureOpenViking(options);
+  ensureKnowledgeEngine();
   if (options.build) pnpm(["build"]);
   doctor({ quiet: true });
   info("Install complete. Start with: agentworld start");
@@ -213,7 +172,7 @@ function upgrade(options = {}) {
   git(["pull", "--ff-only"]);
   pnpm(["install", "--frozen-lockfile"]);
   pnpm(["bootstrap"]);
-  ensureOpenViking(options);
+  ensureKnowledgeEngine();
   if (!options.noBuild) pnpm(["build"]);
   doctor({ quiet: true });
   info("Upgrade complete.");
@@ -242,17 +201,12 @@ async function doctor(options = {}) {
   push("git", commandExists("git"), capture("git", ["--version"]) ?? "missing");
   push(".env.local", fs.existsSync(path.join(root, ".env.local")), ".env.local");
   push("SQLite data dir", fs.existsSync(path.join(root, "data")), "data/");
-  push(
-    "OpenViking runtime",
-    hasOpenVikingRuntime(),
-    `OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}`,
-  );
+  const knowledgeDir = path.join(root, "data", "knowledge-engine");
+  push("Knowledge engine storage", fs.existsSync(knowledgeDir), "data/knowledge-engine");
 
   const port = process.env.PORT ?? "7369";
   const appUrl = `http://127.0.0.1:${port}`;
-  const openVikingUrl = (process.env.OPENVIKING_BASE_URL ?? "http://127.0.0.1:1933").replace(/\/+$/, "");
   push("AgentWorld HTTP", await checkUrl(appUrl), appUrl);
-  push("OpenViking HTTP", await checkUrl(`${openVikingUrl}/health`), `${openVikingUrl}/health`);
 
   if (!options.quiet) {
     console.log(`AgentWorld ${packageJson.version}`);
@@ -274,8 +228,8 @@ function printHelp() {
 
 Usage:
   agentworld
-  agentworld install [--no-build] [--skip-openviking]
-  agentworld upgrade [--no-build] [--skip-openviking]
+  agentworld install [--no-build]
+  agentworld upgrade [--no-build]
   agentworld start
   agentworld dev
   agentworld build
@@ -284,32 +238,27 @@ Usage:
 
 Commands:
   start     Start the production server after the default install/build.
-  install   Install dependencies, bootstrap local config, install OpenViking, and build.
-  upgrade   Pull the latest git revision, reinstall dependencies, bootstrap, install/verify OpenViking, and build.
+  install   Install dependencies, bootstrap local config, prepare knowledge storage, and build.
+  upgrade   Pull the latest git revision, reinstall dependencies, bootstrap, prepare knowledge storage, and build.
   dev       Explicitly start the local development server on PORT or 7369.
   build     Build the standalone Next.js app.
   doctor    Check local prerequisites and service health.
 
 Environment:
   PORT                         AgentWorld port. Default: 7369.
-  AGENTWORLD_OPENVIKING_AUTO_START=0 disables launcher-managed OpenViking startup.
-  OPENVIKING_BASE_URL          OpenViking endpoint. Default: http://127.0.0.1:1933.
-  OPENVIKING_PYTHON            Python with openviking_cli installed for older glibc fallback.
+  KNOWLEDGE_ENGINE_MODEL_DEFAULTS_FILE  Optional model defaults JSON.
 `);
 }
 
 const parsed = parseArgs(process.argv.slice(2));
-const skipOpenViking = parsed.flags.has("--skip-openviking");
 
 if (parsed.command === "install") {
   install({
     build: !parsed.flags.has("--no-build"),
-    skipOpenViking,
   });
 } else if (parsed.command === "upgrade") {
   upgrade({
     noBuild: parsed.flags.has("--no-build"),
-    skipOpenViking,
   });
 } else if (parsed.command === "doctor") {
   await doctor();

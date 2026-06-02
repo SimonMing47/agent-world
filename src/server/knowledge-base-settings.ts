@@ -4,12 +4,12 @@ import { uiText } from "@/lib/language-pack";
 import { execute, queryOne, type SystemSetting } from "@/server/db";
 
 export const KNOWLEDGE_BASE_SETTINGS_KEY = "knowledge-base";
-export const DEFAULT_OPENVIKING_BASE_URL = "http://127.0.0.1:1933";
-const FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_PROVIDER = "local";
-const FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_MODEL = "";
-const FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_DIMENSION = "";
+export const DEFAULT_KNOWLEDGE_ENGINE_ENDPOINT = "local://agentworld-knowledge";
+const FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_PROVIDER = "local";
+const FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_MODEL = "";
+const FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_DIMENSION = "";
 
-export type KnowledgeBaseProvider = "openviking";
+export type KnowledgeBaseProvider = "native";
 
 export type KnowledgeBaseSettings = {
   provider: KnowledgeBaseProvider;
@@ -47,10 +47,10 @@ export type KnowledgeBaseSettings = {
   embeddingDimension: string;
 };
 
-type OpenVikingServerConfig = Record<string, unknown>;
-type OpenVikingCliConfig = Record<string, unknown>;
+type KnowledgeEngineStorageConfig = Record<string, unknown>;
+type KnowledgeEngineClientConfig = Record<string, unknown>;
 
-export type OpenVikingModelDefaults = {
+export type KnowledgeModelDefaults = {
   contentUnderstanding: {
     providerProfileId: string;
     provider: string;
@@ -78,11 +78,11 @@ export type KnowledgeFoundationStatus = {
 };
 
 function dataDir() {
-  return path.join("data", "openviking");
+  return path.join("data", "knowledge-engine");
 }
 
 function modelDefaultsPath() {
-  return process.env.OPENVIKING_MODEL_DEFAULTS_FILE ?? path.join(dataDir(), "model-defaults.json");
+  return process.env.KNOWLEDGE_ENGINE_MODEL_DEFAULTS_FILE ?? path.join(dataDir(), "model-defaults.json");
 }
 
 function readString(source: Record<string, unknown>, key: string, fallback = "") {
@@ -90,8 +90,8 @@ function readString(source: Record<string, unknown>, key: string, fallback = "")
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
-export function getOpenVikingModelDefaults(): OpenVikingModelDefaults {
-  const fallback: OpenVikingModelDefaults = {
+export function getKnowledgeModelDefaults(): KnowledgeModelDefaults {
+  const fallback: KnowledgeModelDefaults = {
     contentUnderstanding: {
       providerProfileId: "",
       provider: "",
@@ -100,10 +100,10 @@ export function getOpenVikingModelDefaults(): OpenVikingModelDefaults {
     },
     embedding: {
       providerProfileId: "",
-      provider: FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_PROVIDER,
-      model: FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_MODEL,
+      provider: FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_PROVIDER,
+      model: FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_MODEL,
       apiBase: "",
-      dimension: FALLBACK_OPENVIKING_DEFAULT_EMBEDDING_DIMENSION,
+      dimension: FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_DIMENSION,
     },
   };
   try {
@@ -139,43 +139,41 @@ function defaultCorsOrigins() {
 }
 
 function defaultSettings(): KnowledgeBaseSettings {
-  const modelDefaults = getOpenVikingModelDefaults();
+  const modelDefaults = getKnowledgeModelDefaults();
   return {
-    provider: "openviking",
+    provider: "native",
     enabled: true,
-    autoStart: process.env.AGENTWORLD_OPENVIKING_AUTO_START !== "0",
-    baseUrl: (process.env.OPENVIKING_BASE_URL ?? DEFAULT_OPENVIKING_BASE_URL).replace(/\/+$/, ""),
-    host: process.env.OPENVIKING_HOST ?? "127.0.0.1",
-    port: String(process.env.OPENVIKING_PORT ?? "1933"),
-    serverBin:
-      process.env.OPENVIKING_SERVER_BIN ??
-      path.join("thirdparty", "openviking", "bin", `openviking-server-${process.platform}-${process.arch}`),
-    configPath: process.env.OPENVIKING_CONFIG_FILE ?? path.join(dataDir(), "ov.conf"),
-    cliConfigPath: process.env.OPENVIKING_CLI_CONFIG_FILE ?? path.join(dataDir(), "ovcli.conf"),
-    timeoutSeconds: String(process.env.OPENVIKING_TIMEOUT_SECONDS ?? "60"),
-    apiKey: process.env.OPENVIKING_API_KEY ?? "",
-    account: process.env.OPENVIKING_ACCOUNT ?? "",
-    user: process.env.OPENVIKING_USER ?? "",
-    agentId: process.env.OPENVIKING_AGENT_ID ?? "",
+    autoStart: false,
+    baseUrl: DEFAULT_KNOWLEDGE_ENGINE_ENDPOINT,
+    host: "local",
+    port: "1",
+    serverBin: "",
+    configPath: path.join(dataDir(), "engine.json"),
+    cliConfigPath: path.join(dataDir(), "cli.json"),
+    timeoutSeconds: "60",
+    apiKey: "",
+    account: "",
+    user: "",
+    agentId: "",
     corsOrigins: defaultCorsOrigins(),
-    storageWorkspace: path.join(dataDir(), "workspace"),
+    storageWorkspace: dataDir(),
     agfsBackend: "local",
     vectorDbBackend: "local",
     taskTrackerBackend: "persistent",
     lockTimeoutSeconds: "5",
     lockExpireSeconds: "300",
-    logLevel: process.env.OPENVIKING_LOG_LEVEL ?? "INFO",
+    logLevel: process.env.KNOWLEDGE_ENGINE_LOG_LEVEL ?? "INFO",
     vlmProviderProfileId: modelDefaults.contentUnderstanding.providerProfileId,
-    vlmProvider: process.env.OPENVIKING_VLM_PROVIDER ?? modelDefaults.contentUnderstanding.provider,
-    vlmModel: process.env.OPENVIKING_VLM_MODEL ?? modelDefaults.contentUnderstanding.model,
-    vlmApiBase: process.env.OPENVIKING_VLM_API_BASE ?? modelDefaults.contentUnderstanding.apiBase,
-    vlmApiKey: process.env.OPENVIKING_VLM_API_KEY ?? "",
+    vlmProvider: process.env.KNOWLEDGE_ENGINE_VLM_PROVIDER ?? modelDefaults.contentUnderstanding.provider,
+    vlmModel: process.env.KNOWLEDGE_ENGINE_VLM_MODEL ?? modelDefaults.contentUnderstanding.model,
+    vlmApiBase: process.env.KNOWLEDGE_ENGINE_VLM_API_BASE ?? modelDefaults.contentUnderstanding.apiBase,
+    vlmApiKey: process.env.KNOWLEDGE_ENGINE_VLM_API_KEY ?? "",
     embeddingProviderProfileId: modelDefaults.embedding.providerProfileId,
-    embeddingProvider: process.env.OPENVIKING_EMBEDDING_PROVIDER ?? modelDefaults.embedding.provider,
-    embeddingModel: process.env.OPENVIKING_EMBEDDING_MODEL ?? modelDefaults.embedding.model,
-    embeddingApiBase: process.env.OPENVIKING_EMBEDDING_API_BASE ?? modelDefaults.embedding.apiBase,
-    embeddingApiKey: process.env.OPENVIKING_EMBEDDING_API_KEY ?? "",
-    embeddingDimension: process.env.OPENVIKING_EMBEDDING_DIMENSION ?? modelDefaults.embedding.dimension,
+    embeddingProvider: process.env.KNOWLEDGE_ENGINE_EMBEDDING_PROVIDER ?? modelDefaults.embedding.provider,
+    embeddingModel: process.env.KNOWLEDGE_ENGINE_EMBEDDING_MODEL ?? modelDefaults.embedding.model,
+    embeddingApiBase: process.env.KNOWLEDGE_ENGINE_EMBEDDING_API_BASE ?? modelDefaults.embedding.apiBase,
+    embeddingApiKey: process.env.KNOWLEDGE_ENGINE_EMBEDDING_API_KEY ?? "",
+    embeddingDimension: process.env.KNOWLEDGE_ENGINE_EMBEDDING_DIMENSION ?? modelDefaults.embedding.dimension,
   };
 }
 
@@ -212,7 +210,7 @@ function normalizeUrl(value: string, fallback: string) {
     return new URL(nextValue).toString().replace(/\/+$/, "");
   } catch {
     throw new Error(
-      uiText("ui.server.knowledgeBase.errors.invalidBaseUrl", "OpenViking Base URL format is invalid."),
+      uiText("ui.server.knowledgeBase.errors.invalidBaseUrl", "Knowledge engine endpoint format is invalid."),
     );
   }
 }
@@ -245,10 +243,10 @@ function normalizeOptionalPositiveNumberText(value: string, label: string) {
 }
 
 function normalizePort(value: string, fallback: string) {
-  const nextValue = normalizePositiveNumberText(value, fallback, "OpenViking Port");
+  const nextValue = normalizePositiveNumberText(value, fallback, "Knowledge engine port");
   const numeric = Number(nextValue);
   if (numeric > 65535) {
-    throw new Error(uiText("ui.server.knowledgeBase.errors.portTooLarge", "OpenViking Port must not exceed 65535."));
+    throw new Error(uiText("ui.server.knowledgeBase.errors.portTooLarge", "Knowledge engine port must not exceed 65535."));
   }
   return nextValue;
 }
@@ -279,45 +277,45 @@ function normalizeSettings(input: Partial<KnowledgeBaseSettings>, current: Knowl
   const timeoutSeconds = normalizePositiveNumberText(
     input.timeoutSeconds ?? current.timeoutSeconds,
     current.timeoutSeconds,
-    "OpenViking Timeout",
+    "Knowledge engine timeout",
   );
   const lockTimeoutSeconds = normalizePositiveNumberText(
     input.lockTimeoutSeconds ?? current.lockTimeoutSeconds,
     current.lockTimeoutSeconds,
-    "OpenViking lock timeout",
+    "Knowledge engine lock timeout",
   );
   const lockExpireSeconds = normalizePositiveNumberText(
     input.lockExpireSeconds ?? current.lockExpireSeconds,
     current.lockExpireSeconds,
-    "OpenViking lock expire",
+    "Knowledge engine lock expire",
   );
   const embeddingDimension = normalizeOptionalPositiveNumberText(
     input.embeddingDimension ?? current.embeddingDimension,
-    "OpenViking embedding dimension",
+    "Knowledge engine embedding dimension",
   );
   const embeddingProvider =
-    (input.embeddingProvider ?? current.embeddingProvider).trim() || getOpenVikingModelDefaults().embedding.provider;
+    (input.embeddingProvider ?? current.embeddingProvider).trim() || getKnowledgeModelDefaults().embedding.provider;
   const embeddingModel =
     (input.embeddingModel ?? current.embeddingModel).trim()
-    || (embeddingProvider === getOpenVikingModelDefaults().embedding.provider ? getOpenVikingModelDefaults().embedding.model : "");
+    || (embeddingProvider === getKnowledgeModelDefaults().embedding.provider ? getKnowledgeModelDefaults().embedding.model : "");
   const effectiveEmbeddingDimension =
     embeddingDimension
     || (
-      embeddingProvider === getOpenVikingModelDefaults().embedding.provider
-      && embeddingModel === getOpenVikingModelDefaults().embedding.model
-        ? getOpenVikingModelDefaults().embedding.dimension
+      embeddingProvider === getKnowledgeModelDefaults().embedding.provider
+      && embeddingModel === getKnowledgeModelDefaults().embedding.model
+        ? getKnowledgeModelDefaults().embedding.dimension
         : ""
     );
   const apiKey = (input.apiKey ?? current.apiKey).trim();
   const vlmApiKey = (input.vlmApiKey ?? current.vlmApiKey).trim();
   const embeddingApiKey = (input.embeddingApiKey ?? current.embeddingApiKey).trim();
 
-  assertNoEnvSecretReference(apiKey, "OpenViking Root API Key");
-  assertNoEnvSecretReference(vlmApiKey, "OpenViking VLM API Key");
-  assertNoEnvSecretReference(embeddingApiKey, "OpenViking Embedding API Key");
+  assertNoEnvSecretReference(apiKey, "Knowledge Engine API Key");
+  assertNoEnvSecretReference(vlmApiKey, "Knowledge Engine VLM API Key");
+  assertNoEnvSecretReference(embeddingApiKey, "Knowledge Engine Embedding API Key");
 
   return {
-    provider: "openviking",
+    provider: "native",
     enabled: input.enabled ?? current.enabled,
     autoStart: input.autoStart ?? current.autoStart,
     baseUrl,
@@ -353,7 +351,7 @@ function normalizeSettings(input: Partial<KnowledgeBaseSettings>, current: Knowl
   } satisfies KnowledgeBaseSettings;
 }
 
-export function canWriteOpenVikingVlmConfig(setting: KnowledgeBaseSettings) {
+export function canWriteKnowledgeVlmConfig(setting: KnowledgeBaseSettings) {
   if (!setting.vlmProvider || !setting.vlmModel) return false;
   if (setting.vlmApiKey) return true;
   const provider = setting.vlmProvider.toLowerCase();
@@ -362,7 +360,7 @@ export function canWriteOpenVikingVlmConfig(setting: KnowledgeBaseSettings) {
 }
 
 export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings()): KnowledgeFoundationStatus {
-  const canWriteVlmConfig = canWriteOpenVikingVlmConfig(setting);
+  const canWriteVlmConfig = canWriteKnowledgeVlmConfig(setting);
   if (!setting.vlmProvider || !setting.vlmModel) {
     return {
       state: "missing_model",
@@ -382,7 +380,7 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
       label: uiText("settings.knowledgeBase.status.apiKeyRequired", "API key required"),
       detail: uiText(
         "ui.server.knowledgeBase.foundationStatus.pendingApiKey.detail",
-        "A content understanding model is selected, but no directly savable API key is available; OpenViking will not write the VLM configuration yet.",
+        "A content understanding model is selected, but no directly savable API key is available yet.",
       ),
       provider: setting.vlmProvider,
       model: setting.vlmModel,
@@ -394,7 +392,7 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
     label: uiText("settings.knowledgeBase.status.enabled", "Enabled"),
     detail: uiText(
       "ui.server.knowledgeBase.foundationStatus.enabled.detail",
-      "The content understanding model will serve as the knowledge foundation for OpenViking L0 summaries, L1 overviews, and layered semantic structure.",
+      "The content understanding model will serve as the knowledge foundation for L0 summaries, L1 overviews, and layered semantic structure.",
     ),
     provider: setting.vlmProvider,
     model: setting.vlmModel,
@@ -419,7 +417,7 @@ export function getKnowledgeBaseSettings() {
   const parsed = parseJsonRecord(row?.valueJson);
 
   return {
-    provider: "openviking",
+    provider: "native",
     enabled: readBoolean(parsed, "enabled", defaults.enabled),
     autoStart: readBoolean(parsed, "autoStart", defaults.autoStart),
     baseUrl: readText(parsed, "baseUrl", defaults.baseUrl).replace(/\/+$/, ""),
@@ -476,7 +474,7 @@ export function upsertKnowledgeBaseSettings(input: Partial<KnowledgeBaseSettings
   return getKnowledgeBaseSettings();
 }
 
-export function getOpenVikingRuntimePaths(setting = getKnowledgeBaseSettings()) {
+export function getKnowledgeEngineRuntimePaths(setting = getKnowledgeBaseSettings()) {
   return {
     configPath: path.resolve(/* turbopackIgnore: true */ setting.configPath),
     cliConfigPath: path.resolve(/* turbopackIgnore: true */ setting.cliConfigPath),
@@ -484,7 +482,7 @@ export function getOpenVikingRuntimePaths(setting = getKnowledgeBaseSettings()) 
   };
 }
 
-export function buildOpenVikingServerConfig(setting = getKnowledgeBaseSettings()): OpenVikingServerConfig {
+export function buildKnowledgeEngineServerConfig(setting = getKnowledgeBaseSettings()): KnowledgeEngineStorageConfig {
   const server: Record<string, unknown> = {
     host: setting.host,
     port: Number(setting.port),
@@ -492,7 +490,7 @@ export function buildOpenVikingServerConfig(setting = getKnowledgeBaseSettings()
   };
   if (setting.apiKey) server.root_api_key = setting.apiKey;
 
-  const config: OpenVikingServerConfig = {
+  const config: KnowledgeEngineStorageConfig = {
     server,
     storage: {
       workspace: setting.storageWorkspace,
@@ -509,7 +507,7 @@ export function buildOpenVikingServerConfig(setting = getKnowledgeBaseSettings()
     },
   };
 
-  if (canWriteOpenVikingVlmConfig(setting)) {
+  if (canWriteKnowledgeVlmConfig(setting)) {
     config.vlm = {
       provider: setting.vlmProvider,
       model: setting.vlmModel,
@@ -533,7 +531,7 @@ export function buildOpenVikingServerConfig(setting = getKnowledgeBaseSettings()
   return config;
 }
 
-export function buildOpenVikingCliConfig(setting = getKnowledgeBaseSettings()): OpenVikingCliConfig {
+export function buildKnowledgeEngineCliConfig(setting = getKnowledgeBaseSettings()): KnowledgeEngineClientConfig {
   return {
     url: setting.baseUrl,
     timeout: Number(setting.timeoutSeconds),
@@ -544,11 +542,11 @@ export function buildOpenVikingCliConfig(setting = getKnowledgeBaseSettings()): 
   };
 }
 
-export function writeOpenVikingConfigFiles(setting = getKnowledgeBaseSettings()) {
-  const { configPath, cliConfigPath } = getOpenVikingRuntimePaths(setting);
+export function writeKnowledgeEngineConfigFiles(setting = getKnowledgeBaseSettings()) {
+  const { configPath, cliConfigPath } = getKnowledgeEngineRuntimePaths(setting);
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.mkdirSync(path.dirname(cliConfigPath), { recursive: true });
-  fs.writeFileSync(configPath, `${JSON.stringify(buildOpenVikingServerConfig(setting), null, 2)}\n`);
-  fs.writeFileSync(cliConfigPath, `${JSON.stringify(buildOpenVikingCliConfig(setting), null, 2)}\n`);
+  fs.writeFileSync(configPath, `${JSON.stringify(buildKnowledgeEngineServerConfig(setting), null, 2)}\n`);
+  fs.writeFileSync(cliConfigPath, `${JSON.stringify(buildKnowledgeEngineCliConfig(setting), null, 2)}\n`);
   return { configPath, cliConfigPath };
 }

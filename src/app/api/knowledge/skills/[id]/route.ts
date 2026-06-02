@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateKnowledgeSkill } from "@/server/openviking-core";
+import { updateKnowledgeSkill } from "@/server/knowledge-engine";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

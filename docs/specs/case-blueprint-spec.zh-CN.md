@@ -75,7 +75,7 @@ Case Blueprint 只能组织配置，不能绕过 Task Blueprint：
 - Provider 选择由 TaskBlueprint 和 ProviderAdapter 规格处理。
 - 环境由 Environment Template/Snapshot 处理。
 - 权限由 allow / ask / deny 统一决策。
-- 记忆读写由 OpenViking URI 范围约束。
+- 记忆读写由 AgentWorld 知识引擎 URI 范围约束。
 - 事件、Finding 和看板由任务事件规格约束。
 
 ## 6. 样例一：MR 检视配置包
@@ -111,10 +111,10 @@ spec:
         repo.write: deny
     memory:
       readScopes:
-        - viking://resources/agentworld/code-inspection/repositories
-        - viking://agent/skills/agentworld/code-inspection/security
+        - agentworld://knowledge/resources/agentworld/code-inspection/repositories
+        - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
       writeScopes:
-        - viking://user/memories/agentworld/code-inspection/feedback
+        - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
 ```
 
 预期输出：
@@ -159,10 +159,10 @@ spec:
         repo.write: deny
     memory:
       readScopes:
-        - viking://agent/skills/agentworld/code-inspection/security
-        - viking://user/memories/agentworld/code-inspection/feedback
+        - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+        - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
       writeScopes:
-        - viking://resources/agentworld/code-inspection/global
+        - agentworld://knowledge/resources/agentworld/code-inspection/global
 ```
 
 预期输出：
@@ -208,5 +208,5 @@ draft -> validated -> dry_run_passed -> active -> deprecated -> archived
 - 案例包导入后只产生标准 TaskBlueprint、Environment Template、插件依赖、Skill、看板和权限配置。
 - 平台主干不包含针对案例名称的条件分支。
 - 两个样例均可作为配置导入、试运行和发布。
-- 案例输出统一使用 Finding、Artifact、事件流和 OpenViking 记忆写回。
+- 案例输出统一使用 Finding、Artifact、事件流和 AgentWorld 知识引擎 记忆写回。
 - 覆盖、发布和回滚过程可审计。
