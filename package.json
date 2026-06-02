@@ -22,6 +22,7 @@
     "bootstrap": "tsx scripts/setup.ts",
     "openviking:prepare": "node scripts/openviking-setup.mjs",
     "openviking:install": "node scripts/openviking-setup.mjs --require-binary",
+    "openviking:install-python": "node scripts/openviking-setup.mjs --python-venv",
     "openviking:init": "node scripts/openviking-init.mjs",
     "openviking:doctor": "node scripts/openviking-doctor.mjs",
     "openviking:cli-config": "node scripts/openviking-cli-config.mjs",

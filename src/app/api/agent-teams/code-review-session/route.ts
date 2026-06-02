@@ -39,7 +39,7 @@ function resolveRuntimeDefaults() {
 
 export async function POST(request: Request) {
   try {
-    const authContext = await getRequestAuthContext();
+    const authContext = await getRequestAuthContext(request);
     const actorName = authContext?.user.name?.trim() || authContext?.user.email?.trim();
     if (!actorName) {
       return NextResponse.json({ ok: false, error: uiText("identityAccess.errors.signInRequired") }, { status: 401 });

@@ -6,11 +6,11 @@ import { getTaskBlueprintDetail, upsertTaskBlueprint } from "@/server/queries";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const resolved = await params;
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const detail = getTaskBlueprintDetail(resolved.id);
   if (!detail) {
     return NextResponse.json({ ok: false, error: "task blueprint not found" }, { status: 404 });
@@ -27,7 +27,7 @@ export async function PATCH(
 ) {
   const resolved = await params;
   const body = (await request.json()) as Parameters<typeof upsertTaskBlueprint>[0];
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   requireBusinessTeamAccess(authContext, body.ownerBusinessTeamId);
   const blueprint = upsertTaskBlueprint({
     ...body,
@@ -37,11 +37,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const authContext = await getRequestAuthContext();
+  const authContext = await getRequestAuthContext(request);
   const detail = getTaskBlueprintDetail(id);
   requireBusinessTeamAccess(authContext, detail?.blueprint.ownerBusinessTeamId);
   deleteManagedResource({ type: "task-blueprint", id });

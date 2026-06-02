@@ -1,5 +1,12 @@
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 import {
   defaultServerBin,
+  root,
+  thirdpartyDir,
+  venvDir,
+  venvPython,
   resolveServerBin,
   writeCliConfig,
   writeServerConfig,
@@ -8,14 +15,45 @@ import {
 const force = process.argv.includes("--force");
 const requireBinary = process.argv.includes("--require-binary");
 const devVenv = process.argv.includes("--dev-venv");
+const pythonVenv = devVenv || process.argv.includes("--python-venv");
 
 const configPath = writeServerConfig({ force });
 const cliConfigPath = writeCliConfig({ force });
 
-if (devVenv) {
-  console.error("Networked OpenViking pip installation is disabled for offline deployments.");
-  console.error(`Provide a vetted OpenViking server binary via OPENVIKING_SERVER_BIN or thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}.`);
-  process.exit(1);
+function run(command, args) {
+  execFileSync(command, args, { cwd: root, stdio: "inherit" });
+}
+
+function installPythonRuntime() {
+  const python = process.env.PYTHON ?? "python3";
+  const wheelhouseDir = path.resolve(process.env.OPENVIKING_WHEELHOUSE_DIR ?? path.join(thirdpartyDir, "wheels"));
+  const allowNetwork = process.env.OPENVIKING_ALLOW_NETWORK_INSTALL === "1";
+  const spec =
+    process.env.OPENVIKING_PIP_SPEC ??
+    (process.env.OPENVIKING_VERSION
+      ? `openviking[local-embed]==${process.env.OPENVIKING_VERSION}`
+      : "openviking[local-embed]");
+
+  if (!fs.existsSync(venvPython)) {
+    run(python, ["-m", "venv", venvDir]);
+  }
+
+  const installArgs = ["-m", "pip", "install", "--upgrade"];
+  if (!allowNetwork) {
+    if (!fs.existsSync(wheelhouseDir) || fs.readdirSync(wheelhouseDir).length === 0) {
+      console.error(`Offline OpenViking wheelhouse is missing or empty: ${wheelhouseDir}`);
+      console.error("Populate thirdparty/openviking/wheels, set OPENVIKING_WHEELHOUSE_DIR, or set OPENVIKING_ALLOW_NETWORK_INSTALL=1 for a controlled online install.");
+      process.exit(1);
+    }
+    installArgs.push("--no-index", "--find-links", wheelhouseDir);
+  }
+  installArgs.push(spec);
+  run(venvPython, installArgs);
+  console.log(`Python OpenViking runtime installed: ${venvPython}`);
+}
+
+if (pythonVenv) {
+  installPythonRuntime();
 }
 
 const serverBin = resolveServerBin();

@@ -10,11 +10,22 @@ import { Input } from "@/components/ui/input";
 
 const passwordInputClass = "aw-auth-input pl-9";
 
+function normalizeNextPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/overview";
+  }
+  const pathname = value.split("?")[0];
+  if (pathname === "/signin" || pathname === "/change-password") {
+    return "/overview";
+  }
+  return value;
+}
+
 export function ChangePasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const text = useLanguageText();
-  const next = searchParams.get("next") || "/overview";
+  const next = normalizeNextPath(searchParams.get("next"));
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

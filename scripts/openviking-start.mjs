@@ -1,25 +1,24 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import {
+  buildOpenVikingPythonArgs,
   resolveHost,
   resolvePort,
-  resolveServerBin,
+  resolveOpenVikingServerCommand,
   resolveServerConfigPath,
   root,
   writeCliConfig,
   writeServerConfig,
 } from "./openviking-common.mjs";
 
-const bin = resolveServerBin();
+const serverCommand = resolveOpenVikingServerCommand();
 const configPath = resolveServerConfigPath();
 const host = resolveHost();
 const port = resolvePort();
 
-if (!bin || !fs.existsSync(bin)) {
-  console.error("OpenViking server binary is missing.");
-  console.error(`Expected: thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}`);
-  console.error("Or set OPENVIKING_SERVER_BIN=/absolute/path/to/openviking-server");
-  console.error("Offline installs do not download OpenViking. Provide the binary from an approved internal artifact.");
+if (!serverCommand || serverCommand.kind === "incompatible") {
+  console.error(serverCommand?.compatibility.reason ?? "OpenViking runtime is missing.");
+  console.error(`Expected a compatible binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, OPENVIKING_SERVER_BIN, or Python runtime from pnpm openviking:install-python.`);
   process.exit(1);
 }
 
@@ -28,7 +27,13 @@ if (!fs.existsSync(configPath)) {
 }
 writeCliConfig();
 
-const child = spawn(bin, ["--config", configPath, "--host", host, "--port", port], {
+const args = serverCommand.kind === "python"
+  ? buildOpenVikingPythonArgs(configPath)
+  : ["--config", configPath, "--host", host, "--port", port];
+if (serverCommand.compatibility.reason) {
+  console.warn(serverCommand.compatibility.reason);
+}
+const child = spawn(serverCommand.command, args, {
   cwd: root,
   stdio: "inherit",
   env: {
