@@ -30,7 +30,6 @@ function thirdpartyBinDir() {
 function venvPythonPath() {
   return path.join(".venv-openviking", "bin", "python");
 }
-
 const BUNDLED_LINUX_OPENVIKING_MIN_GLIBC = "2.35";
 
 function parseVersion(value: string | null | undefined) {
@@ -127,7 +126,6 @@ function buildOpenVikingPythonArgs(configPath: string) {
     resolveOpenVikingPort(),
   ];
 }
-
 export function resolveOpenVikingBaseUrl() {
   return getKnowledgeBaseSettings().baseUrl.replace(/\/+$/, "");
 }
