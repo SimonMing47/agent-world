@@ -1,8 +1,8 @@
 import { addDays } from "date-fns";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { getAuthAdapter, listAuthAdapterCatalog, type NormalizedEnterpriseIdentity } from "@/server/auth-adapter-core";
+import { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 import {
   execute,
   queryAll,
@@ -14,6 +14,7 @@ import {
   type BusinessTeam,
   type IdentityUser,
   type IdentityUserBusinessTeamMembership,
+  type LocalAuthCredential,
   type SystemSetting,
 } from "@/server/db";
 import { listBusinessTeams } from "@/server/queries";
@@ -22,7 +23,9 @@ export { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 
 const AUTH_SESSION_COOKIE = "agentworld_session";
 const IDENTITY_ACCESS_SETTINGS_KEY = "identity_access_settings";
-const DEVELOPMENT_ACCESS_SETTINGS_KEY = "development_access_settings";
+const DEFAULT_BOOTSTRAP_USERNAME = "admin";
+const DEFAULT_BOOTSTRAP_PASSWORD = "admin";
+const LEGACY_BOOTSTRAP_PASSWORDS = ["AgentWorld@123"];
 
 function nowIso() {
   return new Date().toISOString();
@@ -61,17 +64,78 @@ function parseJsonArray(value: string | null | undefined) {
   }
 }
 
+function normalizeUsername(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt$${salt}$${hash}`;
+}
+
+function verifyPassword(password: string, storedHash: string) {
+  const [algorithm, salt, hash] = storedHash.split("$");
+  if (algorithm !== "scrypt" || !salt || !hash) return false;
+  const nextHash = scryptSync(password, salt, 64);
+  const stored = Buffer.from(hash, "hex");
+  return stored.length === nextHash.length && timingSafeEqual(stored, nextHash);
+}
+
+function bootstrapLocalAdminDefaults() {
+  return {
+    username: normalizeUsername(process.env.AGENTWORLD_BOOTSTRAP_USERNAME || DEFAULT_BOOTSTRAP_USERNAME),
+    password: process.env.AGENTWORLD_BOOTSTRAP_PASSWORD || DEFAULT_BOOTSTRAP_PASSWORD,
+    email: (process.env.AGENTWORLD_BOOTSTRAP_EMAIL || "admin@agentworld.local").trim().toLowerCase(),
+    name: process.env.AGENTWORLD_BOOTSTRAP_NAME || "AgentWorld Administrator",
+    title: process.env.AGENTWORLD_BOOTSTRAP_TITLE || "System Administrator",
+  };
+}
+
+function shouldRequireDefaultAdminPasswordChange(credential: LocalAuthCredential | null | undefined) {
+  return credential?.username === DEFAULT_BOOTSTRAP_USERNAME && credential.forcePasswordChange === 1;
+}
+
+function shouldCreateDefaultAdminPasswordChange(defaults: ReturnType<typeof bootstrapLocalAdminDefaults>) {
+  return defaults.username === DEFAULT_BOOTSTRAP_USERNAME && defaults.password === DEFAULT_BOOTSTRAP_PASSWORD;
+}
+
+function migrateLegacyBootstrapPasswordIfNeeded(credential: LocalAuthCredential) {
+  const defaults = bootstrapLocalAdminDefaults();
+  if (!shouldCreateDefaultAdminPasswordChange(defaults)) return credential;
+  if (!shouldRequireDefaultAdminPasswordChange(credential)) return credential;
+  if (verifyPassword(DEFAULT_BOOTSTRAP_PASSWORD, credential.passwordHash)) return credential;
+  if (!LEGACY_BOOTSTRAP_PASSWORDS.some((password) => verifyPassword(password, credential.passwordHash))) {
+    return credential;
+  }
+
+  execute(
+    "UPDATE local_auth_credentials SET password_hash = ?, updated_at = ? WHERE id = ?",
+    hashPassword(DEFAULT_BOOTSTRAP_PASSWORD),
+    nowIso(),
+    credential.id,
+  );
+  const user = queryOne<IdentityUser>("SELECT * FROM identity_users WHERE id = ? LIMIT 1", credential.userId);
+  execute(
+    "UPDATE identity_users SET profile_json = ?, updated_at = ? WHERE id = ?",
+    normalizeJson({ ...parseJsonRecord(user?.profileJson), passwordChangeRequired: true }, {}),
+    nowIso(),
+    credential.userId,
+  );
+
+  return queryOne<LocalAuthCredential>("SELECT * FROM local_auth_credentials WHERE id = ?", credential.id) ?? credential;
+}
+
 export type IdentityAccessSettings = {
   adminContactEmail: string;
   requestMessage: string;
-};
-
-export type DevelopmentAccessSettings = {
-  enabled: boolean;
-  autoEnter: boolean;
-  name: string;
-  email: string;
-  title: string;
+  passwordLoginEnabled: boolean;
+  registrationEnabled: boolean;
+  ssoLoginEnabled: boolean;
+  ssoPluginId: string;
+  ssoButtonLabel: string;
+  ssoButtonLogoUrl: string;
+  ssoButtonHref: string;
 };
 
 export type AuthContext = {
@@ -86,6 +150,7 @@ export type AuthContext = {
     allowed: boolean;
     reason: "system_admin" | "whitelist_match" | "not_signed_in" | "not_whitelisted" | "whitelist_missing";
   };
+  mustChangePassword: boolean;
   settings: IdentityAccessSettings;
 };
 
@@ -224,6 +289,16 @@ export function getIdentityAccessSettings(): IdentityAccessSettings {
       typeof parsed.requestMessage === "string"
         ? parsed.requestMessage
         : "identityAccess.settings.defaultRequestMessage",
+    passwordLoginEnabled: typeof parsed.passwordLoginEnabled === "boolean" ? parsed.passwordLoginEnabled : true,
+    registrationEnabled: typeof parsed.registrationEnabled === "boolean" ? parsed.registrationEnabled : true,
+    ssoLoginEnabled: typeof parsed.ssoLoginEnabled === "boolean" ? parsed.ssoLoginEnabled : false,
+    ssoPluginId: typeof parsed.ssoPluginId === "string" ? parsed.ssoPluginId : "",
+    ssoButtonLabel:
+      typeof parsed.ssoButtonLabel === "string" && parsed.ssoButtonLabel.trim()
+        ? parsed.ssoButtonLabel
+        : "identityAccess.signIn.sso.defaultLabel",
+    ssoButtonLogoUrl: typeof parsed.ssoButtonLogoUrl === "string" ? parsed.ssoButtonLogoUrl : "",
+    ssoButtonHref: typeof parsed.ssoButtonHref === "string" ? parsed.ssoButtonHref : "",
   };
 }
 
@@ -236,6 +311,13 @@ export function upsertIdentityAccessSettings(input: Partial<IdentityAccessSettin
       {
         adminContactEmail: input.adminContactEmail ?? current.adminContactEmail,
         requestMessage: input.requestMessage ?? current.requestMessage,
+        passwordLoginEnabled: input.passwordLoginEnabled ?? current.passwordLoginEnabled,
+        registrationEnabled: input.registrationEnabled ?? current.registrationEnabled,
+        ssoLoginEnabled: input.ssoLoginEnabled ?? current.ssoLoginEnabled,
+        ssoPluginId: input.ssoPluginId ?? current.ssoPluginId,
+        ssoButtonLabel: input.ssoButtonLabel ?? current.ssoButtonLabel,
+        ssoButtonLogoUrl: input.ssoButtonLogoUrl ?? current.ssoButtonLogoUrl,
+        ssoButtonHref: input.ssoButtonHref ?? current.ssoButtonHref,
       },
       {},
     ),
@@ -243,45 +325,6 @@ export function upsertIdentityAccessSettings(input: Partial<IdentityAccessSettin
     nowIso(),
   );
   return getIdentityAccessSettings();
-}
-
-export function getDevelopmentAccessSettings(): DevelopmentAccessSettings {
-  const current = queryOne<SystemSetting>("SELECT * FROM system_settings WHERE key = ?", DEVELOPMENT_ACCESS_SETTINGS_KEY);
-  const parsed = parseJsonRecord(current?.valueJson);
-  return {
-    enabled: typeof parsed.enabled === "boolean" ? parsed.enabled : process.env.NODE_ENV === "development",
-    autoEnter: typeof parsed.autoEnter === "boolean" ? parsed.autoEnter : false,
-    name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name : "Development Administrator",
-    email:
-      typeof parsed.email === "string" && parsed.email.trim()
-        ? parsed.email.trim().toLowerCase()
-        : "dev-admin@agentworld.local",
-    title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : "System Administrator",
-  };
-}
-
-export function upsertDevelopmentAccessSettings(
-  input: Partial<DevelopmentAccessSettings>,
-  updatedBy = "system",
-) {
-  const current = getDevelopmentAccessSettings();
-  execute(
-    "INSERT OR REPLACE INTO system_settings (key, value_json, updated_by, updated_at) VALUES (?, ?, ?, ?)",
-    DEVELOPMENT_ACCESS_SETTINGS_KEY,
-    normalizeJson(
-      {
-        enabled: input.enabled ?? current.enabled,
-        autoEnter: input.autoEnter ?? current.autoEnter,
-        name: input.name ?? current.name,
-        email: input.email ?? current.email,
-        title: input.title ?? current.title,
-      },
-      {},
-    ),
-    updatedBy,
-    nowIso(),
-  );
-  return getDevelopmentAccessSettings();
 }
 
 function teamIsWithinRuleScope(args: {
@@ -309,7 +352,7 @@ function evaluateWhitelistAccess(args: {
     return { allowed: true, reason: "system_admin" as const, accessibleBusinessTeamIds: args.teams.map((team) => team.id) };
   }
   if (args.whitelistRules.length === 0) {
-    return { allowed: false, reason: "whitelist_missing" as const, accessibleBusinessTeamIds: [] as string[] };
+    return { allowed: true, reason: "whitelist_missing" as const, accessibleBusinessTeamIds: args.teams.map((team) => team.id) };
   }
   const teamsById = new Map(args.teams.map((team) => [team.id, team]));
   const accessibleBusinessTeamIds = args.memberships
@@ -329,120 +372,14 @@ function evaluateWhitelistAccess(args: {
   return { allowed: false, reason: "not_whitelisted" as const, accessibleBusinessTeamIds: [] as string[] };
 }
 
-function resolveExistingIdentity(args: { email: string; externalUserId?: string | null; authProviderConfigId?: string | null }) {
-  if (args.authProviderConfigId && args.externalUserId) {
-    const direct = queryOne<IdentityUser>(
-      "SELECT * FROM identity_users WHERE auth_provider_config_id = ? AND external_user_id = ? LIMIT 1",
-      args.authProviderConfigId,
-      args.externalUserId,
-    );
-    if (direct) return direct;
-  }
-  return queryOne<IdentityUser>("SELECT * FROM identity_users WHERE email = ? LIMIT 1", args.email);
-}
-
-export function signInWithDevelopmentIdentity(input: {
-  providerConfigId?: string | null;
-  email: string;
-  name: string;
-  employeeNo?: string;
-  title?: string;
-  avatarUrl?: string;
-  isSystemAdmin?: boolean;
-  businessTeamIds?: string[];
-  primaryBusinessTeamId?: string | null;
-  requestedBy?: string;
-}) {
-  const allowSystemAdmin = input.requestedBy === "development_access";
-  const adapter = getAuthAdapter("development_stub");
-  const normalizedIdentity: NormalizedEnterpriseIdentity = adapter?.normalizeDevelopmentPayload
-    ? adapter.normalizeDevelopmentPayload(input)
-    : {
-        externalUserId: input.email.trim().toLowerCase(),
-        email: input.email.trim().toLowerCase(),
-        name: input.name.trim(),
-        employeeNo: input.employeeNo?.trim(),
-        title: input.title?.trim(),
-        avatarUrl: input.avatarUrl?.trim(),
-        isSystemAdmin: allowSystemAdmin && Boolean(input.isSystemAdmin),
-        primaryBusinessTeamId: input.primaryBusinessTeamId ?? null,
-        businessTeamIds: input.businessTeamIds ?? [],
-      };
-  const normalizedEmail = normalizedIdentity.email;
-  const isSystemAdmin = allowSystemAdmin && Boolean(normalizedIdentity.isSystemAdmin);
-  const businessTeams = listBusinessTeams();
-  const availableTeamIds = new Set(businessTeams.map((team) => team.id));
-  const currentMemberships = Array.from(
-    new Set(
-      (normalizedIdentity.businessTeamIds ?? [])
-        .map((teamId) => teamId.trim())
-        .filter((teamId) => availableTeamIds.has(teamId)),
-    ),
-  );
-  const primaryBusinessTeamId =
-    normalizedIdentity.primaryBusinessTeamId && availableTeamIds.has(normalizedIdentity.primaryBusinessTeamId)
-      ? normalizedIdentity.primaryBusinessTeamId
-      : currentMemberships[0] ?? null;
-  const primaryBusinessTeam = primaryBusinessTeamId
-    ? businessTeams.find((team) => team.id === primaryBusinessTeamId) ?? null
-    : null;
-  const existing = resolveExistingIdentity({
-    email: normalizedEmail,
-    externalUserId: normalizedEmail,
-    authProviderConfigId: input.providerConfigId ?? null,
-  });
-  const userId = existing?.id ?? randomUUID();
-  const createdAt = existing?.createdAt ?? nowIso();
-  execute(
-    "INSERT OR REPLACE INTO identity_users (id, tenant_space_id, auth_provider_config_id, external_user_id, employee_no, email, name, avatar_url, title, status, is_system_admin, primary_business_team_id, profile_json, created_at, updated_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    userId,
-    primaryBusinessTeam?.tenantSpaceId ?? existing?.tenantSpaceId ?? null,
-    input.providerConfigId ?? existing?.authProviderConfigId ?? null,
-    normalizedIdentity.externalUserId,
-    normalizedIdentity.employeeNo ?? existing?.employeeNo ?? "",
-    normalizedEmail,
-    normalizedIdentity.name,
-    normalizedIdentity.avatarUrl ?? existing?.avatarUrl ?? "",
-    normalizedIdentity.title ?? existing?.title ?? "",
-    "active",
-    isSystemAdmin ? 1 : 0,
-    primaryBusinessTeamId,
-    normalizeJson(
-      {
-        source: input.providerConfigId ? "configured_development_provider" : "builtin_development_provider",
-        requestedBy: input.requestedBy ?? "signin",
-        attributes: normalizedIdentity.attributes ?? {},
-      },
-      {},
-    ),
-    createdAt,
-    nowIso(),
-    nowIso(),
-  );
-
-  execute("DELETE FROM identity_user_business_team_memberships WHERE user_id = ?", userId);
-  for (const teamId of currentMemberships) {
-    execute(
-      "INSERT INTO identity_user_business_team_memberships (id, user_id, business_team_id, membership_source, source_ref, role_title, is_primary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      randomUUID(),
-      userId,
-      teamId,
-      "development_stub",
-      input.providerConfigId ?? "builtin",
-      normalizedIdentity.title ?? "",
-      teamId === primaryBusinessTeamId ? 1 : 0,
-      nowIso(),
-      nowIso(),
-    );
-  }
-
+function createAuthSession(userId: string, authProviderConfigId: string | null = null) {
   const sessionId = randomUUID();
   const sessionToken = randomUUID();
   execute(
     "INSERT INTO auth_sessions (id, user_id, auth_provider_config_id, session_token, status, expires_at, created_at, updated_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     sessionId,
     userId,
-    input.providerConfigId ?? null,
+    authProviderConfigId,
     sessionToken,
     "active",
     addDays(new Date(), 7).toISOString(),
@@ -462,21 +399,211 @@ export function signInWithDevelopmentIdentity(input: {
   };
 }
 
-export function signInWithDevelopmentAccess() {
-  const settings = getDevelopmentAccessSettings();
-  if (!settings.enabled) {
-    throw new Error("developmentAccess.errors.disabled");
+export function ensureBootstrapLocalAdmin() {
+  const existingCredential = queryOne<LocalAuthCredential>(
+    "SELECT * FROM local_auth_credentials WHERE status = 'active' ORDER BY created_at ASC LIMIT 1",
+  );
+  if (existingCredential) return migrateLegacyBootstrapPasswordIfNeeded(existingCredential);
+
+  const defaults = bootstrapLocalAdminDefaults();
+  const forcePasswordChange = shouldCreateDefaultAdminPasswordChange(defaults) ? 1 : 0;
+  const existingAdmin = queryOne<IdentityUser>(
+    "SELECT * FROM identity_users WHERE is_system_admin = 1 AND status <> 'deleted' ORDER BY created_at ASC LIMIT 1",
+  );
+  const userId = existingAdmin?.id ?? randomUUID();
+  const createdAt = existingAdmin?.createdAt ?? nowIso();
+  const adminProfile = parseJsonRecord(existingAdmin?.profileJson);
+
+  execute(
+    "INSERT OR REPLACE INTO identity_users (id, tenant_space_id, auth_provider_config_id, external_user_id, employee_no, email, name, avatar_url, title, status, is_system_admin, primary_business_team_id, profile_json, created_at, updated_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    userId,
+    existingAdmin?.tenantSpaceId ?? null,
+    existingAdmin?.authProviderConfigId ?? null,
+    existingAdmin?.externalUserId ?? defaults.username,
+    existingAdmin?.employeeNo ?? "BOOTSTRAP-ADMIN",
+    existingAdmin?.email ?? defaults.email,
+    existingAdmin?.name ?? defaults.name,
+    existingAdmin?.avatarUrl ?? "",
+    existingAdmin?.title ?? defaults.title,
+    "active",
+    1,
+    existingAdmin?.primaryBusinessTeamId ?? null,
+    normalizeJson(
+      {
+        ...adminProfile,
+        localAuthSource: "bootstrap_local_account",
+        passwordChangeRequired: forcePasswordChange === 1,
+      },
+      {},
+    ),
+    createdAt,
+    nowIso(),
+    existingAdmin?.lastLoginAt ?? nowIso(),
+  );
+
+  const credentialId = randomUUID();
+  execute(
+    "INSERT INTO local_auth_credentials (id, user_id, username, password_hash, force_password_change, status, created_at, updated_at, last_password_change_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    credentialId,
+    userId,
+    defaults.username,
+    hashPassword(defaults.password),
+    forcePasswordChange,
+    "active",
+    nowIso(),
+    nowIso(),
+    null,
+  );
+
+  return queryOne<LocalAuthCredential>("SELECT * FROM local_auth_credentials WHERE id = ?", credentialId)!;
+}
+
+export function getLocalAuthCredentialForUser(userId: string) {
+  return queryOne<LocalAuthCredential>(
+    "SELECT * FROM local_auth_credentials WHERE user_id = ? AND status = 'active' LIMIT 1",
+    userId,
+  );
+}
+
+export function signInWithPassword(input: { username: string; password: string }) {
+  const settings = getIdentityAccessSettings();
+  if (!settings.passwordLoginEnabled) {
+    throw new Error("identityAccess.signIn.errors.passwordDisabled");
   }
-  return signInWithDevelopmentIdentity({
-    email: settings.email,
-    name: settings.name,
-    title: settings.title,
-    employeeNo: "DEV-ADMIN",
-    isSystemAdmin: true,
-    businessTeamIds: [],
-    primaryBusinessTeamId: null,
-    requestedBy: "development_access",
-  });
+
+  ensureBootstrapLocalAdmin();
+  const username = normalizeUsername(input.username);
+  const credential = queryOne<LocalAuthCredential>(
+    "SELECT * FROM local_auth_credentials WHERE username = ? AND status = 'active' LIMIT 1",
+    username,
+  );
+  if (!credential || !verifyPassword(input.password, credential.passwordHash)) {
+    throw new Error("identityAccess.signIn.errors.invalidCredentials");
+  }
+
+  const user = queryOne<IdentityUser>("SELECT * FROM identity_users WHERE id = ? AND status = 'active' LIMIT 1", credential.userId);
+  if (!user) {
+    throw new Error("identityAccess.signIn.errors.invalidCredentials");
+  }
+
+  execute(
+    "UPDATE identity_users SET last_login_at = ?, updated_at = ? WHERE id = ?",
+    nowIso(),
+    nowIso(),
+    user.id,
+  );
+
+  return createAuthSession(user.id, user.authProviderConfigId);
+}
+
+export function registerWithPassword(input: {
+  username: string;
+  password: string;
+  name: string;
+  email: string;
+}) {
+  const settings = getIdentityAccessSettings();
+  if (!settings.passwordLoginEnabled || !settings.registrationEnabled) {
+    throw new Error("identityAccess.register.errors.disabled");
+  }
+
+  const username = normalizeUsername(input.username);
+  const name = input.name.trim();
+  const email = input.email.trim().toLowerCase();
+  const password = input.password.trim();
+  if (!username || !name || !email || !password) {
+    throw new Error("identityAccess.register.errors.required");
+  }
+  if (username.length < 3) {
+    throw new Error("identityAccess.register.errors.usernameTooShort");
+  }
+  const existingCredential = queryOne<LocalAuthCredential>(
+    "SELECT * FROM local_auth_credentials WHERE username = ? AND status = 'active' LIMIT 1",
+    username,
+  );
+  if (existingCredential) {
+    throw new Error("identityAccess.register.errors.usernameExists");
+  }
+  const existingUser = queryOne<IdentityUser>(
+    "SELECT * FROM identity_users WHERE email = ? AND status <> 'deleted' LIMIT 1",
+    email,
+  );
+  if (existingUser) {
+    throw new Error("identityAccess.register.errors.emailExists");
+  }
+
+  const userId = randomUUID();
+  const now = nowIso();
+  execute(
+    "INSERT INTO identity_users (id, tenant_space_id, auth_provider_config_id, external_user_id, employee_no, email, name, avatar_url, title, status, is_system_admin, primary_business_team_id, profile_json, created_at, updated_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    userId,
+    null,
+    null,
+    username,
+    username,
+    email,
+    name,
+    "",
+    "",
+    "active",
+    0,
+    null,
+    normalizeJson({ localAuthSource: "self_registration" }, {}),
+    now,
+    now,
+    now,
+  );
+  execute(
+    "INSERT INTO local_auth_credentials (id, user_id, username, password_hash, force_password_change, status, created_at, updated_at, last_password_change_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    randomUUID(),
+    userId,
+    username,
+    hashPassword(password),
+    0,
+    "active",
+    now,
+    now,
+    now,
+  );
+
+  return createAuthSession(userId, null);
+}
+
+export function changeCurrentUserPassword(input: {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const credential = getLocalAuthCredentialForUser(input.userId);
+  if (!credential || !verifyPassword(input.currentPassword, credential.passwordHash)) {
+    throw new Error("identityAccess.password.errors.currentInvalid");
+  }
+  if (!shouldRequireDefaultAdminPasswordChange(credential)) {
+    throw new Error("identityAccess.password.errors.notRequired");
+  }
+  const newPassword = input.newPassword.trim();
+  if (!newPassword) {
+    throw new Error("identityAccess.password.errors.required");
+  }
+  if (input.currentPassword === newPassword) {
+    throw new Error("identityAccess.password.errors.samePassword");
+  }
+
+  execute(
+    "UPDATE local_auth_credentials SET password_hash = ?, force_password_change = 0, updated_at = ?, last_password_change_at = ? WHERE id = ?",
+    hashPassword(newPassword),
+    nowIso(),
+    nowIso(),
+    credential.id,
+  );
+  const user = queryOne<IdentityUser>("SELECT * FROM identity_users WHERE id = ? LIMIT 1", input.userId);
+  execute(
+    "UPDATE identity_users SET profile_json = ?, updated_at = ? WHERE id = ?",
+    normalizeJson({ ...parseJsonRecord(user?.profileJson), passwordChangeRequired: false }, {}),
+    nowIso(),
+    input.userId,
+  );
+  return { ok: true };
 }
 
 export function revokeAuthSession(sessionToken: string) {
@@ -509,6 +636,7 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
   const user = queryOne<IdentityUser>("SELECT * FROM identity_users WHERE id = ? LIMIT 1", session.userId);
   if (!user || user.status === "deleted") return null;
   const memberships = listIdentityUserMemberships(user.id);
+  const localCredential = getLocalAuthCredentialForUser(user.id);
   const whitelistRules = listAccessWhitelistRules().filter((rule) => rule.status === "active");
   const teams = listBusinessTeams().filter((team) => team.status !== "deleted");
   const access = evaluateWhitelistAccess({
@@ -528,6 +656,7 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
       : null,
     whitelistRules,
     access: { allowed: access.allowed, reason: access.reason },
+    mustChangePassword: shouldRequireDefaultAdminPasswordChange(localCredential),
     settings: getIdentityAccessSettings(),
   };
 }

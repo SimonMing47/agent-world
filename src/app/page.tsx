@@ -5,6 +5,15 @@ import { AgentWorldLogo } from "@/components/agentworld-logo";
 import { uiText } from "@/lib/language-pack";
 import { getRequestAuthContext } from "@/server/auth-core";
 
+export const dynamic = "force-dynamic";
+
+function normalizeNextPath(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/overview";
+  }
+  return value;
+}
+
 export default async function EntryPage({
   searchParams,
 }: {
@@ -12,14 +21,13 @@ export default async function EntryPage({
 }) {
   const authContext = await getRequestAuthContext();
   const params = await searchParams;
-  const next = params?.next || "/overview";
+  const next = normalizeNextPath(params?.next);
 
-  if (authContext?.access.allowed) {
+  if (authContext) {
+    if (authContext.mustChangePassword) {
+      redirect(`/change-password?next=${encodeURIComponent(next)}`);
+    }
     redirect(next);
-  }
-
-  if (authContext && !authContext.access.allowed) {
-    redirect(`/access-request?next=${encodeURIComponent(next)}`);
   }
 
   return (
@@ -44,7 +52,7 @@ export default async function EntryPage({
           </div>
 
           <Link
-            href={`/signin?entry=1&next=${encodeURIComponent(next)}`}
+            href={`/signin?from=welcome&next=${encodeURIComponent(next)}`}
             className="aw-intro__enter"
             aria-label={uiText("landing.enterLabel")}
           >

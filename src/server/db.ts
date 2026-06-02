@@ -104,6 +104,18 @@ export type IdentityUser = {
   lastLoginAt: string;
 };
 
+export type LocalAuthCredential = {
+  id: string;
+  userId: string;
+  username: string;
+  passwordHash: string;
+  forcePasswordChange: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  lastPasswordChangeAt: string | null;
+};
+
 export type IdentityUserBusinessTeamMembership = {
   id: string;
   userId: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronRight, Menu } from "lucide-react";
 import { CurrentUserMenu } from "@/components/current-user-menu";
@@ -17,6 +17,74 @@ import type { LanguagePack } from "@/lib/language-pack";
 
 const SIDEBAR_STORAGE_KEY = "agentworld.sidebar.collapsed.v2";
 const SIDEBAR_EVENT = "agentworld:sidebar-collapsed-change";
+
+type CurrentUserSummary = {
+  name: string;
+  email: string;
+  title: string;
+  avatarUrl: string;
+  initials: string;
+  isSystemAdmin: boolean;
+  primaryBusinessTeamName: string | null;
+  accessibleBusinessTeams: Array<{ id: string; name: string }>;
+};
+
+type AuthSessionPayload = {
+  authenticated?: boolean;
+  context?: {
+    user?: {
+      name?: string;
+      email?: string;
+      title?: string;
+      avatarUrl?: string;
+      isSystemAdmin?: boolean | number;
+    };
+    primaryBusinessTeam?: {
+      name?: string;
+    } | null;
+    accessibleBusinessTeams?: Array<{
+      id?: string;
+      name?: string;
+    }>;
+  } | null;
+};
+
+function initialsFromName(name: string, email: string) {
+  const source = name.trim() || email.trim();
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function currentUserFromSession(payload: AuthSessionPayload): CurrentUserSummary | null {
+  const user = payload.context?.user;
+  if (!payload.authenticated || !user) {
+    return null;
+  }
+
+  const name = user.name ?? "";
+  const email = user.email ?? "";
+  return {
+    name,
+    email,
+    title: user.title ?? "",
+    avatarUrl: user.avatarUrl ?? "",
+    initials: initialsFromName(name, email),
+    isSystemAdmin: user.isSystemAdmin === true || user.isSystemAdmin === 1,
+    primaryBusinessTeamName: payload.context?.primaryBusinessTeam?.name ?? null,
+    accessibleBusinessTeams:
+      payload.context?.accessibleBusinessTeams
+        ?.filter((team): team is { id: string; name: string } => Boolean(team.id && team.name))
+        .map((team) => ({ id: team.id, name: team.name })) ?? [],
+  };
+}
+
+function isPublicWorkspacePath(pathname: string) {
+  return pathname === "/" || pathname === "/signin" || pathname === "/change-password";
+}
 
 function subscribeToSidebarPreference(callback: () => void) {
   if (typeof window === "undefined") {
@@ -48,16 +116,7 @@ export function AppShell({
 }: {
   children: React.ReactNode;
   languagePack: LanguagePack;
-  currentUser?: {
-    name: string;
-    email: string;
-    title: string;
-    avatarUrl: string;
-    initials: string;
-    isSystemAdmin: boolean;
-    primaryBusinessTeamName: string | null;
-    accessibleBusinessTeams: Array<{ id: string; name: string }>;
-  } | null;
+  currentUser?: CurrentUserSummary | null;
 }) {
   return (
     <LanguagePackProvider languagePack={languagePack}>
@@ -71,16 +130,7 @@ function AppShellContentWithUser({
   currentUser,
 }: {
   children: React.ReactNode;
-  currentUser?: {
-    name: string;
-    email: string;
-    title: string;
-    avatarUrl: string;
-    initials: string;
-    isSystemAdmin: boolean;
-    primaryBusinessTeamName: string | null;
-    accessibleBusinessTeams: Array<{ id: string; name: string }>;
-  } | null;
+  currentUser?: CurrentUserSummary | null;
 }) {
   const pathname = usePathname();
   const currentNav = useMemo(() => findNavItem(pathname), [pathname]);
@@ -88,9 +138,32 @@ function AppShellContentWithUser({
   const text = useLanguageText();
   const collapsed = useSyncExternalStore(subscribeToSidebarPreference, getSidebarSnapshot, () => true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sessionUser, setSessionUser] = useState<CurrentUserSummary | null>(null);
   const isFullBleedWorkspace = pathname === "/knowledge";
+  const resolvedUser = currentUser ?? sessionUser;
 
-  if (pathname === "/" || pathname === "/signin" || pathname === "/access-request") {
+  useEffect(() => {
+    if (currentUser || isPublicWorkspacePath(pathname)) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void fetch("/api/auth/session", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: AuthSessionPayload | null) => {
+        if (payload) {
+          setSessionUser(currentUserFromSession(payload));
+        }
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [currentUser, pathname]);
+
+  if (isPublicWorkspacePath(pathname)) {
     return <>{children}</>;
   }
 
@@ -137,7 +210,7 @@ function AppShellContentWithUser({
                   <div className="mt-0.5 hidden truncate text-[11px] text-[var(--ink-softer)] sm:block">{text(currentNav.description)}</div>
                 </div>
 
-                {currentUser ? <CurrentUserMenu user={currentUser} /> : null}
+                {resolvedUser ? <CurrentUserMenu user={resolvedUser} /> : null}
               </div>
             </header>
 
