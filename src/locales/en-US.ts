@@ -503,6 +503,7 @@ const enUSLanguagePackBase = {
     "agentTeams.editor.description": "Click a member or blank team area.",
     "providerProfile.errors.envReferencesUnsupported": "Environment variable references are no longer supported here. Enter the API key directly.",
     "providerProfile.errors.invalidConfigJson": "Extra config must be valid JSON.",
+    "providerProfile.errors.saveTimedOut": "Saving the model service timed out. Check the backend service or network connection and try again.",
     "providerProfile.apiKey.legacyHint": "This old configuration uses an environment variable reference. Enter the API key directly and save.",
     "providerProfile.apiKey.hint": "Stored in the local database.",
     "runtimeBinding.errors.envReferencesUnsupported": "Environment variable references are no longer supported here. Enter the API key directly.",

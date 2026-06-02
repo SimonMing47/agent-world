@@ -126,19 +126,24 @@ export function ProviderProfileForm({
     setIsSaving(true);
     setMessage(null);
 
+    let config: unknown;
+    let headers: unknown;
     try {
-      const config = JSON.parse(form.configJson) as unknown;
-      const headers = JSON.parse(form.headersJson) as unknown;
-      if (
-        form.apiKeyRef.trim().toLowerCase().startsWith("env:") ||
-        hasEnvReference(config) ||
-        hasEnvReference(headers)
-      ) {
-        throw new Error(text("providerProfile.errors.envReferencesUnsupported"));
-      }
+      config = JSON.parse(form.configJson) as unknown;
+      headers = JSON.parse(form.headersJson) as unknown;
     } catch {
       setIsSaving(false);
       setMessage(text("providerProfile.errors.invalidConfigJson"));
+      return;
+    }
+
+    if (
+      form.apiKeyRef.trim().toLowerCase().startsWith("env:") ||
+      hasEnvReference(config) ||
+      hasEnvReference(headers)
+    ) {
+      setIsSaving(false);
+      setMessage(text("providerProfile.errors.envReferencesUnsupported"));
       return;
     }
 
@@ -154,42 +159,61 @@ export function ProviderProfileForm({
     }
 
     const nextConfig = {
-      ...parseConfig(form.configJson),
+      ...(config && typeof config === "object" && !Array.isArray(config)
+        ? (config as Record<string, unknown>)
+        : {}),
       modelApi: form.modelApi || undefined,
       supportsResponsesApi: form.supportsResponsesApi,
       supportsChatCompletions: form.supportsChatCompletions,
       contextWindow: form.contextWindow ? Number(form.contextWindow) : undefined,
       maxTokens: form.maxTokens ? Number(form.maxTokens) : undefined,
       reasoning: form.reasoning,
-      headers: JSON.parse(form.headersJson) as Record<string, unknown>,
+      headers: headers as Record<string, unknown>,
     };
 
-    const response = await fetch("/api/provider-profiles", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: form.id || crypto.randomUUID(),
-        tenantSpaceId: form.tenantSpaceId,
-        name: form.name,
-        baseUrl: form.baseUrl,
-        apiStyle: form.apiStyle,
-        defaultModel: form.defaultModel,
-        modelsJson: JSON.stringify(models, null, 2),
-        apiKeyRef: form.apiKeyRef,
-        configJson: JSON.stringify(nextConfig, null, 2),
-        isEnabled: form.isEnabled ? 1 : 0,
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
 
-    setIsSaving(false);
-    if (!response.ok) {
-      setMessage("ui.generated.c40525a7328");
-      return;
+    try {
+      const response = await fetch("/api/provider-profiles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: form.id || crypto.randomUUID(),
+          tenantSpaceId: form.tenantSpaceId,
+          name: form.name,
+          baseUrl: form.baseUrl,
+          apiStyle: form.apiStyle,
+          defaultModel: form.defaultModel,
+          modelsJson: JSON.stringify(models, null, 2),
+          apiKeyRef: form.apiKeyRef,
+          configJson: JSON.stringify(nextConfig, null, 2),
+          isEnabled: form.isEnabled ? 1 : 0,
+        }),
+        signal: controller.signal,
+      });
+
+      const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!response.ok || result.ok === false) {
+        setMessage(result.error ?? "ui.generated.c40525a7328");
+        return;
+      }
+
+      setMessage("ui.generated.ccdfab96f75");
+      onSaved?.();
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof DOMException && error.name === "AbortError"
+          ? text("providerProfile.errors.saveTimedOut")
+          : error instanceof Error
+            ? error.message
+            : "ui.generated.c40525a7328",
+      );
+    } finally {
+      window.clearTimeout(timeoutId);
+      setIsSaving(false);
     }
-
-    setMessage("ui.generated.ccdfab96f75");
-    onSaved?.();
-    router.refresh();
   }
 
   const enabledControl = (

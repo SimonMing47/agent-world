@@ -520,6 +520,7 @@ export const zhCNLanguagePack = {
     "agentTeams.editor.description": "点击成员或团队空白区配置",
     "providerProfile.errors.envReferencesUnsupported": "不再支持保存环境变量引用，请直接填写 API Key。",
     "providerProfile.errors.invalidConfigJson": "Extra config 必须是有效 JSON。",
+    "providerProfile.errors.saveTimedOut": "保存模型服务超时，请检查后端服务或网络连接后重试。",
     "providerProfile.apiKey.legacyHint": "旧配置使用环境变量引用。请直接填写 API Key 后保存。",
     "providerProfile.apiKey.hint": "保存到本地数据库",
     "runtimeBinding.errors.envReferencesUnsupported": "不再支持保存环境变量引用，请直接填写 API Key。",
