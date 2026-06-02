@@ -61,7 +61,6 @@ function requestUsesHttps(request: Pick<Request, "headers" | "url"> | undefined)
 
   return process.env.NODE_ENV === "production";
 }
-
 function getCookieValueFromHeader(cookieHeader: string | null | undefined, name: string) {
   if (!cookieHeader) return undefined;
   for (const part of cookieHeader.split(";")) {
