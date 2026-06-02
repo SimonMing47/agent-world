@@ -27,6 +27,9 @@ function thirdpartyBinDir() {
   return path.join("thirdparty", "openviking", "bin");
 }
 
+function venvPythonPath() {
+  return path.join(".venv-openviking", "bin", "python");
+}
 const BUNDLED_LINUX_OPENVIKING_MIN_GLIBC = "2.35";
 
 function parseVersion(value: string | null | undefined) {
@@ -83,11 +86,46 @@ function getOpenVikingBinaryCompatibility(binaryPath: string) {
     compatible: false,
     reason:
       `Bundled OpenViking binary requires glibc >= ${requiredText}, but this host has glibc ${currentText}. ` +
-      "Set OPENVIKING_SERVER_BIN to a binary built on a compatible Linux target, point OPENVIKING_BASE_URL at a remote OpenViking service, " +
-      "or set AGENTWORLD_OPENVIKING_AUTO_START=0 to disable launcher-managed startup.",
+      "Set OPENVIKING_SERVER_BIN to a binary built on a compatible Linux target, install a Python OpenViking runtime with pnpm openviking:install-python, " +
+      "point OPENVIKING_BASE_URL at a remote OpenViking service, or set AGENTWORLD_OPENVIKING_AUTO_START=0 to disable launcher-managed startup.",
   };
 }
 
+function pythonCandidates() {
+  return [process.env.OPENVIKING_PYTHON, venvPythonPath(), "python3", "python"].filter((candidate): candidate is string =>
+    Boolean(candidate),
+  );
+}
+
+function canRunOpenVikingPython(python: string) {
+  const result = spawnSync(python, ["-c", "import openviking_cli.server_bootstrap"], {
+    cwd: ".",
+    stdio: "ignore",
+  });
+  return !result.error && result.status === 0;
+}
+
+function resolveOpenVikingPython() {
+  for (const candidate of pythonCandidates()) {
+    const resolved = candidate.includes(path.sep) ? path.resolve(/* turbopackIgnore: true */ candidate) : candidate;
+    if (candidate.includes(path.sep) && !fs.existsSync(/* turbopackIgnore: true */ resolved)) continue;
+    if (canRunOpenVikingPython(resolved)) return resolved;
+  }
+  return null;
+}
+
+function buildOpenVikingPythonArgs(configPath: string) {
+  return [
+    "-c",
+    "from openviking_cli.server_bootstrap import main; main()",
+    "--config",
+    configPath,
+    "--host",
+    resolveOpenVikingHost(),
+    "--port",
+    resolveOpenVikingPort(),
+  ];
+}
 export function resolveOpenVikingBaseUrl() {
   return getKnowledgeBaseSettings().baseUrl.replace(/\/+$/, "");
 }
@@ -216,30 +254,47 @@ export async function ensureOpenVikingServerStarted(reason = "agentworld-startup
 
   ensureOpenVikingConfigFiles();
   const binaryPath = resolveOpenVikingServerBin();
-  current.binaryPath = binaryPath;
+  const pythonPath = resolveOpenVikingPython();
+  current.binaryPath = binaryPath ?? pythonPath;
 
-  if (!binaryPath) {
+  if (!binaryPath && !pythonPath) {
     current.status = "missing_binary";
     current.lastError =
-      `OpenViking server binary missing. Put it at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch} or set OPENVIKING_SERVER_BIN.`;
+      `OpenViking runtime missing. Put a compatible binary at thirdparty/openviking/bin/openviking-server-${process.platform}-${process.arch}, set OPENVIKING_SERVER_BIN, or install Python runtime with pnpm openviking:install-python.`;
     appendLog(current, current.lastError);
     return getOpenVikingProcessStatus();
   }
 
-  const compatibility = getOpenVikingBinaryCompatibility(binaryPath);
-  if (!compatibility.compatible) {
-    current.status = "incompatible";
-    current.lastError = compatibility.reason;
-    appendLog(current, compatibility.reason ?? "OpenViking binary is incompatible with this host.");
-    return getOpenVikingProcessStatus();
+  let command: string = binaryPath ?? pythonPath!;
+  let args = ["--config", current.configPath, "--host", resolveOpenVikingHost(), "--port", resolveOpenVikingPort()];
+  let runtimeKind = binaryPath ? "binary" : "python";
+
+  if (binaryPath) {
+    const compatibility = getOpenVikingBinaryCompatibility(binaryPath);
+    if (!compatibility.compatible) {
+      if (!pythonPath) {
+        current.status = "incompatible";
+        current.lastError = compatibility.reason;
+        appendLog(current, compatibility.reason ?? "OpenViking binary is incompatible with this host.");
+        return getOpenVikingProcessStatus();
+      }
+      command = pythonPath;
+      args = buildOpenVikingPythonArgs(current.configPath);
+      runtimeKind = "python";
+      appendLog(current, `${compatibility.reason} Falling back to Python OpenViking runtime: ${pythonPath}.`);
+    }
+  } else if (pythonPath) {
+    command = pythonPath;
+    args = buildOpenVikingPythonArgs(current.configPath);
+    runtimeKind = "python";
   }
 
   current.status = "starting";
   current.startedAt = new Date().toISOString();
   current.lastError = null;
-  appendLog(current, `spawning ${binaryPath} for ${reason}`);
+  appendLog(current, `spawning ${runtimeKind} runtime ${command} for ${reason}`);
 
-  const child = spawn(binaryPath, ["--config", current.configPath, "--host", resolveOpenVikingHost(), "--port", resolveOpenVikingPort()], {
+  const child = spawn(command, args, {
     cwd: ".",
     env: {
       ...process.env,
