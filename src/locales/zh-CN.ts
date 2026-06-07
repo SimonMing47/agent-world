@@ -141,11 +141,16 @@ export const zhCNLanguagePack = {
     },
   },
   navigation: {
+    breadcrumb: "面包屑导航",
     groups: {
       overview: "总览",
       agentGovernance: "智能体治理",
       teamGovernance: "团队治理",
       foundation: "基础配置",
+    },
+    sidebar: {
+      collapse: "收起侧边栏",
+      expand: "展开侧边栏",
     },
   },
   actions: {

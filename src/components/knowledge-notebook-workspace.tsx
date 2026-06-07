@@ -1279,6 +1279,7 @@ function MarkdownPreview({
   content: string;
   onTaskToggle?: (lineIndex: number, checked: boolean) => void;
 }) {
+  const text = useLanguageText();
   const nodes = [];
   const lines = content.split(/\r?\n/);
   let index = 0;
@@ -1396,7 +1397,7 @@ function MarkdownPreview({
               {typeof item.checked === "boolean" ? (
                 <button
                   type="button"
-                  aria-label={item.checked ? "knowledge.markdown.task.markIncomplete" : "knowledge.markdown.task.markComplete"}
+                  aria-label={text(item.checked ? "knowledge.markdown.task.markIncomplete" : "knowledge.markdown.task.markComplete")}
                   aria-pressed={item.checked}
                   onClick={() => {
                     if (typeof item.lineIndex === "number") onTaskToggle?.(item.lineIndex, !item.checked);
@@ -2664,7 +2665,7 @@ export function KnowledgeNotebookWorkspace({
         <div className="group flex w-full items-start gap-1.5">
           <button
             type="button"
-            aria-label={collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory"}
+            aria-label={text(collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory")}
             onClick={(event) => {
               event.stopPropagation();
               if (children.length) toggleKnowledgePath(pathId);
