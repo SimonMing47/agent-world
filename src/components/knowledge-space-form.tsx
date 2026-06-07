@@ -156,10 +156,10 @@ export function KnowledgeSpaceForm({
               </FieldGroup>
               <FieldGroup label={text("knowledge.fields.spaceType")}>
                 <Select value={spaceType} onChange={(event) => setSpaceType(event.target.value)}>
-                  <option value="global">{text("ui.common.knowledgeType.global")}</option>
-                  <option value="team">{text("ui.common.knowledgeType.team")}</option>
-                  <option value="project">{text("ui.common.knowledgeType.project")}</option>
-                  <option value="agent_team">{text("ui.common.knowledgeType.agentTeam")}</option>
+                  <option value="global">{text("common.knowledgeType.global")}</option>
+                  <option value="team">{text("common.knowledgeType.team")}</option>
+                  <option value="project">{text("common.knowledgeType.project")}</option>
+                  <option value="agent_team">{text("common.knowledgeType.agentTeam")}</option>
                 </Select>
               </FieldGroup>
               <FieldGroup label={text("terminology.businessTeam")}>
