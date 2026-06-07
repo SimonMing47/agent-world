@@ -202,7 +202,7 @@ function AppShellContentWithUser({
                 </Sheet>
 
                 <div className="min-w-0 flex-1">
-                  <nav className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--ink-muted)]" aria-label="Breadcrumb">
+                  <nav className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--ink-muted)]" aria-label={text("navigation.breadcrumb")}>
                     <span className="truncate font-medium">{text(currentGroup.title)}</span>
                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--ink-softer)]" />
                     <span className="truncate font-semibold text-[var(--ink)]">{text(currentNav.label)}</span>

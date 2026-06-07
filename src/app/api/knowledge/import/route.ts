@@ -6,6 +6,18 @@ import { getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-
 import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";
 import { uiText } from "@/lib/language-pack";
+import {
+  normalizeKnowledgeImportContent,
+  stripDuplicateKnowledgeImportHeading,
+} from "@/lib/knowledge-import-content";
+import {
+  normalizeKnowledgeImportUrl,
+  resolveKnowledgeImportFetchUrl,
+} from "@/lib/knowledge-import-url";
+import {
+  isKnowledgeImportBlockedResolvedAddress,
+  isKnowledgeImportPrivateAddress,
+} from "@/server/knowledge-import-security";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -91,54 +103,18 @@ function titleFromHtml(html: string, url: URL) {
   return (pathName || url.hostname).slice(0, 140);
 }
 
+function titleFromText(value: string, url: URL) {
+  const heading = /^#\s+(.+)$/m.exec(value)?.[1]?.trim();
+  if (heading) return heading.slice(0, 140);
+  return titleFromHtml("", url);
+}
+
 function normalizeUrl(value: string) {
-  const url = new URL(value.trim());
-  if (!["http:", "https:"].includes(url.protocol)) throw new Error(uiText("ui.knowledgeImport.errors.httpOnly"));
-  return url;
-}
-
-function isPrivateIpv4(address: string) {
-  const parts = address.split(".").map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return true;
+  try {
+    return normalizeKnowledgeImportUrl(value);
+  } catch {
+    throw new Error(uiText("ui.knowledgeImport.errors.httpOnly"));
   }
-  const [first, second] = parts;
-  return (
-    first === 0 ||
-    first === 10 ||
-    first === 127 ||
-    (first === 100 && second >= 64 && second <= 127) ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168) ||
-    (first === 198 && (second === 18 || second === 19)) ||
-    first >= 224
-  );
-}
-
-function isPrivateIpv6(address: string) {
-  const normalized = address.toLowerCase();
-  if (normalized === "::" || normalized === "::1") return true;
-  if (normalized.startsWith("::ffff:")) {
-    const mappedIpv4 = normalized.slice("::ffff:".length);
-    return isIP(mappedIpv4) === 4 ? isPrivateIpv4(mappedIpv4) : true;
-  }
-  return (
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe8") ||
-    normalized.startsWith("fe9") ||
-    normalized.startsWith("fea") ||
-    normalized.startsWith("feb") ||
-    normalized.startsWith("ff")
-  );
-}
-
-function isPrivateAddress(address: string) {
-  const family = isIP(address);
-  if (family === 4) return isPrivateIpv4(address);
-  if (family === 6) return isPrivateIpv6(address);
-  return true;
 }
 
 async function assertPublicFetchUrl(url: URL) {
@@ -146,9 +122,12 @@ async function assertPublicFetchUrl(url: URL) {
   if (hostname === "localhost" || hostname.endsWith(".localhost")) {
     throw new Error(uiText("ui.knowledgeImport.errors.localhostDenied"));
   }
+  if (isIP(hostname) && isKnowledgeImportPrivateAddress(hostname)) {
+    throw new Error(uiText("ui.knowledgeImport.errors.privateAddressDenied"));
+  }
 
   const addresses = await lookup(hostname, { all: true, verbatim: true });
-  if (addresses.length === 0 || addresses.some((address) => isPrivateAddress(address.address))) {
+  if (addresses.length === 0 || addresses.some((address) => isKnowledgeImportBlockedResolvedAddress(address.address))) {
     throw new Error(uiText("ui.knowledgeImport.errors.privateAddressDenied"));
   }
 }
@@ -171,11 +150,12 @@ async function fetchPublicUrl(url: URL, init: RequestInit, redirectLimit = 5) {
 }
 
 async function fetchUrlKnowledge(rawUrl: string) {
-  const url = normalizeUrl(rawUrl);
+  const sourceUrl = normalizeUrl(rawUrl);
+  const fetchUrl = resolveKnowledgeImportFetchUrl(sourceUrl);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12_000);
   try {
-    const { response, url: finalUrl } = await fetchPublicUrl(url, {
+    const { response, url: finalUrl } = await fetchPublicUrl(fetchUrl, {
       headers: {
         Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.6",
         "User-Agent": "AgentWorld-KnowledgeDiscovery/1.0",
@@ -188,12 +168,13 @@ async function fetchUrlKnowledge(rawUrl: string) {
     const contentType = response.headers.get("content-type") ?? "";
     const raw = (await response.text()).slice(0, maxFetchedChars);
     const isHtml = contentType.includes("html") || /<html|<body|<article|<main/i.test(raw);
-    const body = isHtml ? textFromHtml(raw) : raw.trim();
+    const body = normalizeKnowledgeImportContent(isHtml ? textFromHtml(raw) : raw);
     if (!body) throw new Error(uiText("ui.knowledgeImport.errors.emptyArchiveBody"));
-    const title = isHtml ? titleFromHtml(raw, finalUrl) : titleFromHtml("", finalUrl);
+    const title = isHtml ? titleFromHtml(raw, finalUrl) : titleFromText(body, finalUrl);
     const description = isHtml ? extractMeta(raw, "description") || extractMeta(raw, "og:description") : "";
     return {
-      url: finalUrl.toString(),
+      url: sourceUrl.toString(),
+      fetchedUrl: finalUrl.toString(),
       title,
       description,
       content: body,
@@ -205,6 +186,7 @@ async function fetchUrlKnowledge(rawUrl: string) {
 }
 
 function markdownForUrl(input: Awaited<ReturnType<typeof fetchUrlKnowledge>>) {
+  const content = stripDuplicateKnowledgeImportHeading(input.content, input.title);
   const lines = [
     `# ${input.title}`,
     "",
@@ -215,7 +197,7 @@ function markdownForUrl(input: Awaited<ReturnType<typeof fetchUrlKnowledge>>) {
     lines.push(uiText("ui.knowledgeImport.markdown.description", undefined, { description: input.description }));
   }
   if (input.truncated) lines.push(uiText("ui.knowledgeImport.markdown.urlTruncatedRemark"));
-  lines.push("", uiText("ui.knowledgeImport.markdown.bodyHeading"), "", input.content);
+  lines.push("", uiText("ui.knowledgeImport.markdown.bodyHeading"), "", content);
   return lines.join("\n");
 }
 
@@ -415,6 +397,7 @@ export async function POST(request: Request) {
           {
             importKind: "url",
             sourceUrl: discovered.url,
+            fetchedUrl: discovered.fetchedUrl === discovered.url ? null : discovered.fetchedUrl,
             sourceDescription: discovered.description || null,
             importedAt,
           },

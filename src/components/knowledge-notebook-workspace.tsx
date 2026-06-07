@@ -10,6 +10,7 @@ import {
   type FocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import {
@@ -17,6 +18,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CircleDot,
   Copy,
@@ -189,6 +191,10 @@ type KnowledgeQueryStep = {
   editable: boolean;
 };
 
+const reasoningStepKeys = ["search", "read", "traverse", "repair"] as const;
+const minEditorPreviewPaneRatio = 28;
+const maxEditorPreviewPaneRatio = 78;
+
 type PaneMode = "split" | "editor" | "preview";
 
 type ContextTarget =
@@ -226,10 +232,10 @@ const sourceTypeOptions = [
 
 function typeLabel(type: string) {
   const labels: Record<string, string> = {
-    global: "ui.common.knowledgeType.global",
-    team: "ui.common.knowledgeType.team",
-    project: "ui.common.knowledgeType.project",
-    agent_team: "ui.common.knowledgeType.agentTeam",
+    global: "common.knowledgeType.global",
+    team: "common.knowledgeType.team",
+    project: "common.knowledgeType.project",
+    agent_team: "common.knowledgeType.agentTeam",
   };
   return labels[type] ?? type;
 }
@@ -578,7 +584,7 @@ function knowledgeEngineSpaceLayerPreview(
       });
     return [
       text("knowledge.engine.preview.spaceAbstractTitle", undefined, { name: space.name }),
-      text("knowledge.engine.preview.spaceStats", undefined, { entries: notes.length, folders: folders.length }),
+      text("knowledge.engine.preview.spaceStats", undefined, { folderCount: folders.length, entryCount: notes.length }),
       "",
       summaries.length ? summaries.join("\n") : text("knowledge.engine.preview.noSummarizableBody"),
     ].join("\n");
@@ -1279,6 +1285,7 @@ function MarkdownPreview({
   content: string;
   onTaskToggle?: (lineIndex: number, checked: boolean) => void;
 }) {
+  const text = useLanguageText();
   const nodes = [];
   const lines = content.split(/\r?\n/);
   let index = 0;
@@ -1396,7 +1403,7 @@ function MarkdownPreview({
               {typeof item.checked === "boolean" ? (
                 <button
                   type="button"
-                  aria-label={item.checked ? "knowledge.markdown.task.markIncomplete" : "knowledge.markdown.task.markComplete"}
+                  aria-label={text(item.checked ? "knowledge.markdown.task.markIncomplete" : "knowledge.markdown.task.markComplete")}
                   aria-pressed={item.checked}
                   onClick={() => {
                     if (typeof item.lineIndex === "number") onTaskToggle?.(item.lineIndex, !item.checked);
@@ -1726,10 +1733,10 @@ function SpaceQuickDialog({
           </FieldGroup>
           <FieldGroup label={text("knowledge.fields.spaceType")}>
             <Select value={form.spaceType} onChange={(event) => setForm({ ...form, spaceType: event.target.value })}>
-              <option value="global">{text("ui.common.knowledgeType.global")}</option>
-              <option value="team">{text("ui.common.knowledgeType.team")}</option>
-              <option value="project">{text("ui.common.knowledgeType.project")}</option>
-              <option value="agent_team">{text("ui.common.knowledgeType.agentTeam")}</option>
+              <option value="global">{text("common.knowledgeType.global")}</option>
+              <option value="team">{text("common.knowledgeType.team")}</option>
+              <option value="project">{text("common.knowledgeType.project")}</option>
+              <option value="agent_team">{text("common.knowledgeType.agentTeam")}</option>
             </Select>
           </FieldGroup>
           <FieldGroup label={text("terminology.businessTeam")}>
@@ -1811,14 +1818,12 @@ export function KnowledgeNotebookWorkspace({
   tenantSpaces,
   businessTeams,
   agentTeams,
-  metrics,
 }: {
   spaces: KnowledgeNotebookSpace[];
   entries: KnowledgeNotebookEntry[];
   tenantSpaces: TenantSpaceOption[];
   businessTeams: BusinessTeamOption[];
   agentTeams: AgentTeamOption[];
-  metrics: KnowledgeWorkspaceMetric[];
 }) {
   const router = useRouter();
   const text = useLanguageText();
@@ -1832,9 +1837,11 @@ export function KnowledgeNotebookWorkspace({
   const [query, setQuery] = useState("");
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [metricsOpen, setMetricsOpen] = useState(false);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [queryPathOpen, setQueryPathOpen] = useState(false);
+  const [treeCollapsed, setTreeCollapsed] = useState(false);
   const [paneMode, setPaneMode] = useState<PaneMode>("split");
+  const [editorPaneRatio, setEditorPaneRatio] = useState(58);
   const [selectedIndexLevel, setSelectedIndexLevel] = useState<KnowledgeIndexLevel>("L2");
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -1858,6 +1865,7 @@ export function KnowledgeNotebookWorkspace({
   const savingRef = useRef(false);
   const pendingSaveRef = useRef<Promise<SaveResult> | null>(null);
   const navigatingRef = useRef(false);
+  const editorPreviewShellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -1969,6 +1977,15 @@ export function KnowledgeNotebookWorkspace({
     () => knowledgeEngineQuerySteps(activeSpace, draft, selectedIndexLevel, query, text),
     [activeSpace, draft, query, selectedIndexLevel, text],
   );
+  const reasoningSteps = useMemo(
+    () =>
+      reasoningStepKeys.map((key) => ({
+        key,
+        label: text(`knowledge.engine.reasoning.${key}.label`),
+        description: text(`knowledge.engine.reasoning.${key}.description`),
+      })),
+    [text],
+  );
   const isIndexReadOnly = selectedIndexLevel !== "L2";
   const activeContentSize = isIndexReadOnly
     ? formatBytes(new TextEncoder().encode(selectedLayerItem.preview).length)
@@ -1976,6 +1993,15 @@ export function KnowledgeNotebookWorkspace({
   const activeTitle = isIndexReadOnly
     ? `${activeSpace?.name ?? text("terminology.knowledge")} · ${text(selectedLayerItem.label)}`
     : draft.title;
+  const showEditorPane = paneMode !== "preview";
+  const showPreviewPane = paneMode !== "editor";
+  const splitEditorPreviewActive = paneMode === "split" && showEditorPane && showPreviewPane;
+  const editorPaneStyle = splitEditorPreviewActive
+    ? { flex: `0 0 ${editorPaneRatio}%` }
+    : undefined;
+  const previewPaneStyle = splitEditorPreviewActive
+    ? { flex: `0 0 ${100 - editorPaneRatio}%` }
+    : undefined;
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
     setEntriesState((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
@@ -2202,6 +2228,33 @@ export function KnowledgeNotebookWorkspace({
       textarea.selectionStart = edit.selectionStart;
       textarea.selectionEnd = edit.selectionEnd;
     });
+  }
+
+  function selectPaneMode(nextMode: PaneMode) {
+    setPaneMode(nextMode);
+  }
+
+  function startEditorPreviewResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const shell = editorPreviewShellRef.current;
+    if (!shell) return;
+
+    event.preventDefault();
+    const updateRatio = (clientX: number) => {
+      const rect = shell.getBoundingClientRect();
+      if (!rect.width) return;
+      const nextRatio = ((clientX - rect.left) / rect.width) * 100;
+      setEditorPaneRatio(Math.min(maxEditorPreviewPaneRatio, Math.max(minEditorPreviewPaneRatio, nextRatio)));
+    };
+    updateRatio(event.clientX);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => updateRatio(moveEvent.clientX);
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
   }
 
   function openContextMenu(event: MouseEvent, target: ContextTarget) {
@@ -2635,7 +2688,9 @@ export function KnowledgeNotebookWorkspace({
             <button
               key={mode.value}
               type="button"
-              onClick={() => setPaneMode(mode.value)}
+              aria-pressed={paneMode === mode.value}
+              title={text(mode.label)}
+              onClick={() => selectPaneMode(mode.value)}
               className={cn(
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors",
                 paneMode === mode.value
@@ -2664,7 +2719,7 @@ export function KnowledgeNotebookWorkspace({
         <div className="group flex w-full items-start gap-1.5">
           <button
             type="button"
-            aria-label={collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory"}
+            aria-label={text(collapsed ? "knowledge.tree.expandDirectory" : "knowledge.tree.collapseDirectory")}
             onClick={(event) => {
               event.stopPropagation();
               if (children.length) toggleKnowledgePath(pathId);
@@ -2792,7 +2847,7 @@ export function KnowledgeNotebookWorkspace({
 
   return (
     <section
-      className="relative flex min-h-[calc(100vh-154px)] flex-col overflow-hidden rounded-[28px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] shadow-[0_28px_80px_rgba(15,23,42,0.08)]"
+      className="relative flex min-h-[calc(100vh-116px)] flex-col overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] shadow-[0_22px_64px_rgba(15,23,42,0.07)]"
       onBlurCapture={handleWorkspaceBlur}
       onDragEnter={handleWorkspaceDragEnter}
       onDragOver={handleWorkspaceDragOver}
@@ -2810,63 +2865,66 @@ export function KnowledgeNotebookWorkspace({
           </div>
         </div>
       ) : null}
-      <div className="border-b border-[var(--line)] bg-[rgba(250,251,253,0.84)] px-4 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => setMetricsOpen((value) => !value)}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"
-          >
-            {metricsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            {text("knowledge.status.title")}
-            <CircleDot className="h-3.5 w-3.5 text-[#16a34a]" />
-          </button>
-          <div className="flex flex-wrap items-center gap-2">
-            {metrics.map((metric) => (
-              <div
-                key={metric.label}
-                className={cn(
-                  "rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs text-[var(--ink-muted)]",
-                  metric.tone === "accent" && "border-[var(--accent)]/20 bg-[var(--accent-soft)] text-[var(--accent-strong)]",
-                  metric.tone === "success" && "border-[#bbf7d0] bg-[#f0fdf4] text-[#166534]",
-                  metric.tone === "warning" && "border-[#fed7aa] bg-[#fff7ed] text-[var(--warning)]",
-                )}
-              >
-                <span className="mr-1">{metric.label}</span>
-                <span className="font-semibold text-[var(--ink)]">{metric.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {metricsOpen ? (
-          <div className="mt-3 grid gap-2 md:grid-cols-4">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="rounded-2xl bg-white px-4 py-3 ring-1 ring-black/4">
-                <div className="text-xs text-[var(--ink-subtle)]">{metric.label}</div>
-                <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{metric.value}</div>
-                {metric.detail ? <div className="mt-1 text-xs text-[var(--ink-muted)]">{metric.detail}</div> : null}
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className={cn("grid min-h-0 flex-1", treeCollapsed ? "lg:grid-cols-[56px_minmax(0,1fr)]" : "lg:grid-cols-[288px_minmax(0,1fr)]")}>
         <aside
-          className="flex min-h-0 flex-col border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r"
+          className={cn(
+            "flex min-h-0 border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r",
+            treeCollapsed ? "h-14 flex-row items-center justify-between px-3 lg:h-auto lg:flex-col lg:px-0 lg:py-2" : "flex-col",
+          )}
           onContextMenu={(event) => openContextMenu(event, { type: "tree", spaceId: selectedSpaceId })}
         >
-          <div className="border-b border-[var(--line)] px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-subtle)]">{text("knowledge.tree.kicker")}</div>
-                <div className="mt-1 text-lg font-semibold tracking-normal text-[var(--ink)]">{text("knowledge.tree.title")}</div>
+          {treeCollapsed ? (
+            <>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl"
+                aria-label={text("knowledge.tree.expand")}
+                title={text("knowledge.tree.expand")}
+                onClick={() => setTreeCollapsed(false)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--ink-subtle)] lg:min-h-0 lg:flex-1 lg:flex-col lg:justify-center">
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <span className="truncate lg:[writing-mode:vertical-rl]">{text("knowledge.tree.title")}</span>
               </div>
-              <Button size="icon" variant="ghost" aria-label={text("knowledge.actions.newEntry")} onClick={() => void startNewEntry()}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl"
+                aria-label={text("knowledge.actions.newEntry")}
+                title={text("knowledge.actions.newEntry")}
+                onClick={() => void startNewEntry()}
+              >
                 <Plus className="h-4 w-4" />
               </Button>
+            </>
+          ) : (
+            <>
+          <div className="border-b border-[var(--line)] px-3 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold tracking-normal text-[var(--ink)]">{text("knowledge.tree.title")}</div>
+                <div className="mt-0.5 text-[11px] text-[var(--ink-subtle)]">{text("knowledge.hub.sourceOfTruth")}</div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" aria-label={text("knowledge.actions.newEntry")} onClick={() => void startNewEntry()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-xl"
+                  aria-label={text("knowledge.tree.collapse")}
+                  title={text("knowledge.tree.collapse")}
+                  onClick={() => setTreeCollapsed(true)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <label className="mt-4 flex h-10 items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink-muted)]">
+            <label className="mt-3 flex h-9 items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink-muted)]">
               <Search className="h-4 w-4" />
               <input
                 value={query}
@@ -2875,7 +2933,7 @@ export function KnowledgeNotebookWorkspace({
                 placeholder={text("knowledge.search.placeholder")}
               />
             </label>
-            <div className="mt-3 flex items-center gap-2 text-xs text-[var(--ink-subtle)]">
+            <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--ink-subtle)]">
               <BookOpen className="h-3.5 w-3.5" />
               <span>{text("knowledge.tree.spaceCount", undefined, { count: spaces.length })}</span>
               <span className="h-1 w-1 rounded-full bg-[var(--ink-subtle)]/40" />
@@ -2957,11 +3015,13 @@ export function KnowledgeNotebookWorkspace({
               </div>
             )}
           </div>
+            </>
+          )}
         </aside>
 
         <div className="flex min-w-0 flex-col bg-[rgba(255,255,255,0.82)]">
-          <div className="border-b border-[var(--line)] px-5 py-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="border-b border-[var(--line)] px-4 py-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-[260px] flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
                   <span>{activeSpace?.tenantName ?? text("knowledge.fallback.unboundTenant")}</span>
@@ -2976,8 +3036,8 @@ export function KnowledgeNotebookWorkspace({
                 </div>
                 {isIndexReadOnly ? (
                   <div className="mt-2">
-                    <div className="text-3xl font-semibold tracking-normal text-[var(--ink)]">{activeTitle}</div>
-                    <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.04)] px-3 py-1 text-xs font-medium text-[var(--ink-subtle)]">
+                    <div className="text-2xl font-semibold tracking-normal text-[var(--ink)]">{activeTitle}</div>
+                    <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-[rgba(15,23,42,0.04)] px-3 py-1 text-xs font-medium text-[var(--ink-subtle)]">
                       <CircleDot className="h-3.5 w-3.5" />
                       {text("knowledge.engine.selectedLayerMeta", undefined, { layer: text(selectedLayerItem.label) })}
                     </div>
@@ -2987,45 +3047,45 @@ export function KnowledgeNotebookWorkspace({
                     value={draft.title}
                     onChange={(event) => updateDraft((current) => ({ ...current, title: event.target.value }))}
                     onBlur={flushDraftOnBlur}
-                    className="mt-2 h-auto rounded-none border-0 bg-transparent px-0 py-0 text-3xl font-semibold tracking-normal shadow-none focus:ring-0"
+                    className="mt-1 h-auto rounded-none border-0 bg-transparent px-0 py-0 text-2xl font-semibold tracking-normal shadow-none focus:ring-0"
                     placeholder={text("knowledge.placeholders.entryTitle")}
                   />
                 )}
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
-                <Button variant="secondary" onClick={() => openKnowledgeImport("url")} disabled={!spaces.length}>
+                <Button size="sm" variant="secondary" onClick={() => openKnowledgeImport("url")} disabled={!spaces.length}>
                   <Globe2 className="h-4 w-4" />
                   knowledge.actions.discover
                 </Button>
-                <Button variant="secondary" onClick={() => openKnowledgeImport("files")} disabled={!spaces.length}>
+                <Button size="sm" variant="secondary" onClick={() => openKnowledgeImport("files")} disabled={!spaces.length}>
                   <UploadCloud className="h-4 w-4" />
                   knowledge.actions.importDrop
                 </Button>
-                <Button variant="secondary" onClick={() => openKnowledgeImport("directory")} disabled={!spaces.length}>
+                <Button size="sm" variant="secondary" onClick={() => openKnowledgeImport("directory")} disabled={!spaces.length}>
                   <FolderPlus className="h-4 w-4" />
                   knowledge.actions.importDirectory
                 </Button>
                 {activeSpace ? <KnowledgeRetrievalTestDialog knowledgeSpaceId={activeSpace.id} knowledgeSpaceName={activeSpace.name} /> : null}
-                <Button variant="secondary" onClick={() => void startNewEntry(draft.knowledgeSpaceId, draft.parentFolderId, "note")}>
+                <Button size="sm" variant="secondary" onClick={() => void startNewEntry(draft.knowledgeSpaceId, draft.parentFolderId, "note")}>
                   <Plus className="h-4 w-4" />
                   actions.create
                 </Button>
-                <Button variant="ghost" onClick={deleteDraft} disabled={pending || isIndexReadOnly}>
+                <Button size="sm" variant="ghost" onClick={deleteDraft} disabled={pending || isIndexReadOnly}>
                   <Trash2 className="h-4 w-4" />
                   actions.delete
                 </Button>
-                <Button variant="secondary" onClick={toggleVersions} disabled={!draft.id || isIndexReadOnly}>
+                <Button size="sm" variant="secondary" onClick={toggleVersions} disabled={!draft.id || isIndexReadOnly}>
                   <History className="h-4 w-4" />
                   knowledge.versions.title
                 </Button>
-                <Button variant="primary" onClick={saveDraft} disabled={pending || !spaces.length || isIndexReadOnly}>
+                <Button size="sm" variant="primary" onClick={saveDraft} disabled={pending || !spaces.length || isIndexReadOnly}>
                   <Save className="h-4 w-4" />
                   {pending ? "actions.saving" : "actions.save"}
                 </Button>
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
                 <Badge variant={isIndexReadOnly ? "neutral" : draft.nodeType === "folder" ? "accent" : syncStatusVariant(draft.syncStatus)}>
                       {text(isIndexReadOnly ? "knowledge.labels.spaceIndex" : draft.nodeType === "folder" ? "knowledge.node.folder" : syncStatusLabel(draft.syncStatus))}
@@ -3036,6 +3096,7 @@ export function KnowledgeNotebookWorkspace({
                   </Badge>
                 ) : null}
                 {isIndexReadOnly ? <Badge variant="neutral">{text("knowledge.labels.readOnlyView")}</Badge> : <Badge variant={saveStateVariant(saveState)}>{text(saveStateLabel(saveState))}</Badge>}
+                {!isIndexReadOnly && draft.nodeType !== "folder" ? <Badge variant="accent">{text("knowledge.labels.mutableSource")}</Badge> : null}
                 {!isIndexReadOnly && draft.revision ? <span>R{draft.revision}</span> : null}
                 <span>{activeContentSize}</span>
                 {isIndexReadOnly ? (
@@ -3049,14 +3110,24 @@ export function KnowledgeNotebookWorkspace({
                 {activeSpace ? (
                   <>
                     <span className="h-1 w-1 rounded-full bg-[var(--ink-subtle)]/40" />
-                    <span>{typeLabel(activeSpace.spaceType)}</span>
-                    <span>{visibilityLabel(activeSpace.visibility)}</span>
+                    <span>{text(typeLabel(activeSpace.spaceType))}</span>
+                    <span>{text(visibilityLabel(activeSpace.visibility))}</span>
                   </>
                 ) : null}
                 {message ? <span className="text-[var(--accent-strong)]">{message}</span> : null}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isIndexReadOnly ? null : <PaneModeControls />}
+                {isIndexReadOnly || draft.nodeType !== "folder" ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 text-xs font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                    onClick={() => setQueryPathOpen((value) => !value)}
+                  >
+                    {queryPathOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    {text("knowledge.engine.queryPathTitle")}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={isIndexReadOnly}
@@ -3079,13 +3150,13 @@ export function KnowledgeNotebookWorkspace({
             ) : null}
             {!isIndexReadOnly && draft.syncError ? <div className="mt-2 text-xs text-[var(--warning)]">{draft.syncError}</div> : null}
             {isIndexReadOnly ? (
-              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{selectedLayerItem.uri}</div>
+              <div className="mt-1 truncate font-mono text-[11px] text-[var(--ink-subtle)]">{selectedLayerItem.uri}</div>
             ) : draft.vikingUri ? (
-              <div className="mt-2 break-all font-mono text-[11px] text-[var(--ink-subtle)]">{normalizeKnowledgeUri(draft.vikingUri)}</div>
+              <div className="mt-1 truncate font-mono text-[11px] text-[var(--ink-subtle)]">{normalizeKnowledgeUri(draft.vikingUri)}</div>
             ) : null}
 
-            {isIndexReadOnly || draft.nodeType !== "folder" ? (
-              <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[rgba(250,251,253,0.78)] px-3 py-3">
+            {(isIndexReadOnly || draft.nodeType !== "folder") && queryPathOpen ? (
+              <div className="mt-2 rounded-2xl border border-[var(--line)] bg-[rgba(250,251,253,0.78)] px-3 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                     <Search className="h-4 w-4 text-[var(--ink-subtle)]" />
@@ -3093,7 +3164,25 @@ export function KnowledgeNotebookWorkspace({
                   </div>
                   <span className="text-xs text-[var(--ink-subtle)]">{text("knowledge.engine.queryPathDescription")}</span>
                 </div>
-                <div className="mt-3 grid gap-2 xl:grid-cols-3">
+                {!isIndexReadOnly && draft.nodeType !== "folder" ? (
+                  <div className="mt-2 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent-soft)] px-3 py-2 text-xs leading-5 text-[var(--accent-strong)]">
+                    {text("knowledge.engine.mutableSourceNotice")}
+                  </div>
+                ) : null}
+                <div className="mt-3 grid gap-2 md:grid-cols-4">
+                  {reasoningSteps.map((step, index) => (
+                    <div key={step.key} className="rounded-xl border border-[var(--line)] bg-white/75 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(15,23,42,0.05)] text-[10px] font-semibold text-[var(--ink-subtle)]">
+                          {index + 1}
+                        </span>
+                        <span className="truncate text-xs font-semibold text-[var(--ink)]">{step.label}</span>
+                      </div>
+                      <div className="mt-1 line-clamp-2 text-[11px] leading-5 text-[var(--ink-muted)]">{step.description}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 grid gap-2 xl:grid-cols-3">
                   {querySteps.map((step) => (
                     <button
                       key={step.level}
@@ -3108,7 +3197,7 @@ export function KnowledgeNotebookWorkspace({
                       }}
                       disabled={step.level === "L2" ? !draft.id || draft.nodeType === "folder" : !activeSpace}
                       className={cn(
-                        "min-w-0 rounded-2xl border px-3 py-3 text-left transition-colors",
+                        "min-w-0 rounded-2xl border px-3 py-2.5 text-left transition-colors",
                         step.active
                           ? "border-[var(--accent)]/40 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
                           : "border-[var(--line)] bg-white/70 hover:bg-white",
@@ -3235,68 +3324,85 @@ export function KnowledgeNotebookWorkspace({
               </div>
             </div>
           ) : (
-            <div
-              className={cn(
-                "grid min-h-0 flex-1",
-                paneMode === "split" ? "lg:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]" : "grid-cols-1",
-              )}
-            >
+            <div className="flex min-h-0 flex-1 flex-col">
               <div
+                ref={editorPreviewShellRef}
                 className={cn(
-                  "flex min-w-0 flex-col border-b border-[var(--line)]",
-                  paneMode === "preview" && "hidden",
-                  paneMode === "split" && "lg:border-b-0 lg:border-r",
+                  "min-h-0 flex-1",
+                  splitEditorPreviewActive ? "flex flex-col lg:flex-row" : "flex flex-col",
                 )}
               >
-                <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
-                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                    <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown {text("actions.edit")}
+                {showEditorPane ? (
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col border-b border-[var(--line)]",
+                      splitEditorPreviewActive ? "lg:border-b-0" : "flex-1",
+                    )}
+                    style={editorPaneStyle}
+                  >
+                    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--line)] px-5">
+                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                        <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        Markdown {text("actions.edit")}
+                      </div>
+                    </div>
+                    <Textarea
+                      value={draft.contentMd}
+                      onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
+                      onBlur={flushDraftOnBlur}
+                      onKeyDown={handleMarkdownKeyDown}
+                      className="min-h-[420px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0 lg:min-h-0"
+                      placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
+                    />
+                    <details className="shrink-0 border-t border-[var(--line)] px-5 py-4">
+                      <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
+                      <Textarea
+                        value={draft.metadataJson}
+                        onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
+                        onBlur={flushDraftOnBlur}
+                        className="mt-3 min-h-28 font-mono text-xs"
+                      />
+                    </details>
                   </div>
-                </div>
-                <Textarea
-                  value={draft.contentMd}
-                  onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
-                  onBlur={flushDraftOnBlur}
-                  onKeyDown={handleMarkdownKeyDown}
-                  className="min-h-[620px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0"
-                  placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
-                />
-                <details className="border-t border-[var(--line)] px-5 py-4">
-                  <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
-                  <Textarea
-                    value={draft.metadataJson}
-                    onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
-                    onBlur={flushDraftOnBlur}
-                    className="mt-3 min-h-28 font-mono text-xs"
-                  />
-                </details>
-              </div>
-
-              <div
-                className={cn(
-                  "flex min-w-0 flex-col bg-[rgba(250,251,253,0.72)]",
-                  paneMode === "editor" && "hidden",
-                )}
-              >
-                <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
-                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                    <SplitSquareHorizontal className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown {text("knowledge.pane.preview")}
+                ) : null}
+                {splitEditorPreviewActive ? (
+                  <button
+                    type="button"
+                    aria-label={text("knowledge.pane.resize")}
+                    title={text("knowledge.pane.resize")}
+                    onPointerDown={startEditorPreviewResize}
+                    className="group hidden w-3 shrink-0 cursor-col-resize touch-none items-center justify-center border-x border-[var(--line)] bg-[rgba(250,251,253,0.86)] transition-colors hover:bg-white lg:flex"
+                  >
+                    <span className="h-10 w-1 rounded-full bg-[rgba(15,23,42,0.18)] transition-colors group-hover:bg-[var(--accent-strong)]" />
+                  </button>
+                ) : null}
+                {showPreviewPane ? (
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col bg-[rgba(250,251,253,0.72)]",
+                      splitEditorPreviewActive ? "" : "flex-1",
+                    )}
+                    style={previewPaneStyle}
+                  >
+                    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--line)] px-5">
+                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                        <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        Markdown {text("knowledge.pane.preview")}
+                      </div>
+                    </div>
+                    <div className="min-h-[420px] flex-1 overflow-auto lg:min-h-0">
+                      <MarkdownPreview
+                        content={draft.contentMd}
+                        onTaskToggle={(lineIndex, checked) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            contentMd: toggleTaskLine(current.contentMd, lineIndex, checked),
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
-                  <Badge variant="neutral">{text("knowledge.pane.preview")}</Badge>
-                </div>
-                <div className="min-h-[620px] flex-1 overflow-auto">
-                  <MarkdownPreview
-                    content={draft.contentMd}
-                    onTaskToggle={(lineIndex, checked) =>
-                      updateDraft((current) => ({
-                        ...current,
-                        contentMd: toggleTaskLine(current.contentMd, lineIndex, checked),
-                      }))
-                    }
-                  />
-                </div>
+                ) : null}
               </div>
             </div>
           )}
