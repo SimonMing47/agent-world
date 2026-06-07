@@ -584,7 +584,7 @@ function knowledgeEngineSpaceLayerPreview(
       });
     return [
       text("knowledge.engine.preview.spaceAbstractTitle", undefined, { name: space.name }),
-      text("knowledge.engine.preview.spaceStats", undefined, { entries: notes.length, folders: folders.length }),
+      text("knowledge.engine.preview.spaceStats", undefined, { folderCount: folders.length, entryCount: notes.length }),
       "",
       summaries.length ? summaries.join("\n") : text("knowledge.engine.preview.noSummarizableBody"),
     ].join("\n");
