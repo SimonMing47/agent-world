@@ -6,6 +6,7 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLanguageText } from "@/components/language-pack-provider";
 
 export type WorkflowBlockType = "agent" | "agent_team" | "script_hook" | "http_hook" | "notification";
 
@@ -129,6 +130,12 @@ function toggleDependency(block: WorkflowBlock, dependencyId: string) {
 }
 
 export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }: Props) {
+  const text = useLanguageText();
+
+  function blockTypeLabel(type: WorkflowBlockType) {
+    return text(blockTypeLabels[type]);
+  }
+
   function addBlock(type: WorkflowBlockType) {
     const next = createBlock(type, blocks.length);
     const previous = blocks.at(-1);
@@ -154,7 +161,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
 
       {blocks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--surface-muted)] p-5 text-sm text-[var(--ink-muted)]">
-          ui.generated.c520e5c03ff
+          {text("ui.generated.c520e5c03ff")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -163,10 +170,10 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-[var(--ink)]">
-                    {index + 1}. {block.title || blockTypeLabels[block.type]}
+                    {index + 1}. {text(block.title || blockTypeLabels[block.type])}
                   </div>
                   <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                    {blockTypeLabels[block.type]} · {block.id}
+                    {blockTypeLabel(block.type)} · {block.id}
                   </div>
                 </div>
                 <Button

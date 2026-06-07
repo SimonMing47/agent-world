@@ -204,12 +204,17 @@ const enUSLanguagePackBase = {
   },
   navigation: {
     ...zhCNLanguagePack.navigation,
+    breadcrumb: "Breadcrumb",
     groups: {
       ...zhCNLanguagePack.navigation.groups,
       overview: "Overview",
       agentGovernance: "Agent Governance",
       teamGovernance: "Team Governance",
       foundation: "Foundation",
+    },
+    sidebar: {
+      collapse: "Collapse sidebar",
+      expand: "Expand sidebar",
     },
   },
   phrases: {
