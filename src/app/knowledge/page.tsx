@@ -2,14 +2,12 @@ import Link from "next/link";
 import {
   KnowledgeNotebookWorkspace,
   type KnowledgeNotebookEntry,
-  type KnowledgeWorkspaceMetric,
   type KnowledgeNotebookSpace,
 } from "@/components/knowledge-notebook-workspace";
 import { KnowledgeSpaceForm } from "@/components/knowledge-space-form";
-import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { translateWithPack } from "@/lib/language-pack";
-import { formatBytes } from "@/lib/utils";
 import {
   canAccessBusinessTeam,
   filterBusinessTeamsForAuthContext,
@@ -26,15 +24,6 @@ import {
   listTaskBlueprints,
   listTenantSpaces,
 } from "@/server/queries";
-
-function isSameDay(value: string, now: Date) {
-  const date = new Date(value);
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
-}
 
 export default async function KnowledgePage() {
   const languagePack = getActiveLanguagePack();
@@ -87,10 +76,6 @@ export default async function KnowledgePage() {
       ? tenantSpaces
       : tenantSpaces.filter((space) => visibleTenantSpaceIds.has(space.id));
 
-  const now = new Date();
-  const totalBytes = allEntries.reduce((sum, entry) => sum + new TextEncoder().encode(entry.contentMd).length, 0);
-  const todayEntryCount = allEntries.filter((entry) => isSameDay(entry.createdAt, now)).length;
-  const uniqueConsumers = new Set(bindings.map((binding) => `${binding.targetType}:${binding.targetId}`)).size;
   const foundationStatus = getKnowledgeFoundationStatus();
   const foundationStatusLabelKey =
     foundationStatus.state === "enabled"
@@ -194,81 +179,43 @@ export default async function KnowledgePage() {
     businessTeamId: team.businessTeamId,
     name: team.name,
   }));
-  const metrics: KnowledgeWorkspaceMetric[] = [
-    {
-      label: t("knowledge.metrics.spaceCount"),
-      value: spaces.length,
-      detail: t("knowledge.metrics.spaceCountDetail", undefined, {
-        count: businessTeams.filter((team) => spaces.some((space) => space.businessTeamId === team.id)).length,
-      }),
-    },
-    {
-      label: t("knowledge.metrics.entryCount"),
-      value: allEntries.length,
-      detail: t("knowledge.metrics.entryCountDetail", undefined, { count: todayEntryCount }),
-      tone: "accent",
-    },
-    {
-      label: t("knowledge.metrics.capacity"),
-      value: formatBytes(totalBytes),
-      detail: t("knowledge.metrics.capacityDetail"),
-    },
-    {
-      label: t("knowledge.metrics.consumerCount"),
-      value: uniqueConsumers,
-      detail: t("knowledge.metrics.consumerCountDetail", undefined, {
-        status: snapshot.process.status || "offline",
-      }),
-      tone: snapshot.health.ok ? "success" : "warning",
-    },
-  ];
-
   return (
-    <div className="flex min-h-full flex-col gap-4">
-      <PageHeader
-        eyebrow="terminology.knowledge"
-        title="nav.knowledge.label"
-        description="nav.knowledge.description"
-        className="pb-1"
-        badges={[
-          {
-            label: `${t("settings.knowledge.engineName")} ${t(snapshot.health.ok ? "labels.status.healthy" : "labels.status.degraded")}`,
-            variant: snapshot.health.ok ? "success" : "warning",
-          },
-          { label: `${spaces.length} ${t("ui.common.count.knowledgeSpaces")}`, variant: "accent" },
-          {
-            label: `${t("settings.knowledgeBase.knowledgeFoundation.label")}: ${foundationLabel}`,
-            variant: foundationStatus.state === "enabled" ? "success" : "warning",
-          },
-        ]}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild size="md" variant="secondary">
-              <Link href="/skills">nav.skills.label</Link>
-            </Button>
-            <KnowledgeSpaceForm
-              tenantSpaces={tenantSpaceOptions}
-              businessTeams={businessTeamOptions}
-              agentTeams={agentTeamOptions}
-            />
+    <div className="flex min-h-full flex-col gap-3">
+      <section className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-subtle)]">
+              {t("knowledge.hub.eyebrow")}
+            </div>
+            <h1 className="truncate text-xl font-semibold tracking-normal text-[var(--ink)]">
+              {t("knowledge.hub.title")}
+            </h1>
           </div>
-        }
-      />
-
-      <section
-        className={[
-          "rounded-lg border px-4 py-3 text-sm leading-6",
-          foundationStatus.state === "enabled"
-            ? "border-[#bfdbfe] bg-[#eff6ff] text-[#1e3a8a]"
-            : "border-[#fde68a] bg-[#fffbeb] text-[#713f12]",
-        ].join(" ")}
-      >
-        <div className="font-semibold">
-          {t("settings.knowledgeBase.knowledgeFoundation.label")} · {foundationLabel}
+          <div className="hidden max-w-[520px] text-xs leading-5 text-[var(--ink-muted)] xl:block">
+            {t("knowledge.hub.description")}
+          </div>
         </div>
-        <div className="mt-1">
-          {foundationModelDetail ? `${foundationModelDetail} ` : ""}
-          {foundationDetail}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Badge variant={snapshot.health.ok ? "success" : "warning"}>
+            {t("settings.knowledge.engineName")} {t(snapshot.health.ok ? "labels.status.healthy" : "labels.status.degraded")}
+          </Badge>
+          <Badge variant="accent">{t("knowledge.hub.spaceBadge", undefined, { count: spaces.length })}</Badge>
+          <Badge variant={foundationStatus.state === "enabled" ? "success" : "warning"}>
+            {foundationLabel}
+          </Badge>
+          {foundationModelDetail ? (
+            <span className="hidden max-w-[260px] truncate text-xs text-[var(--ink-subtle)] lg:inline">
+              {foundationModelDetail} · {foundationDetail}
+            </span>
+          ) : null}
+          <Button asChild size="sm" variant="secondary">
+            <Link href="/skills">nav.skills.label</Link>
+          </Button>
+          <KnowledgeSpaceForm
+            tenantSpaces={tenantSpaceOptions}
+            businessTeams={businessTeamOptions}
+            agentTeams={agentTeamOptions}
+          />
         </div>
       </section>
 
@@ -278,7 +225,6 @@ export default async function KnowledgePage() {
         tenantSpaces={tenantSpaceOptions}
         businessTeams={businessTeamOptions}
         agentTeams={agentTeamOptions}
-        metrics={metrics}
       />
     </div>
   );

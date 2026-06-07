@@ -191,7 +191,7 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
   const knowledgeSpace = getKnowledgeSpace(input.knowledgeSpaceId);
   const vikingUri = buildKnowledgeUri(input.layer, input.scopeKey, id, input.knowledgeSpaceId);
   const filePath = shadowFilePath(input.layer, input.scopeKey, id);
-  const metadata = {
+  const metadata: Record<string, unknown> = {
     ...input.metadata,
     vikingUri,
     layer: input.layer,
@@ -221,6 +221,14 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
   fs.writeFileSync(filePath, content, "utf8");
 
   const syncResult = await indexLocalKnowledge(vikingUri, content);
+  metadata.sourceMutationPolicy = "mutable_versioned";
+  metadata.knowledgeLifecycle = {
+    sourceMutability: "mutable_versioned",
+    previousRevision: null,
+    currentRevision: 1,
+    indexStatus: syncResult.status,
+    saveReason: null,
+  };
 
   execute(
     "INSERT INTO knowledge_entries (id, knowledge_space_id, layer, scope_key, skill_id, viking_uri, title, content_md, metadata_json, source_type, sync_status, sync_error, created_at, updated_at, updated_by, revision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -339,6 +347,11 @@ export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
   const vikingUri = buildKnowledgeUri(input.layer, input.scopeKey, id, input.knowledgeSpaceId);
   const filePath = shadowFilePath(input.layer, input.scopeKey, id);
   const nextRevision = existing ? existing.revision + 1 : 1;
+  if (existing) createKnowledgeEntryVersion(existing, input.updatedBy);
+
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, input.contentMd, "utf8");
+  const syncResult = await indexLocalKnowledge(vikingUri, input.contentMd);
   const metadata = {
     ...parseMetadataJson(input.metadataJson),
     vikingUri,
@@ -350,13 +363,15 @@ export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
     updatedAt,
     updatedBy: input.updatedBy ?? null,
     revision: nextRevision,
+    sourceMutationPolicy: "mutable_versioned",
+    knowledgeLifecycle: {
+      sourceMutability: "mutable_versioned",
+      previousRevision: existing?.revision ?? null,
+      currentRevision: nextRevision,
+      indexStatus: syncResult.status,
+      saveReason: input.saveReason ?? null,
+    },
   };
-
-  if (existing) createKnowledgeEntryVersion(existing, input.updatedBy);
-
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, input.contentMd, "utf8");
-  const syncResult = await indexLocalKnowledge(vikingUri, input.contentMd);
 
   if (existing) {
     execute(
@@ -646,7 +661,7 @@ function retrievalLevelsForEntry(
       label: uiText("ui.server.knowledgeEngine.retrievalLevels.l2.label", "Original knowledge read"),
       purpose: uiText(
         "ui.server.knowledgeEngine.retrievalLevels.l2.purpose",
-        "Details: full original Markdown, read on demand and editable.",
+        "Details: versioned mutable Markdown source, read on demand and editable.",
       ),
       score: scoreTerms(entry.title, queryTerms, 5) + scoreTerms(l2Text, queryTerms, 3),
       excerpt: buildExcerpt(entry.contentMd, query),
@@ -755,7 +770,7 @@ export async function getKnowledgeEngineHealth() {
       status: "ok",
       healthy: true,
       provider: "agentworld-native",
-      capabilities: ["L0", "L1", "L2", "tree", "retrieval", "versioning", "skill-sync", "local-shadow"],
+      capabilities: ["L0", "L1", "L2", "tree", "retrieval", "versioning", "mutable-source", "skill-sync", "local-shadow"],
       spaces: spaceCount,
       entries: entryCount,
     },
