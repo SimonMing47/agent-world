@@ -232,10 +232,10 @@ const sourceTypeOptions = [
 
 function typeLabel(type: string) {
   const labels: Record<string, string> = {
-    global: "ui.common.knowledgeType.global",
-    team: "ui.common.knowledgeType.team",
-    project: "ui.common.knowledgeType.project",
-    agent_team: "ui.common.knowledgeType.agentTeam",
+    global: "common.knowledgeType.global",
+    team: "common.knowledgeType.team",
+    project: "common.knowledgeType.project",
+    agent_team: "common.knowledgeType.agentTeam",
   };
   return labels[type] ?? type;
 }
@@ -1733,10 +1733,10 @@ function SpaceQuickDialog({
           </FieldGroup>
           <FieldGroup label={text("knowledge.fields.spaceType")}>
             <Select value={form.spaceType} onChange={(event) => setForm({ ...form, spaceType: event.target.value })}>
-              <option value="global">{text("ui.common.knowledgeType.global")}</option>
-              <option value="team">{text("ui.common.knowledgeType.team")}</option>
-              <option value="project">{text("ui.common.knowledgeType.project")}</option>
-              <option value="agent_team">{text("ui.common.knowledgeType.agentTeam")}</option>
+              <option value="global">{text("common.knowledgeType.global")}</option>
+              <option value="team">{text("common.knowledgeType.team")}</option>
+              <option value="project">{text("common.knowledgeType.project")}</option>
+              <option value="agent_team">{text("common.knowledgeType.agentTeam")}</option>
             </Select>
           </FieldGroup>
           <FieldGroup label={text("terminology.businessTeam")}>
@@ -1841,8 +1841,6 @@ export function KnowledgeNotebookWorkspace({
   const [queryPathOpen, setQueryPathOpen] = useState(false);
   const [treeCollapsed, setTreeCollapsed] = useState(false);
   const [paneMode, setPaneMode] = useState<PaneMode>("split");
-  const [editorCollapsed, setEditorCollapsed] = useState(false);
-  const [previewCollapsed, setPreviewCollapsed] = useState(false);
   const [editorPaneRatio, setEditorPaneRatio] = useState(58);
   const [selectedIndexLevel, setSelectedIndexLevel] = useState<KnowledgeIndexLevel>("L2");
   const [dirty, setDirty] = useState(false);
@@ -1995,8 +1993,8 @@ export function KnowledgeNotebookWorkspace({
   const activeTitle = isIndexReadOnly
     ? `${activeSpace?.name ?? text("terminology.knowledge")} · ${text(selectedLayerItem.label)}`
     : draft.title;
-  const showEditorPane = paneMode !== "preview" && !editorCollapsed;
-  const showPreviewPane = paneMode !== "editor" && !previewCollapsed;
+  const showEditorPane = paneMode !== "preview";
+  const showPreviewPane = paneMode !== "editor";
   const splitEditorPreviewActive = paneMode === "split" && showEditorPane && showPreviewPane;
   const editorPaneStyle = splitEditorPreviewActive
     ? { flex: `0 0 ${editorPaneRatio}%` }
@@ -2234,48 +2232,6 @@ export function KnowledgeNotebookWorkspace({
 
   function selectPaneMode(nextMode: PaneMode) {
     setPaneMode(nextMode);
-    if (nextMode === "editor") {
-      setEditorCollapsed(false);
-      return;
-    }
-    if (nextMode === "preview") {
-      setPreviewCollapsed(false);
-      return;
-    }
-    if (editorCollapsed && previewCollapsed) {
-      setEditorCollapsed(false);
-      setPreviewCollapsed(false);
-    }
-  }
-
-  function collapseEditorPane() {
-    setEditorCollapsed(true);
-    if (paneMode === "editor") {
-      setPaneMode("preview");
-      setPreviewCollapsed(false);
-      return;
-    }
-    if (paneMode === "split" && previewCollapsed) setPreviewCollapsed(false);
-  }
-
-  function collapsePreviewPane() {
-    setPreviewCollapsed(true);
-    if (paneMode === "preview") {
-      setPaneMode("editor");
-      setEditorCollapsed(false);
-      return;
-    }
-    if (paneMode === "split" && editorCollapsed) setEditorCollapsed(false);
-  }
-
-  function expandEditorPane() {
-    setEditorCollapsed(false);
-    if (paneMode === "preview") setPaneMode("split");
-  }
-
-  function expandPreviewPane() {
-    setPreviewCollapsed(false);
-    if (paneMode === "editor") setPaneMode("split");
   }
 
   function startEditorPreviewResize(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -2732,6 +2688,8 @@ export function KnowledgeNotebookWorkspace({
             <button
               key={mode.value}
               type="button"
+              aria-pressed={paneMode === mode.value}
+              title={text(mode.label)}
               onClick={() => selectPaneMode(mode.value)}
               className={cn(
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors",
@@ -3367,22 +3325,6 @@ export function KnowledgeNotebookWorkspace({
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 flex-col">
-              {editorCollapsed || previewCollapsed ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--line)] bg-white/70 px-5 py-2">
-                  {editorCollapsed ? (
-                    <Button size="sm" variant="ghost" className="h-7 rounded-xl text-xs" onClick={expandEditorPane}>
-                      <Edit3 className="h-3.5 w-3.5" />
-                      knowledge.pane.expandEditor
-                    </Button>
-                  ) : null}
-                  {previewCollapsed ? (
-                    <Button size="sm" variant="ghost" className="h-7 rounded-xl text-xs" onClick={expandPreviewPane}>
-                      <Eye className="h-3.5 w-3.5" />
-                      knowledge.pane.expandPreview
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null}
               <div
                 ref={editorPreviewShellRef}
                 className={cn(
@@ -3403,16 +3345,6 @@ export function KnowledgeNotebookWorkspace({
                         <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
                         Markdown {text("actions.edit")}
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 rounded-xl"
-                        aria-label={text("knowledge.pane.collapseEditor")}
-                        title={text("knowledge.pane.collapseEditor")}
-                        onClick={collapseEditorPane}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
                     </div>
                     <Textarea
                       value={draft.contentMd}
@@ -3456,19 +3388,6 @@ export function KnowledgeNotebookWorkspace({
                       <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
                         <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
                         Markdown {text("knowledge.pane.preview")}
-                      </div>
-                      <div className="inline-flex items-center gap-2">
-                        <Badge variant="neutral">{text("knowledge.pane.preview")}</Badge>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 rounded-xl"
-                          aria-label={text("knowledge.pane.collapsePreview")}
-                          title={text("knowledge.pane.collapsePreview")}
-                          onClick={collapsePreviewPane}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                     <div className="min-h-[420px] flex-1 overflow-auto lg:min-h-0">
