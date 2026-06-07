@@ -16,6 +16,7 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { extractKnowledgeImportUrls } from "@/lib/knowledge-import-url";
 import { cn, formatBytes } from "@/lib/utils";
 
 export type KnowledgeImportEntry = {
@@ -97,10 +98,7 @@ type DataTransferItemWithEntry = DataTransferItem & {
 };
 
 function splitUrls(value: string) {
-  return value
-    .split(/[\n,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+  return extractKnowledgeImportUrls(value);
 }
 
 function fileKey(file: File, index: number) {
