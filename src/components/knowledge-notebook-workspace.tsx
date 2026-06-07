@@ -12,6 +12,7 @@ import {
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type UIEvent,
 } from "react";
 import {
   AlertTriangle,
@@ -90,6 +91,8 @@ export type KnowledgeNotebookSpace = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
+  knowledgeCategory: "public" | "domain" | "repository";
+  repositoryName: string | null;
   slug: string;
   name: string;
   spaceType: string;
@@ -1629,6 +1632,8 @@ function SpaceQuickDialog({
     spaceType: editing?.spaceType ?? (state?.mode === "create" ? state.preferredType ?? "team" : "team"),
     businessTeamId: baseBusinessTeamId,
     agentTeamId: editing?.agentTeamId ?? "",
+    knowledgeCategory: editing?.knowledgeCategory ?? "domain",
+    repositoryName: editing?.repositoryName ?? "",
     projectKey: editing?.projectKey ?? "",
     visibility: editing?.visibility ?? "team",
     status: editing?.status ?? "active",
@@ -1648,6 +1653,8 @@ function SpaceQuickDialog({
       spaceType: nextEditing?.spaceType ?? (state.mode === "create" ? state.preferredType ?? "team" : "team"),
       businessTeamId: nextBaseBusinessTeamId,
       agentTeamId: nextEditing?.agentTeamId ?? "",
+      knowledgeCategory: nextEditing?.knowledgeCategory ?? "domain",
+      repositoryName: nextEditing?.repositoryName ?? "",
       projectKey: nextEditing?.projectKey ?? "",
       visibility: nextEditing?.visibility ?? "team",
       status: nextEditing?.status ?? "active",
@@ -1679,6 +1686,8 @@ function SpaceQuickDialog({
           businessTeamId: form.spaceType === "global" ? null : form.businessTeamId || null,
           agentTeamId: form.spaceType === "agent_team" ? form.agentTeamId || null : null,
           projectKey: form.spaceType === "project" ? form.projectKey.trim() || null : null,
+          knowledgeCategory: form.knowledgeCategory,
+          repositoryName: form.repositoryName.trim() || null,
           description: form.description,
           visibility: form.visibility,
           status: form.status,
@@ -1865,6 +1874,9 @@ export function KnowledgeNotebookWorkspace({
   const pendingSaveRef = useRef<Promise<SaveResult> | null>(null);
   const navigatingRef = useRef(false);
   const editorPreviewShellRef = useRef<HTMLDivElement | null>(null);
+  const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
+  const syncingScrollRef = useRef<"editor" | "preview" | null>(null);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -2001,6 +2013,40 @@ export function KnowledgeNotebookWorkspace({
   const previewPaneStyle = splitEditorPreviewActive
     ? { flex: `0 0 ${100 - editorPaneRatio}%` }
     : undefined;
+
+  function syncScrollToTarget({
+    from,
+    source,
+    target,
+  }: {
+    from: "editor" | "preview";
+    source: HTMLElement;
+    target: HTMLElement;
+  }) {
+    if (syncingScrollRef.current === from) return;
+    const sourceScrollable = source.scrollHeight - source.clientHeight;
+    const targetScrollable = target.scrollHeight - target.clientHeight;
+    if (sourceScrollable <= 0 || targetScrollable <= 0) return;
+
+    const ratio = Math.max(0, Math.min(1, source.scrollTop / sourceScrollable));
+    syncingScrollRef.current = from === "editor" ? "preview" : "editor";
+    requestAnimationFrame(() => {
+      target.scrollTop = ratio * targetScrollable;
+      syncingScrollRef.current = null;
+    });
+  }
+
+  function handleEditorScroll(event: UIEvent<HTMLTextAreaElement>) {
+    const target = previewScrollRef.current;
+    if (!target) return;
+    syncScrollToTarget({ from: "editor", source: event.currentTarget, target });
+  }
+
+  function handlePreviewScroll(event: UIEvent<HTMLDivElement>) {
+    const target = editorTextareaRef.current;
+    if (!target) return;
+    syncScrollToTarget({ from: "preview", source: event.currentTarget, target });
+  }
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
     setEntriesState((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
@@ -3347,10 +3393,12 @@ export function KnowledgeNotebookWorkspace({
                       </div>
                     </div>
                     <Textarea
+                      ref={editorTextareaRef}
                       value={draft.contentMd}
                       onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
                       onBlur={flushDraftOnBlur}
                       onKeyDown={handleMarkdownKeyDown}
+                      onScroll={handleEditorScroll}
                       className="min-h-0 flex-1 resize-none overflow-y-auto rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0"
                       placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
                     />
@@ -3390,7 +3438,7 @@ export function KnowledgeNotebookWorkspace({
                         Markdown {text("knowledge.pane.read")}
                       </div>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto">
+                    <div ref={previewScrollRef} onScroll={handlePreviewScroll} className="min-h-0 flex-1 overflow-y-scroll">
                       <MarkdownPreview
                         content={draft.contentMd}
                         onTaskToggle={(lineIndex, checked) =>

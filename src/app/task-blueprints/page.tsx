@@ -122,6 +122,9 @@ export default async function TaskBlueprintsPage({
     environments: rawOptions.environments.filter((environment) =>
       canAccessBusinessTeam(authContext, environment.businessTeamId),
     ),
+    codebases: (rawOptions.codebases ?? []).filter((codebase) =>
+      canAccessBusinessTeam(authContext, codebase.businessTeamId),
+    ),
   };
   const selectedTeamId = params?.teamId ?? "";
   const selectedTeam = options.businessTeams.find((team) => team.id === selectedTeamId);

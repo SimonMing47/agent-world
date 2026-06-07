@@ -26,6 +26,8 @@ export type WorkflowBlock = {
   connectorType: string;
   publisherRef: string;
   payloadTemplate: string;
+  knowledgeCategory: "public" | "domain" | "repository";
+  repositoryName: string;
 };
 
 type AgentOption = {
@@ -40,11 +42,18 @@ type AgentTeamOption = {
   name: string;
 };
 
+type RepositoryOption = {
+  name: string;
+  label: string;
+  aliases?: string[];
+};
+
 type Props = {
   blocks: WorkflowBlock[];
   onChange(blocks: WorkflowBlock[]): void;
   agents: AgentOption[];
   agentTeams: AgentTeamOption[];
+  repositoryOptions?: RepositoryOption[];
 };
 
 const blockTypeLabels: Record<WorkflowBlockType, string> = {
@@ -92,6 +101,8 @@ function createBlock(type: WorkflowBlockType, index: number) {
     connectorType: type === "notification" ? "email" : "",
     publisherRef: "",
     payloadTemplate: "{}",
+    knowledgeCategory: "domain",
+    repositoryName: "",
   } satisfies WorkflowBlock;
 }
 
@@ -129,7 +140,7 @@ function toggleDependency(block: WorkflowBlock, dependencyId: string) {
     : [...block.dependsOn, dependencyId];
 }
 
-export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }: Props) {
+export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, repositoryOptions = [] }: Props) {
   const text = useLanguageText();
 
   function blockTypeLabel(type: WorkflowBlockType) {
@@ -353,6 +364,51 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams }
                     value={block.tool}
                     onChange={(event) => onChange(updateBlock(blocks, block.id, { tool: event.target.value }))}
                   />
+                </FieldGroup>
+                <FieldGroup label={text("knowledge.category.label")}>
+                  <Select
+                    value={block.knowledgeCategory}
+                    onChange={(event) =>
+                      onChange(
+                        updateBlock(blocks, block.id, {
+                          knowledgeCategory: event.target.value as "public" | "domain" | "repository",
+                          ...(event.target.value === "repository"
+                            ? { repositoryName: block.repositoryName || repositoryOptions[0]?.name || "" }
+                            : { repositoryName: "" }),
+                        }),
+                      )
+                    }
+                  >
+                    <option value="public">{text("knowledge.category.public")}</option>
+                    <option value="domain">{text("knowledge.category.domain")}</option>
+                    <option value="repository">{text("knowledge.category.repository")}</option>
+                  </Select>
+                </FieldGroup>
+                <FieldGroup label={text("knowledge.repositoryName")}>
+                  {repositoryOptions.length > 0 ? (
+                    <Select
+                      value={block.repositoryName}
+                      onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
+                      disabled={block.knowledgeCategory !== "repository"}
+                    >
+                      <option value="">{text("knowledge.repositoryName.placeholder")}</option>
+                      {block.repositoryName && !repositoryOptions.some((option) => option.name === block.repositoryName) ? (
+                        <option value={block.repositoryName}>{block.repositoryName}</option>
+                      ) : null}
+                      {repositoryOptions.map((option) => (
+                        <option key={option.name} value={option.name}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      value={block.repositoryName}
+                      onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
+                      disabled={block.knowledgeCategory !== "repository"}
+                      placeholder={text("knowledge.repositoryName.placeholder")}
+                    />
+                  )}
                 </FieldGroup>
                 <FieldGroup label="ui.generated.cc505956d32" className="md:col-span-2">
                   <Textarea

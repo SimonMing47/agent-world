@@ -117,7 +117,7 @@ export function buildDefaultAgentPermissionPolicy(): AgentPermissionPolicy {
     repositoryAccess: "read_only",
     memoryAccess: "inherit",
     secretAccess: "runtime_bound_only",
-    allowedToolNames: ["search_repo", "read_file", "list_dir"],
+    allowedToolNames: ["search_repo", "read_file", "list_dir", "memory.read", "memory.search", "memory.retrieve"],
     deniedToolNames: [],
   };
 }

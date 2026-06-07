@@ -1,0 +1,1670 @@
+{
+  "pack_name": "AgentWorld Q-Pixel Chibi Kit",
+  "version": "2.0.0",
+  "style": "Q版、头更大、像素感更强、白底默认、全身、一脚踩石头、包含地板/腿部/摆件/手持武器",
+  "entry_files": {
+    "import_config": "agentworld_import_config.json",
+    "manifest": "metadata/agentworld_qpixel_manifest.json",
+    "rules": "metadata/agentworld_generation_rules.json",
+    "recipes": "metadata/agentworld_recipe_examples.json"
+  },
+  "layers": [
+    {
+      "layer": "special_background",
+      "z_index": 0,
+      "usage": "Optional decorative background, only for Leader/Boss/Archmage/Cyber Commander."
+    },
+    {
+      "layer": "base",
+      "z_index": 10,
+      "usage": "Floor/base, usually white-background characters need one."
+    },
+    {
+      "layer": "side_prop",
+      "z_index": 20,
+      "usage": "Optional prop beside character."
+    },
+    {
+      "layer": "lower_body",
+      "z_index": 30,
+      "usage": "Lower body with raised foot on stone."
+    },
+    {
+      "layer": "head_upper",
+      "z_index": 40,
+      "usage": "Head + upper body module."
+    },
+    {
+      "layer": "hand_item",
+      "z_index": 50,
+      "usage": "Weapon/tool, to be placed in active hand or used as generation reference."
+    },
+    {
+      "layer": "full_character",
+      "z_index": 100,
+      "usage": "Ready-to-use full character examples."
+    }
+  ],
+  "traits": [
+    {
+      "trait_id": "full_character.ranger_full",
+      "name": "ranger_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/full_character.ranger_full.png",
+      "size_px": [
+        402,
+        436
+      ],
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.ranger_full.png"
+    },
+    {
+      "trait_id": "full_character.mage_full",
+      "name": "mage_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/full_character.mage_full.png",
+      "size_px": [
+        400,
+        427
+      ],
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.mage_full.png"
+    },
+    {
+      "trait_id": "full_character.engineer_full",
+      "name": "engineer_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/full_character.engineer_full.png",
+      "size_px": [
+        373,
+        432
+      ],
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.engineer_full.png"
+    },
+    {
+      "trait_id": "full_character.captain_leader_full",
+      "name": "captain_leader_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "captain_leader",
+      "file": "assets/aligned_512/full_character.captain_leader_full.png",
+      "size_px": [
+        444,
+        440
+      ],
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.captain_leader_full.png"
+    },
+    {
+      "trait_id": "full_character.monk_full",
+      "name": "monk_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "monk",
+      "file": "assets/aligned_512/full_character.monk_full.png",
+      "size_px": [
+        392,
+        416
+      ],
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.monk_full.png"
+    },
+    {
+      "trait_id": "full_character.pirate_full",
+      "name": "pirate_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/full_character.pirate_full.png",
+      "size_px": [
+        441,
+        423
+      ],
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.pirate_full.png"
+    },
+    {
+      "trait_id": "full_character.druid_full",
+      "name": "druid_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/full_character.druid_full.png",
+      "size_px": [
+        441,
+        421
+      ],
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.druid_full.png"
+    },
+    {
+      "trait_id": "full_character.cyber_full",
+      "name": "cyber_full",
+      "category": "full_character",
+      "layer": "full_character",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/full_character.cyber_full.png",
+      "size_px": [
+        412,
+        421
+      ],
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/full_character.cyber_full.png"
+    },
+    {
+      "trait_id": "full_character.hybrid_ranger_staff",
+      "name": "hybrid_ranger_staff",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "hybrid_ranger_staff",
+      "file": "assets/aligned_512/full_character.hybrid_ranger_staff.png",
+      "size_px": [
+        398,
+        433
+      ],
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          444
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.hybrid_ranger_staff.png"
+    },
+    {
+      "trait_id": "full_character.engineer_mage",
+      "name": "engineer_mage",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "engineer_mage",
+      "file": "assets/aligned_512/full_character.engineer_mage.png",
+      "size_px": [
+        364,
+        423
+      ],
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          444
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.engineer_mage.png"
+    },
+    {
+      "trait_id": "full_character.pirate_monk",
+      "name": "pirate_monk",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "pirate_monk",
+      "file": "assets/aligned_512/full_character.pirate_monk.png",
+      "size_px": [
+        389,
+        434
+      ],
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          444
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.pirate_monk.png"
+    },
+    {
+      "trait_id": "full_character.red_monk_leader",
+      "name": "red_monk_leader",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "red_monk_leader",
+      "file": "assets/aligned_512/full_character.red_monk_leader.png",
+      "size_px": [
+        414,
+        422
+      ],
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          444
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.red_monk_leader.png"
+    },
+    {
+      "trait_id": "full_character.druid_rogue",
+      "name": "druid_rogue",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "druid_rogue",
+      "file": "assets/aligned_512/full_character.druid_rogue.png",
+      "size_px": [
+        409,
+        426
+      ],
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          0,
+          444,
+          444,
+          887
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.druid_rogue.png"
+    },
+    {
+      "trait_id": "full_character.royal_leader",
+      "name": "royal_leader",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "royal_leader",
+      "file": "assets/aligned_512/full_character.royal_leader.png",
+      "size_px": [
+        439,
+        436
+      ],
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          444,
+          444,
+          887,
+          887
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.royal_leader.png"
+    },
+    {
+      "trait_id": "full_character.cyber_alchemist",
+      "name": "cyber_alchemist",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "cyber_alchemist",
+      "file": "assets/aligned_512/full_character.cyber_alchemist.png",
+      "size_px": [
+        398,
+        426
+      ],
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          887,
+          444,
+          1330,
+          887
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.cyber_alchemist.png"
+    },
+    {
+      "trait_id": "full_character.young_wizard",
+      "name": "young_wizard",
+      "category": "full_character",
+      "layer": "example_full",
+      "role_hint": "young_wizard",
+      "file": "assets/aligned_512/full_character.young_wizard.png",
+      "size_px": [
+        425,
+        442
+      ],
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows": 2,
+        "cols": 4,
+        "box_px": [
+          1330,
+          444,
+          1774,
+          887
+        ]
+      },
+      "is_example": true,
+      "aligned_512": "assets/aligned_512/full_character.young_wizard.png"
+    },
+    {
+      "trait_id": "head_upper.ranger_head_upper",
+      "name": "ranger_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/head_upper.ranger_head_upper.png",
+      "size_px": [
+        334,
+        365
+      ],
+      "manual_box_px": [
+        0,
+        40,
+        350,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.ranger_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.mage_head_upper",
+      "name": "mage_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/head_upper.mage_head_upper.png",
+      "size_px": [
+        329,
+        387
+      ],
+      "manual_box_px": [
+        315,
+        35,
+        690,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.mage_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.engineer_head_upper",
+      "name": "engineer_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/head_upper.engineer_head_upper.png",
+      "size_px": [
+        273,
+        353
+      ],
+      "manual_box_px": [
+        630,
+        50,
+        970,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.engineer_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.captain_head_upper",
+      "name": "captain_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "captain",
+      "file": "assets/aligned_512/head_upper.captain_head_upper.png",
+      "size_px": [
+        268,
+        379
+      ],
+      "manual_box_px": [
+        900,
+        40,
+        1215,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.captain_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.monk_head_upper",
+      "name": "monk_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "monk",
+      "file": "assets/aligned_512/head_upper.monk_head_upper.png",
+      "size_px": [
+        254,
+        311
+      ],
+      "manual_box_px": [
+        1160,
+        45,
+        1500,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.monk_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.pirate_head_upper",
+      "name": "pirate_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/head_upper.pirate_head_upper.png",
+      "size_px": [
+        297,
+        362
+      ],
+      "manual_box_px": [
+        1430,
+        50,
+        1774,
+        455
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.pirate_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.druid_head_upper",
+      "name": "druid_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/head_upper.druid_head_upper.png",
+      "size_px": [
+        338,
+        358
+      ],
+      "manual_box_px": [
+        0,
+        430,
+        360,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.druid_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.cyber_head_upper",
+      "name": "cyber_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/head_upper.cyber_head_upper.png",
+      "size_px": [
+        261,
+        346
+      ],
+      "manual_box_px": [
+        300,
+        430,
+        630,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.cyber_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.healer_head_upper",
+      "name": "healer_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "healer",
+      "file": "assets/aligned_512/head_upper.healer_head_upper.png",
+      "size_px": [
+        274,
+        345
+      ],
+      "manual_box_px": [
+        600,
+        430,
+        930,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.healer_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.scholar_head_upper",
+      "name": "scholar_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "scholar",
+      "file": "assets/aligned_512/head_upper.scholar_head_upper.png",
+      "size_px": [
+        264,
+        352
+      ],
+      "manual_box_px": [
+        890,
+        430,
+        1230,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.scholar_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.mechanic_head_upper",
+      "name": "mechanic_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "mechanic",
+      "file": "assets/aligned_512/head_upper.mechanic_head_upper.png",
+      "size_px": [
+        260,
+        363
+      ],
+      "manual_box_px": [
+        1160,
+        430,
+        1505,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.mechanic_head_upper.png"
+    },
+    {
+      "trait_id": "head_upper.shadow_head_upper",
+      "name": "shadow_head_upper",
+      "category": "head_upper",
+      "layer": "head_upper",
+      "role_hint": "shadow",
+      "file": "assets/aligned_512/head_upper.shadow_head_upper.png",
+      "size_px": [
+        273,
+        336
+      ],
+      "manual_box_px": [
+        1430,
+        430,
+        1774,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/head_upper.shadow_head_upper.png"
+    },
+    {
+      "trait_id": "lower_body.ranger_lower",
+      "name": "ranger_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/lower_body.ranger_lower.png",
+      "size_px": [
+        391,
+        269
+      ],
+      "grid": {
+        "row": 0,
+        "col": 0,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          0,
+          0,
+          444,
+          296
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.ranger_lower.png"
+    },
+    {
+      "trait_id": "lower_body.mage_lower",
+      "name": "mage_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/lower_body.mage_lower.png",
+      "size_px": [
+        390,
+        269
+      ],
+      "grid": {
+        "row": 0,
+        "col": 1,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          444,
+          0,
+          887,
+          296
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.mage_lower.png"
+    },
+    {
+      "trait_id": "lower_body.engineer_lower",
+      "name": "engineer_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/lower_body.engineer_lower.png",
+      "size_px": [
+        369,
+        270
+      ],
+      "grid": {
+        "row": 0,
+        "col": 2,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          887,
+          0,
+          1330,
+          296
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.engineer_lower.png"
+    },
+    {
+      "trait_id": "lower_body.captain_lower",
+      "name": "captain_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "captain",
+      "file": "assets/aligned_512/lower_body.captain_lower.png",
+      "size_px": [
+        369,
+        270
+      ],
+      "grid": {
+        "row": 0,
+        "col": 3,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          1330,
+          0,
+          1774,
+          296
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.captain_lower.png"
+    },
+    {
+      "trait_id": "lower_body.monk_lower",
+      "name": "monk_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "monk",
+      "file": "assets/aligned_512/lower_body.monk_lower.png",
+      "size_px": [
+        360,
+        264
+      ],
+      "grid": {
+        "row": 1,
+        "col": 0,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          0,
+          296,
+          444,
+          591
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.monk_lower.png"
+    },
+    {
+      "trait_id": "lower_body.pirate_lower",
+      "name": "pirate_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/lower_body.pirate_lower.png",
+      "size_px": [
+        386,
+        263
+      ],
+      "grid": {
+        "row": 1,
+        "col": 1,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          444,
+          296,
+          887,
+          591
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.pirate_lower.png"
+    },
+    {
+      "trait_id": "lower_body.druid_lower",
+      "name": "druid_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/lower_body.druid_lower.png",
+      "size_px": [
+        374,
+        262
+      ],
+      "grid": {
+        "row": 1,
+        "col": 2,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          887,
+          296,
+          1330,
+          591
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.druid_lower.png"
+    },
+    {
+      "trait_id": "lower_body.cyber_lower",
+      "name": "cyber_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/lower_body.cyber_lower.png",
+      "size_px": [
+        366,
+        262
+      ],
+      "grid": {
+        "row": 1,
+        "col": 3,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          1330,
+          296,
+          1774,
+          591
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.cyber_lower.png"
+    },
+    {
+      "trait_id": "lower_body.healer_lower",
+      "name": "healer_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "healer",
+      "file": "assets/aligned_512/lower_body.healer_lower.png",
+      "size_px": [
+        387,
+        262
+      ],
+      "grid": {
+        "row": 2,
+        "col": 0,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          0,
+          591,
+          444,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.healer_lower.png"
+    },
+    {
+      "trait_id": "lower_body.scholar_lower",
+      "name": "scholar_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "scholar",
+      "file": "assets/aligned_512/lower_body.scholar_lower.png",
+      "size_px": [
+        381,
+        262
+      ],
+      "grid": {
+        "row": 2,
+        "col": 1,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          444,
+          591,
+          887,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.scholar_lower.png"
+    },
+    {
+      "trait_id": "lower_body.mechanic_lower",
+      "name": "mechanic_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "mechanic",
+      "file": "assets/aligned_512/lower_body.mechanic_lower.png",
+      "size_px": [
+        372,
+        265
+      ],
+      "grid": {
+        "row": 2,
+        "col": 2,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          887,
+          591,
+          1330,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.mechanic_lower.png"
+    },
+    {
+      "trait_id": "lower_body.shadow_lower",
+      "name": "shadow_lower",
+      "category": "lower_body",
+      "layer": "lower_body",
+      "role_hint": "shadow",
+      "file": "assets/aligned_512/lower_body.shadow_lower.png",
+      "size_px": [
+        363,
+        262
+      ],
+      "grid": {
+        "row": 2,
+        "col": 3,
+        "rows": 3,
+        "cols": 4,
+        "box_px": [
+          1330,
+          591,
+          1774,
+          887
+        ]
+      },
+      "aligned_512": "assets/aligned_512/lower_body.shadow_lower.png"
+    },
+    {
+      "trait_id": "item.bow_leaf",
+      "name": "bow_leaf",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/item.bow_leaf.png",
+      "size_px": [
+        219,
+        264
+      ],
+      "manual_box_px": [
+        20,
+        0,
+        285,
+        285
+      ],
+      "aligned_512": "assets/aligned_512/item.bow_leaf.png"
+    },
+    {
+      "trait_id": "item.staff_purple_orb",
+      "name": "staff_purple_orb",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/item.staff_purple_orb.png",
+      "size_px": [
+        186,
+        262
+      ],
+      "manual_box_px": [
+        280,
+        0,
+        535,
+        285
+      ],
+      "aligned_512": "assets/aligned_512/item.staff_purple_orb.png"
+    },
+    {
+      "trait_id": "item.crystal_wand",
+      "name": "crystal_wand",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/item.crystal_wand.png",
+      "size_px": [
+        184,
+        261
+      ],
+      "manual_box_px": [
+        535,
+        0,
+        790,
+        285
+      ],
+      "aligned_512": "assets/aligned_512/item.crystal_wand.png"
+    },
+    {
+      "trait_id": "item.wrench",
+      "name": "wrench",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/item.wrench.png",
+      "size_px": [
+        177,
+        261
+      ],
+      "manual_box_px": [
+        790,
+        0,
+        1035,
+        285
+      ],
+      "aligned_512": "assets/aligned_512/item.wrench.png"
+    },
+    {
+      "trait_id": "item.hammer",
+      "name": "hammer",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/item.hammer.png",
+      "size_px": [
+        200,
+        249
+      ],
+      "manual_box_px": [
+        1010,
+        0,
+        1285,
+        285
+      ],
+      "aligned_512": "assets/aligned_512/item.hammer.png"
+    },
+    {
+      "trait_id": "item.flintlock_pistol",
+      "name": "flintlock_pistol",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/item.flintlock_pistol.png",
+      "size_px": [
+        197,
+        265
+      ],
+      "manual_box_px": [
+        1255,
+        0,
+        1515,
+        295
+      ],
+      "aligned_512": "assets/aligned_512/item.flintlock_pistol.png"
+    },
+    {
+      "trait_id": "item.captain_saber",
+      "name": "captain_saber",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "captain",
+      "file": "assets/aligned_512/item.captain_saber.png",
+      "size_px": [
+        193,
+        286
+      ],
+      "manual_box_px": [
+        1485,
+        0,
+        1774,
+        305
+      ],
+      "aligned_512": "assets/aligned_512/item.captain_saber.png"
+    },
+    {
+      "trait_id": "item.pirate_dagger",
+      "name": "pirate_dagger",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/item.pirate_dagger.png",
+      "size_px": [
+        185,
+        253
+      ],
+      "manual_box_px": [
+        0,
+        250,
+        270,
+        550
+      ],
+      "aligned_512": "assets/aligned_512/item.pirate_dagger.png"
+    },
+    {
+      "trait_id": "item.monk_staff_beads",
+      "name": "monk_staff_beads",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "monk",
+      "file": "assets/aligned_512/item.monk_staff_beads.png",
+      "size_px": [
+        223,
+        252
+      ],
+      "manual_box_px": [
+        285,
+        250,
+        620,
+        550
+      ],
+      "aligned_512": "assets/aligned_512/item.monk_staff_beads.png"
+    },
+    {
+      "trait_id": "item.druid_staff",
+      "name": "druid_staff",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/item.druid_staff.png",
+      "size_px": [
+        247,
+        267
+      ],
+      "manual_box_px": [
+        640,
+        250,
+        970,
+        555
+      ],
+      "aligned_512": "assets/aligned_512/item.druid_staff.png"
+    },
+    {
+      "trait_id": "item.cyber_blade",
+      "name": "cyber_blade",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/item.cyber_blade.png",
+      "size_px": [
+        227,
+        241
+      ],
+      "manual_box_px": [
+        985,
+        260,
+        1320,
+        555
+      ],
+      "aligned_512": "assets/aligned_512/item.cyber_blade.png"
+    },
+    {
+      "trait_id": "item.hologram_tablet",
+      "name": "hologram_tablet",
+      "category": "item",
+      "layer": "hand_item",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/item.hologram_tablet.png",
+      "size_px": [
+        240,
+        170
+      ],
+      "manual_box_px": [
+        230,
+        710,
+        500,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/item.hologram_tablet.png"
+    },
+    {
+      "trait_id": "side_prop.lantern",
+      "name": "lantern",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/side_prop.lantern.png",
+      "size_px": [
+        147,
+        221
+      ],
+      "manual_box_px": [
+        20,
+        500,
+        310,
+        790
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.lantern.png"
+    },
+    {
+      "trait_id": "side_prop.books_stack",
+      "name": "books_stack",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/side_prop.books_stack.png",
+      "size_px": [
+        263,
+        203
+      ],
+      "manual_box_px": [
+        310,
+        510,
+        650,
+        800
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.books_stack.png"
+    },
+    {
+      "trait_id": "side_prop.ship_wheel",
+      "name": "ship_wheel",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "captain",
+      "file": "assets/aligned_512/side_prop.ship_wheel.png",
+      "size_px": [
+        249,
+        238
+      ],
+      "manual_box_px": [
+        650,
+        500,
+        1000,
+        800
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.ship_wheel.png"
+    },
+    {
+      "trait_id": "side_prop.treasure_chest",
+      "name": "treasure_chest",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/side_prop.treasure_chest.png",
+      "size_px": [
+        262,
+        222
+      ],
+      "manual_box_px": [
+        970,
+        500,
+        1350,
+        800
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.treasure_chest.png"
+    },
+    {
+      "trait_id": "side_prop.deer_companion",
+      "name": "deer_companion",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/side_prop.deer_companion.png",
+      "size_px": [
+        164,
+        270
+      ],
+      "manual_box_px": [
+        1325,
+        470,
+        1665,
+        790
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.deer_companion.png"
+    },
+    {
+      "trait_id": "side_prop.gear_machine",
+      "name": "gear_machine",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/side_prop.gear_machine.png",
+      "size_px": [
+        240,
+        170
+      ],
+      "manual_box_px": [
+        210,
+        680,
+        540,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.gear_machine.png"
+    },
+    {
+      "trait_id": "side_prop.tech_crate",
+      "name": "tech_crate",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/side_prop.tech_crate.png",
+      "size_px": [
+        203,
+        161
+      ],
+      "manual_box_px": [
+        520,
+        680,
+        820,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.tech_crate.png"
+    },
+    {
+      "trait_id": "side_prop.signal_beacon",
+      "name": "signal_beacon",
+      "category": "side_prop",
+      "layer": "side_prop",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/side_prop.signal_beacon.png",
+      "size_px": [
+        155,
+        164
+      ],
+      "manual_box_px": [
+        850,
+        680,
+        1120,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/side_prop.signal_beacon.png"
+    },
+    {
+      "trait_id": "base.grass_patch",
+      "name": "grass_patch",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "ranger",
+      "file": "assets/aligned_512/base.grass_patch.png",
+      "size_px": [
+        279,
+        177
+      ],
+      "manual_box_px": [
+        0,
+        70,
+        300,
+        330
+      ],
+      "aligned_512": "assets/aligned_512/base.grass_patch.png"
+    },
+    {
+      "trait_id": "base.stone_tiles",
+      "name": "stone_tiles",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "neutral",
+      "file": "assets/aligned_512/base.stone_tiles.png",
+      "size_px": [
+        284,
+        171
+      ],
+      "manual_box_px": [
+        280,
+        80,
+        595,
+        330
+      ],
+      "aligned_512": "assets/aligned_512/base.stone_tiles.png"
+    },
+    {
+      "trait_id": "base.arcane_circle",
+      "name": "arcane_circle",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "mage",
+      "file": "assets/aligned_512/base.arcane_circle.png",
+      "size_px": [
+        275,
+        169
+      ],
+      "manual_box_px": [
+        560,
+        60,
+        880,
+        330
+      ],
+      "aligned_512": "assets/aligned_512/base.arcane_circle.png"
+    },
+    {
+      "trait_id": "base.metal_workshop",
+      "name": "metal_workshop",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "engineer",
+      "file": "assets/aligned_512/base.metal_workshop.png",
+      "size_px": [
+        279,
+        189
+      ],
+      "manual_box_px": [
+        840,
+        80,
+        1150,
+        330
+      ],
+      "aligned_512": "assets/aligned_512/base.metal_workshop.png"
+    },
+    {
+      "trait_id": "special_background.leader_throne",
+      "name": "leader_throne",
+      "category": "special_background",
+      "layer": "background",
+      "role_hint": "leader",
+      "file": "assets/aligned_512/special_background.leader_throne.png",
+      "size_px": [
+        314,
+        402
+      ],
+      "manual_box_px": [
+        1120,
+        0,
+        1465,
+        420
+      ],
+      "aligned_512": "assets/aligned_512/special_background.leader_throne.png"
+    },
+    {
+      "trait_id": "special_background.boss_lair",
+      "name": "boss_lair",
+      "category": "special_background",
+      "layer": "background",
+      "role_hint": "boss",
+      "file": "assets/aligned_512/special_background.boss_lair.png",
+      "size_px": [
+        327,
+        396
+      ],
+      "manual_box_px": [
+        1440,
+        0,
+        1774,
+        430
+      ],
+      "aligned_512": "assets/aligned_512/special_background.boss_lair.png"
+    },
+    {
+      "trait_id": "base.ship_deck",
+      "name": "ship_deck",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "captain",
+      "file": "assets/aligned_512/base.ship_deck.png",
+      "size_px": [
+        288,
+        194
+      ],
+      "manual_box_px": [
+        0,
+        330,
+        300,
+        570
+      ],
+      "aligned_512": "assets/aligned_512/base.ship_deck.png"
+    },
+    {
+      "trait_id": "base.temple_stone",
+      "name": "temple_stone",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "monk",
+      "file": "assets/aligned_512/base.temple_stone.png",
+      "size_px": [
+        285,
+        208
+      ],
+      "manual_box_px": [
+        285,
+        330,
+        600,
+        580
+      ],
+      "aligned_512": "assets/aligned_512/base.temple_stone.png"
+    },
+    {
+      "trait_id": "base.treasure_patch",
+      "name": "treasure_patch",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "pirate",
+      "file": "assets/aligned_512/base.treasure_patch.png",
+      "size_px": [
+        280,
+        182
+      ],
+      "manual_box_px": [
+        560,
+        330,
+        880,
+        580
+      ],
+      "aligned_512": "assets/aligned_512/base.treasure_patch.png"
+    },
+    {
+      "trait_id": "base.forest_mound",
+      "name": "forest_mound",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "druid",
+      "file": "assets/aligned_512/base.forest_mound.png",
+      "size_px": [
+        279,
+        200
+      ],
+      "manual_box_px": [
+        840,
+        330,
+        1145,
+        585
+      ],
+      "aligned_512": "assets/aligned_512/base.forest_mound.png"
+    },
+    {
+      "trait_id": "special_background.arcane_portal",
+      "name": "arcane_portal",
+      "category": "special_background",
+      "layer": "background",
+      "role_hint": "archmage",
+      "file": "assets/aligned_512/special_background.arcane_portal.png",
+      "size_px": [
+        321,
+        418
+      ],
+      "manual_box_px": [
+        1120,
+        390,
+        1460,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/special_background.arcane_portal.png"
+    },
+    {
+      "trait_id": "special_background.cyber_command",
+      "name": "cyber_command",
+      "category": "special_background",
+      "layer": "background",
+      "role_hint": "cyber_leader",
+      "file": "assets/aligned_512/special_background.cyber_command.png",
+      "size_px": [
+        323,
+        418
+      ],
+      "manual_box_px": [
+        1440,
+        390,
+        1774,
+        887
+      ],
+      "aligned_512": "assets/aligned_512/special_background.cyber_command.png"
+    },
+    {
+      "trait_id": "base.cyber_platform",
+      "name": "cyber_platform",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "cyber",
+      "file": "assets/aligned_512/base.cyber_platform.png",
+      "size_px": [
+        283,
+        171
+      ],
+      "manual_box_px": [
+        0,
+        590,
+        310,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/base.cyber_platform.png"
+    },
+    {
+      "trait_id": "base.library_floor",
+      "name": "library_floor",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "scholar",
+      "file": "assets/aligned_512/base.library_floor.png",
+      "size_px": [
+        284,
+        209
+      ],
+      "manual_box_px": [
+        290,
+        570,
+        600,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/base.library_floor.png"
+    },
+    {
+      "trait_id": "base.healing_altar",
+      "name": "healing_altar",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "healer",
+      "file": "assets/aligned_512/base.healing_altar.png",
+      "size_px": [
+        279,
+        212
+      ],
+      "manual_box_px": [
+        560,
+        570,
+        880,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/base.healing_altar.png"
+    },
+    {
+      "trait_id": "base.shadow_platform",
+      "name": "shadow_platform",
+      "category": "base",
+      "layer": "base",
+      "role_hint": "shadow",
+      "file": "assets/aligned_512/base.shadow_platform.png",
+      "size_px": [
+        273,
+        202
+      ],
+      "manual_box_px": [
+        830,
+        570,
+        1145,
+        850
+      ],
+      "aligned_512": "assets/aligned_512/base.shadow_platform.png"
+    }
+  ]
+}

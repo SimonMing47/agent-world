@@ -1,0 +1,73 @@
+{
+  "ranger": {
+    "preferred": [
+      "head_upper.ranger_head_upper",
+      "lower_body.ranger_lower",
+      "item.bow_leaf",
+      "side_prop.lantern",
+      "base.grass_patch"
+    ]
+  },
+  "mage": {
+    "preferred": [
+      "head_upper.mage_head_upper",
+      "lower_body.mage_lower",
+      "item.crystal_wand",
+      "side_prop.books_stack",
+      "base.arcane_circle"
+    ]
+  },
+  "engineer": {
+    "preferred": [
+      "head_upper.engineer_head_upper",
+      "lower_body.engineer_lower",
+      "item.wrench",
+      "side_prop.gear_machine",
+      "base.metal_workshop"
+    ]
+  },
+  "leader": {
+    "preferred": [
+      "special_background.leader_throne",
+      "head_upper.captain_head_upper",
+      "lower_body.captain_lower",
+      "item.captain_saber",
+      "base.stone_tiles"
+    ]
+  },
+  "monk": {
+    "preferred": [
+      "head_upper.monk_head_upper",
+      "lower_body.monk_lower",
+      "item.monk_staff_beads",
+      "base.temple_stone"
+    ]
+  },
+  "pirate": {
+    "preferred": [
+      "head_upper.pirate_head_upper",
+      "lower_body.pirate_lower",
+      "item.pirate_dagger",
+      "side_prop.treasure_chest",
+      "base.ship_deck"
+    ]
+  },
+  "druid": {
+    "preferred": [
+      "head_upper.druid_head_upper",
+      "lower_body.druid_lower",
+      "item.druid_staff",
+      "side_prop.deer_companion",
+      "base.forest_mound"
+    ]
+  },
+  "cyber": {
+    "preferred": [
+      "head_upper.cyber_head_upper",
+      "lower_body.cyber_lower",
+      "item.cyber_blade",
+      "side_prop.tech_crate",
+      "base.cyber_platform"
+    ]
+  }
+}

@@ -34,6 +34,7 @@ type PixelAgentAvatarProps = {
   capabilityProfile?: AgentCapabilityProfile;
   seed?: string;
   roleSlot?: number;
+  roleHint?: string | null;
   size?: "sm" | "md" | "lg" | "team";
   className?: string;
 };
@@ -544,6 +545,7 @@ export function PixelAgentAvatar({
   capabilityProfile,
   seed = "agent",
   roleSlot,
+  roleHint,
   size = "md",
   className,
 }: PixelAgentAvatarProps) {
@@ -559,6 +561,7 @@ export function PixelAgentAvatar({
           seed: JSON.stringify({ seed, roleSlot, visual, capabilityKey }),
           configuredTraits: visual.assetTraits,
           capabilityKey,
+          roleHint: roleHint ?? visual.roleHint,
       })
       : [];
 
@@ -618,6 +621,7 @@ type PixelAgentAvatarEditorProps = {
   value: PixelAgentAvatarConfig;
   capabilityProfile?: AgentCapabilityProfile;
   seed?: string;
+  roleHint?: string | null;
   onChange: (value: PixelAgentAvatarConfig) => void;
 };
 
@@ -625,6 +629,7 @@ export function PixelAgentAvatarEditor({
   value,
   capabilityProfile,
   seed = "agent",
+  roleHint,
   onChange,
 }: PixelAgentAvatarEditorProps) {
   const text = useLanguageText();
@@ -639,17 +644,20 @@ export function PixelAgentAvatarEditor({
     seed: JSON.stringify({ current, capabilityKey, seed }),
     configuredTraits: current.assetTraits,
     capabilityKey,
+    roleHint: roleHint ?? current.roleHint,
   });
   const selectedExampleAgent =
     agentWorldHeroExampleAgents.find((agent) =>
       agentWorldHeroLayerOrder.every((layer) => currentAssetTraits[layer] === agent.traits[layer]),
     ) ?? null;
+  const editableLayerOrder = agentWorldHeroLayerOrder.filter((layer) => layer !== "full_character");
 
   function updateGeneration(nextValue: PixelAgentAvatarConfig["weaponKey"]) {
     onChange({
       ...current,
       assetPack: agentWorldHeroPackId,
       assetTraits: undefined,
+      roleHint: roleHint ?? current.roleHint,
       weaponKey: nextValue,
     });
   }
@@ -659,6 +667,7 @@ export function PixelAgentAvatarEditor({
     onChange({
       ...current,
       assetPack: agentWorldHeroPackId,
+      roleHint: roleHint ?? current.roleHint,
       assetTraits: exampleAgent?.traits,
     });
   }
@@ -671,6 +680,7 @@ export function PixelAgentAvatarEditor({
     onChange({
       ...current,
       assetPack: agentWorldHeroPackId,
+      roleHint: roleHint ?? current.roleHint,
       assetTraits: nextTraits,
     });
   }
@@ -693,11 +703,23 @@ export function PixelAgentAvatarEditor({
   return (
     <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
       <div className="flex flex-col items-center justify-center rounded-xl border border-[var(--line)] bg-white/60 p-5">
-        <PixelAgentAvatar config={current} capabilityProfile={capabilityProfile} seed={seed} size="lg" />
+        <PixelAgentAvatar
+          config={current}
+          capabilityProfile={capabilityProfile}
+          seed={seed}
+          size="lg"
+          roleHint={roleHint ?? current.roleHint}
+        />
         <button
           type="button"
           className="mt-4 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow-sm transition hover:bg-[var(--surface-muted)]"
-          onClick={() => onChange({ ...defaultPixelAgentAvatarConfig(`${seed}-${Date.now()}`), assetPack: agentWorldHeroPackId })}
+          onClick={() =>
+            onChange({
+              ...defaultPixelAgentAvatarConfig(`${seed}-${Date.now()}`),
+              assetPack: agentWorldHeroPackId,
+              roleHint: roleHint ?? current.roleHint,
+            })
+          }
         >
           agent.avatar.regenerate
         </button>
@@ -725,7 +747,7 @@ export function PixelAgentAvatarEditor({
             ))}
           </Select>
         </FieldGroup>
-        {agentWorldHeroLayerOrder.map(assetTraitControl)}
+        {editableLayerOrder.map(assetTraitControl)}
       </div>
     </div>
   );

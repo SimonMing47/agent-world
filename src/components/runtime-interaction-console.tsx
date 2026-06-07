@@ -838,6 +838,7 @@ function ParticipantAvatar({
           config={avatarConfig}
           capabilityProfile={capabilityProfile}
           seed={seed}
+          roleHint={participant.role}
           size="sm"
           className={cn(
             "shadow-none",

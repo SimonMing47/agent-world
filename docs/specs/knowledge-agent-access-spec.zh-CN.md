@@ -584,8 +584,31 @@ POST /api/knowledge/retrieve
 {
   "ok": true,
   "packet": {
-    "sections": [],
-    "citations": []
+    "kind": "taskRun",
+    "query": "如何建设 LLM Wiki 工作台",
+    "refs": [],
+    "totalRefs": 1,
+    "search": {
+      "query": "如何建设 LLM Wiki 工作台",
+      "scope": {
+        "knowledgeSpaceIds": [],
+        "scopeUris": []
+      },
+      "totalEntries": 8,
+      "totalCandidates": 3,
+      "hits": []
+    },
+    "health": {
+      "ok": true,
+      "baseUrl": "local://agentworld-knowledge"
+    },
+    "degraded": false
+  },
+  "context": {
+    "taskRunId": "run_001",
+    "nodeId": "node_research",
+    "agentId": "agent_researcher",
+    "query": "如何建设 LLM Wiki 工作台"
   }
 }
 ```

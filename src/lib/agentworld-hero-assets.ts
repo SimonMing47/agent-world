@@ -1,15 +1,19 @@
 import type { AgentCapabilityKey } from "@/lib/agent-capability-profile";
-import referenceLockedTraitsJson from "../../public/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2/metadata/agentworld_reference_locked_traits.json";
+import v1ReferencePackJson from "../../public/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2/metadata/agentworld_reference_locked_traits.json";
+import v2ImportConfigJson from "../../public/agentworld-assets/hero-pack/v2/agentworld_import_config.json";
+import v2ManifestJson from "../../public/agentworld-assets/hero-pack/v2/metadata/agentworld_qpixel_manifest.json";
+import v2GenerationRulesJson from "../../public/agentworld-assets/hero-pack/v2/metadata/agentworld_generation_rules.json";
+import v2RolePresetsJson from "../../public/agentworld-assets/hero-pack/v2/metadata/agentworld_role_presets.json";
+import v2RecipeExamplesJson from "../../public/agentworld-assets/hero-pack/v2/metadata/agentworld_recipe_examples.json";
 
-export const agentWorldHeroPackId = "agentworld-hero-pack-v1" as const;
-export const agentWorldHeroPackBasePath = "/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1" as const;
-export const agentWorldHeroPackDownloadPath =
-  "/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1.zip" as const;
+export const agentWorldHeroPackIdV1 = "agentworld-hero-pack-v1" as const;
+export const agentWorldHeroPackIdV2 = "agentworld-qpixel-chibi-kit-v2" as const;
+export const agentWorldHeroPackId = agentWorldHeroPackIdV2;
 
-const agentWorldHeroReferenceLockedBasePath =
-  `${agentWorldHeroPackBasePath}/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2` as const;
-
-export type AgentWorldHeroPackId = typeof agentWorldHeroPackId;
+export const agentWorldHeroPackBasePath = "/agentworld-assets/hero-pack/v2" as const;
+export const agentWorldHeroPackBasePathLegacy =
+  "/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1" as const;
+export const agentWorldHeroPackDownloadPathLegacy = "/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1.zip" as const;
 
 export const agentWorldHeroLayerIds = [
   "ground",
@@ -22,49 +26,118 @@ export const agentWorldHeroLayerIds = [
   "headgear",
   "detail",
   "hand_item",
+  "special_background",
+  "base",
+  "lower_body",
+  "head_upper",
+  "full_character",
 ] as const;
 
+export type AgentWorldHeroPackId = typeof agentWorldHeroPackIdV1 | typeof agentWorldHeroPackIdV2;
 export type AgentWorldHeroLayer = (typeof agentWorldHeroLayerIds)[number];
 export type AgentWorldHeroTraits = Partial<Record<AgentWorldHeroLayer, string>>;
 
-type RawReferenceLayer = {
+type RawV1Layer = {
   layer: string;
   z_index: number;
   description?: string;
   description_zh?: string;
 };
 
-type RawReferenceTrait = {
+type RawV1Trait = {
   trait_id: string;
   layer: string;
   display_name?: string;
   display_name_zh?: string;
   path: string;
-  rarity?: string;
-  tags?: string[];
-  role_affinity?: string[];
-  source?: string;
 };
 
-type RawReferenceRole = {
+type RawV1Role = {
   role_id: string;
   display_name?: string;
   display_name_zh?: string;
   preview_path: string;
   visual_recipe: Record<string, string>;
-  generation_note?: string;
 };
 
-type RawReferenceLockedTraits = {
+type RawV1Pack = {
   pack_id: string;
   display_name: string;
   canvas?: {
     width?: number;
     height?: number;
   };
-  layers: RawReferenceLayer[];
-  traits: RawReferenceTrait[];
-  roles: RawReferenceRole[];
+  layers: RawV1Layer[];
+  traits: RawV1Trait[];
+  roles: RawV1Role[];
+};
+
+type RawV2Layer = {
+  layer: string;
+  z_index: number;
+  usage?: string;
+  description?: string;
+};
+
+type RawV2Trait = {
+  trait_id: string;
+  name?: string;
+  category: string;
+  layer: string;
+  role_hint?: string;
+  file: string;
+  icon_256?: string;
+  aligned_512?: string;
+  is_example?: boolean;
+};
+
+type RawV2Manifest = {
+  pack_name: string;
+  version: string;
+  layers: RawV2Layer[];
+  traits: RawV2Trait[];
+};
+
+type RawV2ImportAssetDirs = {
+  sheets?: string;
+  elements?: string;
+  icons_256?: string;
+  aligned_512?: string;
+};
+
+type RawV2ImportEntryFiles = {
+  [key: string]: string | undefined;
+  import_config?: string;
+  manifest?: string;
+  role_presets?: string;
+  rules?: string;
+  recipes?: string;
+};
+
+type RawV2ImportConfig = {
+  name: string;
+  version: string;
+  manifest: string;
+  role_presets: string;
+  generation_rules: string;
+  recipe_examples: string;
+  asset_dirs?: RawV2ImportAssetDirs;
+  entry_files?: RawV2ImportEntryFiles;
+};
+
+type RawV2GenerationRules = {
+  default_background?: string;
+  special_background_rule?: string;
+};
+
+type RawV2RolePreset = {
+  preferred: string[];
+};
+
+type RawV2Recipe = {
+  agent_id: string;
+  role: string;
+  traits: string[];
 };
 
 export type AgentWorldHeroAsset = {
@@ -79,6 +152,9 @@ export type AgentWorldHeroAsset = {
   layer: AgentWorldHeroLayer;
   zIndex: number;
   description: string;
+  sourcePack: AgentWorldHeroPackId;
+  roleHint?: string;
+  isExampleOnly: boolean;
 };
 
 export type AgentWorldHeroResolvedLayer = AgentWorldHeroAsset & {
@@ -92,71 +168,64 @@ export type AgentWorldHeroExampleAgent = {
   previewSrc: string;
 };
 
-const rawReferencePack = referenceLockedTraitsJson as RawReferenceLockedTraits;
-
-export const agentWorldHeroCanvas = {
-  width: rawReferencePack.canvas?.width ?? 256,
-  height: rawReferencePack.canvas?.height ?? 256,
+type HeroPackDefinition = {
+  id: AgentWorldHeroPackId;
+  name: string;
+  version: string;
+  canvas: {
+    width: number;
+    height: number;
+  };
+  importConfig: RawV2ImportConfig | null;
+  layerSchema: Array<{
+    layer: AgentWorldHeroLayer;
+    zIndex: number;
+    description: string;
+  }>;
+  layerOrder: AgentWorldHeroLayer[];
+  assets: AgentWorldHeroAsset[];
+  assetsById: Map<string, AgentWorldHeroAsset>;
+  assetsByLayer: Partial<Record<AgentWorldHeroLayer, AgentWorldHeroAsset[]>>;
+  rolePresetTraits: Map<string, string[]>;
+  exampleAgents: AgentWorldHeroExampleAgent[];
+  exampleAgentById: Map<string, AgentWorldHeroExampleAgent>;
+  generationRules: {
+    defaultBackground: string;
+    specialRoleKeywords: string[];
+  };
 };
 
-function isAgentWorldHeroLayer(value: unknown): value is AgentWorldHeroLayer {
-  return typeof value === "string" && (agentWorldHeroLayerIds as readonly string[]).includes(value);
+const v1ReferencePack = v1ReferencePackJson as RawV1Pack;
+const v2ImportConfig = v2ImportConfigJson as RawV2ImportConfig;
+const v2Manifest = v2ManifestJson as RawV2Manifest;
+const v2GenerationRules = v2GenerationRulesJson as RawV2GenerationRules;
+const v2RolePresets = v2RolePresetsJson as Record<string, RawV2RolePreset>;
+const v2RecipeExamples = v2RecipeExamplesJson as RawV2Recipe[];
+
+function resolveImportConfigPath(entryFiles: RawV2ImportEntryFiles | undefined, candidate: string, fallback?: string) {
+  return ((entryFiles?.[candidate] as string | undefined) ?? fallback ?? "").trim();
 }
 
-function toReferenceAssetUrl(path: string) {
-  return `${agentWorldHeroReferenceLockedBasePath}/${path.replace(/^\/+/, "")}`;
-}
+const v2ResolvedImportConfig: RawV2ImportConfig = {
+  ...v2ImportConfig,
+  manifest: resolveImportConfigPath(v2ImportConfig.entry_files, "manifest", v2ImportConfig.manifest),
+  role_presets: resolveImportConfigPath(v2ImportConfig.entry_files, "role_presets", v2ImportConfig.role_presets),
+  generation_rules: resolveImportConfigPath(v2ImportConfig.entry_files, "rules", v2ImportConfig.generation_rules),
+  recipe_examples: resolveImportConfigPath(v2ImportConfig.entry_files, "recipes", v2ImportConfig.recipe_examples),
+};
 
-function displayName(...values: Array<string | null | undefined>) {
-  return values.find((value) => value?.trim()) ?? "";
-}
-
-function variantFromTraitId(layer: AgentWorldHeroLayer, traitId: string) {
-  return traitId.replace(new RegExp(`^${layer}[_\\.]?`), "");
-}
-
-export const agentWorldHeroLayerSchema = rawReferencePack.layers
-  .filter((layer) => isAgentWorldHeroLayer(layer.layer))
-  .sort((left, right) => left.z_index - right.z_index)
-  .map((layer) => ({
-    layer: layer.layer as AgentWorldHeroLayer,
-    zIndex: layer.z_index,
-    description: displayName(layer.description_zh, layer.description, layer.layer),
-  }));
-
-export const agentWorldHeroLayerOrder = agentWorldHeroLayerSchema.map((layer) => layer.layer);
-
-const layerZIndex = new Map(agentWorldHeroLayerSchema.map((layer) => [layer.layer, layer.zIndex]));
-
-export const agentWorldHeroAssets: AgentWorldHeroAsset[] = rawReferencePack.traits
-  .filter((asset) => isAgentWorldHeroLayer(asset.layer))
-  .map((asset) => {
-    const layer = asset.layer as AgentWorldHeroLayer;
-    return {
-      traitId: asset.trait_id,
-      name: displayName(asset.display_name_zh, asset.display_name, asset.trait_id),
-      category: layer,
-      variant: variantFromTraitId(layer, asset.trait_id),
-      sheetFile: "",
-      sheetUrl: "",
-      cropFile: asset.path,
-      cropUrl: toReferenceAssetUrl(asset.path),
-      layer,
-      zIndex: layerZIndex.get(layer) ?? 0,
-      description: displayName(asset.display_name_zh, asset.display_name, asset.trait_id),
-    };
-  })
-  .sort((left, right) => left.zIndex - right.zIndex || left.traitId.localeCompare(right.traitId));
-
-const assetByTraitId = new Map(agentWorldHeroAssets.map((asset) => [asset.traitId, asset]));
-
-const assetsByLayer = agentWorldHeroLayerOrder.reduce(
-  (grouped, layer) => ({
-    ...grouped,
-    [layer]: agentWorldHeroAssets.filter((asset) => asset.layer === layer),
-  }),
-  {} as Record<AgentWorldHeroLayer, AgentWorldHeroAsset[]>,
-);
+export const agentWorldHeroPackV2Metadata = {
+  configPath: `${agentWorldHeroPackBasePath}/agentworld_import_config.json`,
+  manifestPath: `${agentWorldHeroPackBasePath}/${v2ResolvedImportConfig.manifest}`,
+  rolePresetsPath: `${agentWorldHeroPackBasePath}/${v2ResolvedImportConfig.role_presets}`,
+  generationRulesPath: `${agentWorldHeroPackBasePath}/${v2ResolvedImportConfig.generation_rules}`,
+  recipeExamplesPath: `${agentWorldHeroPackBasePath}/${v2ResolvedImportConfig.recipe_examples}`,
+  assetDirs: {
+    aligned512: `${agentWorldHeroPackBasePath}/${v2ImportConfig.asset_dirs?.aligned_512 ?? "assets/aligned_512"}`,
+  },
+  packName: v2ImportConfig.name,
+  packVersion: v2ImportConfig.version,
+};
 
 function hashSeed(seed: string) {
   let hash = 2166136261;
@@ -167,73 +236,433 @@ function hashSeed(seed: string) {
   return hash >>> 0;
 }
 
-function validTraitForLayer(layer: AgentWorldHeroLayer, traitId: string | undefined) {
-  const asset = traitId ? assetByTraitId.get(traitId) : null;
-  return asset?.layer === layer ? asset.traitId : null;
+function toDisplayName(...values: Array<string | null | undefined>) {
+  return values.find((value) => value?.trim()) ?? "";
 }
 
-function pickTrait(layer: AgentWorldHeroLayer, seed: number, offset: number) {
-  const candidates = assetsByLayer[layer];
+function toAssetUrl(basePath: string, relativePath: string) {
+  return `${basePath}/${relativePath.replace(/^\/+/, "")}`;
+}
+
+function normalizeRoleText(value: string | null | undefined) {
+  return (value ?? "").toLowerCase().trim().replace(/[\s_./-]+/g, " ");
+}
+
+function isAgentWorldHeroLayerValue(value: unknown): value is AgentWorldHeroLayer {
+  return typeof value === "string" && (agentWorldHeroLayerIds as readonly string[]).includes(value);
+}
+
+function normalizeRoleTokens(value: string | null | undefined) {
+  return normalizeRoleText(value)
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function roleTokenMatch(left: string | null | undefined, right: string | null | undefined) {
+  const normalizedLeft = normalizeRoleText(left);
+  const normalizedRight = normalizeRoleText(right);
+  if (!normalizedLeft || !normalizedRight) return false;
+  if (normalizedLeft === normalizedRight) return true;
+  if (normalizedLeft.includes(normalizedRight) || normalizedRight.includes(normalizedLeft)) return true;
+
+  const leftTokens = new Set(normalizeRoleTokens(left));
+  const rightTokens = new Set(normalizeRoleTokens(right));
+  for (const leftToken of leftTokens) {
+    if (rightTokens.has(leftToken)) return true;
+  }
+  for (const leftToken of leftTokens) {
+    for (const rightToken of rightTokens) {
+      if (leftToken.includes(rightToken) || rightToken.includes(leftToken)) return true;
+    }
+  }
+
+  return false;
+}
+
+function mapLayerName(layerName: string) {
+  if (layerName === "background") return "special_background";
+  if (layerName === "item") return "hand_item";
+  if (layerName === "example_full") return "full_character";
+  return layerName;
+}
+
+function normalizeLayer(layerName: string) {
+  const mapped = mapLayerName(layerName);
+  return isAgentWorldHeroLayerValue(mapped) ? mapped : null;
+}
+
+function variantFromTraitId(traitId: string, layer: AgentWorldHeroLayer) {
+  return traitId.replace(new RegExp(`^${layer}[._]?`, "i"), "") || traitId;
+}
+
+function inferSpecialRoleKeywords() {
+  const raw = normalizeRoleText(v2GenerationRules.special_background_rule || "");
+  const inferred: string[] = [];
+  if (raw.includes("leader")) inferred.push("leader");
+  if (raw.includes("boss")) inferred.push("boss");
+  if (raw.includes("archmage")) inferred.push("archmage");
+  if (raw.includes("commander")) inferred.push("commander");
+  if (raw.includes("cyber")) inferred.push("cyber");
+  return inferred.length ? inferred : ["leader", "boss", "archmage", "commander", "cyber"];
+}
+
+const SPECIAL_ROLE_ALIASES: Record<string, string[]> = {
+  leader: ["leader", "captain", "captain leader", "leader_leader", "leader-lord", "队长", "首领", "领导"],
+  boss: ["boss", "boss_lair", "boss lair", "boss", "首脑", "指挥官", "头目"],
+  archmage: ["archmage", "master mage", "arch mage", "大法师", "法师长"],
+  commander: ["commander", "cyber commander", "cyber_leader", "cyber commander", "指挥官", "队长"],
+  cyber: ["cyber", "cyberpunk", "赛博", "cyber commander"],
+};
+
+function normalizePackId(value: string | null | undefined): AgentWorldHeroPackId {
+  return value === agentWorldHeroPackIdV1 || value === agentWorldHeroPackIdV2 ? value : agentWorldHeroPackId;
+}
+
+function mergeBuckets(order: AgentWorldHeroLayer[]) {
+  return order.reduce(
+    (acc, layer) => {
+      acc[layer] = [];
+      return acc;
+    },
+    {} as Partial<Record<AgentWorldHeroLayer, AgentWorldHeroAsset[]>>,
+  );
+}
+
+function extractTraitsPreviewUrl(traits: AgentWorldHeroTraits, assetsById: Map<string, AgentWorldHeroAsset>) {
+  return (
+    Object.values(traits)
+      .map((traitId) => assetsById.get(traitId)?.cropUrl)
+      .find((value): value is string => Boolean(value)) ?? ""
+  );
+}
+
+function buildV1Pack(): HeroPackDefinition {
+  const basePath = `${agentWorldHeroPackBasePathLegacy}/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2` as const;
+  const layerSchema = v1ReferencePack.layers
+    .filter((layer) => isAgentWorldHeroLayer(layer.layer))
+    .map((layer) => ({
+      layer: layer.layer as AgentWorldHeroLayer,
+      zIndex: layer.z_index,
+      description: toDisplayName(layer.description_zh, layer.description, layer.layer),
+    }))
+    .sort((left, right) => left.zIndex - right.zIndex);
+
+  const layerOrder = layerSchema.map((layer) => layer.layer);
+  const assetsByLayer = mergeBuckets(layerOrder);
+  const layerZIndex = new Map(layerSchema.map((item) => [item.layer, item.zIndex]));
+
+  const assets = v1ReferencePack.traits
+    .map((asset) => {
+      const layer = normalizeLayer(asset.layer);
+      if (!isAgentWorldHeroLayer(layer)) return null;
+      const name = toDisplayName(asset.display_name_zh, asset.display_name, asset.trait_id);
+      const sheetFile = asset.path;
+      return {
+        traitId: asset.trait_id,
+        name,
+        category: layer,
+        variant: variantFromTraitId(asset.trait_id, layer),
+        sheetFile,
+        sheetUrl: toAssetUrl(basePath, sheetFile),
+        cropFile: sheetFile,
+        cropUrl: toAssetUrl(basePath, sheetFile),
+        layer,
+        zIndex: layerZIndex.get(layer) ?? 0,
+        description: name,
+        sourcePack: agentWorldHeroPackIdV1,
+        isExampleOnly: false,
+      } as AgentWorldHeroAsset;
+    })
+    .filter((item): item is AgentWorldHeroAsset => Boolean(item))
+    .sort((left, right) => {
+      if (left.zIndex !== right.zIndex) return left.zIndex - right.zIndex;
+      return left.traitId.localeCompare(right.traitId);
+    });
+
+  assets.forEach((asset) => {
+    assetsByLayer[asset.layer]?.push(asset);
+  });
+
+  const exampleAgents = v1ReferencePack.roles.map((role) => ({
+    agentId: role.role_id,
+    displayName: toDisplayName(role.display_name_zh, role.display_name, role.role_id),
+    traits: normalizeAgentWorldHeroTraits(role.visual_recipe, { packId: agentWorldHeroPackIdV1 }),
+    previewSrc: toAssetUrl(basePath, role.preview_path),
+  }));
+
+  return {
+    id: agentWorldHeroPackIdV1,
+    name: v1ReferencePack.display_name,
+    version: v1ReferencePack.pack_id,
+    canvas: {
+      width: v1ReferencePack.canvas?.width ?? 256,
+      height: v1ReferencePack.canvas?.height ?? 256,
+    },
+    importConfig: null,
+    layerSchema,
+    layerOrder,
+    assets,
+    assetsById: new Map(assets.map((item) => [item.traitId, item])),
+    assetsByLayer,
+    rolePresetTraits: new Map(),
+    exampleAgents,
+    exampleAgentById: new Map(exampleAgents.map((agent) => [agent.agentId, agent])),
+    generationRules: {
+      defaultBackground: "#070b16",
+      specialRoleKeywords: ["leader", "boss", "archmage", "commander", "cyber"],
+    },
+  };
+}
+
+function buildV2Pack(): HeroPackDefinition {
+  const layerSchema = v2Manifest.layers
+    .map((layer) => {
+      const normalizedLayer = normalizeLayer(layer.layer);
+      return normalizedLayer
+        ? {
+            layer: normalizedLayer,
+            zIndex: layer.z_index,
+            description: toDisplayName(layer.description, layer.usage, layer.layer),
+          }
+        : null;
+    })
+    .filter((layer): layer is { layer: AgentWorldHeroLayer; zIndex: number; description: string } => Boolean(layer))
+    .sort((left, right) => left.zIndex - right.zIndex);
+
+  const layerOrder = layerSchema.map((layer) => layer.layer);
+  const assetsByLayer = mergeBuckets(layerOrder);
+  const layerZIndex = new Map(layerSchema.map((item) => [item.layer, item.zIndex]));
+
+  const assets = v2Manifest.traits
+    .map((trait) => {
+      const layer = normalizeLayer(trait.layer);
+      if (!isAgentWorldHeroLayer(layer)) return null;
+      const file = trait.aligned_512 || trait.file;
+      const name = toDisplayName(trait.name, trait.trait_id);
+      return {
+        traitId: trait.trait_id,
+        name,
+        category: trait.category,
+        variant: variantFromTraitId(trait.trait_id, layer),
+        sheetFile: trait.file,
+        sheetUrl: toAssetUrl(agentWorldHeroPackBasePath, file),
+        cropFile: file,
+        cropUrl: toAssetUrl(agentWorldHeroPackBasePath, file),
+        layer,
+        zIndex: layerZIndex.get(layer) ?? 0,
+        description: name,
+        sourcePack: agentWorldHeroPackIdV2,
+        roleHint: trait.role_hint,
+        isExampleOnly: layer === "full_character",
+      } as AgentWorldHeroAsset;
+    })
+    .filter((item): item is AgentWorldHeroAsset => Boolean(item))
+    .sort((left, right) => {
+      if (left.zIndex !== right.zIndex) return left.zIndex - right.zIndex;
+      return left.traitId.localeCompare(right.traitId);
+    });
+
+  assets.forEach((asset) => {
+    assetsByLayer[asset.layer]?.push(asset);
+  });
+
+  const assetsById = new Map(assets.map((asset) => [asset.traitId, asset]));
+  const rolePresetTraits = new Map<string, string[]>();
+  for (const [role, preset] of Object.entries(v2RolePresets)) {
+    rolePresetTraits.set(normalizeRoleText(role), preset.preferred || []);
+  }
+
+  const exampleFromRecipes = v2RecipeExamples
+    .map((recipe) => {
+      const traits: AgentWorldHeroTraits = {};
+      recipe.traits.forEach((traitId) => {
+        const trait = assetsById.get(traitId);
+        if (trait) {
+          traits[trait.layer] = traitId;
+        }
+      });
+      return {
+        agentId: recipe.agent_id,
+        displayName: toDisplayName(recipe.role, recipe.agent_id),
+        traits,
+        previewSrc: extractTraitsPreviewUrl(traits, assetsById),
+      } as AgentWorldHeroExampleAgent;
+    })
+    .filter((item) => Object.keys(item.traits).length > 0);
+
+  const exampleFromPresets = Array.from(rolePresetTraits.entries())
+    .map(([role, traits]) => {
+      const normalized: AgentWorldHeroTraits = {};
+      traits.forEach((traitId) => {
+        const trait = assetsById.get(traitId);
+        if (trait) normalized[trait.layer] = traitId;
+      });
+        if (Object.keys(normalized).length === 0) return null;
+        return {
+          agentId: role,
+          displayName: role,
+          traits: normalized,
+          previewSrc: extractTraitsPreviewUrl(normalized, assetsById),
+        } as AgentWorldHeroExampleAgent;
+      })
+    .filter((item): item is AgentWorldHeroExampleAgent => Boolean(item));
+
+  const byId = new Map<string, AgentWorldHeroExampleAgent>();
+  const examples: AgentWorldHeroExampleAgent[] = [];
+  for (const item of [...exampleFromRecipes, ...exampleFromPresets]) {
+    if (!byId.has(item.agentId)) {
+      byId.set(item.agentId, item);
+      examples.push(item);
+    }
+  }
+
+  return {
+    id: agentWorldHeroPackIdV2,
+    name: v2ImportConfig.name,
+    version: v2Manifest.version || v2ImportConfig.version,
+    canvas: {
+      width: 512,
+      height: 512,
+    },
+    importConfig: v2ImportConfig,
+    layerSchema,
+    layerOrder,
+    assets,
+    assetsById,
+    assetsByLayer,
+    rolePresetTraits,
+    exampleAgents: examples,
+    exampleAgentById: new Map(examples.map((item) => [item.agentId, item])),
+    generationRules: {
+      defaultBackground: normalizeRoleText(v2GenerationRules.default_background) === "white" ? "#ffffff" : "#f8f8f8",
+      specialRoleKeywords: inferSpecialRoleKeywords(),
+    },
+  };
+}
+
+const v1Pack = buildV1Pack();
+const v2Pack = buildV2Pack();
+const heroPacks: Record<AgentWorldHeroPackId, HeroPackDefinition> = {
+  [agentWorldHeroPackIdV1]: v1Pack,
+  [agentWorldHeroPackIdV2]: v2Pack,
+};
+
+export const agentWorldHeroCanvas = heroPacks[agentWorldHeroPackId].canvas;
+export const agentWorldHeroLayerSchema = heroPacks[agentWorldHeroPackId].layerSchema;
+export const agentWorldHeroLayerOrder = heroPacks[agentWorldHeroPackId].layerOrder;
+export const agentWorldHeroAssets = heroPacks[agentWorldHeroPackId].assets;
+export const agentWorldHeroExampleAgents = heroPacks[agentWorldHeroPackId].exampleAgents;
+export const legacyV1ExampleAgents = heroPacks[agentWorldHeroPackIdV1].exampleAgents;
+
+export function getAgentWorldHeroPackDefinition(assetPack?: string | null): HeroPackDefinition {
+  return heroPacks[normalizePackId(assetPack)];
+}
+
+function pickPresetRoleId(pack: HeroPackDefinition, roleHint: string | null | undefined) {
+  if (!roleHint) return null;
+  const normalizedRoleHint = normalizeRoleText(roleHint);
+  if (!normalizedRoleHint) return null;
+
+  for (const role of pack.rolePresetTraits.keys()) {
+    if (role === normalizedRoleHint || roleTokenMatch(role, normalizedRoleHint)) return role;
+  }
+  return null;
+}
+
+function pickRoleTraits(pack: HeroPackDefinition, roleHint: string | null | undefined) {
+  const traits: AgentWorldHeroTraits = {};
+  const presetId = pickPresetRoleId(pack, roleHint);
+  if (!presetId) return traits;
+
+  pack.rolePresetTraits.get(presetId)?.forEach((traitId) => {
+    const trait = pack.assetsById.get(traitId);
+    if (trait) {
+      traits[trait.layer] = trait.traitId;
+    }
+  });
+
+  return traits;
+}
+
+function isSpecialRole(roleHint: string | null | undefined, keywords: readonly string[]) {
+  if (!roleHint) return false;
+  for (const keyword of keywords) {
+    const aliases = SPECIAL_ROLE_ALIASES[keyword] ?? [keyword];
+    if (aliases.some((alias) => roleTokenMatch(alias, roleHint))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function pickSpecialBackground(
+  pack: HeroPackDefinition,
+  roleHint: string | null | undefined,
+): string | null {
+  if (!isSpecialRole(roleHint, pack.generationRules.specialRoleKeywords)) return null;
+  const backgrounds = pack.assetsByLayer.special_background ?? [];
+  if (backgrounds.length === 0) return null;
+  const matchedByHint = backgrounds.find((asset) => roleTokenMatch(asset.roleHint, roleHint));
+  return matchedByHint?.traitId ?? backgrounds[0]?.traitId ?? null;
+}
+
+function pickTrait(pack: HeroPackDefinition, layer: AgentWorldHeroLayer, seed: number, offset: number) {
+  const candidates = (pack.assetsByLayer[layer] ?? []).filter((asset) => !asset.isExampleOnly);
   if (candidates.length === 0) return undefined;
   return candidates[(seed + offset) % candidates.length]?.traitId;
 }
 
-export function getAgentWorldHeroAsset(traitId: string | null | undefined) {
-  return traitId ? assetByTraitId.get(traitId) ?? null : null;
+export function isAgentWorldHeroLayer(value: unknown): value is AgentWorldHeroLayer {
+  return isAgentWorldHeroLayerValue(value);
 }
 
-export function getAgentWorldHeroCropUrl(traitId: string | null | undefined) {
-  return getAgentWorldHeroAsset(traitId)?.cropUrl ?? null;
+export function getAgentWorldHeroAsset(traitId: string | null | undefined, assetPack?: string | null) {
+  if (!traitId) return null;
+  return getAgentWorldHeroPackDefinition(assetPack).assetsById.get(traitId) ?? null;
 }
 
-export function getAgentWorldHeroAssetsByLayer(layer: AgentWorldHeroLayer) {
-  return assetsByLayer[layer] ?? [];
+export function getAgentWorldHeroCropUrl(traitId: string | null | undefined, assetPack?: string | null) {
+  return getAgentWorldHeroAsset(traitId, assetPack)?.cropUrl ?? null;
 }
 
-export function normalizeAgentWorldHeroTraits(rawTraits: unknown): AgentWorldHeroTraits {
+export function getAgentWorldHeroAssetsByLayer(layer: AgentWorldHeroLayer, assetPack?: string | null) {
+  return getAgentWorldHeroPackDefinition(assetPack).assetsByLayer[layer] ?? [];
+}
+
+export function getAgentWorldHeroDefaultBackground(assetPack?: string | null) {
+  return getAgentWorldHeroPackDefinition(assetPack).generationRules.defaultBackground;
+}
+
+export function getAgentWorldHeroLayerOrder(assetPack?: string | null) {
+  return getAgentWorldHeroPackDefinition(assetPack).layerOrder;
+}
+
+export function getAgentWorldHeroLayerSchema(assetPack?: string | null) {
+  return getAgentWorldHeroPackDefinition(assetPack).layerSchema;
+}
+
+export function getAgentWorldHeroExampleAgents(assetPack?: string | null) {
+  return getAgentWorldHeroPackDefinition(assetPack).exampleAgents;
+}
+
+export function normalizeAgentWorldHeroTraits(
+  rawTraits: unknown,
+  options: { packId?: string | null; includeUnknownLayers?: boolean } = {},
+): AgentWorldHeroTraits {
   if (!rawTraits || typeof rawTraits !== "object" || Array.isArray(rawTraits)) return {};
-
+  const pack = getAgentWorldHeroPackDefinition(options.packId ?? agentWorldHeroPackId);
   const traits: AgentWorldHeroTraits = {};
+
   for (const [layer, traitId] of Object.entries(rawTraits as Record<string, unknown>)) {
     if (!isAgentWorldHeroLayer(layer) || typeof traitId !== "string") continue;
-    const validTrait = validTraitForLayer(layer, traitId);
-    if (validTrait) traits[layer] = validTrait;
+    const trait = pack.assetsById.get(traitId);
+    if (!trait || trait.layer !== layer) continue;
+    if (!options.includeUnknownLayers && !pack.layerOrder.includes(layer)) continue;
+    traits[layer] = trait.traitId;
   }
+
   return traits;
-}
-
-export const agentWorldHeroExampleAgents: AgentWorldHeroExampleAgent[] = rawReferencePack.roles.map((agent) => ({
-  agentId: agent.role_id,
-  displayName: displayName(agent.display_name_zh, agent.display_name, agent.role_id),
-  traits: normalizeAgentWorldHeroTraits(agent.visual_recipe),
-  previewSrc: toReferenceAssetUrl(agent.preview_path),
-}));
-
-const exampleAgentById = new Map(agentWorldHeroExampleAgents.map((agent) => [agent.agentId, agent]));
-
-const exampleAgentsByCapability: Record<AgentCapabilityKey, string[]> = {
-  permission: ["guardian_warrior", "oracle_diplomat"],
-  toolUse: ["mechanic_engineer", "navigator_pilot"],
-  safety: ["guardian_warrior", "explorer_scout"],
-  coding: ["cyber_hacker", "mechanic_engineer"],
-  review: ["scholar_archivist", "oracle_diplomat"],
-  memory: ["oracle_diplomat", "scholar_archivist"],
-  collaboration: ["merchant_coordinator", "bard_narrator", "healer_support"],
-};
-
-function pickExampleAgent(seedHash: number, capabilityKey?: AgentCapabilityKey | null, exampleAgentId?: string | null) {
-  const configuredExample = exampleAgentId ? exampleAgentById.get(exampleAgentId) : null;
-  if (configuredExample) return configuredExample;
-
-  const capabilityExamples = capabilityKey
-    ? exampleAgentsByCapability[capabilityKey].map((agentId) => exampleAgentById.get(agentId)).filter(Boolean)
-    : [];
-  if (capabilityExamples.length > 0) {
-    return capabilityExamples[seedHash % capabilityExamples.length] ?? null;
-  }
-
-  if (agentWorldHeroExampleAgents.length === 0) return null;
-  return agentWorldHeroExampleAgents[seedHash % agentWorldHeroExampleAgents.length] ?? null;
 }
 
 export function resolveAgentWorldHeroTraits({
@@ -241,19 +670,59 @@ export function resolveAgentWorldHeroTraits({
   configuredTraits,
   capabilityKey,
   exampleAgentId,
+  roleHint,
+  assetPack,
 }: {
   seed?: string;
   configuredTraits?: AgentWorldHeroTraits | null;
   capabilityKey?: AgentCapabilityKey | null;
   exampleAgentId?: string | null;
+  roleHint?: string | null;
+  assetPack?: string | null;
 }): AgentWorldHeroTraits {
+  const pack = getAgentWorldHeroPackDefinition(assetPack);
   const seedHash = hashSeed(seed || "agentworld-hero");
-  const configured = normalizeAgentWorldHeroTraits(configuredTraits);
-  const baseExample = pickExampleAgent(seedHash, capabilityKey, exampleAgentId);
-  const traits: AgentWorldHeroTraits = {};
+  const configured = normalizeAgentWorldHeroTraits(configuredTraits, { packId: pack.id });
+  const roleTraits = pickRoleTraits(pack, roleHint);
+  const specialBackground = pickSpecialBackground(pack, roleHint);
 
-  agentWorldHeroLayerOrder.forEach((layer, index) => {
-    traits[layer] = configured[layer] ?? baseExample?.traits[layer] ?? pickTrait(layer, seedHash, index * 29);
+  const exampleAgentsByCapability: Record<AgentCapabilityKey, string[]> = {
+    permission: ["ranger", "leader", "oracle_diplomat"],
+    toolUse: ["engineer", "mechanic_engineer", "navigator_pilot"],
+    safety: ["guardian_warrior", "explorer_scout", "leader"],
+    coding: ["cyber", "mechanic_engineer", "engineer"],
+    review: ["mage", "scholar_archivist", "oracle_diplomat"],
+    memory: ["druid", "monk", "oracle_diplomat"],
+    collaboration: ["pirate", "merchant_coordinator", "bard_narrator", "healer_support"],
+  };
+
+  const preferredExamples = (() => {
+    if (exampleAgentId) {
+      const fromExplicit = pack.exampleAgentById.get(exampleAgentId);
+      if (fromExplicit) return fromExplicit;
+    }
+    const candidates = capabilityKey
+      ? exampleAgentsByCapability[capabilityKey]
+          .map((id) => pack.exampleAgentById.get(id))
+          .filter((item): item is AgentWorldHeroExampleAgent => Boolean(item))
+      : [];
+    if (candidates.length > 0) return candidates[seedHash % candidates.length] ?? null;
+    if (pack.exampleAgents.length === 0) return null;
+    return pack.exampleAgents[seedHash % pack.exampleAgents.length] ?? null;
+  })();
+
+  const traits: AgentWorldHeroTraits = {};
+  pack.layerOrder.forEach((layer, index) => {
+    if (pack.id === agentWorldHeroPackIdV2 && layer === "special_background") {
+      traits[layer] = configured[layer] ?? roleTraits[layer] ?? specialBackground ?? undefined;
+      return;
+    }
+
+    traits[layer] =
+      configured[layer] ??
+      preferredExamples?.traits[layer] ??
+      roleTraits[layer] ??
+      pickTrait(pack, layer, seedHash, index * 29);
   });
 
   return traits;
@@ -264,12 +733,20 @@ export function resolveAgentWorldHeroLayers(input: {
   configuredTraits?: AgentWorldHeroTraits | null;
   capabilityKey?: AgentCapabilityKey | null;
   exampleAgentId?: string | null;
+  roleHint?: string | null;
+  assetPack?: string | null;
 }): AgentWorldHeroResolvedLayer[] {
-  const traits = resolveAgentWorldHeroTraits(input);
-  return agentWorldHeroLayerOrder
+  const resolved = resolveAgentWorldHeroTraits(input);
+  const pack = getAgentWorldHeroPackDefinition(input.assetPack);
+  return pack.layerOrder
     .map((layer) => {
-      const asset = getAgentWorldHeroAsset(traits[layer]);
-      return asset ? { ...asset, src: asset.cropUrl } : null;
+      const asset = getAgentWorldHeroAsset(resolved[layer], pack.id);
+      if (!asset) return null;
+      if (pack.id === agentWorldHeroPackIdV2 && layer === "full_character") return null;
+      return {
+        ...asset,
+        src: asset.cropUrl,
+      };
     })
     .filter((asset): asset is AgentWorldHeroResolvedLayer => Boolean(asset));
 }

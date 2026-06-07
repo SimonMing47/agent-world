@@ -11,7 +11,11 @@ import {
   type TaskBlueprint,
   type TaskRun,
 } from "@/server/db";
-import { getKnowledgeEngineHealth, getKnowledgeEngineTree } from "@/server/knowledge-engine";
+import {
+  getKnowledgeEngineHealth,
+  getKnowledgeEngineTree,
+  searchKnowledgeEntries,
+} from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
 
@@ -35,6 +39,21 @@ function parseRecord(value: string | null | undefined): JsonRecord {
 function parseStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    : [];
+}
+
+function parseCommaSeparatedArray(value: unknown) {
+  if (!value) return [];
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return Array.isArray(value)
+    ? value.flatMap((item) => (typeof item === "string" ? item.split(",") : []))
+      .map((item) => item.trim())
+      .filter(Boolean)
     : [];
 }
 
@@ -99,6 +118,11 @@ function normalizeKnowledgeSpaceRecord<T extends KnowledgeSpace>(space: T): T {
   };
 }
 
+function normalizeKnowledgeCategory(value?: string | null) {
+  if (value === "public" || value === "domain" || value === "repository") return value;
+  return "domain";
+}
+
 function normalizeKnowledgeLayerRecord<T extends KnowledgeLayer>(layer: T): T {
   return {
     ...layer,
@@ -149,6 +173,8 @@ export function createKnowledgeSpace(input: {
   businessTeamId?: string | null;
   agentTeamId?: string | null;
   projectKey?: string | null;
+  knowledgeCategory?: string;
+  repositoryName?: string;
   description?: string;
   visibility?: "global" | "team" | "private";
   retentionPolicy?: JsonRecord;
@@ -180,6 +206,7 @@ export function createKnowledgeSpace(input: {
   const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || "";
   if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
   const slug = resolveKnowledgeSpaceSlug({ slug: input.slug, name: input.name });
+  const knowledgeCategory = normalizeKnowledgeCategory(input.knowledgeCategory);
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
     businessTeamSlug: resolvedBusinessTeam?.slug,
@@ -189,12 +216,14 @@ export function createKnowledgeSpace(input: {
   });
 
   execute(
-    "INSERT INTO knowledge_spaces (id, tenant_space_id, business_team_id, agent_team_id, project_key, slug, name, space_type, viking_uri, description, visibility, status, retention_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO knowledge_spaces (id, tenant_space_id, business_team_id, agent_team_id, project_key, knowledge_category, repository_name, slug, name, space_type, viking_uri, description, visibility, status, retention_policy_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     id,
     tenantSpaceId,
     ownerBusinessTeamId,
     input.agentTeamId ?? null,
     input.projectKey ? slugify(input.projectKey) : null,
+    knowledgeCategory,
+    input.repositoryName?.trim() || null,
     slug,
     input.name,
     input.spaceType,
@@ -240,6 +269,8 @@ export function upsertKnowledgeSpace(input: {
   businessTeamId?: string | null;
   agentTeamId?: string | null;
   projectKey?: string | null;
+  knowledgeCategory?: string;
+  repositoryName?: string;
   description?: string;
   visibility?: "global" | "team" | "private";
   status?: string;
@@ -273,6 +304,7 @@ export function upsertKnowledgeSpace(input: {
   const tenantSpaceId = input.tenantSpaceId || resolvedBusinessTeam?.tenantSpaceId || current.tenantSpaceId || "";
   if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
   const slug = resolveKnowledgeSpaceSlug({ id: input.id, slug: input.slug, name: input.name });
+  const knowledgeCategory = normalizeKnowledgeCategory(input.knowledgeCategory);
   const vikingUri = buildSpaceUri({
     spaceType: input.spaceType,
     businessTeamSlug: resolvedBusinessTeam?.slug,
@@ -282,11 +314,13 @@ export function upsertKnowledgeSpace(input: {
   });
 
   execute(
-    "UPDATE knowledge_spaces SET tenant_space_id = ?, business_team_id = ?, agent_team_id = ?, project_key = ?, slug = ?, name = ?, space_type = ?, viking_uri = ?, description = ?, visibility = ?, status = ?, retention_policy_json = ?, updated_at = ? WHERE id = ?",
+    "UPDATE knowledge_spaces SET tenant_space_id = ?, business_team_id = ?, agent_team_id = ?, project_key = ?, knowledge_category = ?, repository_name = ?, slug = ?, name = ?, space_type = ?, viking_uri = ?, description = ?, visibility = ?, status = ?, retention_policy_json = ?, updated_at = ? WHERE id = ?",
     tenantSpaceId,
     ownerBusinessTeamId,
     input.agentTeamId ?? null,
     input.projectKey ? slugify(input.projectKey) : null,
+    knowledgeCategory,
+    input.repositoryName?.trim() || null,
     slug,
     input.name,
     input.spaceType,
@@ -460,17 +494,36 @@ export function resolveTaskKnowledgeContext(args: {
   };
 }
 
-export async function buildTaskRunKnowledgeRetrieval(taskRun: TaskRun) {
+export async function buildTaskRunKnowledgeRetrieval(
+  taskRun: TaskRun,
+  options: {
+    query?: string;
+    knowledgeSpaceIds?: string[];
+    scopeUris?: string[];
+    knowledgeCategories?: string[];
+    repositoryNames?: string[];
+    levels?: Array<"L0" | "L1" | "L2">;
+    limit?: number;
+    includeOutboundUris?: boolean;
+  } = {},
+) {
   const snapshot = taskRun.environmentSnapshotId
     ? queryOne<{ snapshotJson: string }>("SELECT snapshot_json FROM environment_snapshots WHERE id = ?", taskRun.environmentSnapshotId)
     : null;
   const payload = parseRecord(snapshot?.snapshotJson);
   const knowledgeContext = parseRecord(JSON.stringify(payload.knowledgeContext ?? {}));
+  const queryFromInput = typeof options.query === "string" ? options.query.trim() : "";
+  const queryFromPayload = typeof payload.query === "string" ? payload.query.trim() : "";
+  const query = queryFromInput || queryFromPayload;
   const loadRefs = parseStringArray(
     Array.isArray(knowledgeContext.loadRefs)
       ? (knowledgeContext.loadRefs as Array<{ vikingUri?: string }>).map((ref) => ref.vikingUri).filter(Boolean)
       : [],
   );
+  const scopeUris = [...new Set([...loadRefs, ...parseStringArray(options.scopeUris)])];
+  const knowledgeSpaceIds = [...new Set((options.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
+  const knowledgeCategories = [...new Set(parseCommaSeparatedArray(options.knowledgeCategories))];
+  const repositoryNames = [...new Set(parseCommaSeparatedArray(options.repositoryNames))];
   const health = await getKnowledgeEngineHealth();
   const refs = [];
 
@@ -483,6 +536,28 @@ export async function buildTaskRunKnowledgeRetrieval(taskRun: TaskRun) {
     refs.push({ uri, status: "loaded", entries: tree.length });
   }
 
+  const searchable = query
+    ? searchKnowledgeEntries({
+        query,
+        scopeUris,
+        knowledgeSpaceIds,
+        knowledgeCategories,
+        repositoryNames,
+        levels: options.levels,
+        limit: options.limit,
+        includeOutboundUris: options.includeOutboundUris,
+      })
+    : null;
+
+  const searchResult = searchable
+    ? {
+        query: searchable.query,
+        totalEntries: searchable.totalEntries,
+        totalCandidates: searchable.totalCandidates,
+        hits: searchable.hits,
+      }
+    : null;
+
   return {
     health: {
       ok: health.ok,
@@ -492,5 +567,7 @@ export async function buildTaskRunKnowledgeRetrieval(taskRun: TaskRun) {
     refs,
     totalRefs: loadRefs.length,
     degraded: !health.ok,
+    query: query || null,
+    search: searchResult,
   };
 }

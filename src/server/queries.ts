@@ -18,6 +18,7 @@ import {
   type EnvironmentSnapshot,
   type Finding,
   type BusinessTeam,
+  type CodebaseProfile,
   type ProviderAdapterDefinition,
   type ProviderProfile,
   type ProviderRuntimeBinding,
@@ -64,6 +65,7 @@ import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-c
 import {
   ensureTaskRunSummaryFinding,
 } from "@/server/finding-core";
+import { readKnowledgeContent } from "@/server/knowledge-engine";
 import {
   buildTaskRunKnowledgeRetrieval,
   resolveTaskKnowledgeContext,
@@ -622,6 +624,12 @@ export function listExecutionEnvironments() {
   );
 }
 
+export function listCodebaseProfiles() {
+  return queryAll<CodebaseProfile>(
+    "SELECT * FROM codebase_profiles WHERE status <> 'deleted' ORDER BY business_team_id ASC, name ASC",
+  );
+}
+
 export function deleteExecutionEnvironment(id: string) {
   execute("UPDATE execution_environments SET status = 'deleted' WHERE id = ?", id);
   return { ok: true };
@@ -632,6 +640,7 @@ export function getTaskBlueprintEditorOptions() {
   const agentTeams = listAgentTeams();
   const agentTeamMembers = listAgentTeamMemberProfiles();
   const environments = listExecutionEnvironments();
+  const codebases = listCodebaseProfiles();
   const providerAdapters = listProviderAdapterDefinitions();
 
   return {
@@ -662,6 +671,15 @@ export function getTaskBlueprintEditorOptions() {
       repositoryName: environment.repositoryName,
       workingDirectory: environment.workingDirectory,
       sandboxProfileJson: environment.sandboxProfileJson,
+    })),
+    codebases: codebases.map((codebase) => ({
+      id: codebase.id,
+      businessTeamId: codebase.businessTeamId,
+      name: codebase.name,
+      provider: codebase.provider,
+      repositoryUrl: codebase.repositoryUrl,
+      defaultBranch: codebase.defaultBranch,
+      status: codebase.status,
     })),
     providerAdapters: providerAdapters.map((adapter) => ({
       id: adapter.id,
@@ -1652,6 +1670,73 @@ function parseStringArray(value: unknown) {
     : [];
 }
 
+function parseKnowledgeSpaceIds(value: unknown) {
+  if (!value) return [];
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return parseStringArray(value);
+}
+
+function parseKnowledgeLimit(value: unknown) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) return undefined;
+  return Math.max(1, Math.min(parsed, 64));
+}
+
+function parseKnowledgeLevels(value: unknown) {
+  const levels = typeof value === "string"
+    ? value.split(",").map((item) => item.trim())
+    : parseStringArray(value);
+  const normalized = [...new Set(levels.filter((item) => item === "L0" || item === "L1" || item === "L2"))];
+  return normalized.length > 0 ? (normalized as Array<"L0" | "L1" | "L2">) : undefined;
+}
+
+function parseKnowledgeLevel(value: unknown) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized === "L0" || normalized === "L1" || normalized === "L2" ? normalized : "L2";
+}
+
+function parseKnowledgeScopeUris(value: unknown) {
+  if (!value) return [];
+  if (typeof value === "string") {
+    return parseStringArray(value.split(",").map((item) => item.trim()).filter(Boolean));
+  }
+  return parseStringArray(value);
+}
+
+function parseKnowledgeCategories(value: unknown) {
+  const values = typeof value === "string" ? value.split(",") : parseStringArray(value);
+  const normalized = values
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item === "public" || item === "domain" || item === "repository");
+  return [...new Set(normalized)];
+}
+
+function parseKnowledgeRepositoryNames(value: unknown) {
+  const values = typeof value === "string" ? value.split(",") : parseStringArray(value);
+  const normalized = values
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return [...new Set(normalized)];
+}
+
+function parseBooleanFlag(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(normalized)) return true;
+    if (["false", "0", "no", "off"].includes(normalized)) return false;
+  }
+  if (typeof value === "number") return value !== 0;
+  return undefined;
+}
+
 function dedupeStrings(values: string[]) {
   return values.filter((value, index, array) => array.indexOf(value) === index);
 }
@@ -2115,6 +2200,16 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     script?: string;
     url?: string;
     method?: string;
+    query?: string;
+    knowledgeSpaceIds?: unknown;
+    uri?: string;
+    scopeUris?: unknown;
+    knowledgeCategories?: unknown;
+    repositoryNames?: unknown;
+    levels?: unknown;
+    level?: string;
+    limit?: unknown;
+    includeOutboundUris?: unknown;
     connectorType?: string;
     publisherRef?: string;
     payloadTemplate?: string;
@@ -2125,6 +2220,16 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const timeoutReached = simulatedDurationMs > team.timeoutMs;
   const action = nodeInput.action ?? "execute";
   const tool = nodeInput.tool ?? "memory.read";
+  const knowledgeSpaceIds = parseKnowledgeSpaceIds(nodeInput.knowledgeSpaceIds);
+  const scopeUris = parseKnowledgeScopeUris(nodeInput.scopeUris);
+  const knowledgeCategories = parseKnowledgeCategories(nodeInput.knowledgeCategories);
+  const repositoryNames = parseKnowledgeRepositoryNames(nodeInput.repositoryNames);
+  const levels = parseKnowledgeLevels(nodeInput.levels);
+  const query = typeof nodeInput.query === "string" ? nodeInput.query.trim() : "";
+  const uri = typeof nodeInput.uri === "string" ? nodeInput.uri.trim() : "";
+  const level = parseKnowledgeLevel(nodeInput.level);
+  const limit = parseKnowledgeLimit(nodeInput.limit);
+  const includeOutboundUris = parseBooleanFlag(nodeInput.includeOutboundUris);
 
   const accessGrantDecision = evaluateAccessGrantAccess({
     accessGrant,
@@ -2221,7 +2326,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     return getTaskRunDetail(taskRunId);
   }
 
-  if (tool === "memory.retrieve") {
+  if (tool === "memory.search" || tool === "memory.retrieve") {
     appendTaskRunEvent({
       traceId: taskRun.traceId,
       taskRunId: taskRun.id,
@@ -2231,7 +2336,16 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       title: uiText("ui.generated.c7a9ef07556"),
       content: uiText("ui.generated.c38216bfaf2"),
     });
-    const retrieval = await buildTaskRunKnowledgeRetrieval(taskRun);
+    const retrieval = await buildTaskRunKnowledgeRetrieval(taskRun, {
+      query,
+      knowledgeSpaceIds,
+      scopeUris,
+      knowledgeCategories,
+      repositoryNames,
+      levels,
+      limit,
+      includeOutboundUris,
+    });
     appendTaskRunEvent({
       traceId: taskRun.traceId,
       taskRunId: taskRun.id,
@@ -2244,6 +2358,59 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
         : uiText("ui.generated.c00fe24f8ff"),
       metadata: retrieval,
     });
+  }
+
+  if (tool === "memory.read") {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "memory.read_requested",
+      foldGroup: "Analysis",
+      title: uiText("ui.generated.c7a9ef07556"),
+      content: uiText("ui.generated.c38216bfaf2"),
+    });
+
+    if (!uri) {
+      const retrieval = await buildTaskRunKnowledgeRetrieval(taskRun, {
+        query,
+        knowledgeSpaceIds,
+        scopeUris,
+        knowledgeCategories,
+        repositoryNames,
+        levels,
+        limit,
+        includeOutboundUris,
+      });
+      appendTaskRunEvent({
+        traceId: taskRun.traceId,
+        taskRunId: taskRun.id,
+        nodeId: runnable.id,
+        phase: retrieval.degraded ? "memory.degraded" : "memory.read_completed",
+        foldGroup: "Analysis",
+        title: retrieval.degraded ? uiText("ui.generated.c1691f223ab") : uiText("ui.generated.c0c29d5358e"),
+        content: retrieval.degraded
+          ? uiText("ui.generated.cb78ff98a2e")
+          : uiText("ui.generated.c00fe24f8ff"),
+        metadata: retrieval,
+      });
+    } else {
+      const content = await readKnowledgeContent(uri, level);
+      appendTaskRunEvent({
+        traceId: taskRun.traceId,
+        taskRunId: taskRun.id,
+        nodeId: runnable.id,
+        phase: "memory.read_completed",
+        foldGroup: "Analysis",
+        title: uiText("ui.generated.c0c29d5358e"),
+        content: uri,
+        metadata: {
+          uri,
+          level,
+          contentLength: content.length,
+        },
+      });
+    }
   }
 
   const blockType = typeof nodeInput.blockType === "string" ? nodeInput.blockType : "";

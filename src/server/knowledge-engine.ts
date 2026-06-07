@@ -1,4 +1,5 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { completeSimple, type AssistantMessage } from "@earendil-works/pi-ai";
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
@@ -7,6 +8,7 @@ import {
   queryAll,
   queryOne,
   type InspectionSkill,
+  type ProviderProfile,
   type KnowledgeLayer,
   type KnowledgeSpace,
   type KnowledgeSpaceBinding,
@@ -14,11 +16,38 @@ import {
   type KnowledgeEntryVersionRecord,
 } from "@/server/db";
 import { uiText } from "@/lib/language-pack";
-import { getKnowledgeBaseSettings } from "@/server/knowledge-base-settings";
+import {
+  canWriteKnowledgeVlmConfig,
+  getKnowledgeBaseSettings,
+} from "@/server/knowledge-base-settings";
+import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
 
 const KNOWLEDGE_ROOT = path.join("data", "knowledge-engine");
 const SHADOW_ROOT = path.join(KNOWLEDGE_ROOT, "shadow");
 const LOCAL_INDEXED_STATUS = "local_indexed";
+const KNOWLEDGE_FOUNDATION_VERSION = 1;
+const KNOWLEDGE_FOUNDATION_L0_MAX = 2400;
+const KNOWLEDGE_FOUNDATION_L1_MAX = 3600;
+const SPACE_INDEX_L0_MAX = 12000;
+const SPACE_INDEX_L1_MAX = 26000;
+const KNOWLEDGE_FOUNDATION_TRUNCATE_SUFFIX = "...";
+
+type KnowledgeFoundationMetadata = {
+  v: number;
+  source: "heuristic" | "model";
+  model?: string;
+  generatedAt: string;
+  l0: string;
+  l1: string;
+  digest: string;
+};
+
+type KnowledgeFoundationModelDescriptor = {
+  providerProfileId: string;
+  providerLabel: string;
+  model: ReturnType<typeof buildPiModel>;
+  apiKey: string;
+};
 
 type KnowledgeInput = {
   knowledgeSpaceId?: string | null;
@@ -71,6 +100,43 @@ export type KnowledgeRetrievalTestLevelHit = {
   excerpt: string;
   editable: boolean;
 };
+
+export type KnowledgeSearchLevel = "L0" | "L1" | "L2";
+
+export type KnowledgeSearchHit = {
+  id: string;
+  title: string;
+  vikingUri: string;
+  syncStatus: string;
+  layer: string;
+  knowledgeSpaceId: string | null;
+  knowledgeSpaceName: string | null;
+  score: number;
+  excerpt: string;
+  bestLevel: KnowledgeSearchLevel;
+  levels: KnowledgeRetrievalTestLevelHit[];
+  outboundUris: string[];
+  matchLevelCount: number;
+};
+
+export type KnowledgeSearchResult = {
+  query: string;
+  scope: {
+    knowledgeSpaceIds: string[];
+    scopeUris: string[];
+    knowledgeCategories: string[];
+    repositoryNames: string[];
+  };
+  totalEntries: number;
+  totalCandidates: number;
+  hits: KnowledgeSearchHit[];
+};
+
+const knownKnowledgeCategories = new Set(["public", "domain", "repository"]);
+
+function normalizeKnowledgeCategory(value: unknown) {
+  return knownKnowledgeCategories.has(String(value ?? "")) ? String(value) : null;
+}
 
 export class KnowledgeEntryConflictError extends Error {
   currentEntry: KnowledgeEntryRecord | null;
@@ -142,6 +208,210 @@ function normalizeKnowledgeEntryRecord<T extends KnowledgeEntryRecord>(entry: T)
   };
 }
 
+function asRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function compactToLimit(value: string, maxChars: number) {
+  if (value.length <= maxChars) return value.trim();
+  if (maxChars <= KNOWLEDGE_FOUNDATION_TRUNCATE_SUFFIX.length) return value.slice(0, maxChars);
+  return `${value.slice(0, maxChars - KNOWLEDGE_FOUNDATION_TRUNCATE_SUFFIX.length)}${KNOWLEDGE_FOUNDATION_TRUNCATE_SUFFIX}`;
+}
+
+function resolveKnowledgeFoundationModel() {
+  const setting = getKnowledgeBaseSettings();
+  if (!canWriteKnowledgeVlmConfig(setting)) return null;
+
+  const profileById = setting.vlmProviderProfileId
+    ? queryOne<ProviderProfile>(
+        "SELECT * FROM provider_profiles WHERE id = ? AND is_enabled = 1",
+        setting.vlmProviderProfileId,
+      )
+    : null;
+  const profileByModel = !profileById && setting.vlmModel
+    ? queryOne<ProviderProfile>(
+        "SELECT * FROM provider_profiles WHERE is_enabled = 1 AND lower(default_model) = lower(?) ORDER BY updated_at DESC LIMIT 1",
+        setting.vlmModel,
+      )
+    : null;
+  const profileByName = !profileById && !profileByModel && setting.vlmProvider
+    ? queryOne<ProviderProfile>(
+        "SELECT * FROM provider_profiles WHERE is_enabled = 1 AND lower(name) = lower(?) ORDER BY updated_at DESC LIMIT 1",
+        setting.vlmProvider,
+      )
+    : null;
+
+  const providerProfile = profileById || profileByModel || profileByName;
+  if (!providerProfile) return null;
+  const apiKey = resolveProviderApiKey(providerProfile);
+  if (!apiKey) return null;
+
+  return {
+    providerProfileId: providerProfile.id,
+    providerLabel: `${providerProfile.name} · ${providerProfile.defaultModel}`,
+    model: buildPiModel(providerProfile),
+    apiKey,
+  } satisfies KnowledgeFoundationModelDescriptor;
+}
+
+function readKnowledgeFoundationMetadata(metadataJson: string | undefined): KnowledgeFoundationMetadata | null {
+  const parsed = parseMetadataJson(metadataJson);
+  const candidate = asRecord(parsed.knowledgeFoundation);
+  if (!candidate) return null;
+  const source = candidate.source === "model" || candidate.source === "heuristic" ? candidate.source : "heuristic";
+  const l0 = typeof candidate.l0 === "string" ? candidate.l0.trim() : "";
+  const l1 = typeof candidate.l1 === "string" ? candidate.l1.trim() : "";
+  if (!l0 || !l1) return null;
+
+  return {
+    v: typeof candidate.v === "number" && Number.isFinite(candidate.v) ? candidate.v : KNOWLEDGE_FOUNDATION_VERSION,
+    source,
+    model: typeof candidate.model === "string" ? candidate.model : undefined,
+    generatedAt: typeof candidate.generatedAt === "string" ? candidate.generatedAt : new Date(0).toISOString(),
+    l0,
+    l1,
+    digest: typeof candidate.digest === "string" ? candidate.digest : "",
+  };
+}
+
+function isKnowledgeFoundationUpToDate(metadataJson: string | undefined, digest: string) {
+  const foundation = readKnowledgeFoundationMetadata(metadataJson);
+  return foundation && foundation.v >= KNOWLEDGE_FOUNDATION_VERSION && foundation.digest === digest && foundation.l0 && foundation.l1;
+}
+
+function buildKnowledgeFoundationDigest(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function buildHeuristicKnowledgeFoundation({
+  title,
+  contentMd,
+}: {
+  title: string;
+  contentMd: string;
+}) {
+  const plain = compactWhitespace(stripMarkdownForRetrieval(contentMd));
+  const outline = markdownOutlineForRetrieval(contentMd);
+  const source = compactWhitespace([`# ${title}`, outline || plain.slice(0, 3000)].filter(Boolean).join("\n"));
+  return {
+    source: "heuristic" as const,
+    l0: compactToLimit(compactWhitespace([`# ${title}`, plain].filter(Boolean).join(" ")), KNOWLEDGE_FOUNDATION_L0_MAX),
+    l1: compactToLimit(
+      compactWhitespace(
+        [
+          `# ${title}`,
+          outline ? `Sections: ${outline}` : null,
+          `Content: ${source}`,
+        ].filter(Boolean).join(" / "),
+      ),
+      KNOWLEDGE_FOUNDATION_L1_MAX,
+    ),
+  };
+}
+
+async function buildKnowledgeFoundation({
+  title,
+  contentMd,
+  metadataContext,
+}: {
+  title: string;
+  contentMd: string;
+  metadataContext: string;
+}) {
+  const plain = compactWhitespace(stripMarkdownForRetrieval(contentMd));
+  const fallback = buildHeuristicKnowledgeFoundation({ title, contentMd });
+  const foundationDescriptor = resolveKnowledgeFoundationModel();
+  if (!foundationDescriptor) {
+    return {
+      ...fallback,
+      model: undefined,
+      source: "heuristic" as const,
+      generatedAt: new Date().toISOString(),
+      digest: buildKnowledgeFoundationDigest(`${title}\n${contentMd}`),
+    };
+  }
+
+  const modelPrompt = [
+    "Build two retrieval layers for this knowledge entry.",
+    "Return strict JSON only with keys l0 and l1.",
+    `L0: concise abstract for quick recall with entities, tasks, and conclusions (<=${KNOWLEDGE_FOUNDATION_L0_MAX} chars).`,
+    `L1: structural overview for navigation and reranking with sections, dependencies, and examples (<=${KNOWLEDGE_FOUNDATION_L1_MAX} chars).`,
+    "Use Chinese if the source text is Chinese, otherwise use English.",
+    "Do not include markdown, bullet symbols, or additional fields.",
+    `Title: ${title}`,
+    `Metadata: ${metadataContext}`,
+    `Content:\n${plain}`,
+  ];
+
+  try {
+    const response = await completeSimple(
+      foundationDescriptor.model,
+      {
+        messages: [
+          {
+            role: "user",
+            timestamp: Date.now(),
+            content: modelPrompt.join("\n\n"),
+          },
+        ],
+      },
+      {
+        apiKey: foundationDescriptor.apiKey,
+        maxTokens: 1500,
+        reasoning: "low",
+      },
+    );
+
+    if (response.stopReason === "error") {
+      throw new Error(response.errorMessage ?? uiText("ui.generated.cd4fe99088a"));
+    }
+
+    const flat = flattenVisibleText(response);
+    const parsed = extractJsonObject<{ l0?: unknown; l1?: unknown }>(flat);
+    const l0 = compactToLimit(typeof parsed?.l0 === "string" ? parsed.l0.trim() : "", KNOWLEDGE_FOUNDATION_L0_MAX);
+    const l1 = compactToLimit(typeof parsed?.l1 === "string" ? parsed.l1.trim() : "", KNOWLEDGE_FOUNDATION_L1_MAX);
+    if (l0 && l1) {
+      return {
+        source: "model" as const,
+        model: foundationDescriptor.providerLabel,
+        l0,
+        l1,
+        generatedAt: new Date().toISOString(),
+        digest: buildKnowledgeFoundationDigest(`${title}\n${contentMd}`),
+      };
+    }
+  } catch {}
+
+  return {
+    ...fallback,
+    model: undefined,
+    source: "heuristic" as const,
+    generatedAt: new Date().toISOString(),
+    digest: buildKnowledgeFoundationDigest(`${title}\n${contentMd}`),
+  };
+}
+
+function flattenVisibleText(message: AssistantMessage | null | undefined) {
+  if (!message?.content) return "";
+  return (Array.isArray(message.content)
+    ? message.content
+        .map((chunk) => (chunk.type === "text" ? String(chunk.text ?? "") : ""))
+        .join(" ")
+    : String((message.content as { text?: string })?.text ?? message.content))
+    .trim();
+}
+
+function extractJsonObject<T>(value: string) {
+  const start = value.indexOf("{");
+  const end = value.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    return JSON.parse(value.slice(start, end + 1)) as T;
+  } catch {
+    return null;
+  }
+}
+
 function shadowFilePath(layer: string, scopeKey: string, id: string) {
   return path.join(SHADOW_ROOT, slugify(layer), slugify(scopeKey), `${id}.md`);
 }
@@ -191,6 +461,11 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
   const knowledgeSpace = getKnowledgeSpace(input.knowledgeSpaceId);
   const vikingUri = buildKnowledgeUri(input.layer, input.scopeKey, id, input.knowledgeSpaceId);
   const filePath = shadowFilePath(input.layer, input.scopeKey, id);
+  const foundation = await buildKnowledgeFoundation({
+    title: input.title,
+    contentMd: input.contentMd,
+    metadataContext: JSON.stringify(input.metadata ?? {}),
+  });
   const metadata: Record<string, unknown> = {
     ...input.metadata,
     vikingUri,
@@ -202,6 +477,10 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
     knowledgeSpaceId: knowledgeSpace?.id ?? null,
     knowledgeSpaceName: knowledgeSpace?.name ?? null,
     createdAt,
+    knowledgeFoundation: {
+      ...foundation,
+      v: KNOWLEDGE_FOUNDATION_VERSION,
+    },
   };
   const content = [
     `# ${input.title}`,
@@ -261,11 +540,11 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
 
 function parseMetadataJson(value: string | undefined) {
   if (!value) return {};
-  const parsed = JSON.parse(value) as unknown;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("metadataJson must be a JSON object");
+  try {
+    return asRecord(JSON.parse(value)) ?? {};
+  } catch {
+    return {};
   }
-  return parsed as Record<string, unknown>;
 }
 
 function comparableMetadata(value: string | undefined) {
@@ -348,6 +627,18 @@ export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
   const filePath = shadowFilePath(input.layer, input.scopeKey, id);
   const nextRevision = existing ? existing.revision + 1 : 1;
   if (existing) createKnowledgeEntryVersion(existing, input.updatedBy);
+  const existingFoundation = readKnowledgeFoundationMetadata(existing?.metadataJson);
+  const currentDigest = buildKnowledgeFoundationDigest(`${input.title}\n${input.contentMd}`);
+  const shouldRebuildFoundation =
+    !existing || !isKnowledgeFoundationUpToDate(existing.metadataJson, currentDigest) || existingFoundation?.l0 == null || existingFoundation?.l1 == null;
+  const foundation = shouldRebuildFoundation
+    ? await buildKnowledgeFoundation({
+        title: input.title,
+        contentMd: input.contentMd,
+        metadataContext: JSON.stringify(parseMetadataJson(input.metadataJson)),
+      })
+    : null;
+  const existingFoundationForReuse = existingFoundation && !shouldRebuildFoundation ? existingFoundation : null;
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, input.contentMd, "utf8");
@@ -370,6 +661,14 @@ export async function upsertKnowledgeEntry(input: KnowledgeEntryInput) {
       currentRevision: nextRevision,
       indexStatus: syncResult.status,
       saveReason: input.saveReason ?? null,
+    },
+    knowledgeFoundation: (shouldRebuildFoundation ? foundation : existingFoundationForReuse) ?? {
+      ...buildHeuristicKnowledgeFoundation({ title: input.title, contentMd: input.contentMd }),
+      source: "heuristic" as const,
+      model: undefined,
+      generatedAt: new Date().toISOString(),
+      digest: currentDigest,
+      v: KNOWLEDGE_FOUNDATION_VERSION,
     },
   };
 
@@ -533,30 +832,41 @@ function scoreTerms(content: string, queryTerms: string[], weight: number) {
 
 function buildRetrievalSpaceIndex(entries: KnowledgeEntryRecord[]) {
   const notes = entries.filter((entry) => parseMetadataJson(entry.metadataJson).notebookNodeType !== "folder");
-  const l0Text = compactWhitespace(
-    notes
-      .map((entry) => {
-        const plainContent = stripMarkdownForRetrieval(entry.contentMd);
-        return `${entry.title}: ${plainContent.slice(0, 260)}`;
-      })
-      .join("\n"),
-  );
-  const l1Text = compactWhitespace(
-    notes
-      .map((entry) => {
-        const plainContent = stripMarkdownForRetrieval(entry.contentMd);
-        const outline = markdownOutlineForRetrieval(entry.contentMd);
-        return [`## ${entry.title}`, outline || plainContent.slice(0, 900), entry.metadataJson].filter(Boolean).join("\n");
-      })
-      .join("\n\n"),
-  );
-  return { l0Text, l1Text };
+  const l0Lines: string[] = [];
+  const l1Lines: string[] = [];
+  for (const entry of notes) {
+    const plainContent = compactWhitespace(stripMarkdownForRetrieval(entry.contentMd));
+    const foundation = readKnowledgeFoundationMetadata(entry.metadataJson);
+    const l0 = compactToLimit(
+      compactWhitespace([`# ${entry.title}`, foundation?.l0 || plainContent].filter(Boolean).join(" | ")),
+      KNOWLEDGE_FOUNDATION_L0_MAX,
+    );
+    const outline = markdownOutlineForRetrieval(entry.contentMd);
+    const l1 = compactToLimit(
+      compactWhitespace(
+        [
+          `# ${entry.title}`,
+          outline || foundation?.l1 || plainContent,
+          foundation ? `Foundation source: ${foundation.source}` : null,
+        ]
+          .filter(Boolean)
+          .join(" | "),
+      ),
+      KNOWLEDGE_FOUNDATION_L1_MAX,
+    );
+    l0Lines.push(l0);
+    l1Lines.push(l1);
+  }
+  return {
+    l0Text: compactWhitespace(l0Lines.join("\n")).slice(0, SPACE_INDEX_L0_MAX),
+    l1Text: compactWhitespace(l1Lines.join("\n")).slice(0, SPACE_INDEX_L1_MAX),
+  };
 }
 
 function outlineForContent(title: string, content: string) {
   const outline = markdownOutlineForRetrieval(content);
   const plain = compactWhitespace(stripMarkdownForRetrieval(content));
-  return [`## ${title}`, outline || plain.slice(0, 1000)].filter(Boolean).join("\n");
+  return compactToLimit([`## ${title}`, outline || plain].filter(Boolean).join("\n"), KNOWLEDGE_FOUNDATION_L1_MAX);
 }
 
 function aggregateTitleFromUri(uri: string) {
@@ -569,6 +879,115 @@ function entryMatchesUri(entry: KnowledgeEntryRecord, uri: string) {
   const target = normalizeUriForCompare(uri);
   const entryUri = normalizeUriForCompare(entry.vikingUri);
   return entryUri === target || entryUri.startsWith(`${target}/`);
+}
+
+function parseKnowledgeSearchScopes(args: {
+  knowledgeSpaceIds?: string[];
+  scopeUris?: string[];
+  knowledgeCategories?: string[];
+  repositoryNames?: string[];
+}) {
+  const knowledgeSpaceIds = [...new Set((args.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
+  const scopeUris = [...new Set((args.scopeUris ?? []).map((uri) => normalizeUriForCompare(uri)).filter(Boolean))];
+  const knowledgeCategories = [...new Set((args.knowledgeCategories ?? []).map(normalizeKnowledgeCategory).filter(Boolean))] as Array<
+    string
+  >;
+  const repositoryNames = [...new Set(
+    (args.repositoryNames ?? [])
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  )];
+  return { knowledgeSpaceIds, scopeUris, knowledgeCategories, repositoryNames };
+}
+
+function filterKnowledgeEntriesForScopes(input: {
+  knowledgeSpaceIds: string[];
+  scopeUris: string[];
+  knowledgeCategories: string[];
+  repositoryNames: string[];
+  limit?: number;
+}) {
+  const allEntries = queryAll<KnowledgeEntryRecord>(
+    "SELECT * FROM knowledge_entries ORDER BY updated_at DESC, created_at DESC",
+  ).map(normalizeKnowledgeEntryRecord);
+
+  if (
+    !input.knowledgeSpaceIds.length &&
+    !input.scopeUris.length &&
+    !input.knowledgeCategories.length &&
+    !input.repositoryNames.length
+  ) {
+    return input.limit ? allEntries.slice(0, input.limit) : allEntries;
+  }
+
+  const spaceFilter = new Set(input.knowledgeSpaceIds.filter(Boolean));
+  const uriFilter = new Set(input.scopeUris);
+  const categoryFilter = new Set(input.knowledgeCategories);
+  const repositoryNameFilter = new Set(input.repositoryNames);
+  const knowledgeSpaceById = new Map(
+    queryAll<{ id: string; knowledge_category: string; repository_name: string | null }>(
+      "SELECT id, knowledge_category, repository_name FROM knowledge_spaces",
+    ).map((space) => [space.id, space]),
+  );
+
+  const matched = allEntries.filter((entry) => {
+    const bySpace = spaceFilter.size > 0 && entry.knowledgeSpaceId ? spaceFilter.has(entry.knowledgeSpaceId) : false;
+    const byUri = uriFilter.size > 0
+      ? [...uriFilter].some((scopeUri) => entryMatchesUri(entry, scopeUri))
+      : false;
+
+    const bySpaceFilters = spaceFilter.size || uriFilter.size;
+    const byScope = bySpaceFilters ? bySpace || byUri : true;
+    if (!byScope) return false;
+
+    if (!categoryFilter.size && !repositoryNameFilter.size) return byScope;
+    if (!entry.knowledgeSpaceId) return false;
+
+    const space = knowledgeSpaceById.get(entry.knowledgeSpaceId);
+    if (!space) return false;
+
+    if (categoryFilter.size > 0 && !categoryFilter.has(normalizeKnowledgeCategory(space.knowledge_category) || "domain")) {
+      return false;
+    }
+    if (repositoryNameFilter.size > 0) {
+      const repositoryName = space.repository_name?.trim().toLowerCase() || "";
+      if (!repositoryNameFilter.has(repositoryName)) return false;
+    }
+
+    return true;
+  });
+
+  if (input.limit) return matched.slice(0, input.limit);
+  return matched;
+}
+
+function parseKnowledgeSearchLevels(levels?: KnowledgeSearchLevel[]) {
+  const valid = new Set<KnowledgeSearchLevel>();
+  if (!Array.isArray(levels) || levels.length === 0) {
+    return new Set<KnowledgeSearchLevel>(["L0", "L1", "L2"]);
+  }
+  for (const level of levels) {
+    if (level === "L0" || level === "L1" || level === "L2") {
+      valid.add(level);
+    }
+  }
+  return valid.size ? valid : new Set<KnowledgeSearchLevel>(["L0", "L1", "L2"]);
+}
+
+function extractOutboundKnowledgeUris(contentMd: string) {
+  const matches = [...contentMd.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)];
+  const outbound = new Set<string>();
+  for (const match of matches) {
+    const raw = typeof match[1] === "string" ? match[1].trim() : "";
+    if (!raw || raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("mailto:")) {
+      continue;
+    }
+    const normalized = normalizeKnowledgeUri(raw);
+    if (!normalized) continue;
+    if (normalized === "agentworld://knowledge") continue;
+    outbound.add(normalized);
+  }
+  return [...outbound];
 }
 
 function entriesForUri(uri: string) {
@@ -588,11 +1007,13 @@ function exactEntryForUri(uri: string) {
 
 function readEntryLevel(entry: KnowledgeEntryRecord, level: "L0" | "L1" | "L2") {
   if (level === "L2") return entry.contentMd;
-  const plain = compactWhitespace(stripMarkdownForRetrieval(entry.contentMd));
+  const foundation = readKnowledgeFoundationMetadata(entry.metadataJson);
   if (level === "L0") {
-    return [`# ${entry.title}`, "", plain.slice(0, 700)].join("\n");
+    const fallback = compactToLimit(compactWhitespace(stripMarkdownForRetrieval(entry.contentMd)), KNOWLEDGE_FOUNDATION_L0_MAX);
+    return compactToLimit([`# ${entry.title}`, "", foundation?.l0 ?? fallback].join("\n"), KNOWLEDGE_FOUNDATION_L0_MAX * 2);
   }
-  return [`# ${entry.title}`, "", outlineForContent(entry.title, entry.contentMd), "", "## Metadata", entry.metadataJson].join("\n");
+  const fallback = outlineForContent(entry.title, entry.contentMd);
+  return compactToLimit([`# ${entry.title}`, "", foundation?.l1 ?? fallback, "", "## Metadata", entry.metadataJson].join("\n"), KNOWLEDGE_FOUNDATION_L1_MAX * 2);
 }
 
 function readAggregateLevel(uri: string, entries: KnowledgeEntryRecord[], level: "L0" | "L1" | "L2") {
@@ -603,17 +1024,21 @@ function readAggregateLevel(uri: string, entries: KnowledgeEntryRecord[], level:
       `# ${title}`,
       "",
       ...entries.slice(0, 20).map((entry) => {
-        const plain = compactWhitespace(stripMarkdownForRetrieval(entry.contentMd));
-        return `- ${entry.title}: ${plain.slice(0, 180)}`;
+        const plain = compactToLimit(compactWhitespace(stripMarkdownForRetrieval(entry.contentMd)), KNOWLEDGE_FOUNDATION_L0_MAX);
+        const foundation = readKnowledgeFoundationMetadata(entry.metadataJson);
+        return `- ${entry.title}: ${foundation?.l0 ?? plain}`;
       }),
-    ].join("\n");
+    ].join("\n").slice(0, SPACE_INDEX_L0_MAX);
   }
   if (level === "L1") {
     return [
       `# ${title}`,
       "",
-      ...entries.slice(0, 30).map((entry) => outlineForContent(entry.title, entry.contentMd)),
-    ].join("\n\n");
+      ...entries.slice(0, 30).map((entry) => {
+        const foundation = readKnowledgeFoundationMetadata(entry.metadataJson);
+        return compactToLimit(foundation?.l1 ?? outlineForContent(entry.title, entry.contentMd), KNOWLEDGE_FOUNDATION_L1_MAX);
+      }),
+    ].join("\n\n").slice(0, SPACE_INDEX_L1_MAX);
   }
   return [
     `# ${title}`,
@@ -628,9 +1053,18 @@ function retrievalLevelsForEntry(
   queryTerms: string[],
   spaceIndex: ReturnType<typeof buildRetrievalSpaceIndex>,
 ): KnowledgeRetrievalTestLevelHit[] {
-  const plainContent = stripMarkdownForRetrieval(entry.contentMd);
-  const l0Text = spaceIndex.l0Text || compactWhitespace([entry.title, plainContent.slice(0, 260), entry.metadataJson].join("\n"));
-  const l1Text = spaceIndex.l1Text || compactWhitespace([entry.title, plainContent.slice(0, 1600), entry.metadataJson].join("\n"));
+  const plainContent = compactWhitespace(stripMarkdownForRetrieval(entry.contentMd));
+  const foundation = readKnowledgeFoundationMetadata(entry.metadataJson);
+  const entryL0 = compactToLimit(
+    compactWhitespace([entry.title, foundation?.l0 || plainContent].join(" | ")),
+    KNOWLEDGE_FOUNDATION_L0_MAX,
+  );
+  const entryL1 = compactToLimit(
+    compactWhitespace([entry.title, foundation?.l1 || outlineForContent(entry.title, entry.contentMd)].join(" | ")),
+    KNOWLEDGE_FOUNDATION_L1_MAX,
+  );
+  const l0Text = compactToLimit(`${entryL0}\n\n${spaceIndex.l0Text}`, SPACE_INDEX_L0_MAX);
+  const l1Text = compactToLimit(`${entryL1}\n\n${spaceIndex.l1Text}`, SPACE_INDEX_L1_MAX);
   const l2Text = [entry.title, entry.contentMd, entry.metadataJson].join("\n");
 
   const levels: KnowledgeRetrievalTestLevelHit[] = [
@@ -672,33 +1106,59 @@ function retrievalLevelsForEntry(
   return levels;
 }
 
-export function runKnowledgeRetrievalTest(input: {
-  knowledgeSpaceId: string;
+export function searchKnowledgeEntries(input: {
   query: string;
+  knowledgeSpaceIds?: string[];
+  scopeUris?: string[];
+  knowledgeCategories?: string[];
+  repositoryNames?: string[];
   limit?: number;
-}) {
+  levels?: KnowledgeSearchLevel[];
+  includeOutboundUris?: boolean;
+}): KnowledgeSearchResult {
   const normalizedQuery = compactWhitespace(input.query);
-  if (!normalizedQuery) return [];
+  if (!normalizedQuery) {
+    return {
+      query: "",
+      scope: { knowledgeSpaceIds: [], scopeUris: [], knowledgeCategories: [], repositoryNames: [] },
+      totalEntries: 0,
+      totalCandidates: 0,
+      hits: [],
+    };
+  }
 
-  const entries = queryAll<KnowledgeEntryRecord>(
-    "SELECT * FROM knowledge_entries WHERE knowledge_space_id = ? ORDER BY created_at DESC LIMIT 200",
-    input.knowledgeSpaceId,
-  ).map(normalizeKnowledgeEntryRecord);
+  const { knowledgeSpaceIds, scopeUris, knowledgeCategories, repositoryNames } = parseKnowledgeSearchScopes({
+    knowledgeSpaceIds: input.knowledgeSpaceIds,
+    scopeUris: input.scopeUris,
+    knowledgeCategories: input.knowledgeCategories,
+    repositoryNames: input.repositoryNames,
+  });
 
-  const queryTerms = normalizedQuery
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
+  const entries = filterKnowledgeEntriesForScopes({
+    knowledgeSpaceIds,
+    scopeUris,
+    knowledgeCategories,
+    repositoryNames,
+    limit: 300,
+  });
+  const queryTerms = normalizedQuery.toLowerCase().split(/\s+/).filter(Boolean);
   const spaceIndex = buildRetrievalSpaceIndex(entries);
+  const levelFilter = parseKnowledgeSearchLevels(input.levels);
+  const knowledgeSpaceNameById = new Map(
+    queryAll<{ id: string; name: string }>("SELECT id, name FROM knowledge_spaces").map((space) => [
+      space.id,
+      space.name,
+    ]),
+  );
 
-  return entries
-    .map<KnowledgeRetrievalTestHit | null>((entry) => {
-      const levels = retrievalLevelsForEntry(entry, normalizedQuery, queryTerms, spaceIndex);
-      const score = levels.reduce((sum, level) => sum + level.score, 0);
-
+  const sortedHits = entries
+    .map<KnowledgeSearchResult["hits"][number] | null>((entry) => {
+      const allLevels = retrievalLevelsForEntry(entry, normalizedQuery, queryTerms, spaceIndex);
+      const filteredLevels = allLevels.filter((level) => levelFilter.has(level.level));
+      const score = filteredLevels.reduce((sum, level) => sum + level.score, 0);
       if (!score) return null;
-
-      const bestLevel = [...levels].sort((left, right) => right.score - left.score)[0];
+      const best = [...filteredLevels].sort((left, right) => right.score - left.score)[0] ?? filteredLevels[0];
+      if (!best) return null;
 
       return {
         id: entry.id,
@@ -706,14 +1166,59 @@ export function runKnowledgeRetrievalTest(input: {
         vikingUri: entry.vikingUri,
         syncStatus: entry.syncStatus,
         layer: entry.layer,
+        knowledgeSpaceId: entry.knowledgeSpaceId,
+        knowledgeSpaceName: entry.knowledgeSpaceId
+          ? knowledgeSpaceNameById.get(entry.knowledgeSpaceId) ?? null
+          : null,
         score,
-        excerpt: bestLevel?.excerpt || buildExcerpt(entry.contentMd, normalizedQuery),
-        levels,
+        excerpt: best?.excerpt || buildExcerpt(entry.contentMd, normalizedQuery),
+        bestLevel: best.level,
+        levels: filteredLevels,
+        outboundUris: input.includeOutboundUris ? extractOutboundKnowledgeUris(entry.contentMd).slice(0, 12) : [],
+        matchLevelCount: filteredLevels.length,
       };
     })
-    .filter((item): item is KnowledgeRetrievalTestHit => Boolean(item))
-    .sort((left, right) => right.score - left.score)
-    .slice(0, input.limit ?? 8);
+    .filter((item): item is KnowledgeSearchResult["hits"][number] => Boolean(item))
+    .sort((left, right) => right.score - left.score);
+
+  const hits = sortedHits.slice(0, input.limit ?? 8);
+
+  return {
+    query: normalizedQuery,
+    scope: {
+      knowledgeSpaceIds,
+      scopeUris,
+      knowledgeCategories,
+      repositoryNames,
+    },
+    totalEntries: entries.length,
+    totalCandidates: sortedHits.length,
+    hits,
+  };
+}
+
+export function runKnowledgeRetrievalTest(input: {
+  knowledgeSpaceId: string;
+  query: string;
+  limit?: number;
+}) {
+  const search = searchKnowledgeEntries({
+    query: input.query,
+    knowledgeSpaceIds: [input.knowledgeSpaceId],
+    limit: input.limit,
+    includeOutboundUris: false,
+  });
+
+  return search.hits.map<KnowledgeRetrievalTestHit>((hit) => ({
+    id: hit.id,
+    title: hit.title,
+    vikingUri: hit.vikingUri,
+    syncStatus: hit.syncStatus,
+    layer: hit.layer,
+    score: hit.score,
+    excerpt: hit.excerpt,
+    levels: hit.levels,
+  }));
 }
 
 export function listKnowledgeSkills() {

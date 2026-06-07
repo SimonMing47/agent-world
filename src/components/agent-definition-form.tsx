@@ -107,7 +107,7 @@ function defaultPermissionPolicy() {
     repositoryAccess: "read_only",
     memoryAccess: "inherit",
     secretAccess: "runtime_bound_only",
-    allowedToolNames: ["search_repo", "read_file", "list_dir"],
+    allowedToolNames: ["search_repo", "read_file", "list_dir", "memory.read", "memory.search", "memory.retrieve"],
     deniedToolNames: [] as string[],
   };
 }
@@ -127,6 +127,9 @@ const workspaceToolOptions = [
   { value: "search_repo", labelKey: "agentDefinition.tools.searchRepo" },
   { value: "read_file", labelKey: "agentDefinition.tools.readFile" },
   { value: "list_dir", labelKey: "agentDefinition.tools.listDirectory" },
+  { value: "memory.read", labelKey: "agentDefinition.tools.memoryRead" },
+  { value: "memory.search", labelKey: "agentDefinition.tools.memorySearch" },
+  { value: "memory.retrieve", labelKey: "agentDefinition.tools.memoryRetrieve" },
 ];
 const registeredToolNames = new Set(workspaceToolOptions.map((tool) => tool.value));
 
@@ -530,6 +533,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
                 config={form.avatarConfig}
                 capabilityProfile={storedCapabilityProfile}
                 seed={`${form.id}:${form.name}:${form.role}`}
+                roleHint={form.role}
                 size="lg"
               />
               <div className="mt-3 max-w-full">
@@ -568,6 +572,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
             value={form.avatarConfig}
             capabilityProfile={storedCapabilityProfile}
             seed={form.name || form.slug || form.id || "agent"}
+            roleHint={form.role}
             onChange={(avatarConfig) => setForm((current) => ({ ...current, avatarConfig }))}
           />
           <AgentCapabilityProfilePanel value={storedCapabilityProfile} />
