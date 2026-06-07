@@ -10,6 +10,7 @@ import {
   type FocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
 import {
@@ -17,6 +18,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   CircleDot,
   Copy,
@@ -190,6 +192,8 @@ type KnowledgeQueryStep = {
 };
 
 const reasoningStepKeys = ["search", "read", "traverse", "repair"] as const;
+const minEditorPreviewPaneRatio = 28;
+const maxEditorPreviewPaneRatio = 78;
 
 type PaneMode = "split" | "editor" | "preview";
 
@@ -1835,7 +1839,11 @@ export function KnowledgeNotebookWorkspace({
   const [message, setMessage] = useState<string | null>(null);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [queryPathOpen, setQueryPathOpen] = useState(false);
+  const [treeCollapsed, setTreeCollapsed] = useState(false);
   const [paneMode, setPaneMode] = useState<PaneMode>("split");
+  const [editorCollapsed, setEditorCollapsed] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
+  const [editorPaneRatio, setEditorPaneRatio] = useState(58);
   const [selectedIndexLevel, setSelectedIndexLevel] = useState<KnowledgeIndexLevel>("L2");
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -1859,6 +1867,7 @@ export function KnowledgeNotebookWorkspace({
   const savingRef = useRef(false);
   const pendingSaveRef = useRef<Promise<SaveResult> | null>(null);
   const navigatingRef = useRef(false);
+  const editorPreviewShellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -1986,6 +1995,15 @@ export function KnowledgeNotebookWorkspace({
   const activeTitle = isIndexReadOnly
     ? `${activeSpace?.name ?? text("terminology.knowledge")} · ${text(selectedLayerItem.label)}`
     : draft.title;
+  const showEditorPane = paneMode !== "preview" && !editorCollapsed;
+  const showPreviewPane = paneMode !== "editor" && !previewCollapsed;
+  const splitEditorPreviewActive = paneMode === "split" && showEditorPane && showPreviewPane;
+  const editorPaneStyle = splitEditorPreviewActive
+    ? { flex: `0 0 ${editorPaneRatio}%` }
+    : undefined;
+  const previewPaneStyle = splitEditorPreviewActive
+    ? { flex: `0 0 ${100 - editorPaneRatio}%` }
+    : undefined;
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
     setEntriesState((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
@@ -2212,6 +2230,75 @@ export function KnowledgeNotebookWorkspace({
       textarea.selectionStart = edit.selectionStart;
       textarea.selectionEnd = edit.selectionEnd;
     });
+  }
+
+  function selectPaneMode(nextMode: PaneMode) {
+    setPaneMode(nextMode);
+    if (nextMode === "editor") {
+      setEditorCollapsed(false);
+      return;
+    }
+    if (nextMode === "preview") {
+      setPreviewCollapsed(false);
+      return;
+    }
+    if (editorCollapsed && previewCollapsed) {
+      setEditorCollapsed(false);
+      setPreviewCollapsed(false);
+    }
+  }
+
+  function collapseEditorPane() {
+    setEditorCollapsed(true);
+    if (paneMode === "editor") {
+      setPaneMode("preview");
+      setPreviewCollapsed(false);
+      return;
+    }
+    if (paneMode === "split" && previewCollapsed) setPreviewCollapsed(false);
+  }
+
+  function collapsePreviewPane() {
+    setPreviewCollapsed(true);
+    if (paneMode === "preview") {
+      setPaneMode("editor");
+      setEditorCollapsed(false);
+      return;
+    }
+    if (paneMode === "split" && editorCollapsed) setEditorCollapsed(false);
+  }
+
+  function expandEditorPane() {
+    setEditorCollapsed(false);
+    if (paneMode === "preview") setPaneMode("split");
+  }
+
+  function expandPreviewPane() {
+    setPreviewCollapsed(false);
+    if (paneMode === "editor") setPaneMode("split");
+  }
+
+  function startEditorPreviewResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    const shell = editorPreviewShellRef.current;
+    if (!shell) return;
+
+    event.preventDefault();
+    const updateRatio = (clientX: number) => {
+      const rect = shell.getBoundingClientRect();
+      if (!rect.width) return;
+      const nextRatio = ((clientX - rect.left) / rect.width) * 100;
+      setEditorPaneRatio(Math.min(maxEditorPreviewPaneRatio, Math.max(minEditorPreviewPaneRatio, nextRatio)));
+    };
+    updateRatio(event.clientX);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => updateRatio(moveEvent.clientX);
+    const handlePointerUp = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
   }
 
   function openContextMenu(event: MouseEvent, target: ContextTarget) {
@@ -2645,7 +2732,7 @@ export function KnowledgeNotebookWorkspace({
             <button
               key={mode.value}
               type="button"
-              onClick={() => setPaneMode(mode.value)}
+              onClick={() => selectPaneMode(mode.value)}
               className={cn(
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors",
                 paneMode === mode.value
@@ -2820,20 +2907,64 @@ export function KnowledgeNotebookWorkspace({
           </div>
         </div>
       ) : null}
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[288px_minmax(0,1fr)]">
+      <div className={cn("grid min-h-0 flex-1", treeCollapsed ? "lg:grid-cols-[56px_minmax(0,1fr)]" : "lg:grid-cols-[288px_minmax(0,1fr)]")}>
         <aside
-          className="flex min-h-0 flex-col border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r"
+          className={cn(
+            "flex min-h-0 border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r",
+            treeCollapsed ? "h-14 flex-row items-center justify-between px-3 lg:h-auto lg:flex-col lg:px-0 lg:py-2" : "flex-col",
+          )}
           onContextMenu={(event) => openContextMenu(event, { type: "tree", spaceId: selectedSpaceId })}
         >
+          {treeCollapsed ? (
+            <>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl"
+                aria-label={text("knowledge.tree.expand")}
+                title={text("knowledge.tree.expand")}
+                onClick={() => setTreeCollapsed(false)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-[var(--ink-subtle)] lg:min-h-0 lg:flex-1 lg:flex-col lg:justify-center">
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <span className="truncate lg:[writing-mode:vertical-rl]">{text("knowledge.tree.title")}</span>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-9 w-9 rounded-xl"
+                aria-label={text("knowledge.actions.newEntry")}
+                title={text("knowledge.actions.newEntry")}
+                onClick={() => void startNewEntry()}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
           <div className="border-b border-[var(--line)] px-3 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold tracking-normal text-[var(--ink)]">{text("knowledge.tree.title")}</div>
                 <div className="mt-0.5 text-[11px] text-[var(--ink-subtle)]">{text("knowledge.hub.sourceOfTruth")}</div>
               </div>
-              <Button size="icon" variant="ghost" aria-label={text("knowledge.actions.newEntry")} onClick={() => void startNewEntry()}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" aria-label={text("knowledge.actions.newEntry")} onClick={() => void startNewEntry()}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 rounded-xl"
+                  aria-label={text("knowledge.tree.collapse")}
+                  title={text("knowledge.tree.collapse")}
+                  onClick={() => setTreeCollapsed(true)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <label className="mt-3 flex h-9 items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink-muted)]">
               <Search className="h-4 w-4" />
@@ -2926,6 +3057,8 @@ export function KnowledgeNotebookWorkspace({
               </div>
             )}
           </div>
+            </>
+          )}
         </aside>
 
         <div className="flex min-w-0 flex-col bg-[rgba(255,255,255,0.82)]">
@@ -3233,68 +3366,124 @@ export function KnowledgeNotebookWorkspace({
               </div>
             </div>
           ) : (
-            <div
-              className={cn(
-                "grid min-h-0 flex-1",
-                paneMode === "split" ? "lg:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]" : "grid-cols-1",
-              )}
-            >
+            <div className="flex min-h-0 flex-1 flex-col">
+              {editorCollapsed || previewCollapsed ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--line)] bg-white/70 px-5 py-2">
+                  {editorCollapsed ? (
+                    <Button size="sm" variant="ghost" className="h-7 rounded-xl text-xs" onClick={expandEditorPane}>
+                      <Edit3 className="h-3.5 w-3.5" />
+                      knowledge.pane.expandEditor
+                    </Button>
+                  ) : null}
+                  {previewCollapsed ? (
+                    <Button size="sm" variant="ghost" className="h-7 rounded-xl text-xs" onClick={expandPreviewPane}>
+                      <Eye className="h-3.5 w-3.5" />
+                      knowledge.pane.expandPreview
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <div
+                ref={editorPreviewShellRef}
                 className={cn(
-                  "flex min-w-0 flex-col border-b border-[var(--line)]",
-                  paneMode === "preview" && "hidden",
-                  paneMode === "split" && "lg:border-b-0 lg:border-r",
+                  "min-h-0 flex-1",
+                  splitEditorPreviewActive ? "flex flex-col lg:flex-row" : "flex flex-col",
                 )}
               >
-                <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
-                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                    <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown {text("actions.edit")}
+                {showEditorPane ? (
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col border-b border-[var(--line)]",
+                      splitEditorPreviewActive ? "lg:border-b-0" : "flex-1",
+                    )}
+                    style={editorPaneStyle}
+                  >
+                    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--line)] px-5">
+                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                        <Edit3 className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        Markdown {text("actions.edit")}
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 rounded-xl"
+                        aria-label={text("knowledge.pane.collapseEditor")}
+                        title={text("knowledge.pane.collapseEditor")}
+                        onClick={collapseEditorPane}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Textarea
+                      value={draft.contentMd}
+                      onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
+                      onBlur={flushDraftOnBlur}
+                      onKeyDown={handleMarkdownKeyDown}
+                      className="min-h-[420px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0 lg:min-h-0"
+                      placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
+                    />
+                    <details className="shrink-0 border-t border-[var(--line)] px-5 py-4">
+                      <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
+                      <Textarea
+                        value={draft.metadataJson}
+                        onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
+                        onBlur={flushDraftOnBlur}
+                        className="mt-3 min-h-28 font-mono text-xs"
+                      />
+                    </details>
                   </div>
-                </div>
-                <Textarea
-                  value={draft.contentMd}
-                  onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
-                  onBlur={flushDraftOnBlur}
-                  onKeyDown={handleMarkdownKeyDown}
-                  className="min-h-[620px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0"
-                  placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
-                />
-                <details className="border-t border-[var(--line)] px-5 py-4">
-                  <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
-                  <Textarea
-                    value={draft.metadataJson}
-                    onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
-                    onBlur={flushDraftOnBlur}
-                    className="mt-3 min-h-28 font-mono text-xs"
-                  />
-                </details>
-              </div>
-
-              <div
-                className={cn(
-                  "flex min-w-0 flex-col bg-[rgba(250,251,253,0.72)]",
-                  paneMode === "editor" && "hidden",
-                )}
-              >
-                <div className="flex h-11 items-center justify-between border-b border-[var(--line)] px-5">
-                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                    <SplitSquareHorizontal className="h-4 w-4 text-[var(--ink-subtle)]" />
-                    Markdown {text("knowledge.pane.preview")}
+                ) : null}
+                {splitEditorPreviewActive ? (
+                  <button
+                    type="button"
+                    aria-label={text("knowledge.pane.resize")}
+                    title={text("knowledge.pane.resize")}
+                    onPointerDown={startEditorPreviewResize}
+                    className="group hidden w-3 shrink-0 cursor-col-resize touch-none items-center justify-center border-x border-[var(--line)] bg-[rgba(250,251,253,0.86)] transition-colors hover:bg-white lg:flex"
+                  >
+                    <span className="h-10 w-1 rounded-full bg-[rgba(15,23,42,0.18)] transition-colors group-hover:bg-[var(--accent-strong)]" />
+                  </button>
+                ) : null}
+                {showPreviewPane ? (
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col bg-[rgba(250,251,253,0.72)]",
+                      splitEditorPreviewActive ? "" : "flex-1",
+                    )}
+                    style={previewPaneStyle}
+                  >
+                    <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--line)] px-5">
+                      <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                        <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        Markdown {text("knowledge.pane.preview")}
+                      </div>
+                      <div className="inline-flex items-center gap-2">
+                        <Badge variant="neutral">{text("knowledge.pane.preview")}</Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-xl"
+                          aria-label={text("knowledge.pane.collapsePreview")}
+                          title={text("knowledge.pane.collapsePreview")}
+                          onClick={collapsePreviewPane}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="min-h-[420px] flex-1 overflow-auto lg:min-h-0">
+                      <MarkdownPreview
+                        content={draft.contentMd}
+                        onTaskToggle={(lineIndex, checked) =>
+                          updateDraft((current) => ({
+                            ...current,
+                            contentMd: toggleTaskLine(current.contentMd, lineIndex, checked),
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
-                  <Badge variant="neutral">{text("knowledge.pane.preview")}</Badge>
-                </div>
-                <div className="min-h-[620px] flex-1 overflow-auto">
-                  <MarkdownPreview
-                    content={draft.contentMd}
-                    onTaskToggle={(lineIndex, checked) =>
-                      updateDraft((current) => ({
-                        ...current,
-                        contentMd: toggleTaskLine(current.contentMd, lineIndex, checked),
-                      }))
-                    }
-                  />
-                </div>
+                ) : null}
               </div>
             </div>
           )}
