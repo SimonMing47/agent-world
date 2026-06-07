@@ -7,6 +7,10 @@ import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";
 import { uiText } from "@/lib/language-pack";
 import {
+  normalizeKnowledgeImportContent,
+  stripDuplicateKnowledgeImportHeading,
+} from "@/lib/knowledge-import-content";
+import {
   normalizeKnowledgeImportUrl,
   resolveKnowledgeImportFetchUrl,
 } from "@/lib/knowledge-import-url";
@@ -164,7 +168,7 @@ async function fetchUrlKnowledge(rawUrl: string) {
     const contentType = response.headers.get("content-type") ?? "";
     const raw = (await response.text()).slice(0, maxFetchedChars);
     const isHtml = contentType.includes("html") || /<html|<body|<article|<main/i.test(raw);
-    const body = isHtml ? textFromHtml(raw) : raw.trim();
+    const body = normalizeKnowledgeImportContent(isHtml ? textFromHtml(raw) : raw);
     if (!body) throw new Error(uiText("ui.knowledgeImport.errors.emptyArchiveBody"));
     const title = isHtml ? titleFromHtml(raw, finalUrl) : titleFromText(body, finalUrl);
     const description = isHtml ? extractMeta(raw, "description") || extractMeta(raw, "og:description") : "";
@@ -182,6 +186,7 @@ async function fetchUrlKnowledge(rawUrl: string) {
 }
 
 function markdownForUrl(input: Awaited<ReturnType<typeof fetchUrlKnowledge>>) {
+  const content = stripDuplicateKnowledgeImportHeading(input.content, input.title);
   const lines = [
     `# ${input.title}`,
     "",
@@ -192,7 +197,7 @@ function markdownForUrl(input: Awaited<ReturnType<typeof fetchUrlKnowledge>>) {
     lines.push(uiText("ui.knowledgeImport.markdown.description", undefined, { description: input.description }));
   }
   if (input.truncated) lines.push(uiText("ui.knowledgeImport.markdown.urlTruncatedRemark"));
-  lines.push("", uiText("ui.knowledgeImport.markdown.bodyHeading"), "", input.content);
+  lines.push("", uiText("ui.knowledgeImport.markdown.bodyHeading"), "", content);
   return lines.join("\n");
 }
 
