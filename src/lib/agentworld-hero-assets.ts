@@ -670,93 +670,65 @@ function normalizeExampleAgentId(value: string | null | undefined) {
   return normalizeRoleText(value).replace(/\s+/g, "_");
 }
 
-function getPresetTrait(pack: HeroPackDefinition, roleId: string | null | undefined, layer: AgentWorldHeroLayer) {
-  if (!roleId) return undefined;
-  return pack.rolePresetTraits.get(normalizeRoleText(roleId))?.find((traitId) => pack.assetsById.get(traitId)?.layer === layer);
+function getFullCharacterTraitById(pack: HeroPackDefinition, id: string | null | undefined) {
+  const example = id ? pack.exampleAgentById.get(normalizeExampleAgentId(id)) : undefined;
+  const traitId = example?.traits.full_character;
+  return traitId && pack.assetsById.get(traitId)?.layer === "full_character" ? traitId : undefined;
 }
 
-function pickPresetRoleFromIds(pack: HeroPackDefinition, ids: readonly string[], seed: number, offset = 0) {
-  const candidates = ids.map(normalizeRoleText).filter((id) => pack.rolePresetTraits.has(id));
+function pickFullCharacterTraitFromIds(pack: HeroPackDefinition, ids: readonly string[], seed: number, offset = 0) {
+  const candidates = ids
+    .map((id) => getFullCharacterTraitById(pack, id))
+    .map((traitId) => (traitId ? pack.assetsById.get(traitId) : undefined))
+    .filter((asset): asset is AgentWorldHeroAsset => Boolean(asset));
   if (candidates.length === 0) return undefined;
-  return pickByStableScore(candidates, seed, offset, (id) => id);
+  return pickByStableScore(candidates, seed, offset, (asset) => asset.traitId)?.traitId;
 }
 
-function pickPresetRoleByAlias(roleHint: string | null | undefined) {
+function pickFullCharacterTraitByRoleAlias(pack: HeroPackDefinition, roleHint: string | null | undefined) {
   const normalized = normalizeRoleText(roleHint);
   if (!normalized) return undefined;
 
-  const aliasGroups: Array<{ keywords: string[]; roleId: string }> = [
-    { keywords: ["architecture", "architect", "架构"], roleId: "mage" },
-    { keywords: ["implementation", "implement", "developer", "coding", "code", "研发", "实现", "开发"], roleId: "engineer" },
-    { keywords: ["security", "secure", "safety", "sec", "guard", "安全", "风控"], roleId: "monk" },
-    { keywords: ["leader", "lead", "captain", "commander", "负责人", "队长", "指挥"], roleId: "leader" },
-    { keywords: ["memory", "knowledge", "context", "知识", "记忆", "上下文"], roleId: "druid" },
-    { keywords: ["review", "audit", "qa", "test", "评审", "审查", "测试"], roleId: "mage" },
+  const aliasGroups: Array<{ keywords: string[]; ids: string[] }> = [
+    { keywords: ["architecture", "architect", "架构"], ids: ["mage", "engineer_mage", "young_wizard"] },
+    { keywords: ["implementation", "implement", "developer", "coding", "code", "研发", "实现", "开发"], ids: ["engineer", "cyber_alchemist", "cyber"] },
+    { keywords: ["security", "secure", "safety", "sec", "guard", "安全", "风控"], ids: ["monk", "red_monk_leader", "cyber"] },
+    { keywords: ["leader", "lead", "captain", "commander", "负责人", "队长", "指挥"], ids: ["captain_leader", "royal_leader", "red_monk_leader"] },
+    { keywords: ["memory", "knowledge", "context", "知识", "记忆", "上下文"], ids: ["druid", "druid_rogue", "monk"] },
+    { keywords: ["review", "audit", "qa", "test", "评审", "审查", "测试"], ids: ["mage", "young_wizard", "engineer_mage"] },
   ];
 
-  return aliasGroups.find((group) => group.keywords.some((keyword) => normalized.includes(keyword)))?.roleId;
+  const matchedGroup = aliasGroups.find((group) => group.keywords.some((keyword) => normalized.includes(keyword)));
+  return matchedGroup?.ids.map((id) => getFullCharacterTraitById(pack, id)).find((traitId) => Boolean(traitId));
 }
 
-function mergeUnique(values: Array<string | null | undefined>) {
-  const seen = new Set<string>();
-  return values
-    .map((value) => normalizeRoleText(value))
-    .filter((value) => {
-      if (!value || seen.has(value)) return false;
-      seen.add(value);
-      return true;
-    });
-}
-
-function pickAssembledV2Traits({
+function pickV2FullCharacterTrait({
   pack,
   seedHash,
-  configured,
   capabilityKey,
   roleHint,
 }: {
   pack: HeroPackDefinition;
   seedHash: number;
-  configured: AgentWorldHeroTraits;
   capabilityKey?: AgentCapabilityKey | null;
   roleHint?: string | null;
 }) {
-  const assemblyRolesByCapability: Record<AgentCapabilityKey, string[]> = {
-    permission: ["ranger", "leader", "monk", "pirate"],
-    toolUse: ["cyber", "ranger", "mage", "druid"],
-    safety: ["monk", "leader", "cyber", "ranger"],
-    coding: ["cyber", "engineer", "mage", "ranger"],
-    review: ["mage", "druid", "engineer", "leader"],
-    memory: ["druid", "monk", "mage", "ranger"],
-    collaboration: ["pirate", "ranger", "druid", "leader"],
+  const fullCharactersByCapability: Record<AgentCapabilityKey, string[]> = {
+    permission: ["ranger", "captain_leader", "royal_leader", "red_monk_leader", "monk", "pirate_monk"],
+    toolUse: ["engineer", "cyber_alchemist", "cyber", "engineer_mage", "ranger", "young_wizard"],
+    safety: ["monk", "red_monk_leader", "captain_leader", "cyber"],
+    coding: ["cyber", "cyber_alchemist", "engineer", "engineer_mage", "young_wizard"],
+    review: ["mage", "young_wizard", "engineer_mage", "cyber_alchemist", "druid_rogue"],
+    memory: ["druid", "druid_rogue", "monk", "hybrid_ranger_staff", "young_wizard"],
+    collaboration: ["pirate", "pirate_monk", "ranger", "druid_rogue", "captain_leader"],
   };
 
-  const exactRole = pickPresetRoleId(pack, roleHint);
-  const aliasRole = pickPresetRoleByAlias(roleHint);
-  const capabilityPool = capabilityKey ? assemblyRolesByCapability[capabilityKey] : [];
-  const primaryRole =
-    exactRole ??
-    aliasRole ??
-    pickPresetRoleFromIds(pack, capabilityPool, seedHash, 19) ??
-    pickPresetRoleFromIds(pack, Array.from(pack.rolePresetTraits.keys()), seedHash, 23);
-  if (!primaryRole) return {};
-
-  const compatibleRoles = mergeUnique([primaryRole, ...capabilityPool, "ranger", "mage", "engineer", "druid", "cyber"]);
-  const baseRole = pickPresetRoleFromIds(pack, compatibleRoles, seedHash, 31) ?? primaryRole;
-  const sidePropRole = pickPresetRoleFromIds(pack, compatibleRoles, seedHash, 37) ?? primaryRole;
-
-  const traits: AgentWorldHeroTraits = {
-    base: getPresetTrait(pack, baseRole, "base") ?? getPresetTrait(pack, primaryRole, "base"),
-    side_prop: getPresetTrait(pack, sidePropRole, "side_prop") ?? getPresetTrait(pack, primaryRole, "side_prop"),
-    lower_body: getPresetTrait(pack, primaryRole, "lower_body"),
-    hand_item: getPresetTrait(pack, primaryRole, "hand_item"),
-    head_upper: getPresetTrait(pack, primaryRole, "head_upper"),
-  };
-
-  return {
-    ...traits,
-    ...configured,
-  };
+  return (
+    getFullCharacterTraitById(pack, pickPresetRoleId(pack, roleHint)) ??
+    pickFullCharacterTraitByRoleAlias(pack, roleHint) ??
+    (capabilityKey ? pickFullCharacterTraitFromIds(pack, fullCharactersByCapability[capabilityKey], seedHash, 23) : undefined) ??
+    pickByStableScore(pack.assetsByLayer.full_character ?? [], seedHash, 29, (asset) => asset.traitId)?.traitId
+  );
 }
 
 export function isAgentWorldHeroLayer(value: unknown): value is AgentWorldHeroLayer {
@@ -860,13 +832,19 @@ export function resolveAgentWorldHeroTraits({
       };
     }
 
-    return pickAssembledV2Traits({
-      pack,
-      seedHash,
-      configured,
-      capabilityKey,
-      roleHint,
-    });
+    const fullCharacter =
+      pickV2FullCharacterTrait({
+        pack,
+        seedHash,
+        capabilityKey,
+        roleHint,
+      }) ?? configuredFullCharacter;
+
+    return fullCharacter
+      ? {
+          full_character: fullCharacter,
+        }
+      : {};
   }
 
   const traits: AgentWorldHeroTraits = {};
@@ -902,7 +880,6 @@ export function resolveAgentWorldHeroLayers(input: {
       if (!asset) return null;
       return {
         ...asset,
-        zIndex: pack.id === agentWorldHeroPackIdV2 && asset.layer === "hand_item" ? 35 : asset.zIndex,
         src: asset.cropUrl,
       };
     })
