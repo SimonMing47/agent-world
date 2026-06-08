@@ -544,7 +544,6 @@ export function PixelAgentAvatar({
   config,
   capabilityProfile,
   seed = "agent",
-  roleSlot,
   roleHint,
   size = "md",
   className,
@@ -558,7 +557,7 @@ export function PixelAgentAvatar({
   const heroLayers =
     visual.assetPack === agentWorldHeroPackId
       ? resolveAgentWorldHeroLayers({
-          seed: JSON.stringify({ seed, roleSlot, visual, capabilityKey }),
+          seed: JSON.stringify({ seed, visual, capabilityKey, roleHint: roleHint ?? visual.roleHint }),
           configuredTraits: visual.assetTraits,
           capabilityKey,
           roleHint: roleHint ?? visual.roleHint,

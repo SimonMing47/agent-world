@@ -236,6 +236,21 @@ function hashSeed(seed: string) {
   return hash >>> 0;
 }
 
+function pickIndex(seed: number, length: number, offset = 0) {
+  if (length <= 0) return 0;
+  const mixed = (seed ^ (seed >>> 16) ^ Math.imul(offset + 1, 2246822519)) >>> 0;
+  return mixed % length;
+}
+
+function pickByStableScore<T>(items: T[], seed: number, offset: number, getKey: (item: T) => string) {
+  return items.reduce<T | undefined>((selected, item) => {
+    if (!selected) return item;
+    const itemScore = hashSeed(`${seed}:${offset}:${getKey(item)}`);
+    const selectedScore = hashSeed(`${seed}:${offset}:${getKey(selected)}`);
+    return itemScore > selectedScore ? item : selected;
+  }, undefined);
+}
+
 function toDisplayName(...values: Array<string | null | undefined>) {
   return values.find((value) => value?.trim()) ?? "";
 }
@@ -643,12 +658,34 @@ function pickSpecialBackground(
 function pickTrait(pack: HeroPackDefinition, layer: AgentWorldHeroLayer, seed: number, offset: number) {
   const candidates = (pack.assetsByLayer[layer] ?? []).filter((asset) => !asset.isExampleOnly);
   if (candidates.length === 0) return undefined;
-  return candidates[(seed + offset) % candidates.length]?.traitId;
+  return pickByStableScore(candidates, seed, offset, (asset) => asset.traitId)?.traitId;
 }
 
 function toExampleAgentId(asset: AgentWorldHeroAsset) {
-  const normalized = normalizeRoleText(asset.roleHint || asset.variant || asset.traitId).replace(/\s+/g, "_");
+  const normalized = normalizeExampleAgentId(asset.roleHint || asset.variant || asset.traitId);
   return normalized || asset.traitId;
+}
+
+function normalizeExampleAgentId(value: string | null | undefined) {
+  return normalizeRoleText(value).replace(/\s+/g, "_");
+}
+
+function getFullCharacterCandidates(pack: HeroPackDefinition, includeExamples = false) {
+  return (pack.assetsByLayer.full_character ?? []).filter((asset) => includeExamples || !asset.isExampleOnly);
+}
+
+function findFullCharacterTraitByRole(
+  pack: HeroPackDefinition,
+  roleHint: string | null | undefined,
+  includeExamples = true,
+) {
+  if (!roleHint) return undefined;
+  return getFullCharacterCandidates(pack, includeExamples).find(
+    (asset) =>
+      roleTokenMatch(asset.roleHint, roleHint) ||
+      roleTokenMatch(asset.variant, roleHint) ||
+      roleTokenMatch(asset.name, roleHint),
+  )?.traitId;
 }
 
 function pickFullCharacterTrait(
@@ -656,21 +693,65 @@ function pickFullCharacterTrait(
   seed: number,
   roleHint: string | null | undefined,
   offset = 0,
+  includeExamples = false,
 ) {
-  const candidates = (pack.assetsByLayer.full_character ?? []).filter((asset) => !asset.isExampleOnly);
+  const candidates = getFullCharacterCandidates(pack, includeExamples);
   if (candidates.length === 0) return undefined;
 
-  if (roleHint) {
-    const matched = candidates.find(
-      (asset) =>
-        roleTokenMatch(asset.roleHint, roleHint) ||
-        roleTokenMatch(asset.variant, roleHint) ||
-        roleTokenMatch(asset.name, roleHint),
-    );
-    if (matched) return matched.traitId;
-  }
+  const matched = findFullCharacterTraitByRole(pack, roleHint, includeExamples);
+  if (matched) return matched;
 
-  return candidates[(seed + offset) % candidates.length]?.traitId;
+  return pickByStableScore(candidates, seed, offset, (asset) => asset.traitId)?.traitId;
+}
+
+function pickFullCharacterTraitFromIds(pack: HeroPackDefinition, ids: readonly string[], seed: number, offset = 0) {
+  const traits = ids
+    .map((id) => pack.exampleAgentById.get(normalizeExampleAgentId(id))?.traits.full_character)
+    .map((traitId) => (traitId ? pack.assetsById.get(traitId) : undefined))
+    .filter((asset): asset is AgentWorldHeroAsset => Boolean(asset));
+  if (traits.length === 0) return undefined;
+  return pickByStableScore(traits, seed, offset, (asset) => asset.traitId)?.traitId;
+}
+
+function pickFullCharacterTraitByRoleAlias(
+  pack: HeroPackDefinition,
+  roleHint: string | null | undefined,
+) {
+  const normalized = normalizeRoleText(roleHint);
+  if (!normalized) return undefined;
+
+  const aliasGroups: Array<{ keywords: string[]; ids: string[] }> = [
+    {
+      keywords: ["architecture", "architect", "架构"],
+      ids: ["mage", "engineer_mage", "young_wizard", "druid_rogue"],
+    },
+    {
+      keywords: ["implementation", "implement", "developer", "coding", "code", "研发", "实现", "开发"],
+      ids: ["engineer", "cyber_alchemist", "cyber", "engineer_mage"],
+    },
+    {
+      keywords: ["security", "secure", "safety", "sec", "guard", "安全", "风控"],
+      ids: ["monk", "cyber", "red_monk_leader", "captain_leader"],
+    },
+    {
+      keywords: ["leader", "lead", "captain", "commander", "负责人", "队长", "指挥"],
+      ids: ["captain_leader", "royal_leader", "red_monk_leader", "ranger"],
+    },
+    {
+      keywords: ["memory", "knowledge", "context", "知识", "记忆", "上下文"],
+      ids: ["druid", "druid_rogue", "monk", "hybrid_ranger_staff"],
+    },
+    {
+      keywords: ["review", "audit", "qa", "test", "评审", "审查", "测试"],
+      ids: ["mage", "young_wizard", "engineer_mage", "cyber_alchemist"],
+    },
+  ];
+
+  const matchedGroup = aliasGroups.find((group) => group.keywords.some((keyword) => normalized.includes(keyword)));
+  if (!matchedGroup) return undefined;
+  return matchedGroup.ids
+    .map((id) => pack.exampleAgentById.get(normalizeExampleAgentId(id))?.traits.full_character)
+    .find((traitId) => Boolean(traitId));
 }
 
 export function isAgentWorldHeroLayer(value: unknown): value is AgentWorldHeroLayer {
@@ -744,6 +825,15 @@ export function resolveAgentWorldHeroTraits({
     memory: ["druid", "monk", "oracle_diplomat"],
     collaboration: ["pirate", "merchant_coordinator", "bard_narrator", "healer_support"],
   };
+  const fullCharactersByCapability: Record<AgentCapabilityKey, string[]> = {
+    permission: ["ranger", "captain_leader", "royal_leader", "red_monk_leader", "monk", "pirate_monk"],
+    toolUse: ["engineer", "engineer_mage", "cyber_alchemist", "cyber", "ranger", "druid_rogue", "pirate_monk", "young_wizard"],
+    safety: ["captain_leader", "monk", "red_monk_leader", "pirate_monk", "cyber", "ranger"],
+    coding: ["cyber", "cyber_alchemist", "engineer", "engineer_mage", "young_wizard", "ranger"],
+    review: ["mage", "young_wizard", "engineer_mage", "cyber_alchemist", "druid_rogue", "royal_leader"],
+    memory: ["druid", "druid_rogue", "monk", "hybrid_ranger_staff", "young_wizard", "red_monk_leader"],
+    collaboration: ["pirate", "pirate_monk", "ranger", "druid_rogue", "captain_leader", "hybrid_ranger_staff"],
+  };
 
   const preferredExamples = (() => {
     if (exampleAgentId) {
@@ -755,20 +845,28 @@ export function resolveAgentWorldHeroTraits({
           .map((id) => pack.exampleAgentById.get(id))
           .filter((item): item is AgentWorldHeroExampleAgent => Boolean(item))
       : [];
-    if (candidates.length > 0) return candidates[seedHash % candidates.length] ?? null;
+    if (candidates.length > 0) return candidates[pickIndex(seedHash, candidates.length, 11)] ?? null;
     if (pack.exampleAgents.length === 0) return null;
-    return pack.exampleAgents[seedHash % pack.exampleAgents.length] ?? null;
+    return pack.exampleAgents[pickIndex(seedHash, pack.exampleAgents.length, 13)] ?? null;
   })();
 
   if (pack.id === agentWorldHeroPackIdV2) {
     const configuredFullCharacter = configured.full_character
       ? pack.assetsById.get(configured.full_character)?.traitId
       : undefined;
-    const preferredFullCharacter = exampleAgentId || capabilityKey ? preferredExamples?.traits.full_character : undefined;
+    const explicitExampleFullCharacter = exampleAgentId ? preferredExamples?.traits.full_character : undefined;
+    const roleMatchedFullCharacter = findFullCharacterTraitByRole(pack, roleHint, true);
+    const roleAliasFullCharacter = pickFullCharacterTraitByRoleAlias(pack, roleHint);
+    const capabilityFullCharacter = capabilityKey
+      ? pickFullCharacterTraitFromIds(pack, fullCharactersByCapability[capabilityKey], seedHash, 23)
+      : undefined;
     const fullCharacter =
       configuredFullCharacter ??
-      preferredFullCharacter ??
-      pickFullCharacterTrait(pack, seedHash, roleHint, 17);
+      explicitExampleFullCharacter ??
+      roleMatchedFullCharacter ??
+      roleAliasFullCharacter ??
+      capabilityFullCharacter ??
+      pickFullCharacterTrait(pack, seedHash, roleHint, 17, true);
 
     return fullCharacter
       ? {

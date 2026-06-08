@@ -196,6 +196,7 @@ export default async function AgentsPage() {
                   definition.avatarConfigJson,
                   definition.name || definition.slug || definition.id,
                 );
+                const avatarSeed = `${definition.id}:${definition.name}:${definition.role}`;
                 const capabilityProfile = parseAgentCapabilityProfile(
                   definition.capabilityProfileJson,
                   definition.name || definition.slug || definition.id,
@@ -212,7 +213,7 @@ export default async function AgentsPage() {
                         <PixelAgentAvatar
                           config={avatarConfig}
                           capabilityProfile={capabilityProfile}
-                          seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                          seed={avatarSeed}
                           roleHint={definition.role}
                           roleSlot={index}
                           size="sm"
@@ -260,7 +261,7 @@ export default async function AgentsPage() {
                                 <PixelAgentAvatar
                                   config={avatarConfig}
                                   capabilityProfile={capabilityProfile}
-                                  seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                                  seed={avatarSeed}
                                   roleHint={definition.role}
                                   roleSlot={index}
                                   size="lg"
