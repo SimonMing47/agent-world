@@ -337,6 +337,26 @@ function extractTraitsPreviewUrl(traits: AgentWorldHeroTraits, assetsById: Map<s
   );
 }
 
+function normalizeHeroTraitsWithAssets(
+  rawTraits: unknown,
+  assetsById: Map<string, AgentWorldHeroAsset>,
+  layerOrder: readonly AgentWorldHeroLayer[],
+  includeUnknownLayers = false,
+): AgentWorldHeroTraits {
+  if (!rawTraits || typeof rawTraits !== "object" || Array.isArray(rawTraits)) return {};
+  const traits: AgentWorldHeroTraits = {};
+
+  for (const [layer, traitId] of Object.entries(rawTraits as Record<string, unknown>)) {
+    if (!isAgentWorldHeroLayer(layer) || typeof traitId !== "string") continue;
+    const trait = assetsById.get(traitId);
+    if (!trait || trait.layer !== layer) continue;
+    if (!includeUnknownLayers && !layerOrder.includes(layer)) continue;
+    traits[layer] = trait.traitId;
+  }
+
+  return traits;
+}
+
 function buildV1Pack(): HeroPackDefinition {
   const basePath = `${agentWorldHeroPackBasePathLegacy}/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2` as const;
   const layerSchema = v1ReferencePack.layers
@@ -384,10 +404,11 @@ function buildV1Pack(): HeroPackDefinition {
     assetsByLayer[asset.layer]?.push(asset);
   });
 
+  const assetsById = new Map(assets.map((item) => [item.traitId, item]));
   const exampleAgents = v1ReferencePack.roles.map((role) => ({
     agentId: role.role_id,
     displayName: toDisplayName(role.display_name_zh, role.display_name, role.role_id),
-    traits: normalizeAgentWorldHeroTraits(role.visual_recipe, { packId: agentWorldHeroPackIdV1 }),
+    traits: normalizeHeroTraitsWithAssets(role.visual_recipe, assetsById, layerOrder),
     previewSrc: toAssetUrl(basePath, role.preview_path),
   }));
 
@@ -403,7 +424,7 @@ function buildV1Pack(): HeroPackDefinition {
     layerSchema,
     layerOrder,
     assets,
-    assetsById: new Map(assets.map((item) => [item.traitId, item])),
+    assetsById,
     assetsByLayer,
     rolePresetTraits: new Map(),
     exampleAgents,
@@ -650,19 +671,8 @@ export function normalizeAgentWorldHeroTraits(
   rawTraits: unknown,
   options: { packId?: string | null; includeUnknownLayers?: boolean } = {},
 ): AgentWorldHeroTraits {
-  if (!rawTraits || typeof rawTraits !== "object" || Array.isArray(rawTraits)) return {};
   const pack = getAgentWorldHeroPackDefinition(options.packId ?? agentWorldHeroPackId);
-  const traits: AgentWorldHeroTraits = {};
-
-  for (const [layer, traitId] of Object.entries(rawTraits as Record<string, unknown>)) {
-    if (!isAgentWorldHeroLayer(layer) || typeof traitId !== "string") continue;
-    const trait = pack.assetsById.get(traitId);
-    if (!trait || trait.layer !== layer) continue;
-    if (!options.includeUnknownLayers && !pack.layerOrder.includes(layer)) continue;
-    traits[layer] = trait.traitId;
-  }
-
-  return traits;
+  return normalizeHeroTraitsWithAssets(rawTraits, pack.assetsById, pack.layerOrder, options.includeUnknownLayers);
 }
 
 export function resolveAgentWorldHeroTraits({
