@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { AgentCapabilityKey, AgentCapabilityProfile } from "@/lib/agent-capability-profile";
 import { getAgentCapabilityWeapon } from "@/lib/agent-capability-profile";
 import {
@@ -55,6 +56,17 @@ const labelByOption: Record<string, string> = {
   review: "agent.capability.review.label",
   memory: "agent.capability.memory.label",
   collaboration: "agent.capability.collaboration.label",
+};
+
+const qPixelHandItemPlacement: Record<string, { transform: string; zIndex?: number }> = {
+  "item.bow_leaf": { transform: "translate3d(-8%, 3%, 0) scale(0.72)" },
+  "item.crystal_wand": { transform: "translate3d(9%, 2%, 0) scale(0.68)" },
+  "item.wrench": { transform: "translate3d(10%, 4%, 0) scale(0.62)" },
+  "item.captain_saber": { transform: "translate3d(10%, 2%, 0) scale(0.66)" },
+  "item.monk_staff_beads": { transform: "translate3d(-9%, 4%, 0) scale(0.68)" },
+  "item.pirate_dagger": { transform: "translate3d(10%, 4%, 0) scale(0.6)" },
+  "item.druid_staff": { transform: "translate3d(9%, 1%, 0) scale(0.7)" },
+  "item.cyber_blade": { transform: "translate3d(10%, 2%, 0) scale(0.64)" },
 };
 
 function avatar(config: PixelAgentAvatarConfig) {
@@ -496,6 +508,16 @@ function PixelAccessory({ value }: { value: PixelAgentAvatarConfig }) {
   return null;
 }
 
+function qPixelLayerStyle(layer: AgentWorldHeroResolvedLayer): CSSProperties {
+  const handItemPlacement = layer.layer === "hand_item" ? qPixelHandItemPlacement[layer.traitId] : undefined;
+  return {
+    imageRendering: "pixelated",
+    transform: handItemPlacement?.transform,
+    transformOrigin: "50% 50%",
+    zIndex: handItemPlacement?.zIndex ?? layer.zIndex,
+  };
+}
+
 function AgentWorldHeroPackAvatar({
   layers,
   size,
@@ -533,7 +555,7 @@ function AgentWorldHeroPackAvatar({
           draggable={false}
           unoptimized
           className="select-none object-contain"
-          style={{ imageRendering: "pixelated", zIndex: layer.zIndex }}
+          style={qPixelLayerStyle(layer)}
         />
       ))}
     </div>
