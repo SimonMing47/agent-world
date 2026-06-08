@@ -214,11 +214,11 @@ function AppShellContentWithUser({
               </div>
             </header>
 
-            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+            <main className={`min-h-0 min-w-0 flex-1 ${isFullBleedWorkspace ? "overflow-hidden" : "overflow-y-auto"}`}>
               <div
                 className={
                   isFullBleedWorkspace
-                    ? "flex min-h-full w-full flex-col gap-5 px-5 py-5 sm:px-6 lg:px-7 xl:px-8"
+                    ? "flex h-full min-h-0 w-full flex-col gap-5 px-5 py-5 sm:px-6 lg:px-7 xl:px-8"
                     : "mx-auto flex w-full max-w-[1560px] flex-col gap-8 px-5 py-7 sm:px-6 lg:px-8"
                 }
               >

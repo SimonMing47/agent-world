@@ -810,6 +810,8 @@ CREATE TABLE IF NOT EXISTS knowledge_spaces (
   business_team_id TEXT,
   agent_team_id TEXT,
   project_key TEXT,
+  knowledge_category TEXT NOT NULL DEFAULT 'domain',
+  repository_name TEXT,
   slug TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   space_type TEXT NOT NULL,
@@ -900,5 +902,18 @@ CREATE TABLE IF NOT EXISTS inspection_feedback (
   source_ip TEXT,
   knowledge_uri TEXT,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_api_tokens (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  token_prefix TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  expires_at TEXT,
+  last_used_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 `;

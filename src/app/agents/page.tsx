@@ -213,6 +213,7 @@ export default async function AgentsPage() {
                           config={avatarConfig}
                           capabilityProfile={capabilityProfile}
                           seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                          roleHint={definition.role}
                           roleSlot={index}
                           size="sm"
                         />
@@ -260,6 +261,7 @@ export default async function AgentsPage() {
                                   config={avatarConfig}
                                   capabilityProfile={capabilityProfile}
                                   seed={`${index}:${definition.id}:${definition.name}:${definition.role}`}
+                                  roleHint={definition.role}
                                   roleSlot={index}
                                   size="lg"
                                 />

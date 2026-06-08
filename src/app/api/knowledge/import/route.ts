@@ -7,7 +7,7 @@ import { listKnowledgeSpaces } from "@/server/knowledge-core";
 import { listAgentTeams } from "@/server/queries";
 import { uiText } from "@/lib/language-pack";
 import {
-  normalizeKnowledgeImportContent,
+  compactDiscoveredKnowledgeContent,
   stripDuplicateKnowledgeImportHeading,
 } from "@/lib/knowledge-import-content";
 import {
@@ -168,7 +168,7 @@ async function fetchUrlKnowledge(rawUrl: string) {
     const contentType = response.headers.get("content-type") ?? "";
     const raw = (await response.text()).slice(0, maxFetchedChars);
     const isHtml = contentType.includes("html") || /<html|<body|<article|<main/i.test(raw);
-    const body = normalizeKnowledgeImportContent(isHtml ? textFromHtml(raw) : raw);
+    const body = compactDiscoveredKnowledgeContent(isHtml ? textFromHtml(raw) : raw);
     if (!body) throw new Error(uiText("ui.knowledgeImport.errors.emptyArchiveBody"));
     const title = isHtml ? titleFromHtml(raw, finalUrl) : titleFromText(body, finalUrl);
     const description = isHtml ? extractMeta(raw, "description") || extractMeta(raw, "og:description") : "";

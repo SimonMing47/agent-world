@@ -818,6 +818,8 @@ export type KnowledgeSpace = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
+  knowledgeCategory: "public" | "domain" | "repository";
+  repositoryName: string | null;
   slug: string;
   name: string;
   spaceType: string;
@@ -908,6 +910,19 @@ export type InspectionFeedback = {
   sourceIp: string | null;
   knowledgeUri: string | null;
   createdAt: string;
+};
+
+export type KnowledgeApiToken = {
+  id: string;
+  label: string;
+  tokenPrefix: string;
+  tokenHash: string;
+  status: string;
+  createdBy: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type SystemSetting = {
@@ -1065,7 +1080,7 @@ function ensureAgentDefinitionHarnessColumns(db: DatabaseSyncType) {
   }
   if (!tableHasColumn(db, "agent_definitions", "permission_policy_json")) {
     db.exec(
-      "ALTER TABLE agent_definitions ADD COLUMN permission_policy_json TEXT NOT NULL DEFAULT '{\"repositoryAccess\":\"read_only\",\"memoryAccess\":\"inherit\",\"secretAccess\":\"runtime_bound_only\",\"allowedToolNames\":[\"search_repo\",\"read_file\",\"list_dir\"],\"deniedToolNames\":[]}'",
+      "ALTER TABLE agent_definitions ADD COLUMN permission_policy_json TEXT NOT NULL DEFAULT '{\"repositoryAccess\":\"read_only\",\"memoryAccess\":\"inherit\",\"secretAccess\":\"runtime_bound_only\",\"allowedToolNames\":[\"search_repo\",\"read_file\",\"list_dir\",\"memory.read\",\"memory.search\",\"memory.retrieve\"],\"deniedToolNames\":[]}'",
     );
   }
 }
@@ -1168,6 +1183,15 @@ function ensureKnowledgeEntryColumns(db: DatabaseSyncType) {
   `);
 }
 
+function ensureKnowledgeSpaceColumns(db: DatabaseSyncType) {
+  if (!tableHasColumn(db, "knowledge_spaces", "knowledge_category")) {
+    db.exec("ALTER TABLE knowledge_spaces ADD COLUMN knowledge_category TEXT NOT NULL DEFAULT 'domain'");
+  }
+  if (!tableHasColumn(db, "knowledge_spaces", "repository_name")) {
+    db.exec("ALTER TABLE knowledge_spaces ADD COLUMN repository_name TEXT");
+  }
+}
+
 function ensureSkillGovernanceColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "inspection_skills", "owner_business_team_id")) {
     db.exec("ALTER TABLE inspection_skills ADD COLUMN owner_business_team_id TEXT");
@@ -1242,6 +1266,7 @@ export function getDb() {
     ensureAgentTeamCatalogColumns(database);
     ensureAgentDefinitionHarnessColumns(database);
     ensureRuntimeSessionAgentDefinitionColumn(database);
+    ensureKnowledgeSpaceColumns(database);
     ensureKnowledgeEntryColumns(database);
     ensureSkillGovernanceColumns(database);
     normalizePersistedKnowledgeUris(database);

@@ -1,5 +1,10 @@
 import type { AgentCapabilityKey } from "@/lib/agent-capability-profile";
-import { agentWorldHeroPackId, normalizeAgentWorldHeroTraits } from "@/lib/agentworld-hero-assets";
+import {
+  agentWorldHeroPackId,
+  agentWorldHeroPackIdV1,
+  agentWorldHeroPackIdV2,
+  normalizeAgentWorldHeroTraits,
+} from "@/lib/agentworld-hero-assets";
 import type { AgentWorldHeroPackId, AgentWorldHeroTraits } from "@/lib/agentworld-hero-assets";
 
 export type PixelAgentAvatarConfig = {
@@ -16,6 +21,7 @@ export type PixelAgentAvatarConfig = {
   weaponKey: "auto" | AgentCapabilityKey;
   assetPack: AgentWorldHeroPackId;
   assetTraits?: AgentWorldHeroTraits;
+  roleHint?: string;
 };
 
 export const skinOptions = ["#f3bf91", "#d99062", "#9b6042", "#f0cfa9", "#c57854", "#6f4938"];
@@ -81,8 +87,13 @@ export function parsePixelAgentAvatarConfig(raw: string | null | undefined, seed
     const mouthStyle = mouthStyleOptions.includes(parsed.mouthStyle ?? "line") ? parsed.mouthStyle : fallback.mouthStyle;
     const accessory = accessoryOptions.includes(parsed.accessory ?? "none") ? parsed.accessory : fallback.accessory;
     const weaponKey = weaponKeyOptions.includes(parsed.weaponKey ?? "auto") ? parsed.weaponKey : fallback.weaponKey;
-    const assetPack = parsed.assetPack === agentWorldHeroPackId ? parsed.assetPack : fallback.assetPack;
+    const assetPack =
+      parsed.assetPack === agentWorldHeroPackIdV1 || parsed.assetPack === agentWorldHeroPackIdV2
+        ? parsed.assetPack
+        : fallback.assetPack;
     const assetTraits = normalizeAgentWorldHeroTraits(parsed.assetTraits);
+    const roleHint =
+      typeof parsed.roleHint === "string" && parsed.roleHint.trim() ? parsed.roleHint.trim() : fallback.roleHint;
 
     return {
       ...fallback,
@@ -94,6 +105,7 @@ export function parsePixelAgentAvatarConfig(raw: string | null | undefined, seed
       accessory: accessory ?? fallback.accessory,
       weaponKey: weaponKey ?? fallback.weaponKey,
       assetPack,
+      roleHint,
       assetTraits,
     };
   } catch {

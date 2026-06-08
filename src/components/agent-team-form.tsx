@@ -224,7 +224,7 @@ function defaultPermissionPolicyJson() {
       repositoryAccess: "read_only",
       memoryAccess: "inherit",
       secretAccess: "runtime_bound_only",
-      allowedToolNames: ["search_repo", "read_file", "list_dir"],
+      allowedToolNames: ["search_repo", "read_file", "list_dir", "memory.read", "memory.search", "memory.retrieve"],
       deniedToolNames: [],
     },
     null,
@@ -759,6 +759,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
                     config={parsePixelAgentAvatarConfig(agent?.avatarConfigJson, `${agent?.name ?? member.memberRole}-${index}`)}
                     capabilityProfile={capability}
                     seed={`${agent?.id ?? member.id}:${agent?.name ?? member.memberRole}:${index}`}
+                    roleHint={agent?.role ?? member.memberRole}
                     roleSlot={index}
                     size="team"
                     className="mx-auto"

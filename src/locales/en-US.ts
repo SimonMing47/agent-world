@@ -295,6 +295,12 @@ const enUSLanguagePackBase = {
     "knowledge.hub.spaceBadge": "{count} knowledge spaces",
     "knowledge.hub.sourceOfTruth": "Unified source",
     "knowledge.labels.mutableSource": "Mutable Source",
+    "knowledge.category.label": "Knowledge Category",
+    "knowledge.category.public": "Public Knowledge",
+    "knowledge.category.domain": "Domain Knowledge",
+    "knowledge.category.repository": "Repository Knowledge",
+    "knowledge.repositoryName": "Repository Name",
+    "knowledge.repositoryName.placeholder": "Select codebase",
     "knowledge.engine.queryPathTitle": "Retrieval-as-Reasoning Path",
     "knowledge.engine.queryPathDescription": "Search the index, read structure, traverse links, then repair and recompile when evidence breaks.",
     "knowledge.engine.mutableSourceNotice": "Source material is editable; every save creates a version and refreshes retrievable content.",
@@ -529,6 +535,9 @@ const enUSLanguagePackBase = {
     "agentDefinition.tools.searchRepo": "Search Repo",
     "agentDefinition.tools.readFile": "Read File",
     "agentDefinition.tools.listDirectory": "List Directory",
+    "agentDefinition.tools.memoryRead": "Read Knowledge",
+    "agentDefinition.tools.memorySearch": "Search Knowledge",
+    "agentDefinition.tools.memoryRetrieve": "Search Knowledge (Legacy)",
     "agentDefinition.meta.toolCount": "{count} tools",
     "agentDefinition.meta.teamCount": "{count} teams",
     "agentDefinition.messages.unregisteredTools": "Ignored unregistered tools: {tools}",
@@ -1019,6 +1028,13 @@ const enUSLanguagePackBase = {
   },
   ui: {
 	    ...zhCNLanguagePack.ui,
+    taskBlueprintEditor: {
+      ...(zhCNLanguagePack.ui.taskBlueprintEditor as Record<string, unknown>),
+      errors: {
+        ...(zhCNLanguagePack.ui.taskBlueprintEditor as { errors?: Record<string, string> }).errors,
+        repositoryKnowledgeRequiresCodebase: "Execution block {title} uses repository knowledge. Select a codebase first.",
+      },
+    },
 	    common: {
 	      ...zhCNLanguagePack.ui.common,
 	      allTeams: "All Teams",

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const AUTH_SESSION_COOKIE = "agentworld_session";
 const PUBLIC_PATHS = new Set(["/", "/signin"]);
-const PUBLIC_PREFIXES = ["/api/webhooks/"];
+const PUBLIC_PREFIXES = ["/api/webhooks/", "/api/knowledge/query", "/api/knowledge/read", "/api/knowledge/retrieve"];
 const PUBLIC_API_PATHS = new Set(["/api/auth/login", "/api/auth/register", "/api/auth/session"]);
 
 function isPublicPath(pathname: string) {

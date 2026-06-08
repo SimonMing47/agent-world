@@ -517,6 +517,9 @@ export const zhCNLanguagePack = {
     "agentDefinition.tools.searchRepo": "搜索仓库",
     "agentDefinition.tools.readFile": "读取文件",
     "agentDefinition.tools.listDirectory": "列出目录",
+    "agentDefinition.tools.memoryRead": "读取知识",
+    "agentDefinition.tools.memorySearch": "搜索知识",
+    "agentDefinition.tools.memoryRetrieve": "搜索知识（兼容）",
     "agentDefinition.meta.toolCount": "{count} 个工具",
     "agentDefinition.meta.teamCount": "{count} 个团队",
     "agentDefinition.messages.unregisteredTools": "已忽略未注册工具：{tools}",
@@ -554,6 +557,12 @@ export const zhCNLanguagePack = {
     "knowledge.hub.spaceBadge": "{count} 个知识空间",
     "knowledge.hub.sourceOfTruth": "统一知识源",
     "knowledge.labels.mutableSource": "可变资料",
+    "knowledge.category.label": "知识库标签",
+    "knowledge.category.public": "公共知识",
+    "knowledge.category.domain": "领域知识",
+    "knowledge.category.repository": "代码仓级知识",
+    "knowledge.repositoryName": "代码仓名称",
+    "knowledge.repositoryName.placeholder": "选择代码仓",
     "knowledge.engine.queryPathTitle": "检索即推理路径",
     "knowledge.engine.queryPathDescription": "先找索引，再读结构，沿链接追踪，发现问题后进入纠错与再编译。",
     "knowledge.engine.mutableSourceNotice": "资料允许直接编辑；每次保存都会产生新版本，并刷新可检索内容。",
@@ -1486,6 +1495,9 @@ export const zhCNLanguagePack = {
       actions: {
         saveTask: "保存任务",
         createTask: "新增任务",
+      },
+      errors: {
+        repositoryKnowledgeRequiresCodebase: "执行块 {title} 已选择代码仓级知识，请选择具体代码仓。",
       },
     },
     taskRuns: {

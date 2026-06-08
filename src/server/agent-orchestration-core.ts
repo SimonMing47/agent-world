@@ -30,6 +30,10 @@ export type AgentTeamRunPlanBlock = {
   connectorType?: string;
   publisherRef?: string;
   payloadTemplate?: string;
+  knowledgeCategories?: string[];
+  repositoryNames?: string[];
+  knowledgeCategory?: "public" | "domain" | "repository";
+  repositoryName?: string;
 };
 
 export type AgentTeamRunPlan = {
@@ -99,6 +103,27 @@ function defaultActionForBlock(type: AgentTeamRunPlanBlock["type"]) {
   return "execute";
 }
 
+const knownKnowledgeCategories = new Set(["public", "domain", "repository"]);
+
+function parseKnowledgeCategories(value: unknown) {
+  const normalized = (Array.isArray(value) ? value : typeof value === "string" ? [value] : [])
+    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => knownKnowledgeCategories.has(item))
+    .map((item) => item as "public" | "domain" | "repository");
+  return [...new Set(normalized)];
+}
+
+function parseRepositoryNames(value: unknown) {
+  const normalized = (Array.isArray(value) ? value : typeof value === "string" ? [value] : [])
+    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.toLowerCase());
+  return [...new Set(normalized)];
+}
+
 function parseRunPlan(value: string): AgentTeamRunPlan | null {
   try {
     const parsed = JSON.parse(value) as Partial<AgentTeamRunPlan>;
@@ -122,6 +147,8 @@ function parseRunPlan(value: string): AgentTeamRunPlan | null {
             connectorType: typeof block.connectorType === "string" ? block.connectorType : undefined,
             publisherRef: typeof block.publisherRef === "string" ? block.publisherRef : undefined,
             payloadTemplate: typeof block.payloadTemplate === "string" ? block.payloadTemplate : undefined,
+            knowledgeCategories: parseKnowledgeCategories(block.knowledgeCategories ?? block.knowledgeCategory),
+            repositoryNames: parseRepositoryNames(block.repositoryNames ?? block.repositoryName),
           } satisfies AgentTeamRunPlanBlock;
         })
       : [];
@@ -232,6 +259,8 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
           connectorType: block.connectorType,
           publisherRef: block.publisherRef,
           payloadTemplate: block.payloadTemplate,
+          knowledgeCategories: block.knowledgeCategories,
+          repositoryNames: block.repositoryNames,
         },
       };
     });

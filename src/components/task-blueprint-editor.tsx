@@ -15,6 +15,7 @@ import {
 } from "@/components/task-workflow-block-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { uiText } from "@/lib/language-pack";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 import { cn } from "@/lib/utils";
 
 type AgentTeamOption = {
@@ -36,10 +37,21 @@ type AgentTeamOption = {
 type EnvironmentOption = {
   id: string;
   name: string;
+  businessTeamId?: string;
   repositoryProvider?: string;
   repositoryName?: string;
   workingDirectory?: string;
   sandboxProfileJson?: string;
+};
+
+type CodebaseOption = {
+  id: string;
+  businessTeamId: string;
+  name: string;
+  provider?: string;
+  repositoryUrl?: string;
+  defaultBranch?: string;
+  status?: string;
 };
 
 type TaskBlueprintEditorProps = {
@@ -71,6 +83,7 @@ type TaskBlueprintEditorProps = {
     businessTeams: Array<{ id: string; name: string }>;
     agentTeams: AgentTeamOption[];
     environments: EnvironmentOption[];
+    codebases?: CodebaseOption[];
     providerAdapters: Array<{ id: string; name: string }>;
   };
   embedded?: boolean;
@@ -218,6 +231,51 @@ function inferBlockAction(type: WorkflowBlockType, value: unknown) {
   return "execute";
 }
 
+const workflowKnowledgeCategories = new Set(["public", "domain", "repository"]);
+
+function parseWorkflowKnowledgeCategory(value: unknown) {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (workflowKnowledgeCategories.has(normalized)) {
+      return normalized as "public" | "domain" | "repository";
+    }
+  }
+  return "domain" as const;
+}
+
+function parseWorkflowRepositoryName(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildRepositoryOptions(args: {
+  codebases?: CodebaseOption[];
+  businessTeamId: string;
+  environment: EnvironmentOption | null;
+}) {
+  const options = new Map<string, { name: string; label: string; aliases: string[] }>();
+  for (const codebase of args.codebases ?? []) {
+    if (args.businessTeamId && codebase.businessTeamId !== args.businessTeamId) continue;
+    const name = codebase.name.trim();
+    if (!name) continue;
+    const aliases = buildRepositoryNameAliases(codebase.name, codebase.repositoryUrl);
+    const detail = [codebase.provider, codebase.defaultBranch].filter(Boolean).join(" / ");
+    options.set(name, {
+      name,
+      label: detail ? `${name} · ${detail}` : name,
+      aliases,
+    });
+  }
+  const environmentRepositoryName = args.environment?.repositoryName?.trim();
+  if (environmentRepositoryName && !options.has(environmentRepositoryName)) {
+    options.set(environmentRepositoryName, {
+      name: environmentRepositoryName,
+      label: `${environmentRepositoryName} · ${args.environment?.name ?? "environment"}`,
+      aliases: buildRepositoryNameAliases(environmentRepositoryName),
+    });
+  }
+  return [...options.values()];
+}
+
 function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): WorkflowBlock[] {
   const runPlan = parseRunPlan(value);
   if (runPlan.blocks.length > 0) {
@@ -257,6 +315,24 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
           typeof raw.payloadTemplate === "string"
             ? raw.payloadTemplate
             : JSON.stringify(raw.payloadTemplate ?? {}, null, 2),
+        knowledgeCategory: parseWorkflowKnowledgeCategory(
+          typeof raw.knowledgeCategory === "string"
+            ? raw.knowledgeCategory
+            : typeof raw.knowledgeCategories === "string"
+              ? raw.knowledgeCategories
+              : Array.isArray(raw.knowledgeCategories)
+                ? raw.knowledgeCategories[0]
+              : undefined,
+        ),
+        repositoryName: parseWorkflowRepositoryName(
+          typeof raw.repositoryName === "string"
+            ? raw.repositoryName
+            : typeof raw.repositoryNames === "string"
+              ? raw.repositoryNames
+            : Array.isArray(raw.repositoryNames)
+              ? raw.repositoryNames[0]
+              : undefined,
+        ),
       };
     });
   }
@@ -285,6 +361,8 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       connectorType: "",
       publisherRef: "",
       payloadTemplate: "{}",
+      knowledgeCategory: "domain",
+      repositoryName: "",
     });
     blocks.push({
       id: "plan",
@@ -302,6 +380,8 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       connectorType: "",
       publisherRef: "",
       payloadTemplate: "{}",
+      knowledgeCategory: "domain",
+      repositoryName: "",
     });
   }
 
@@ -331,6 +411,8 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       connectorType: "",
       publisherRef: "",
       payloadTemplate: "{}",
+      knowledgeCategory: "domain",
+      repositoryName: "",
     });
   });
 
@@ -351,6 +433,8 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       connectorType: "dashboard",
       publisherRef: "dashboard",
       payloadTemplate: "{}",
+      knowledgeCategory: "domain",
+      repositoryName: "",
     });
   }
 
@@ -394,6 +478,7 @@ function buildRunPlanJson(args: {
   existingRunPlanJson: string;
   blocks: WorkflowBlock[];
   strategy: string;
+  repositoryOptions?: Array<{ name: string; aliases?: string[] }>;
 }) {
   const existing = parseRunPlan(args.existingRunPlanJson);
   const team = args.team;
@@ -414,6 +499,12 @@ function buildRunPlanJson(args: {
     dependsOn: block.dependsOn.filter(Boolean),
     agentId: block.agentId || leader?.id || "",
   }));
+  const repositoryAliasesByName = new Map(
+    (args.repositoryOptions ?? []).map((option) => [
+      option.name,
+      buildRepositoryNameAliases(option.name, ...(option.aliases ?? [])),
+    ]),
+  );
   const workers = blocks
     .filter((block) => block.id !== "plan")
     .map((block) => ({
@@ -452,6 +543,12 @@ function buildRunPlanJson(args: {
         connectorType: block.connectorType || undefined,
         publisherRef: block.publisherRef || undefined,
         payloadTemplate: block.payloadTemplate || undefined,
+        knowledgeCategory: block.knowledgeCategory || "domain",
+        repositoryName: block.repositoryName || undefined,
+        repositoryNames:
+          block.knowledgeCategory === "repository" && block.repositoryName
+            ? repositoryAliasesByName.get(block.repositoryName) ?? buildRepositoryNameAliases(block.repositoryName)
+            : undefined,
       })),
       workers,
       aggregation: {
@@ -662,6 +759,15 @@ export function TaskBlueprintEditor({
     () => options.environments.find((environment) => environment.id === form.environmentId) ?? null,
     [options.environments, form.environmentId],
   );
+  const repositoryOptions = useMemo(
+    () =>
+      buildRepositoryOptions({
+        codebases: options.codebases,
+        businessTeamId: form.ownerBusinessTeamId,
+        environment: selectedEnvironment,
+      }),
+    [form.ownerBusinessTeamId, options.codebases, selectedEnvironment],
+  );
 
   async function save() {
     setIsSaving(true);
@@ -718,6 +824,17 @@ export function TaskBlueprintEditor({
       setIsSaving(false);
       setMessage(uiText("ui.common.workflowBlockInvalid", undefined, {
         title: invalidBlock.title || invalidBlock.id,
+      }));
+      return;
+    }
+
+    const repositoryKnowledgeBlock = form.blocks.find(
+      (block) => block.knowledgeCategory === "repository" && !block.repositoryName.trim(),
+    );
+    if (repositoryKnowledgeBlock) {
+      setIsSaving(false);
+      setMessage(uiText("ui.taskBlueprintEditor.errors.repositoryKnowledgeRequiresCodebase", undefined, {
+        title: repositoryKnowledgeBlock.title || repositoryKnowledgeBlock.id,
       }));
       return;
     }
@@ -785,6 +902,7 @@ export function TaskBlueprintEditor({
       existingRunPlanJson: blueprint.agentTeamRunPlanJson,
       blocks: form.blocks,
       strategy: form.orchestrationStrategy,
+      repositoryOptions,
     });
     const environmentSelectorJson = buildEnvironmentSelectorJson({
       environment: selectedEnvironment,
@@ -1019,6 +1137,7 @@ export function TaskBlueprintEditor({
             onChange={(blocks) => setForm({ ...form, blocks })}
             agents={selectedTeam?.members ?? []}
             agentTeams={options.agentTeams.map((team) => ({ id: team.id, name: team.name }))}
+            repositoryOptions={repositoryOptions}
           />
         </div>
       </EditorSection>

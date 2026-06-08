@@ -1,0 +1,15 @@
+{
+  "composition_mode": "generation_reference_first",
+  "default_background": "white",
+  "special_background_rule": "Leader/Boss/Archmage/Cyber Commander 才启用 special_background；普通角色白底。",
+  "prompt_core": "Q版像素小人，头更大，像素感明显，白色背景，全景全身，一脚踩在小石头/平台上，包含地板、腿部、旁边摆件、手持武器，线条清晰，细节适中，缩小后仍可读。",
+  "recommended_reference_order": [
+    "special_background optional",
+    "base",
+    "side_prop optional",
+    "lower_body",
+    "head_upper",
+    "hand_item"
+  ],
+  "negative_prompt": "不要写实，不要半身裁切，不要复杂背景（特殊角色除外），不要过多微小饰品，不要直接复刻参考图。"
+}

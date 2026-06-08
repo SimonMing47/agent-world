@@ -84,6 +84,8 @@ export async function POST(request: Request) {
     targetId?: string;
     accessLevel?: "read" | "write" | "archive";
     loadOrder?: number;
+    knowledgeCategory?: "public" | "domain" | "repository";
+    repositoryName?: string;
     id?: string;
     status?: string;
     retentionPolicyJson?: string;
@@ -142,6 +144,8 @@ export async function POST(request: Request) {
     name,
     slug,
     spaceType: body.spaceType,
+    knowledgeCategory: body.knowledgeCategory,
+    repositoryName: body.repositoryName,
     businessTeamId: body.businessTeamId ?? null,
     agentTeamId: body.agentTeamId ?? null,
     projectKey: textValue(body.projectKey) || null,

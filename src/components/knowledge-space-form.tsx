@@ -42,6 +42,8 @@ type KnowledgeSpaceValue = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
+  knowledgeCategory: "public" | "domain" | "repository";
+  repositoryName: string;
   slug: string;
   name: string;
   spaceType: string;
@@ -70,6 +72,7 @@ export function KnowledgeSpaceForm({
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isEdit = Boolean(space?.id);
+  const [knowledgeCategory, setKnowledgeCategory] = useState(space?.knowledgeCategory ?? "domain");
   const initialBusinessTeamId =
     space?.businessTeamId ??
     agentTeams.find((team) => team.id === space?.agentTeamId)?.businessTeamId ??
@@ -96,6 +99,8 @@ export function KnowledgeSpaceForm({
           name: String(formData.get("name") ?? "").trim(),
           slug: String(formData.get("slug") ?? "").trim() || undefined,
           spaceType,
+          knowledgeCategory,
+          repositoryName: String(formData.get("repositoryName") ?? "").trim() || undefined,
           businessTeamId: spaceType === "global" ? null : businessTeamId || null,
           agentTeamId: spaceType === "agent_team" ? String(formData.get("agentTeamId") ?? "") || null : null,
           projectKey: spaceType === "project" ? String(formData.get("projectKey") ?? "").trim() || null : null,
@@ -161,6 +166,24 @@ export function KnowledgeSpaceForm({
                   <option value="project">{text("common.knowledgeType.project")}</option>
                   <option value="agent_team">{text("common.knowledgeType.agentTeam")}</option>
                 </Select>
+              </FieldGroup>
+                <FieldGroup label={text("knowledge.category.label")}>
+                  <Select
+                    value={knowledgeCategory}
+                    onChange={(event) => setKnowledgeCategory(event.target.value as "public" | "domain" | "repository")}
+                  >
+                  <option value="public">{text("knowledge.category.public")}</option>
+                  <option value="domain">{text("knowledge.category.domain")}</option>
+                  <option value="repository">{text("knowledge.category.repository")}</option>
+                </Select>
+              </FieldGroup>
+              <FieldGroup label={text("knowledge.repositoryName")}>
+                <Input
+                  name="repositoryName"
+                  defaultValue={space?.repositoryName ?? ""}
+                  disabled={knowledgeCategory !== "repository"}
+                  placeholder="repository name"
+                />
               </FieldGroup>
               <FieldGroup label={text("terminology.businessTeam")}>
                 <Select value={businessTeamId} onChange={(event) => setBusinessTeamId(event.target.value)}>

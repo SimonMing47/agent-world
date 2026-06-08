@@ -12,6 +12,7 @@ import {
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type UIEvent,
 } from "react";
 import {
   AlertTriangle,
@@ -23,7 +24,6 @@ import {
   CircleDot,
   Copy,
   Edit3,
-  Eye,
   FileText,
   Folder,
   FolderPlus,
@@ -91,6 +91,8 @@ export type KnowledgeNotebookSpace = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
+  knowledgeCategory: "public" | "domain" | "repository";
+  repositoryName: string | null;
   slug: string;
   name: string;
   spaceType: string;
@@ -1540,7 +1542,7 @@ function ContextMenu({
       {entry ? (
         <>
           <button className={itemClass} onClick={() => { onOpenEntry(entry); onClose(); }}>
-            <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
+            <BookOpen className="h-4 w-4 text-[var(--ink-subtle)]" />
             {text("actions.open")}
           </button>
           <button className={itemClass} onClick={() => { onNewNote(entrySpaceId, entryParentId); onClose(); }}>
@@ -1630,6 +1632,8 @@ function SpaceQuickDialog({
     spaceType: editing?.spaceType ?? (state?.mode === "create" ? state.preferredType ?? "team" : "team"),
     businessTeamId: baseBusinessTeamId,
     agentTeamId: editing?.agentTeamId ?? "",
+    knowledgeCategory: editing?.knowledgeCategory ?? "domain",
+    repositoryName: editing?.repositoryName ?? "",
     projectKey: editing?.projectKey ?? "",
     visibility: editing?.visibility ?? "team",
     status: editing?.status ?? "active",
@@ -1649,6 +1653,8 @@ function SpaceQuickDialog({
       spaceType: nextEditing?.spaceType ?? (state.mode === "create" ? state.preferredType ?? "team" : "team"),
       businessTeamId: nextBaseBusinessTeamId,
       agentTeamId: nextEditing?.agentTeamId ?? "",
+      knowledgeCategory: nextEditing?.knowledgeCategory ?? "domain",
+      repositoryName: nextEditing?.repositoryName ?? "",
       projectKey: nextEditing?.projectKey ?? "",
       visibility: nextEditing?.visibility ?? "team",
       status: nextEditing?.status ?? "active",
@@ -1680,6 +1686,8 @@ function SpaceQuickDialog({
           businessTeamId: form.spaceType === "global" ? null : form.businessTeamId || null,
           agentTeamId: form.spaceType === "agent_team" ? form.agentTeamId || null : null,
           projectKey: form.spaceType === "project" ? form.projectKey.trim() || null : null,
+          knowledgeCategory: form.knowledgeCategory,
+          repositoryName: form.repositoryName.trim() || null,
           description: form.description,
           visibility: form.visibility,
           status: form.status,
@@ -1866,6 +1874,9 @@ export function KnowledgeNotebookWorkspace({
   const pendingSaveRef = useRef<Promise<SaveResult> | null>(null);
   const navigatingRef = useRef(false);
   const editorPreviewShellRef = useRef<HTMLDivElement | null>(null);
+  const editorTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
+  const syncingScrollRef = useRef<"editor" | "preview" | null>(null);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -2002,6 +2013,40 @@ export function KnowledgeNotebookWorkspace({
   const previewPaneStyle = splitEditorPreviewActive
     ? { flex: `0 0 ${100 - editorPaneRatio}%` }
     : undefined;
+
+  function syncScrollToTarget({
+    from,
+    source,
+    target,
+  }: {
+    from: "editor" | "preview";
+    source: HTMLElement;
+    target: HTMLElement;
+  }) {
+    if (syncingScrollRef.current === from) return;
+    const sourceScrollable = source.scrollHeight - source.clientHeight;
+    const targetScrollable = target.scrollHeight - target.clientHeight;
+    if (sourceScrollable <= 0 || targetScrollable <= 0) return;
+
+    const ratio = Math.max(0, Math.min(1, source.scrollTop / sourceScrollable));
+    syncingScrollRef.current = from === "editor" ? "preview" : "editor";
+    requestAnimationFrame(() => {
+      target.scrollTop = ratio * targetScrollable;
+      syncingScrollRef.current = null;
+    });
+  }
+
+  function handleEditorScroll(event: UIEvent<HTMLTextAreaElement>) {
+    const target = previewScrollRef.current;
+    if (!target) return;
+    syncScrollToTarget({ from: "editor", source: event.currentTarget, target });
+  }
+
+  function handlePreviewScroll(event: UIEvent<HTMLDivElement>) {
+    const target = editorTextareaRef.current;
+    if (!target) return;
+    syncScrollToTarget({ from: "preview", source: event.currentTarget, target });
+  }
 
   const updateEntryState = useCallback((entry: KnowledgeNotebookEntry) => {
     setEntriesState((current) => [entry, ...current.filter((item) => item.id !== entry.id)]);
@@ -2675,24 +2720,25 @@ export function KnowledgeNotebookWorkspace({
   }
 
   function PaneModeControls() {
-    const modes: Array<{ value: PaneMode; label: string; icon: typeof SplitSquareHorizontal }> = [
-      { value: "split", label: "knowledge.pane.split", icon: SplitSquareHorizontal },
-      { value: "editor", label: "actions.edit", icon: Edit3 },
-      { value: "preview", label: "knowledge.pane.preview", icon: Eye },
+    const modes: Array<{ value: PaneMode; label: string; title: string; icon: typeof SplitSquareHorizontal }> = [
+      { value: "split", label: "knowledge.pane.split", title: "knowledge.pane.mode.split", icon: SplitSquareHorizontal },
+      { value: "editor", label: "knowledge.pane.editor", title: "knowledge.pane.mode.editor", icon: Edit3 },
+      { value: "preview", label: "knowledge.pane.read", title: "knowledge.pane.mode.read", icon: BookOpen },
     ];
     return (
-      <div className="inline-flex items-center rounded-full border border-[var(--line)] bg-white p-0.5 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
+      <div className="inline-flex items-center rounded-xl border border-[var(--line)] bg-white p-0.5 shadow-[0_8px_22px_rgba(15,23,42,0.04)]">
         {modes.map((mode) => {
           const Icon = mode.icon;
           return (
             <button
               key={mode.value}
               type="button"
+              aria-label={text(mode.title)}
               aria-pressed={paneMode === mode.value}
-              title={text(mode.label)}
+              title={text(mode.title)}
               onClick={() => selectPaneMode(mode.value)}
               className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium transition-colors",
+                "inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors",
                 paneMode === mode.value
                   ? "bg-[var(--ink)] text-white shadow-[0_8px_20px_rgba(15,23,42,0.14)]"
                   : "text-[var(--ink-subtle)] hover:text-[var(--ink)]",
@@ -2847,7 +2893,7 @@ export function KnowledgeNotebookWorkspace({
 
   return (
     <section
-      className="relative flex min-h-[calc(100vh-116px)] flex-col overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] shadow-[0_22px_64px_rgba(15,23,42,0.07)]"
+      className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] shadow-[0_22px_64px_rgba(15,23,42,0.07)]"
       onBlurCapture={handleWorkspaceBlur}
       onDragEnter={handleWorkspaceDragEnter}
       onDragOver={handleWorkspaceDragOver}
@@ -2865,10 +2911,10 @@ export function KnowledgeNotebookWorkspace({
           </div>
         </div>
       ) : null}
-      <div className={cn("grid min-h-0 flex-1", treeCollapsed ? "lg:grid-cols-[56px_minmax(0,1fr)]" : "lg:grid-cols-[288px_minmax(0,1fr)]")}>
+      <div className={cn("grid min-h-0 flex-1 overflow-hidden", treeCollapsed ? "lg:grid-cols-[56px_minmax(0,1fr)]" : "lg:grid-cols-[288px_minmax(0,1fr)]")}>
         <aside
           className={cn(
-            "flex min-h-0 border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r",
+            "flex min-h-0 overflow-hidden border-b border-[var(--line)] bg-[rgba(250,251,253,0.88)] lg:border-b-0 lg:border-r",
             treeCollapsed ? "h-14 flex-row items-center justify-between px-3 lg:h-auto lg:flex-col lg:px-0 lg:py-2" : "flex-col",
           )}
           onContextMenu={(event) => openContextMenu(event, { type: "tree", spaceId: selectedSpaceId })}
@@ -3019,8 +3065,8 @@ export function KnowledgeNotebookWorkspace({
           )}
         </aside>
 
-        <div className="flex min-w-0 flex-col bg-[rgba(255,255,255,0.82)]">
-          <div className="border-b border-[var(--line)] px-4 py-2.5">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[rgba(255,255,255,0.82)]">
+          <div className="shrink-0 border-b border-[var(--line)] px-4 py-2.5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-[260px] flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-subtle)]">
@@ -3324,19 +3370,19 @@ export function KnowledgeNotebookWorkspace({
               </div>
             </div>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <div
                 ref={editorPreviewShellRef}
                 className={cn(
-                  "min-h-0 flex-1",
+                  "min-h-0 flex-1 overflow-hidden",
                   splitEditorPreviewActive ? "flex flex-col lg:flex-row" : "flex flex-col",
                 )}
               >
                 {showEditorPane ? (
                   <div
                     className={cn(
-                      "flex min-w-0 flex-col border-b border-[var(--line)]",
-                      splitEditorPreviewActive ? "lg:border-b-0" : "flex-1",
+                      "flex min-h-0 min-w-0 flex-col overflow-hidden border-b border-[var(--line)]",
+                      splitEditorPreviewActive ? "flex-1 lg:flex-none lg:border-b-0" : "flex-1",
                     )}
                     style={editorPaneStyle}
                   >
@@ -3347,20 +3393,22 @@ export function KnowledgeNotebookWorkspace({
                       </div>
                     </div>
                     <Textarea
+                      ref={editorTextareaRef}
                       value={draft.contentMd}
                       onChange={(event) => updateDraft((current) => ({ ...current, contentMd: event.target.value }))}
                       onBlur={flushDraftOnBlur}
                       onKeyDown={handleMarkdownKeyDown}
-                      className="min-h-[420px] flex-1 resize-none rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0 lg:min-h-0"
+                      onScroll={handleEditorScroll}
+                      className="min-h-0 flex-1 resize-none overflow-y-auto rounded-none border-0 bg-transparent px-7 py-6 font-mono text-[14px] leading-8 shadow-none focus:ring-0"
                       placeholder={draft.nodeType === "folder" ? "knowledge.placeholders.folderDescription" : "knowledge.placeholders.entryContent"}
                     />
-                    <details className="shrink-0 border-t border-[var(--line)] px-5 py-4">
+                    <details className="max-h-56 shrink-0 overflow-auto border-t border-[var(--line)] px-5 py-4">
                       <summary className="cursor-pointer text-sm font-medium text-[var(--ink)]">{text("knowledge.metadata.title")}</summary>
                       <Textarea
                         value={draft.metadataJson}
                         onChange={(event) => updateDraft((current) => ({ ...current, metadataJson: event.target.value }))}
                         onBlur={flushDraftOnBlur}
-                        className="mt-3 min-h-28 font-mono text-xs"
+                        className="mt-3 max-h-40 min-h-24 overflow-y-auto font-mono text-xs"
                       />
                     </details>
                   </div>
@@ -3379,18 +3427,18 @@ export function KnowledgeNotebookWorkspace({
                 {showPreviewPane ? (
                   <div
                     className={cn(
-                      "flex min-w-0 flex-col bg-[rgba(250,251,253,0.72)]",
-                      splitEditorPreviewActive ? "" : "flex-1",
+                      "flex min-h-0 min-w-0 flex-col overflow-hidden bg-[rgba(250,251,253,0.72)]",
+                      splitEditorPreviewActive ? "flex-1 lg:flex-none" : "flex-1",
                     )}
                     style={previewPaneStyle}
                   >
                     <div className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--line)] px-5">
                       <div className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                        <Eye className="h-4 w-4 text-[var(--ink-subtle)]" />
-                        Markdown {text("knowledge.pane.preview")}
+                        <BookOpen className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        Markdown {text("knowledge.pane.read")}
                       </div>
                     </div>
-                    <div className="min-h-[420px] flex-1 overflow-auto lg:min-h-0">
+                    <div ref={previewScrollRef} onScroll={handlePreviewScroll} className="min-h-0 flex-1 overflow-y-scroll">
                       <MarkdownPreview
                         content={draft.contentMd}
                         onTaskToggle={(lineIndex, checked) =>

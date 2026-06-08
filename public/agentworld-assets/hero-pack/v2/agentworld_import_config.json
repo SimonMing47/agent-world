@@ -1,0 +1,12 @@
+{
+  "name": "AgentWorld Q-Pixel Chibi Kit",
+  "version": "2.0.0",
+  "manifest": "metadata/agentworld_qpixel_manifest.json",
+  "role_presets": "metadata/agentworld_role_presets.json",
+  "generation_rules": "metadata/agentworld_generation_rules.json",
+  "recipe_examples": "metadata/agentworld_recipe_examples.json",
+  "asset_dirs": {
+    "aligned_512": "assets/aligned_512"
+  },
+  "load_instruction_cn": "读取本配置后，使用 metadata 与 assets/aligned_512 中的运行时预览素材作为 AgentWorld 角色渲染参考。普通角色白底；特殊角色使用 special_background。核心风格：Q版、头大、像素感强、全身、一脚踩石头、地板/腿部/摆件/手持武器齐全。"
+}
