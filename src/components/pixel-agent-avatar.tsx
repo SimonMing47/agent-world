@@ -508,13 +508,13 @@ function AgentWorldHeroPackAvatar({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[8px] border border-[#2f3748] bg-[#070b16] shadow-sm ring-1 ring-black/40",
+        "relative overflow-hidden rounded-[8px] border border-[#d8dee8] bg-white shadow-sm ring-1 ring-black/5",
         sizeClass[size],
         className,
       )}
       aria-label="Agent avatar"
     >
-      <div className="absolute inset-0 bg-[#070b16]" />
+      <div className="absolute inset-0 bg-white" />
       {layers.map((layer) => (
         <Image
           key={layer.traitId}
@@ -572,7 +572,7 @@ export function PixelAgentAvatar({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-[8px] border border-[#2f3748] bg-[#070b16] shadow-sm ring-1 ring-black/40",
+        "relative overflow-hidden rounded-[8px] border border-[#d8dee8] bg-white shadow-sm ring-1 ring-black/5",
         sizeClass[size],
         className,
       )}
@@ -586,12 +586,12 @@ export function PixelAgentAvatar({
         shapeRendering="crispEdges"
       >
         <Px x={0} y={0} w={128} h={160} fill={visual.background} />
-        <Px x={0} y={116} w={128} h={44} fill="#111827" opacity={0.82} />
-        <Px x={0} y={126} w={128} h={34} fill="#1f2937" opacity={0.62} />
-        <Px x={7} y={132} w={26} h={7} fill="#334155" opacity={0.8} />
-        <Px x={34} y={137} w={31} h={6} fill="#475569" opacity={0.62} />
-        <Px x={73} y={133} w={24} h={7} fill="#334155" opacity={0.75} />
-        <Px x={98} y={140} w={22} h={6} fill="#475569" opacity={0.52} />
+        <Px x={0} y={116} w={128} h={44} fill="#eef2f7" opacity={0.92} />
+        <Px x={0} y={126} w={128} h={34} fill="#e2e8f0" opacity={0.72} />
+        <Px x={7} y={132} w={26} h={7} fill="#cbd5e1" opacity={0.8} />
+        <Px x={34} y={137} w={31} h={6} fill="#94a3b8" opacity={0.44} />
+        <Px x={73} y={133} w={24} h={7} fill="#cbd5e1" opacity={0.75} />
+        <Px x={98} y={140} w={22} h={6} fill="#94a3b8" opacity={0.36} />
         <Px x={13} y={44} w={5} h={69} fill="#100d0d" />
         <Px x={11} y={38} w={9} h={7} fill="#5b2a13" />
         <Px x={9} y={30} w={13} h={9} fill="#f97316" />
@@ -650,7 +650,10 @@ export function PixelAgentAvatarEditor({
     agentWorldHeroExampleAgents.find((agent) =>
       agentWorldHeroLayerOrder.every((layer) => currentAssetTraits[layer] === agent.traits[layer]),
     ) ?? null;
-  const editableLayerOrder = agentWorldHeroLayerOrder.filter((layer) => layer !== "full_character");
+  const editableLayerOrder: AgentWorldHeroLayer[] =
+    current.assetPack === agentWorldHeroPackId
+      ? ["full_character"]
+      : agentWorldHeroLayerOrder.filter((layer) => layer !== "full_character");
 
   function updateGeneration(nextValue: PixelAgentAvatarConfig["weaponKey"]) {
     onChange({

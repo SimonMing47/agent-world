@@ -475,7 +475,7 @@ function buildV2Pack(): HeroPackDefinition {
         description: name,
         sourcePack: agentWorldHeroPackIdV2,
         roleHint: trait.role_hint,
-        isExampleOnly: layer === "full_character",
+        isExampleOnly: trait.is_example === true,
       } as AgentWorldHeroAsset;
     })
     .filter((item): item is AgentWorldHeroAsset => Boolean(item))
@@ -493,6 +493,18 @@ function buildV2Pack(): HeroPackDefinition {
   for (const [role, preset] of Object.entries(v2RolePresets)) {
     rolePresetTraits.set(normalizeRoleText(role), preset.preferred || []);
   }
+
+  const exampleFromFullCharacters = (assetsByLayer.full_character ?? []).map(
+    (asset) =>
+      ({
+        agentId: toExampleAgentId(asset),
+        displayName: asset.name,
+        traits: {
+          full_character: asset.traitId,
+        },
+        previewSrc: asset.cropUrl,
+      }) as AgentWorldHeroExampleAgent,
+  );
 
   const exampleFromRecipes = v2RecipeExamples
     .map((recipe) => {
@@ -531,7 +543,7 @@ function buildV2Pack(): HeroPackDefinition {
 
   const byId = new Map<string, AgentWorldHeroExampleAgent>();
   const examples: AgentWorldHeroExampleAgent[] = [];
-  for (const item of [...exampleFromRecipes, ...exampleFromPresets]) {
+  for (const item of [...exampleFromFullCharacters, ...exampleFromRecipes, ...exampleFromPresets]) {
     if (!byId.has(item.agentId)) {
       byId.set(item.agentId, item);
       examples.push(item);
@@ -634,6 +646,33 @@ function pickTrait(pack: HeroPackDefinition, layer: AgentWorldHeroLayer, seed: n
   return candidates[(seed + offset) % candidates.length]?.traitId;
 }
 
+function toExampleAgentId(asset: AgentWorldHeroAsset) {
+  const normalized = normalizeRoleText(asset.roleHint || asset.variant || asset.traitId).replace(/\s+/g, "_");
+  return normalized || asset.traitId;
+}
+
+function pickFullCharacterTrait(
+  pack: HeroPackDefinition,
+  seed: number,
+  roleHint: string | null | undefined,
+  offset = 0,
+) {
+  const candidates = (pack.assetsByLayer.full_character ?? []).filter((asset) => !asset.isExampleOnly);
+  if (candidates.length === 0) return undefined;
+
+  if (roleHint) {
+    const matched = candidates.find(
+      (asset) =>
+        roleTokenMatch(asset.roleHint, roleHint) ||
+        roleTokenMatch(asset.variant, roleHint) ||
+        roleTokenMatch(asset.name, roleHint),
+    );
+    if (matched) return matched.traitId;
+  }
+
+  return candidates[(seed + offset) % candidates.length]?.traitId;
+}
+
 export function isAgentWorldHeroLayer(value: unknown): value is AgentWorldHeroLayer {
   return isAgentWorldHeroLayerValue(value);
 }
@@ -697,9 +736,9 @@ export function resolveAgentWorldHeroTraits({
   const specialBackground = pickSpecialBackground(pack, roleHint);
 
   const exampleAgentsByCapability: Record<AgentCapabilityKey, string[]> = {
-    permission: ["ranger", "leader", "oracle_diplomat"],
+    permission: ["ranger", "captain_leader", "leader", "oracle_diplomat"],
     toolUse: ["engineer", "mechanic_engineer", "navigator_pilot"],
-    safety: ["guardian_warrior", "explorer_scout", "leader"],
+    safety: ["captain_leader", "monk", "guardian_warrior", "explorer_scout", "leader"],
     coding: ["cyber", "mechanic_engineer", "engineer"],
     review: ["mage", "scholar_archivist", "oracle_diplomat"],
     memory: ["druid", "monk", "oracle_diplomat"],
@@ -720,6 +759,23 @@ export function resolveAgentWorldHeroTraits({
     if (pack.exampleAgents.length === 0) return null;
     return pack.exampleAgents[seedHash % pack.exampleAgents.length] ?? null;
   })();
+
+  if (pack.id === agentWorldHeroPackIdV2) {
+    const configuredFullCharacter = configured.full_character
+      ? pack.assetsById.get(configured.full_character)?.traitId
+      : undefined;
+    const preferredFullCharacter = exampleAgentId || capabilityKey ? preferredExamples?.traits.full_character : undefined;
+    const fullCharacter =
+      configuredFullCharacter ??
+      preferredFullCharacter ??
+      pickFullCharacterTrait(pack, seedHash, roleHint, 17);
+
+    return fullCharacter
+      ? {
+          full_character: fullCharacter,
+        }
+      : {};
+  }
 
   const traits: AgentWorldHeroTraits = {};
   pack.layerOrder.forEach((layer, index) => {
@@ -752,7 +808,6 @@ export function resolveAgentWorldHeroLayers(input: {
     .map((layer) => {
       const asset = getAgentWorldHeroAsset(resolved[layer], pack.id);
       if (!asset) return null;
-      if (pack.id === agentWorldHeroPackIdV2 && layer === "full_character") return null;
       return {
         ...asset,
         src: asset.cropUrl,
