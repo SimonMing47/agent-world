@@ -109,7 +109,7 @@ knowledgeContext:
 
 ### 3.4 Knowledge Packet
 
-Knowledge Packet 是传给单个 Agent 节点的知识上下文包。它由 Knowledge Context 生成，但会按节点角色、Agent 权限、查询意图和 token 预算进一步裁剪。
+Knowledge Packet 是传给单个 Agent 节点的知识上下文包。它由 Knowledge Context 生成，但会按节点角色、Agent 权限、查询意图和 token 限额进一步裁剪。
 
 ```yaml
 knowledgePacket:
@@ -288,7 +288,7 @@ Runtime -> Access: buildKnowledgePacket(node, query)
 Access -> KE: read L0 summaries
 Access -> KE: read L1 overview
 Access -> KE: read selected L2 snippets
-Access -> Access: token budget / citation / permission audit
+Access -> Access: token limit / citation / permission audit
 Access --> Runtime: KnowledgePacket
 Runtime -> Provider: invokeAgentNode(messages + knowledgePacket)
 Provider --> Runtime: result / findings / artifacts
@@ -472,7 +472,7 @@ ProviderAdapter 构造 Prompt 时必须遵守：
 
 - 只注入 Knowledge Packet，不自行遍历知识库。
 - 原文引用必须包含 URI 和 revision。
-- 超过 token 预算时优先保留 L0/L1，压缩 L2。
+- 超过 token 限额时优先保留 L0/L1，压缩 L2。
 - 对未授权 URI 不得请求或猜测内容。
 - Provider 输出如果引用知识，应保留 citation id，方便 UI 展示来源。
 

@@ -340,7 +340,6 @@ export default async function TaskBlueprintDetailPage({
                       <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
                       <DataTableHead>ui.generated.c62e951a692</DataTableHead>
                       <DataTableHead>ui.generated.c3c75f3646a</DataTableHead>
-                      <DataTableHead align="right">ui.generated.c5354b098e2</DataTableHead>
                       <DataTableHead>ui.generated.c84e3802f60</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
@@ -357,7 +356,6 @@ export default async function TaskBlueprintDetailPage({
                           <Badge variant={statusVariant(run.status)}>{translateStatus(run.status)}</Badge>
                         </DataTableCell>
                         <DataTableCell>{run.requestedBy}</DataTableCell>
-                        <DataTableCell align="right">${run.costActual}</DataTableCell>
                         <DataTableCell>{formatDateTime(run.createdAt)}</DataTableCell>
                       </DataTableRow>
                     ))}

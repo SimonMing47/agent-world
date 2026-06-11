@@ -137,7 +137,7 @@ canceled
 - `invoking` 表示进入 ProviderAdapter 或插件调用。
 - `waiting_human` 表示 ask 权限或人工节点暂停。
 - `blocked` 表示依赖失败或环境不可用。
-- `retrying` 必须消耗重试预算。
+- `retrying` 必须消耗重试次数。
 - `degraded` 表示节点以降级方式完成，例如跳过非关键通知。
 - `succeeded`、`failed`、`skipped`、`canceled` 为节点终态。
 
@@ -206,7 +206,7 @@ Agent 团队编排必须向看板提供：
 - 等待人工处理节点。
 - 失败节点和重试次数。
 - 关键路径耗时。
-- Agent 角色维度的成本、成功率和 Finding 数量。
+- Agent 角色维度的成功率和 Finding 数量。
 
 看板不得只展示任务终态，必须能定位到具体节点和事件。
 

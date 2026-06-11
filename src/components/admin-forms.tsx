@@ -859,8 +859,6 @@ export function BusinessTeamForm({
     ...team,
     parentBusinessTeamId: team.parentBusinessTeamId ?? "",
     description: team.description ?? "",
-    balance: String(team.balance ?? 0),
-    creditLimit: String(team.creditLimit ?? 0),
     privateToolRefsJson: normalizeJson(team.privateToolRefsJson, "[]"),
     policyJson: normalizeJson(team.policyJson, "{}"),
   });
@@ -873,8 +871,8 @@ export function BusinessTeamForm({
       await submitJson("/api/business-teams", {
         ...form,
         id: form.id || crypto.randomUUID(),
-        balance: Number(form.balance || 0),
-        creditLimit: Number(form.creditLimit || 0),
+        balance: team.balance ?? 0,
+        creditLimit: team.creditLimit ?? 0,
       });
       setMessage("ui.generated.ccdfab96f75");
       router.refresh();
@@ -906,8 +904,6 @@ export function BusinessTeamForm({
             <option value="archived">ui.generated.cddfde75bec</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="ui.generated.c51cc55073e"><Input value={form.balance} onChange={(event) => setForm({ ...form, balance: event.target.value })} /></FieldGroup>
-        <FieldGroup label="ui.generated.c2a09e27c43"><Input value={form.creditLimit} onChange={(event) => setForm({ ...form, creditLimit: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c0ed5cf4445" className="md:col-span-2"><Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c93c1a133c7" className="md:col-span-2"><Input value={form.privateMemoryNamespace} onChange={(event) => setForm({ ...form, privateMemoryNamespace: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c1a867ec313"><Textarea value={form.privateToolRefsJson} onChange={(event) => setForm({ ...form, privateToolRefsJson: event.target.value })} /></FieldGroup>
@@ -951,7 +947,6 @@ export function ExecutionPolicyForm({
     teamId: policy.teamId ?? "",
     toolPolicyJson: normalizeJson(policy.toolPolicyJson, "{}"),
     approvalPolicyJson: normalizeJson(policy.approvalPolicyJson, "{}"),
-    budgetPolicyJson: normalizeJson(policy.budgetPolicyJson, "{}"),
     outputPolicyJson: normalizeJson(policy.outputPolicyJson, "{}"),
     securityPolicyJson: normalizeJson(policy.securityPolicyJson, "{}"),
   });
@@ -961,7 +956,6 @@ export function ExecutionPolicyForm({
     try {
       JSON.parse(form.toolPolicyJson);
       JSON.parse(form.approvalPolicyJson);
-      JSON.parse(form.budgetPolicyJson);
       JSON.parse(form.outputPolicyJson);
       JSON.parse(form.securityPolicyJson);
       await submitJson("/api/execution-policies", {
@@ -970,6 +964,7 @@ export function ExecutionPolicyForm({
         tenantSpaceId: form.tenantSpaceId || null,
         businessTeamId: form.businessTeamId || null,
         teamId: form.teamId || null,
+        budgetPolicyJson: policy.budgetPolicyJson,
       });
       setMessage("ui.generated.ccdfab96f75");
       router.refresh();
@@ -989,7 +984,6 @@ export function ExecutionPolicyForm({
         <FieldGroup label="ui.generated.c082e8e9ef2" className="md:col-span-2"><Textarea value={form.systemInstruction} onChange={(event) => setForm({ ...form, systemInstruction: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.cc171d26b81"><Textarea value={form.toolPolicyJson} onChange={(event) => setForm({ ...form, toolPolicyJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.ca577223370"><Textarea value={form.approvalPolicyJson} onChange={(event) => setForm({ ...form, approvalPolicyJson: event.target.value })} /></FieldGroup>
-        <FieldGroup label="ui.generated.c2e057b5aaa"><Textarea value={form.budgetPolicyJson} onChange={(event) => setForm({ ...form, budgetPolicyJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c7dff341b42"><Textarea value={form.outputPolicyJson} onChange={(event) => setForm({ ...form, outputPolicyJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c68323b6052" className="md:col-span-2"><Textarea value={form.securityPolicyJson} onChange={(event) => setForm({ ...form, securityPolicyJson: event.target.value })} /></FieldGroup>
       </div>
@@ -1071,7 +1065,6 @@ export function AccessGrantForm({
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     ...grant,
-    pricingModelJson: normalizeJson(grant.pricingModelJson, "{}"),
     slaJson: normalizeJson(grant.slaJson, "{}"),
     accessScopeJson: normalizeJson(grant.accessScopeJson, "{}"),
   });
@@ -1079,10 +1072,13 @@ export function AccessGrantForm({
     setIsSaving(true);
     setMessage(null);
     try {
-      JSON.parse(form.pricingModelJson);
       JSON.parse(form.slaJson);
       JSON.parse(form.accessScopeJson);
-      await submitJson("/api/access-grants", { ...form, id: form.id || crypto.randomUUID() });
+      await submitJson("/api/access-grants", {
+        ...form,
+        id: form.id || crypto.randomUUID(),
+        pricingModelJson: grant.pricingModelJson,
+      });
       setMessage("ui.generated.ccdfab96f75");
       router.refresh();
     } catch (error) {
@@ -1098,7 +1094,6 @@ export function AccessGrantForm({
         <FieldGroup label="ui.generated.c968fef31e7"><Select value={form.consumerBusinessTeamId} onChange={(event) => setForm({ ...form, consumerBusinessTeamId: event.target.value })}>{businessTeams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</Select></FieldGroup>
         <FieldGroup label="ui.generated.c88b8078075"><Input value={form.serviceAccountRef} onChange={(event) => setForm({ ...form, serviceAccountRef: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.c62e951a692"><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}><option value="active">ui.generated.cd4e9ca3dd4</option><option value="disabled">ui.generated.cd989e55188</option></Select></FieldGroup>
-        <FieldGroup label="ui.generated.c101c7957bb"><Textarea value={form.pricingModelJson} onChange={(event) => setForm({ ...form, pricingModelJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="SLA JSON"><Textarea value={form.slaJson} onChange={(event) => setForm({ ...form, slaJson: event.target.value })} /></FieldGroup>
         <FieldGroup label="ui.generated.cdd5fc1f5fa" className="md:col-span-2"><Textarea value={form.accessScopeJson} onChange={(event) => setForm({ ...form, accessScopeJson: event.target.value })} /></FieldGroup>
       </div>

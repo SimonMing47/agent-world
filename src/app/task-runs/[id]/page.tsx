@@ -47,10 +47,6 @@ function statusVariant(status: string): "neutral" | "accent" | "success" | "warn
   return "neutral";
 }
 
-function formatCurrency(value: number) {
-  return `$${value.toFixed(2)}`;
-}
-
 function CompactList({ items }: { items: string[] }) {
   if (items.length === 0) return <span>ui.generated.c72077749f7</span>;
 
@@ -178,7 +174,7 @@ export default async function TaskRunDetailPage({
       />
 
       <SummaryStrip
-        gridClassName="sm:grid-cols-2 xl:grid-cols-4"
+        gridClassName="sm:grid-cols-2"
         items={[
           {
             label: "ui.generated.c2a4080ad9f",
@@ -189,11 +185,6 @@ export default async function TaskRunDetailPage({
             label: "ui.generated.ce840cd6f1e",
             value: detail.nodes.length,
             detail: <>{detail.executionInsights?.metrics.throughput ? formatPercent(detail.executionInsights.metrics.throughput) : "0%"} ui.common.completed</>,
-          },
-          {
-            label: "ui.generated.c5354b098e2",
-            value: formatCurrency(detail.taskRun.costActual),
-            detail: <>ui.common.estimatePrefix {formatCurrency(detail.taskRun.costEstimate)}</>,
           },
         ]}
       />
@@ -452,10 +443,6 @@ export default async function TaskRunDetailPage({
                     { label: "ui.generated.cae64ad83d4", value: <CompactList items={detail.executionPolicy.allowedTools} /> },
                     { label: "ui.generated.c05721ff529", value: <CompactList items={detail.executionPolicy.approvalRequiredTools} /> },
                     { label: "ui.generated.c7fcc2673a0", value: <CompactList items={detail.executionPolicy.blockedTools} /> },
-                    {
-                      label: "ui.generated.c0dcf0e012a",
-                      value: `${detail.executionPolicy.budget.maxRuntimeMinutes} min / ${detail.executionPolicy.budget.maxSteps} steps / ${detail.executionPolicy.budget.maxToolCalls} tool calls`,
-                    },
                     { label: "ui.generated.c607885d6d2", value: detail.executionPolicy.safety.defaultLocale },
                     { label: "ui.generated.c1c42609eaf", value: detail.executionPolicy.safety.collapseThinkingByDefault ? "ui.generated.c30160a21b9" : "ui.generated.c8bf5c10ad9" },
                   ]}
@@ -525,23 +512,6 @@ export default async function TaskRunDetailPage({
                     { label: "ui.generated.cc9951c649f", value: formatPercent(detail.executionInsights.metrics.failureRate) },
                     { label: "ui.generated.c6cc4015eb4", value: formatPercent(detail.executionInsights.metrics.humanInterventionRate) },
                     { label: "ui.generated.cb2509cb072", value: formatPercent(detail.executionInsights.metrics.retryRecoveryPotential) },
-                  ]}
-                />
-              </PanelBody>
-            </Panel>
-          ) : null}
-
-          {detail.costBreakdown ? (
-            <Panel>
-              <PanelHeader eyebrow="ui.generated.c5354b098e2" title="ui.generated.c9f89e5dcbd" description="ui.generated.ce8f2b3f9c3" />
-              <PanelBody>
-                <DefinitionList
-                  columnsClassName="grid-cols-1"
-                  items={[
-                    { label: "ui.generated.c79437efdb6", value: formatCurrency(detail.costBreakdown.estimatedUsd) },
-                    { label: "ui.generated.c1f118e1442", value: formatCurrency(detail.costBreakdown.actualUsd) },
-                    { label: "ui.generated.cd0e0e8257e", value: formatCurrency(detail.costBreakdown.estimateFromTaskRun) },
-                    { label: "ui.generated.c257cb670a4", value: formatCurrency(detail.costBreakdown.actualFromTaskRun) },
                   ]}
                 />
               </PanelBody>

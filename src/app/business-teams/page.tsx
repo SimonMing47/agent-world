@@ -67,15 +67,6 @@ function statusVariant(status: string): "success" | "neutral" | "warning" {
   return "warning";
 }
 
-function safePercent(value: number, total: number) {
-  if (!total) return 0;
-  return Math.round(Math.min(100, Math.max(0, (value / total) * 100)));
-}
-
-function money(value: number) {
-  return `$${Math.round(value).toLocaleString("en-US")}`;
-}
-
 function teamHref(path: string, teamId: string) {
   return `${path}?teamId=${encodeURIComponent(teamId)}`;
 }
@@ -190,7 +181,6 @@ function TeamDetailDialog({
   tenantName: string;
   summary: TeamSummary;
 }) {
-  const budgetPercent = safePercent(team.balance, team.creditLimit);
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -210,7 +200,6 @@ function TeamDetailDialog({
               { label: "ui.generated.c8febffdb94", value: parent?.name ?? "ui.generated.c7c6b663c4c" },
               { label: "Owner", value: team.ownerUserId },
               { label: "ui.generated.c095885b526", value: team.privateMemoryNamespace },
-              { label: "ui.generated.ceadd946554", value: `${money(team.balance)} / ${money(team.creditLimit)} (${budgetPercent}%)` },
               { label: "ui.generated.c0ed5cf4445", value: team.description || "ui.generated.c287a1d1034" },
               { label: "ui.generated.c17324cd203", value: team.privateToolRefsJson },
               { label: "ui.generated.c628a862a9b", value: team.policyJson },
@@ -352,7 +341,6 @@ export default async function BusinessTeamsPage() {
                   <DataTableHead>ui.generated.c6d5f2521b4</DataTableHead>
                   <DataTableHead>ui.generated.cc1ee9f0190</DataTableHead>
                   <DataTableHead>ui.generated.c37f2163e2f</DataTableHead>
-                  <DataTableHead>ui.generated.c0dcf0e012a</DataTableHead>
                   <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
                 </DataTableRow>
               </DataTableHeader>
@@ -369,7 +357,6 @@ export default async function BusinessTeamsPage() {
                     connectorCount: 0,
                     knowledgeSpaceCount: 0,
                   };
-                  const budgetPercent = safePercent(team.balance, team.creditLimit);
                   return (
                     <DataTableRow key={team.id}>
                       <DataTableCell>
@@ -388,12 +375,6 @@ export default async function BusinessTeamsPage() {
                       <DataTableCell>
                         <div className="font-medium text-[var(--ink)]">{summary.taskBlueprintCount} {t("ui.generated.cc5680a85b1")}</div>
                         <div className="mt-1 text-xs text-[var(--ink-muted)]">{summary.knowledgeSpaceCount} {t("ui.generated.c4b183f17ca")}</div>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <div className="font-medium text-[var(--ink)]">{money(team.balance)} / {money(team.creditLimit)}</div>
-                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--surface-muted)]">
-                          <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${budgetPercent}%` }} />
-                        </div>
                       </DataTableCell>
                       <DataTableCell align="right">
                         <div className="flex flex-wrap justify-end gap-2">

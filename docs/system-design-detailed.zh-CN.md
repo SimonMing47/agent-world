@@ -156,7 +156,7 @@ ServiceCatalogListing "*" --> "1" AgentTeam
 租户空间是平台最高治理边界，负责：
 
 - 模型白名单。
-- 月度预算和最大并发任务。
+- 最大并发任务和全局配额。
 - 全局运行约束。
 - 默认安全策略。
 
@@ -166,7 +166,7 @@ ServiceCatalogListing "*" --> "1" AgentTeam
 
 业务团队承载企业组织分权，负责：
 
-- 团队预算和信用额度。
+- 私有资源范围。
 - 私有工具引用。
 - 私有记忆命名空间。
 - Agent、Agent 团队、环境、任务蓝图和任务模板归属。
@@ -193,7 +193,7 @@ Agent 团队是可运营服务单元，负责：
 - 成员 Agent。
 - 工作流类型：single、sequential、parallel、DAG。
 - 输入 schema、输出 schema。
-- 超时时间、成本模型和成功率目标。
+- 超时时间和成功率目标。
 - 可见性：个人、团队、全局设计目标；当前实现 public / private 基线。
 
 实现表：`agent_teams`。
@@ -204,7 +204,7 @@ Agent 团队是可运营服务单元，负责：
 
 - 服务上架。
 - 招募模式。
-- 成功率、平均耗时、平均成本。
+- 成功率和平均耗时。
 - 标签和服务状态。
 
 实现表：`service_catalog_listings`。
@@ -217,14 +217,14 @@ Agent 团队是可运营服务单元，负责：
 - Consumer 业务团队。
 - 动作范围。
 - 工具范围。
-- 价格和 SLA。
+- SLA 和服务账号引用。
 - 服务账号引用。
 
 实现表：`access_grants`。
 
 ### 2.7 运行约束
 
-运行约束控制 Agent 调用过程中的工具、预算、输出和安全策略，负责：
+运行约束控制 Agent 调用过程中的工具、输出和安全策略，负责：
 
 - allowed tools。
 - blocked tools。
@@ -250,7 +250,7 @@ Agent 团队是可运营服务单元，负责：
 - 来源类型：manual、schedule、webhook、access_grant。
 - 来源引用。
 - 业务团队、Agent 团队、运行环境、跨团队授权。
-- 输入、输出、成本、trace id、状态、蓝图版本、幂等键、权限快照、环境快照和完成时间。
+- 输入、输出、trace id、状态、蓝图版本、幂等键、权限快照、环境快照和完成时间。
 
 实现表：
 
@@ -389,8 +389,8 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 权限由四层组成：
 
 - Task Blueprint 权限策略：allow / ask / deny，且 deny 优先于 ask，ask 优先于 allow。
-- 运行约束：控制工具、预算、输出、安全扫描和审批。
-- 跨团队授权：控制跨业务团队动作范围、工具范围、SLA 和价格。
+- 运行约束：控制工具、输出、安全扫描和审批。
+- 跨团队授权：控制跨业务团队动作范围、工具范围和 SLA。
 - Secret 与环境权限：PRIVATE_KEY 永远只保存 secret ref，不进入日志和任务输出。
 
 所有工具执行前必须先经过 `evaluateExecutionPolicyToolPolicy()`；跨团队调用必须经过 `evaluateAccessGrantAccess()`。
@@ -424,7 +424,7 @@ Agent 调用过程由 `invocation-core.ts` 描述，标准阶段为：
 任务空间是执行层最重要的展示页，必须展示：
 
 - 操作控制台：推进 tick、恢复、重试、批准、拒绝。
-- 任务执行概览：状态、来源、租户空间、业务团队、Agent 团队、提交人、成本。
+- 任务执行概览：状态、来源、租户空间、业务团队、Agent 团队和提交人。
 - 蓝图快照：任务蓝图、版本、幂等键和触发器。
 - 编排协议：Leader、Worker、聚合和冲突处理。
 - 跨团队授权详情。
@@ -636,7 +636,7 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 ## 8. 可靠性和扩展性
 
 - 幂等：任务提交、Webhook、节点推进和知识写入可重试。
-- 可观测：事件流、trace id、节点状态、成本、策略命中和人工干预持久化。
+- 可观测：事件流、trace id、节点状态、策略命中和人工干预持久化。
 - 降级：AgentWorld 知识引擎 远端不可用时保留本地影子索引。
 - 安全：密钥只保存 secret ref；插件权限与运行约束对齐。
 - 扩展：新增代码平台、通知渠道、Provider 和 Skill 只新增插件或扩展包。

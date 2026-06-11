@@ -639,7 +639,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         maxConcurrency: Number(form.maxConcurrency || 1),
         timeoutMs: Number(form.timeoutMinutes || 20) * 60_000,
         successRateThreshold: Number(form.successRateThreshold || 90) / 100,
-        pricingModelJson: props.team.pricingModelJson || JSON.stringify({ baseUsd: 0, tokenMultiplier: 1 }, null, 2),
+        pricingModelJson: props.team.pricingModelJson || "{}",
         visibility: form.visibility,
         defaultExecutionPolicyId: form.defaultExecutionPolicyId || null,
         members: normalizedMembers,

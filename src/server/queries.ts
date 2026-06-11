@@ -1185,7 +1185,6 @@ export function getTaskRunDetail(taskRunId: string) {
     }),
     executionInsights: getTaskRunExecutionBoard(taskRun.id),
     dependencyGraph: getTaskRunDependencyGraph(taskRun.id),
-    costBreakdown: getTaskRunCostBreakdown(taskRun.id),
     policyHits: getTaskRunPolicyHits(taskRun.id),
     executionPolicy: teamExecutionPolicy ? buildExecutionPolicySummary(teamExecutionPolicy) : null,
     invocationStages:
@@ -1623,17 +1622,8 @@ function classifyFailure(args: {
   if (args.policyViolation) return "policy_violation";
   if (args.accessGrantViolation) return "access_grant_violation";
   if (args.timeout) return "timeout";
-  if (args.reason.toLowerCase().includes("budget")) return "budget_exceeded";
+  if (args.reason.toLowerCase().includes("limit")) return "limit_exceeded";
   return "runtime_error";
-}
-
-const COST_PER_COMPLETED_NODE_USD = 0.5;
-const BASE_ESTIMATED_NODE_COST_USD = 0.25;
-const BASE_ACTUAL_NODE_COST_USD = 0.3;
-const PER_ATTEMPT_NODE_COST_USD = 0.2;
-
-function roundCurrency(value: number) {
-  return Math.round(value * 100) / 100;
 }
 
 function stablePayloadValue(inputPayload: Record<string, unknown>, key: string) {
@@ -2603,14 +2593,10 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const completedNodes = getTaskRunNodes(taskRun.id);
   const taskRunStatus = resolveTaskRunStatusFromNodes(completedNodes);
   execute(
-    "UPDATE task_runs SET status = ?, run_state = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    "UPDATE task_runs SET status = ?, run_state = ?, completed_at = ? WHERE id = ?",
     taskRunStatus,
     taskRunStatus,
     taskRunStatus === "completed" ? nowIso() : null,
-    roundCurrency(
-      completedNodes.filter((node) => node.status === "completed").length *
-        COST_PER_COMPLETED_NODE_USD,
-    ),
     taskRun.id,
   );
 
@@ -2926,39 +2912,6 @@ export function getTaskRunDependencyGraph(taskRunId: string) {
       dependsOn: JSON.parse(node.dependsOnJson) as string[],
     })),
     edges: dag.edges ?? [],
-  };
-}
-
-export function getTaskRunCostBreakdown(taskRunId: string) {
-  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
-  if (!taskRun) return null;
-  const nodes = getTaskRunNodes(taskRunId);
-  const nodeCosts = nodes.map((node) => ({
-    nodeId: node.id,
-    nodeKey: node.nodeKey,
-    status: node.status,
-    attemptCount: node.attemptCount,
-    estimatedUsd: roundCurrency(
-      BASE_ESTIMATED_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD,
-    ),
-    actualUsd:
-      node.status === "completed"
-        ? roundCurrency(BASE_ACTUAL_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD)
-        : 0,
-  }));
-  const estimatedUsd = roundCurrency(
-    nodeCosts.reduce((sum, node) => sum + node.estimatedUsd, 0),
-  );
-  const actualUsd = roundCurrency(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0));
-
-  return {
-    taskRunId,
-    status: taskRun.status,
-    estimateFromTaskRun: taskRun.costEstimate,
-    actualFromTaskRun: taskRun.costActual,
-    estimatedUsd,
-    actualUsd,
-    nodeCosts,
   };
 }
 

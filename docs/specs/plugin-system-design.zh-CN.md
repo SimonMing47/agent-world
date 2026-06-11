@@ -584,7 +584,7 @@ Core -> User: set AgentWorld session cookie
   - 保留旧 `importExtensionBundle()` 作为兼容入口。
 
 - `src/server/plugin-sdk-core.ts`
-  - 把 `executablePluginModules` 从硬编码改成 registry loader。
+  - 已提供 executable contribution registry，用统一 resolver 解析 repository connector、webhook parser、output publisher 和 tool bundle。
   - 收紧默认权限。
   - 增加 worker/IPC host。
 
@@ -621,6 +621,7 @@ Core -> User: set AgentWorld session cookie
 - 新增数据库表。
 - 新增插件 catalog/install/config/enable/disable API。
 - 官方插件只显示为可安装，不自动写配置。
+- 当前代码已先落地运行时 contribution registry 与 `/api/plugins/manifests` 快照，作为后续插件包加载器的基础。
 
 第二阶段：UI 插件
 

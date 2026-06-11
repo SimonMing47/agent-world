@@ -15,6 +15,10 @@ import {
   type PluginLifecycle,
   type PluginManifest,
 } from "@/server/plugin-core";
+import {
+  getExecutablePluginRegistrySnapshot,
+  listOfficialPluginManifests,
+} from "@/server/plugin-sdk-core";
 import { uiText } from "@/lib/language-pack";
 
 type ExtensionEnvironmentInput = {
@@ -178,13 +182,19 @@ export function listImportedPluginManifests() {
 }
 
 export function listAllPluginManifests() {
-  return listImportedPluginManifests();
+  const imported = listImportedPluginManifests();
+  const importedIds = new Set(imported.map((plugin) => plugin.id));
+  return [
+    ...imported,
+    ...listOfficialPluginManifests().filter((plugin) => !importedIds.has(plugin.id)),
+  ];
 }
 
 export function getExtensionRegistrySnapshot() {
   return {
     manifests: listAllPluginManifests(),
     extensionPoints: listPluginExtensionPoints(),
+    runtimeRegistry: getExecutablePluginRegistrySnapshot(),
     securityModel: getPluginSecurityModel(),
   };
 }

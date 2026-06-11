@@ -4,12 +4,12 @@
 
 任务事件流是 AgentWorld 的执行事实记录。TaskRun 从提交、排队、计划、环境预检、Agent 调用、工具动作、权限决策、人工处理、Finding 生成、Artifact 生成到终态，都必须写入标准事件。
 
-看板、Trace、审计、成本统计、可靠性状态机和历史回放都以事件流为基础。
+看板、Trace、审计、运行统计、可靠性状态机和历史回放都以事件流为基础。
 
 ## 2. 设计目标
 
 - 为调度层和调用层提供统一事件模型。
-- 支持完整追踪 planning、thinking、tool use、tool result、permission、human、retry、cost、finding 和 artifact。
+- 支持完整追踪 planning、thinking、tool use、tool result、permission、human、retry、finding 和 artifact。
 - 让任务看板能够按团队、模板、状态、Provider、严重级别和人工处理维度聚合。
 - 保证事件可排序、可脱敏、可审计、可回放。
 - 将可靠性状态机变化作为显式事件，而不是隐式字段更新。
@@ -145,8 +145,8 @@ Trace Span 用于表达耗时和调用链：
 
 - 全局运行视图：运行中、排队、等待人工、失败、降级、成功。
 - 业务团队视图：按 team、TaskBlueprint、AgentTeam 聚合。
-- Blueprint 视图：展示每个模板的触发次数、成功率、成本和平均耗时。
-- Provider 视图：展示 Adapter 健康、调用量、失败率、限流和成本。
+- Blueprint 视图：展示每个模板的触发次数、成功率和平均耗时。
+- Provider 视图：展示 Adapter 健康、调用量、失败率和限流。
 - 人工处理视图：展示 ask 队列、过期项、处理人和等待时长。
 - Finding 视图：按 severity、category、status、来源任务和处理状态聚合。
 - 可靠性视图：展示重试、降级、环境失败、记忆同步失败和插件健康。
@@ -191,6 +191,6 @@ Finding 状态变化必须写入 `finding.updated` 事件。人工反馈写回 A
 
 - TaskRun 从 submitted 到终态的每个关键阶段都有事件。
 - 看板可由事件流和投影重建。
-- 权限、人工处理、记忆读写、Finding 和成本都有标准事件。
+- 权限、人工处理、记忆读写和 Finding 都有标准事件。
 - 事件 payload 脱敏且可审计。
 - 状态机迁移与事件流一致。

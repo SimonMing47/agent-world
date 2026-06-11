@@ -31,7 +31,7 @@ export function resolveExecutionPolicy(profile: ExecutionPolicy): ResolvedExecut
     blocked?: string[];
     approvalRequired?: string[];
   };
-  const budgetPolicy = JSON.parse(profile.budgetPolicyJson) as {
+  const limitPolicy = JSON.parse(profile.budgetPolicyJson) as {
     maxRuntimeMs?: number;
     maxSteps?: number;
     maxToolCalls?: number;
@@ -52,9 +52,9 @@ export function resolveExecutionPolicy(profile: ExecutionPolicy): ResolvedExecut
     allowedTools: toolPolicy.allowed ?? [],
     blockedTools: toolPolicy.blocked ?? [],
     approvalRequiredTools: toolPolicy.approvalRequired ?? [],
-    maxRuntimeMs: budgetPolicy.maxRuntimeMs ?? 0,
-    maxSteps: budgetPolicy.maxSteps ?? 0,
-    maxToolCalls: budgetPolicy.maxToolCalls ?? 0,
+    maxRuntimeMs: limitPolicy.maxRuntimeMs ?? 0,
+    maxSteps: limitPolicy.maxSteps ?? 0,
+    maxToolCalls: limitPolicy.maxToolCalls ?? 0,
     collapseThinkingByDefault: outputPolicy.collapseThinkingByDefault ?? true,
     structuredOutput: outputPolicy.structuredOutput ?? true,
     defaultLocale: outputPolicy.defaultLocale ?? "zh-CN",
@@ -225,7 +225,7 @@ export function buildExecutionPolicySummary(profile: ExecutionPolicy) {
     allowedTools: resolved.allowedTools,
     blockedTools: resolved.blockedTools,
     approvalRequiredTools: resolved.approvalRequiredTools,
-    budget: {
+    limits: {
       maxRuntimeMinutes: Math.round(resolved.maxRuntimeMs / 60000),
       maxSteps: resolved.maxSteps,
       maxToolCalls: resolved.maxToolCalls,
