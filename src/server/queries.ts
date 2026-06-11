@@ -459,6 +459,20 @@ function assertNoEnvSecretReference(value: string, label: string) {
   }
 }
 
+function assertNoEnvPluginSecretReference(value: string) {
+  if (value.trim().toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
+  }
+}
+
+function assertWebhookTriggerNoEnvSecretReference(triggerJson: string) {
+  const trigger = parseJsonRecord(triggerJson);
+  for (const key of ["secretRef", "webhookSecretRef"]) {
+    const value = trigger[key];
+    if (typeof value === "string") assertNoEnvPluginSecretReference(value);
+  }
+}
+
 function parsedConfigHasEnvReference(value: string) {
   function walk(item: unknown): boolean {
     if (typeof item === "string") return item.trim().toLowerCase().startsWith("env:");
@@ -890,6 +904,7 @@ export function upsertTaskBlueprint(
     | "archivePolicyJson"
   >,
 ) {
+  assertWebhookTriggerNoEnvSecretReference(input.triggerJson);
   const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
   const executionPolicyJson = buildTaskBlueprintExecutionPolicyJson(
@@ -1074,6 +1089,7 @@ export function upsertWebhookEndpoint(
     | "isEnabled"
   >,
 ) {
+  assertNoEnvPluginSecretReference(input.secretHint);
   execute(
     "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,

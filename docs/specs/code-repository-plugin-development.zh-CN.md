@@ -87,7 +87,7 @@ Skill 写入 `inspection_skills` 后同步进知识库，Agent 通过 `skill:<sk
 - webhook 解析输出：`repo_id`、`repository_owner`、`repository_name`、`pull_request_index` 或 `mr_id`、`issue_iid`、`diff_ref`、`source_commit_sha`、`target_branch`、`source_branch`。
 - diff 文件：文件路径、状态、增删行数、文件 URL、head commit 下文件内容。
 - 评论发布：支持按 MR/issue 编号新建评论；如平台支持更新评论，可额外接收 `commentId`。
-- 认证：通过 `tokenRef` 和 `webhookSecretRef` 读取密钥，不把 token 写进蓝图明文。
+- 认证：通过 `tokenRef` 和 `webhookSecretRef` 从插件配置、Skill 配置或页面配置读取密钥；不得使用 AgentWorld 环境变量承载代码平台 token 或 webhook secret，也不把 token 写进蓝图明文。
 
 CodeHub 专有字段可以保留在原始 payload 或插件 payload 中，但输出给 AgentWorld 的标准上下文应尽量使用上述通用字段。
 

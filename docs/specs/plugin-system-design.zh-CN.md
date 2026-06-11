@@ -499,6 +499,8 @@ SDK 只暴露：
 - `writePluginState`
 - `fetchAllowedUrl`
 
+其中 `resolveSecretRef` 只解析插件配置、Skill 配置或页面配置保存的密钥值；插件不得通过 `env:` 环境变量引用读取第三方系统凭据。
+
 默认权限应收紧为 deny/ask。当前 `plugin-sdk-core.ts` 对部分能力默认 allow，需要在真正执行第三方插件前修正。
 
 ## 13. SSO 插件设计

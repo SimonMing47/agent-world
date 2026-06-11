@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { type TaskBlueprint, type WebhookEndpoint } from "@/server/db";
 import { resolveSecretRef, resolveWebhookParser } from "@/server/plugin-sdk-core";
+import { uiText } from "@/lib/language-pack";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -53,21 +54,20 @@ function readWebhookSharedSecret(request: Request) {
 }
 
 export function validateWebhookSecret(webhook: WebhookEndpoint, request: Request) {
-  if (!webhook.secretHint.startsWith("env:")) {
-    return {
-      ok: false,
-      status: 401,
-      error: `Webhook secret is not configured for ${webhook.pathKey}`,
-    };
-  }
-
-  const envKey = webhook.secretHint.slice(4);
-  const expected = process.env[envKey];
+  const expected = webhook.secretHint.trim();
   if (!expected) {
     return {
       ok: false,
       status: 401,
-      error: `Webhook secret is missing for ${webhook.pathKey}`,
+      error: uiText("webhook.errors.secretNotConfigured", undefined, { pathKey: webhook.pathKey }),
+    };
+  }
+
+  if (expected.toLowerCase().startsWith("env:")) {
+    return {
+      ok: false,
+      status: 401,
+      error: uiText("webhook.errors.envSecretRefUnsupported", undefined, { pathKey: webhook.pathKey }),
     };
   }
 
@@ -83,7 +83,7 @@ export function validateWebhookSecret(webhook: WebhookEndpoint, request: Request
     return {
       ok: false,
       status: 401,
-      error: `Webhook secret mismatch for ${webhook.pathKey}`,
+      error: uiText("webhook.errors.secretMismatch", undefined, { pathKey: webhook.pathKey }),
     };
   }
 

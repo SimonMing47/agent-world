@@ -158,6 +158,8 @@ uploaded -> validated -> installed -> configured -> enabled -> degraded -> disab
 - `createArtifact`
 - `createFinding`
 
+`resolveSecretRef` 只接受来自插件配置、Skill 配置或页面配置的密钥值，不支持 `env:` 环境变量引用。
+
 当前 Server Runtime 已落地的可执行贡献项为 `repositoryConnectors`、`webhookParsers`、`outputPublishers` 和 `toolBundles`。其他贡献项已在 manifest 和扩展点中预留，后续应按同一 registry 与权限模型接入。
 
 平台不得向插件暴露内部表结构。插件输出必须通过事件、Artifact、Finding 或工具结果返回。

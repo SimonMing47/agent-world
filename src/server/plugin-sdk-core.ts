@@ -12,6 +12,7 @@ import { upsertFinding } from "@/server/finding-core";
 import type { PluginManifest } from "@/server/plugin-core";
 import { codehubExecutablePlugin } from "@/server/plugins/official/codehub";
 import { giteaExecutablePlugin } from "@/server/plugins/official/gitea";
+import { uiText } from "@/lib/language-pack";
 
 export type PluginPermissionRequest = {
   resource: string;
@@ -292,11 +293,12 @@ function pluginRoot() {
 }
 
 export function resolveSecretRef(ref: string) {
-  if (!ref) return null;
-  if (ref.startsWith("env:")) {
-    return process.env[ref.slice(4)] ?? null;
+  const value = ref.trim();
+  if (!value) return null;
+  if (value.toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
   }
-  return null;
+  return value;
 }
 
 export function toPluginManifest(module: ExecutablePluginModule): PluginManifest {

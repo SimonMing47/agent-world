@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 import { ChevronDown, GitBranch, Settings2, SlidersHorizontal, Users, Webhook, Workflow } from "lucide-react";
+import { editableSecretValue, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -701,6 +702,12 @@ export function TaskBlueprintEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const trigger = parseRecord(blueprint.triggerJson);
+  const initialTriggerSecretRef =
+    typeof trigger.webhookSecretRef === "string"
+      ? trigger.webhookSecretRef
+      : typeof trigger.secretRef === "string"
+        ? trigger.secretRef
+        : "";
   const selector = parseEnvironmentSelector(blueprint.environmentSelectorJson);
   const runPlan = parseRunPlan(blueprint.agentTeamRunPlanJson);
   const initialSelectedTeam = options.agentTeams.find((team) => team.id === blueprint.teamId) ?? null;
@@ -723,12 +730,7 @@ export function TaskBlueprintEditor({
       typeof trigger.webhookPathKey === "string" ? trigger.webhookPathKey : "",
     triggerIdempotencyKey:
       typeof trigger.idempotencyKey === "string" ? trigger.idempotencyKey : "",
-    triggerSecretRef:
-      typeof trigger.webhookSecretRef === "string"
-        ? trigger.webhookSecretRef
-        : typeof trigger.secretRef === "string"
-          ? trigger.secretRef
-          : "",
+    triggerSecretRef: editableSecretValue(initialTriggerSecretRef),
     triggerExtraJson: JSON.stringify(
       Object.fromEntries(
         Object.entries(trigger).filter(
@@ -1202,10 +1204,10 @@ export function TaskBlueprintEditor({
             />
           </FieldGroup>
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.webhookSecretRef")}>
-            <Input
+            <SecretInput
               value={form.triggerSecretRef}
-              onChange={(event) => setForm({ ...form, triggerSecretRef: event.target.value })}
-              placeholder="env:CODE_PLATFORM_WEBHOOK_SECRET"
+              onChange={(value) => setForm({ ...form, triggerSecretRef: value })}
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.webhookSecretRef")}
             />
           </FieldGroup>
           {!isWebhookTrigger ? (

@@ -1061,7 +1061,7 @@ const builtInProviderAdapterDefinitions: Array<{
       null,
       2,
     ),
-    secretRefsJson: JSON.stringify(["env:*"], null, 2),
+    secretRefsJson: JSON.stringify([], null, 2),
     permissionRefsJson: JSON.stringify(["tool.read", "tool.execute", "memory.read"], null, 2),
     healthStatus: "healthy",
   },

@@ -5,6 +5,7 @@ import {
   listExecutablePluginContributions,
   resolveOutputPublisher,
   resolveRepositoryConnector,
+  resolveSecretRef,
   resolveToolBundle,
   type ExecutablePluginModule,
 } from "@/server/plugin-sdk-core";
@@ -66,4 +67,11 @@ test("runtime resolvers use contribution registry semantics", () => {
       (record) => record.pluginId === "official.gitea",
     ),
   );
+});
+
+test("plugin secret refs reject environment variable references", () => {
+  assert.equal(resolveSecretRef("direct-configured-secret"), "direct-configured-secret");
+  assert.equal(resolveSecretRef("  direct-configured-secret  "), "direct-configured-secret");
+  assert.equal(resolveSecretRef(""), null);
+  assert.throws(() => resolveSecretRef("env:THIRD_PARTY_TOKEN"), /env:/);
 });

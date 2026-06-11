@@ -149,6 +149,8 @@ export const executablePlugin = {
 - `createFinding(input)`
 - `createArtifact(input)`
 
+`resolveSecretRef(ref)` 只能解析插件配置、Skill 配置或页面配置中保存的密钥值；不得使用 `env:` 环境变量引用，也不得要求 AgentWorld 主进程注入第三方系统 token。
+
 插件不得直接访问数据库、读取 `.env`、写入明文密钥或绕过权限模型。
 
 ## 5. 代码平台插件要求
