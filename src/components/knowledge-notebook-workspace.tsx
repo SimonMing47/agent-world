@@ -59,6 +59,7 @@ import {
 import { KnowledgeRetrievalTestDialog } from "@/components/knowledge-retrieval-test-dialog";
 import { LEGACY_KNOWLEDGE_URI_SCHEME, normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 import { getMarkdownKeyboardEdit } from "@/lib/markdown-editor";
+import { type KnowledgeCategory } from "@/lib/knowledge-categories";
 import { cn, formatBytes, formatDateTime } from "@/lib/utils";
 
 type TenantSpaceOption = {
@@ -91,7 +92,7 @@ export type KnowledgeNotebookSpace = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
-  knowledgeCategory: "public" | "domain" | "repository";
+  knowledgeCategory: KnowledgeCategory;
   repositoryName: string | null;
   slug: string;
   name: string;
@@ -1687,7 +1688,7 @@ function SpaceQuickDialog({
           agentTeamId: form.spaceType === "agent_team" ? form.agentTeamId || null : null,
           projectKey: form.spaceType === "project" ? form.projectKey.trim() || null : null,
           knowledgeCategory: form.knowledgeCategory,
-          repositoryName: form.repositoryName.trim() || null,
+          repositoryName: form.knowledgeCategory === "code" ? form.repositoryName.trim() || null : null,
           description: form.description,
           visibility: form.visibility,
           status: form.status,
@@ -1787,6 +1788,24 @@ function SpaceQuickDialog({
               <option value="paused">{text("labels.status.paused")}</option>
               <option value="archived">{text("labels.status.archived")}</option>
             </Select>
+          </FieldGroup>
+          <FieldGroup label={text("knowledge.category.label")}>
+            <Select
+              value={form.knowledgeCategory}
+              onChange={(event) => setForm({ ...form, knowledgeCategory: event.target.value as KnowledgeCategory })}
+            >
+              <option value="skill">{text("knowledge.category.public")}</option>
+              <option value="domain">{text("knowledge.category.domain")}</option>
+              <option value="code">{text("knowledge.category.repository")}</option>
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={text("knowledge.repositoryName")}>
+            <Input
+              value={form.repositoryName}
+              onChange={(event) => setForm({ ...form, repositoryName: event.target.value })}
+              disabled={form.knowledgeCategory !== "code"}
+              placeholder={text("knowledge.repositoryName.placeholder")}
+            />
           </FieldGroup>
           <FieldGroup label={text("knowledge.fields.retentionPolicy")}>
             <Textarea value={form.retentionPolicyJson} onChange={(event) => setForm({ ...form, retentionPolicyJson: event.target.value })} className="min-h-20 font-mono text-xs" />

@@ -14,7 +14,7 @@ import {
   getRequestAuthContext,
 } from "@/server/auth-core";
 import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowledge-core";
-import { getKnowledgeFoundationStatus } from "@/server/knowledge-base-settings";
+import { getKnowledgeCodebaseEngineStatus, getKnowledgeFoundationStatus } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getKnowledgeManagementSnapshot, listLayeredKnowledge, retryPendingKnowledgeSyncs } from "@/server/knowledge-engine";
 import {
@@ -77,6 +77,7 @@ export default async function KnowledgePage() {
       : tenantSpaces.filter((space) => visibleTenantSpaceIds.has(space.id));
 
   const foundationStatus = getKnowledgeFoundationStatus();
+  const codebaseEngineStatus = getKnowledgeCodebaseEngineStatus();
   const foundationStatusLabelKey =
     foundationStatus.state === "enabled"
       ? "settings.knowledgeBase.status.enabled"
@@ -91,6 +92,10 @@ export default async function KnowledgePage() {
         : "settings.knowledgeBase.warnings.foundationMissing";
   const foundationLabel = t(foundationStatusLabelKey);
   const foundationDetail = t(foundationDetailKey);
+  const codebaseEngineProviderKey =
+    codebaseEngineStatus.provider === "tree_sitter"
+      ? "settings.knowledgeBase.codebaseEngine.providers.treeSitter"
+      : `settings.knowledgeBase.codebaseEngine.providers.${codebaseEngineStatus.provider}`;
   const foundationModelDetail = foundationStatus.model
     ? `${foundationStatus.model} · ${foundationStatus.provider || t("settings.knowledgeBase.status.unconfigured")}`
     : "";
@@ -202,6 +207,17 @@ export default async function KnowledgePage() {
           <Badge variant="accent">{t("knowledge.hub.spaceBadge", undefined, { count: spaces.length })}</Badge>
           <Badge variant={foundationStatus.state === "enabled" ? "success" : "warning"}>
             {foundationLabel}
+          </Badge>
+          <Badge
+            variant={
+              codebaseEngineStatus.state === "configured"
+                ? "success"
+                : codebaseEngineStatus.state === "disabled"
+                  ? "neutral"
+                  : "warning"
+            }
+          >
+            {t(codebaseEngineProviderKey)} · {codebaseEngineStatus.label}
           </Badge>
           {foundationModelDetail ? (
             <span className="hidden max-w-[260px] truncate text-xs text-[var(--ink-subtle)] lg:inline">

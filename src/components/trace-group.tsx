@@ -1,5 +1,6 @@
 import { formatDateTime } from "@/lib/utils";
 import { localizeDemoCopy, translateFoldGroup } from "@/lib/presentation";
+import { uiText } from "@/lib/language-pack";
 import { type EventLog } from "@/server/db";
 
 function parseMetadata(value: string) {
@@ -30,7 +31,7 @@ export function TraceGroup({
               {translateFoldGroup(title)}
             </div>
             <div className="mt-1 text-base font-semibold tracking-normal text-[var(--ink)]">
-              {events.length} ui.generated.cee5f313268
+              {events.length} {uiText("ui.generated.cee5f313268")}
             </div>
           </div>
           <div className="text-sm text-[var(--ink-muted)]">ui.generated.cbecc67987b</div>

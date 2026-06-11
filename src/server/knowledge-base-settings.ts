@@ -10,6 +10,9 @@ const FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_MODEL = "";
 const FALLBACK_KNOWLEDGE_DEFAULT_EMBEDDING_DIMENSION = "";
 
 export type KnowledgeBaseProvider = "native";
+export type KnowledgeCodebaseEngineProvider = "codegraph" | "sourcegraph" | "tree_sitter" | "disabled";
+export type KnowledgeCodebaseEngineIndexStrategy = "hybrid" | "graph" | "semantic" | "lexical";
+export type KnowledgeCodebaseEngineSyncMode = "manual" | "on_demand" | "scheduled";
 
 export type KnowledgeBaseSettings = {
   provider: KnowledgeBaseProvider;
@@ -45,6 +48,15 @@ export type KnowledgeBaseSettings = {
   embeddingApiBase: string;
   embeddingApiKey: string;
   embeddingDimension: string;
+  codebaseEngineProvider: KnowledgeCodebaseEngineProvider;
+  codebaseEngineIndexStrategy: KnowledgeCodebaseEngineIndexStrategy;
+  codebaseEngineSyncMode: KnowledgeCodebaseEngineSyncMode;
+  codebaseEngineEndpoint: string;
+  codebaseEngineMcpEndpoint: string;
+  codebaseEngineCommand: string;
+  codebaseEngineWorkspace: string;
+  codebaseEngineApiKey: string;
+  codebaseEngineIgnoreGlobs: string;
 };
 
 type KnowledgeEngineStorageConfig = Record<string, unknown>;
@@ -67,6 +79,7 @@ export type KnowledgeModelDefaults = {
 };
 
 export type KnowledgeFoundationState = "enabled" | "pending_api_key" | "missing_model";
+export type KnowledgeCodebaseEngineState = "disabled" | "configured" | "missing_endpoint";
 
 export type KnowledgeFoundationStatus = {
   state: KnowledgeFoundationState;
@@ -75,6 +88,17 @@ export type KnowledgeFoundationStatus = {
   provider: string;
   model: string;
   canWriteVlmConfig: boolean;
+};
+
+export type KnowledgeCodebaseEngineStatus = {
+  state: KnowledgeCodebaseEngineState;
+  label: string;
+  detail: string;
+  provider: KnowledgeCodebaseEngineProvider;
+  endpoint: string;
+  mcpEndpoint: string;
+  indexStrategy: KnowledgeCodebaseEngineIndexStrategy;
+  syncMode: KnowledgeCodebaseEngineSyncMode;
 };
 
 function dataDir() {
@@ -174,6 +198,22 @@ function defaultSettings(): KnowledgeBaseSettings {
     embeddingApiBase: process.env.KNOWLEDGE_ENGINE_EMBEDDING_API_BASE ?? modelDefaults.embedding.apiBase,
     embeddingApiKey: process.env.KNOWLEDGE_ENGINE_EMBEDDING_API_KEY ?? "",
     embeddingDimension: process.env.KNOWLEDGE_ENGINE_EMBEDDING_DIMENSION ?? modelDefaults.embedding.dimension,
+    codebaseEngineProvider: normalizeCodebaseEngineProvider(process.env.KNOWLEDGE_CODEBASE_ENGINE_PROVIDER),
+    codebaseEngineIndexStrategy: normalizeCodebaseEngineIndexStrategy(process.env.KNOWLEDGE_CODEBASE_ENGINE_INDEX_STRATEGY),
+    codebaseEngineSyncMode: normalizeCodebaseEngineSyncMode(process.env.KNOWLEDGE_CODEBASE_ENGINE_SYNC_MODE),
+    codebaseEngineEndpoint: process.env.KNOWLEDGE_CODEBASE_ENGINE_ENDPOINT ?? "",
+    codebaseEngineMcpEndpoint: process.env.KNOWLEDGE_CODEBASE_ENGINE_MCP_ENDPOINT ?? "",
+    codebaseEngineCommand: process.env.KNOWLEDGE_CODEBASE_ENGINE_COMMAND ?? "codegraph",
+    codebaseEngineWorkspace: process.env.KNOWLEDGE_CODEBASE_ENGINE_WORKSPACE ?? path.join(dataDir(), "codebase-engine"),
+    codebaseEngineApiKey: process.env.KNOWLEDGE_CODEBASE_ENGINE_API_KEY ?? "",
+    codebaseEngineIgnoreGlobs: process.env.KNOWLEDGE_CODEBASE_ENGINE_IGNORE_GLOBS ?? [
+      "node_modules/**",
+      ".git/**",
+      "dist/**",
+      "build/**",
+      ".next/**",
+      "coverage/**",
+    ].join("\n"),
   };
 }
 
@@ -202,6 +242,29 @@ function readOptionalText(source: Record<string, unknown>, key: keyof KnowledgeB
 function readBoolean(source: Record<string, unknown>, key: keyof KnowledgeBaseSettings, fallback: boolean) {
   const value = source[key];
   return typeof value === "boolean" ? value : fallback;
+}
+
+function normalizeCodebaseEngineProvider(value: unknown): KnowledgeCodebaseEngineProvider {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "sourcegraph") return "sourcegraph";
+  if (normalized === "tree_sitter" || normalized === "tree-sitter" || normalized === "treesitter") return "tree_sitter";
+  if (normalized === "disabled" || normalized === "none" || normalized === "off") return "disabled";
+  return "codegraph";
+}
+
+function normalizeCodebaseEngineIndexStrategy(value: unknown): KnowledgeCodebaseEngineIndexStrategy {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "graph") return "graph";
+  if (normalized === "semantic") return "semantic";
+  if (normalized === "lexical") return "lexical";
+  return "hybrid";
+}
+
+function normalizeCodebaseEngineSyncMode(value: unknown): KnowledgeCodebaseEngineSyncMode {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "manual") return "manual";
+  if (normalized === "scheduled") return "scheduled";
+  return "on_demand";
 }
 
 function normalizeUrl(value: string, fallback: string) {
@@ -309,10 +372,13 @@ function normalizeSettings(input: Partial<KnowledgeBaseSettings>, current: Knowl
   const apiKey = (input.apiKey ?? current.apiKey).trim();
   const vlmApiKey = (input.vlmApiKey ?? current.vlmApiKey).trim();
   const embeddingApiKey = (input.embeddingApiKey ?? current.embeddingApiKey).trim();
+  const codebaseEngineApiKey = (input.codebaseEngineApiKey ?? current.codebaseEngineApiKey).trim();
+  const codebaseEngineProvider = normalizeCodebaseEngineProvider(input.codebaseEngineProvider ?? current.codebaseEngineProvider);
 
   assertNoEnvSecretReference(apiKey, "Knowledge Engine API Key");
   assertNoEnvSecretReference(vlmApiKey, "Knowledge Engine VLM API Key");
   assertNoEnvSecretReference(embeddingApiKey, "Knowledge Engine Embedding API Key");
+  assertNoEnvSecretReference(codebaseEngineApiKey, "Knowledge Codebase Engine API Key");
 
   return {
     provider: "native",
@@ -348,6 +414,20 @@ function normalizeSettings(input: Partial<KnowledgeBaseSettings>, current: Knowl
     embeddingApiBase: (input.embeddingApiBase ?? current.embeddingApiBase).trim(),
     embeddingApiKey,
     embeddingDimension: effectiveEmbeddingDimension,
+    codebaseEngineProvider,
+    codebaseEngineIndexStrategy: normalizeCodebaseEngineIndexStrategy(input.codebaseEngineIndexStrategy ?? current.codebaseEngineIndexStrategy),
+    codebaseEngineSyncMode: normalizeCodebaseEngineSyncMode(input.codebaseEngineSyncMode ?? current.codebaseEngineSyncMode),
+    codebaseEngineEndpoint: (input.codebaseEngineEndpoint ?? current.codebaseEngineEndpoint).trim(),
+    codebaseEngineMcpEndpoint: (input.codebaseEngineMcpEndpoint ?? current.codebaseEngineMcpEndpoint).trim(),
+    codebaseEngineCommand: (input.codebaseEngineCommand ?? current.codebaseEngineCommand).trim()
+      || (codebaseEngineProvider === "codegraph" ? "codegraph" : ""),
+    codebaseEngineWorkspace: (input.codebaseEngineWorkspace ?? current.codebaseEngineWorkspace).trim()
+      || path.join(dataDir(), "codebase-engine"),
+    codebaseEngineApiKey,
+    codebaseEngineIgnoreGlobs: normalizeCorsOrigins(
+      input.codebaseEngineIgnoreGlobs ?? current.codebaseEngineIgnoreGlobs,
+      current.codebaseEngineIgnoreGlobs,
+    ),
   } satisfies KnowledgeBaseSettings;
 }
 
@@ -400,15 +480,78 @@ export function getKnowledgeFoundationStatus(setting = getKnowledgeBaseSettings(
   };
 }
 
+export function getKnowledgeCodebaseEngineStatus(setting = getKnowledgeBaseSettings()): KnowledgeCodebaseEngineStatus {
+  if (setting.codebaseEngineProvider === "disabled") {
+    return {
+      state: "disabled",
+      label: uiText("settings.knowledgeBase.codebaseEngine.status.disabled", "Disabled"),
+      detail: uiText(
+        "settings.knowledgeBase.codebaseEngine.status.disabledDetail",
+        "Code knowledge will use only manually curated knowledge spaces.",
+      ),
+      provider: setting.codebaseEngineProvider,
+      endpoint: setting.codebaseEngineEndpoint,
+      mcpEndpoint: setting.codebaseEngineMcpEndpoint,
+      indexStrategy: setting.codebaseEngineIndexStrategy,
+      syncMode: setting.codebaseEngineSyncMode,
+    };
+  }
+
+  const hasConnector =
+    setting.codebaseEngineProvider === "tree_sitter"
+      || (
+        setting.codebaseEngineProvider === "sourcegraph"
+          ? Boolean(setting.codebaseEngineEndpoint || setting.codebaseEngineMcpEndpoint)
+          : Boolean(setting.codebaseEngineEndpoint || setting.codebaseEngineMcpEndpoint || setting.codebaseEngineCommand)
+      );
+  if (!hasConnector) {
+    return {
+      state: "missing_endpoint",
+      label: uiText("settings.knowledgeBase.codebaseEngine.status.missingEndpoint", "Connector required"),
+      detail: uiText(
+        "settings.knowledgeBase.codebaseEngine.status.missingEndpointDetail",
+        "Configure an endpoint, MCP endpoint, or local command before importing code knowledge automatically.",
+      ),
+      provider: setting.codebaseEngineProvider,
+      endpoint: setting.codebaseEngineEndpoint,
+      mcpEndpoint: setting.codebaseEngineMcpEndpoint,
+      indexStrategy: setting.codebaseEngineIndexStrategy,
+      syncMode: setting.codebaseEngineSyncMode,
+    };
+  }
+
+  return {
+    state: "configured",
+    label: uiText("settings.knowledgeBase.codebaseEngine.status.configured", "Configured"),
+    detail: uiText(
+      "settings.knowledgeBase.codebaseEngine.status.configuredDetail",
+      "Code knowledge can combine graph, lexical, and semantic retrieval under the selected engine.",
+    ),
+    provider: setting.codebaseEngineProvider,
+    endpoint: setting.codebaseEngineEndpoint,
+    mcpEndpoint: setting.codebaseEngineMcpEndpoint,
+    indexStrategy: setting.codebaseEngineIndexStrategy,
+    syncMode: setting.codebaseEngineSyncMode,
+  };
+}
+
 export function getKnowledgeBaseConfigWarnings(setting = getKnowledgeBaseSettings()) {
   const foundation = getKnowledgeFoundationStatus(setting);
-  if (foundation.state === "enabled") return [];
-  return [
-    uiText("ui.server.knowledgeBase.foundationWarning", "Content understanding foundation {label}: {detail}", {
+  const codebaseEngine = getKnowledgeCodebaseEngineStatus(setting);
+  const warnings: string[] = [];
+  if (foundation.state !== "enabled") {
+    warnings.push(uiText("ui.server.knowledgeBase.foundationWarning", "Content understanding foundation {label}: {detail}", {
       label: foundation.label,
       detail: foundation.detail,
-    }),
-  ];
+    }));
+  }
+  if (codebaseEngine.state === "missing_endpoint") {
+    warnings.push(uiText("ui.server.knowledgeBase.codebaseEngineWarning", "Codebase engine {label}: {detail}", {
+      label: codebaseEngine.label,
+      detail: codebaseEngine.detail,
+    }));
+  }
+  return warnings;
 }
 
 export function getKnowledgeBaseSettings() {
@@ -450,6 +593,15 @@ export function getKnowledgeBaseSettings() {
     embeddingApiBase: readOptionalText(parsed, "embeddingApiBase", defaults.embeddingApiBase),
     embeddingApiKey: readOptionalText(parsed, "embeddingApiKey", defaults.embeddingApiKey),
     embeddingDimension: readText(parsed, "embeddingDimension", defaults.embeddingDimension),
+    codebaseEngineProvider: normalizeCodebaseEngineProvider(readText(parsed, "codebaseEngineProvider", defaults.codebaseEngineProvider)),
+    codebaseEngineIndexStrategy: normalizeCodebaseEngineIndexStrategy(readText(parsed, "codebaseEngineIndexStrategy", defaults.codebaseEngineIndexStrategy)),
+    codebaseEngineSyncMode: normalizeCodebaseEngineSyncMode(readText(parsed, "codebaseEngineSyncMode", defaults.codebaseEngineSyncMode)),
+    codebaseEngineEndpoint: readOptionalText(parsed, "codebaseEngineEndpoint", defaults.codebaseEngineEndpoint),
+    codebaseEngineMcpEndpoint: readOptionalText(parsed, "codebaseEngineMcpEndpoint", defaults.codebaseEngineMcpEndpoint),
+    codebaseEngineCommand: readOptionalText(parsed, "codebaseEngineCommand", defaults.codebaseEngineCommand),
+    codebaseEngineWorkspace: readText(parsed, "codebaseEngineWorkspace", defaults.codebaseEngineWorkspace),
+    codebaseEngineApiKey: readOptionalText(parsed, "codebaseEngineApiKey", defaults.codebaseEngineApiKey),
+    codebaseEngineIgnoreGlobs: readText(parsed, "codebaseEngineIgnoreGlobs", defaults.codebaseEngineIgnoreGlobs),
   } satisfies KnowledgeBaseSettings;
 }
 
@@ -528,6 +680,21 @@ export function buildKnowledgeEngineServerConfig(setting = getKnowledgeBaseSetti
     };
   }
 
+  const codebaseEngineCommand =
+    setting.codebaseEngineProvider === "codegraph" ? setting.codebaseEngineCommand : "";
+
+  config.codebase_engine = {
+    provider: setting.codebaseEngineProvider,
+    index_strategy: setting.codebaseEngineIndexStrategy,
+    sync_mode: setting.codebaseEngineSyncMode,
+    workspace: setting.codebaseEngineWorkspace,
+    ignore_globs: setting.codebaseEngineIgnoreGlobs.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+    ...(setting.codebaseEngineEndpoint ? { endpoint: setting.codebaseEngineEndpoint } : {}),
+    ...(setting.codebaseEngineMcpEndpoint ? { mcp_endpoint: setting.codebaseEngineMcpEndpoint } : {}),
+    ...(codebaseEngineCommand ? { command: codebaseEngineCommand } : {}),
+    ...(setting.codebaseEngineApiKey ? { api_key: setting.codebaseEngineApiKey } : {}),
+  };
+
   return config;
 }
 
@@ -539,6 +706,16 @@ export function buildKnowledgeEngineCliConfig(setting = getKnowledgeBaseSettings
     ...(setting.account ? { account: setting.account } : {}),
     ...(setting.user ? { user: setting.user } : {}),
     ...(setting.agentId ? { agent_id: setting.agentId } : {}),
+    codebase_engine: {
+      provider: setting.codebaseEngineProvider,
+      index_strategy: setting.codebaseEngineIndexStrategy,
+      sync_mode: setting.codebaseEngineSyncMode,
+      ...(setting.codebaseEngineEndpoint ? { endpoint: setting.codebaseEngineEndpoint } : {}),
+      ...(setting.codebaseEngineMcpEndpoint ? { mcp_endpoint: setting.codebaseEngineMcpEndpoint } : {}),
+      ...(setting.codebaseEngineProvider === "codegraph" && setting.codebaseEngineCommand
+        ? { command: setting.codebaseEngineCommand }
+        : {}),
+    },
   };
 }
 

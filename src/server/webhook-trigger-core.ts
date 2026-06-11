@@ -39,6 +39,19 @@ function parseRecord(value: string) {
   }
 }
 
+function readWebhookSharedSecret(request: Request) {
+  const explicit =
+    request.headers.get("x-agentworld-webhook-secret") ??
+    request.headers.get("x-webhook-secret") ??
+    request.headers.get("x-hook-secret");
+  if (explicit) return explicit;
+
+  const authorization = request.headers.get("authorization")?.trim() ?? "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (bearer) return bearer;
+  return authorization || null;
+}
+
 export function validateWebhookSecret(webhook: WebhookEndpoint, request: Request) {
   if (!webhook.secretHint.startsWith("env:")) {
     return {
@@ -58,10 +71,7 @@ export function validateWebhookSecret(webhook: WebhookEndpoint, request: Request
     };
   }
 
-  const provided =
-    request.headers.get("x-agentworld-webhook-secret") ??
-    request.headers.get("x-webhook-secret") ??
-    request.headers.get("x-hook-secret");
+  const provided = readWebhookSharedSecret(request);
 
   const providedBuffer = Buffer.from(provided ?? "");
   const expectedBuffer = Buffer.from(expected);

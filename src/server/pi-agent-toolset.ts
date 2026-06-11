@@ -5,6 +5,12 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type TextContent } from "@earendil-works/pi-ai";
 import { readKnowledgeContent, searchKnowledgeEntries } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
+import {
+  canonicalWorkspaceToolName,
+  resolveWorkspaceToolPolicyNames,
+  workspaceToolNames,
+} from "@/server/workspace-tool-names";
 
 const execFileAsync = promisify(execFile);
 
@@ -53,12 +59,8 @@ function normalizeMemoryLevels(levels: unknown) {
 
 function parseKnowledgeCategories(value: unknown) {
   if (!value) return undefined;
-  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [value];
-  const normalized = values
-    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
-    .map((item) => item.trim().toLowerCase())
-    .filter((item) => item === "public" || item === "domain" || item === "repository");
-  return [...new Set(normalized)];
+  const normalized = normalizeKnowledgeCategories(value);
+  return normalized.length ? normalized : undefined;
 }
 
 function parseRepositoryNames(value: unknown) {
@@ -116,14 +118,16 @@ export function buildReadOnlyWorkspaceTools(
       : uiText("ui.generated.cf7631103d5");
 
   const guardTool = (toolName: string) => {
+    const policyNames = resolveWorkspaceToolPolicyNames(toolName);
+    const displayToolName = canonicalWorkspaceToolName(toolName);
     if (approvalMode !== "allow") {
       return blockedMessage;
     }
-    if (deniedToolNames.has(toolName)) {
-      return uiText("ui.server.tools.harnessBlocked", undefined, { toolName });
+    if (policyNames.some((name) => deniedToolNames.has(name))) {
+      return uiText("ui.server.tools.harnessBlocked", undefined, { toolName: displayToolName });
     }
-    if (allowedToolNames && !allowedToolNames.has(toolName)) {
-      return uiText("ui.server.tools.harnessNotAllowed", undefined, { toolName });
+    if (allowedToolNames && !policyNames.some((name) => allowedToolNames.has(name))) {
+      return uiText("ui.server.tools.harnessNotAllowed", undefined, { toolName: displayToolName });
     }
     return null;
   };
@@ -134,14 +138,17 @@ export function buildReadOnlyWorkspaceTools(
   ) => {
     const blocked = guardTool(toolName);
     if (blocked) {
-      return { content: buildTextBlocks(blocked), details: { blocked: true, toolName } };
+      return {
+        content: buildTextBlocks(blocked),
+        details: { blocked: true, toolName: canonicalWorkspaceToolName(toolName) },
+      };
     }
     return fn();
   };
 
   return [
     {
-      name: "search_repo",
+      name: workspaceToolNames.searchRepo,
       label: "Search Repo",
       description: "Search the current workspace with ripgrep.",
       parameters: Type.Object({
@@ -151,7 +158,7 @@ export function buildReadOnlyWorkspaceTools(
       }),
       execute: async (_toolCallId, params, _signal) => {
         const input = params as { query: string; glob?: string; limit?: number };
-        return executeGuarded("search_repo", async () => {
+        return executeGuarded(workspaceToolNames.searchRepo, async () => {
           const args = ["-n", "--hidden", "--max-count", String(input.limit ?? 20)];
           if (input.glob) args.push("-g", input.glob);
           args.push(input.query, workspaceRoot);
@@ -164,7 +171,7 @@ export function buildReadOnlyWorkspaceTools(
       },
     },
     {
-      name: "read_file",
+      name: workspaceToolNames.readFile,
       label: "Read File",
       description: "Read a text file from the workspace.",
       parameters: Type.Object({
@@ -174,7 +181,7 @@ export function buildReadOnlyWorkspaceTools(
       }),
       execute: async (_toolCallId, params, _signal) => {
         const input = params as { path: string; startLine?: number; endLine?: number };
-        return executeGuarded("read_file", async () => {
+        return executeGuarded(workspaceToolNames.readFile, async () => {
           const targetPath = resolveWorkspacePath(workspaceRoot, input.path);
           const { stdout } = await execFileAsync(
             "sed",
@@ -193,7 +200,7 @@ export function buildReadOnlyWorkspaceTools(
       },
     },
     {
-      name: "list_dir",
+      name: workspaceToolNames.listDir,
       label: "List Directory",
       description: "List files in the workspace.",
       parameters: Type.Object({
@@ -201,7 +208,7 @@ export function buildReadOnlyWorkspaceTools(
       }),
       execute: async (_toolCallId, params, _signal) => {
         const input = params as { path?: string };
-        return executeGuarded("list_dir", async () => {
+        return executeGuarded(workspaceToolNames.listDir, async () => {
           const targetPath = resolveWorkspacePath(workspaceRoot, input.path);
           const { stdout } = await execFileAsync("ls", ["-la", targetPath], { signal: _signal });
           return {
@@ -212,7 +219,7 @@ export function buildReadOnlyWorkspaceTools(
       },
     },
     {
-      name: "memory.search",
+      name: workspaceToolNames.memorySearch,
       label: "Search Knowledge",
       description: "Search the knowledge base with optional filters.",
       parameters: Type.Object({
@@ -236,15 +243,15 @@ export function buildReadOnlyWorkspaceTools(
           limit?: unknown;
           includeOutboundUris?: unknown;
         };
-        return executeGuarded("memory.search", async () => {
+        return executeGuarded(workspaceToolNames.memorySearch, async () => {
           const query = input.query.trim();
           const result = searchKnowledgeEntries({
             query,
-          knowledgeSpaceIds: input.knowledgeSpaceIds?.filter(Boolean),
-          scopeUris: input.scopeUris?.filter(Boolean),
-          knowledgeCategories: parseKnowledgeCategories(input.knowledgeCategories),
-          repositoryNames: parseRepositoryNames(input.repositoryNames),
-          levels: normalizeMemoryLevels(input.levels),
+            knowledgeSpaceIds: input.knowledgeSpaceIds?.filter(Boolean),
+            scopeUris: input.scopeUris?.filter(Boolean),
+            knowledgeCategories: parseKnowledgeCategories(input.knowledgeCategories),
+            repositoryNames: parseRepositoryNames(input.repositoryNames),
+            levels: normalizeMemoryLevels(input.levels),
             limit: normalizeKnowledgeLimit(input.limit),
             includeOutboundUris: normalizeBooleanFlag(input.includeOutboundUris),
           });
@@ -261,9 +268,9 @@ export function buildReadOnlyWorkspaceTools(
       },
     },
     {
-      name: "memory.retrieve",
+      name: workspaceToolNames.memoryRetrieve,
       label: "Search Knowledge (Legacy)",
-      description: "Compatibility alias for memory.search.",
+      description: "Compatibility alias for memory_search.",
       parameters: Type.Object({
         query: Type.String(),
         knowledgeSpaceIds: Type.Optional(Type.Array(Type.String())),
@@ -285,15 +292,15 @@ export function buildReadOnlyWorkspaceTools(
           limit?: unknown;
           includeOutboundUris?: unknown;
         };
-        return executeGuarded("memory.retrieve", async () => {
+        return executeGuarded(workspaceToolNames.memoryRetrieve, async () => {
           const query = input.query.trim();
           const result = searchKnowledgeEntries({
             query,
-          knowledgeSpaceIds: input.knowledgeSpaceIds?.filter(Boolean),
-          scopeUris: input.scopeUris?.filter(Boolean),
-          knowledgeCategories: parseKnowledgeCategories(input.knowledgeCategories),
-          repositoryNames: parseRepositoryNames(input.repositoryNames),
-          levels: normalizeMemoryLevels(input.levels),
+            knowledgeSpaceIds: input.knowledgeSpaceIds?.filter(Boolean),
+            scopeUris: input.scopeUris?.filter(Boolean),
+            knowledgeCategories: parseKnowledgeCategories(input.knowledgeCategories),
+            repositoryNames: parseRepositoryNames(input.repositoryNames),
+            levels: normalizeMemoryLevels(input.levels),
             limit: normalizeKnowledgeLimit(input.limit),
             includeOutboundUris: normalizeBooleanFlag(input.includeOutboundUris),
           });
@@ -310,7 +317,7 @@ export function buildReadOnlyWorkspaceTools(
       },
     },
     {
-      name: "memory.read",
+      name: workspaceToolNames.memoryRead,
       label: "Read Knowledge",
       description: "Read a knowledge URI at L0/L1/L2 level.",
       parameters: Type.Object({
@@ -319,7 +326,7 @@ export function buildReadOnlyWorkspaceTools(
       }),
       execute: async (_toolCallId, params) => {
         const input = params as { uri?: string; level?: string };
-        return executeGuarded("memory.read", async () => {
+        return executeGuarded(workspaceToolNames.memoryRead, async () => {
           const uri = (input.uri ?? "").trim();
           const level = normalizeMemoryLevel(input.level);
           const content = await readKnowledgeContent(uri, level);

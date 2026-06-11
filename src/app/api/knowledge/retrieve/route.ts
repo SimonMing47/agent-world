@@ -6,6 +6,7 @@ import {
   requireKnowledgeApiAuthFailure,
   resolveKnowledgeApiAuthContext,
 } from "@/server/knowledge-api-auth";
+import { normalizeKnowledgeCategories, type KnowledgeCategory } from "@/lib/knowledge-categories";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,7 +26,7 @@ type KnowledgeRetrieveRequest = {
   query?: string;
   knowledgeSpaceIds?: string[];
   scopeUris?: string[];
-  knowledgeCategories?: string[];
+  knowledgeCategories?: KnowledgeCategory[];
   repositoryNames?: string[];
   levels?: Array<"L0" | "L1" | "L2">;
   limit?: number;
@@ -62,12 +63,7 @@ function parseLevels(value: unknown) {
 }
 
 function parseKnowledgeCategories(value: unknown) {
-  const values = typeof value === "string" ? [value] : parseStringArray(value);
-  const normalized = values
-    .flatMap((item) => item.split(","))
-    .map((item) => item.trim().toLowerCase())
-    .filter((item) => item === "public" || item === "domain" || item === "repository");
-  return [...new Set(normalized)];
+  return normalizeKnowledgeCategories(value);
 }
 
 function parseRepositoryNames(value: unknown) {

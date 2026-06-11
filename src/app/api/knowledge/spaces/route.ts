@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { uiText } from "@/lib/language-pack";
+import { type KnowledgeCategory } from "@/lib/knowledge-categories";
 import { canAccessBusinessTeam, getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
 import {
   bindKnowledgeSpace,
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     targetId?: string;
     accessLevel?: "read" | "write" | "archive";
     loadOrder?: number;
-    knowledgeCategory?: "public" | "domain" | "repository";
+    knowledgeCategory?: KnowledgeCategory;
     repositoryName?: string;
     id?: string;
     status?: string;

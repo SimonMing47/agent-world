@@ -178,14 +178,14 @@ Team -> Memory: 写入结果和人工反馈入口
 
 ## 6. 案例配置
 
-### 6.1 神盾计划
+### 6.1 配置化 MR 检视
 
-神盾计划通过配置而不是写死实现：
+MR 检视流程通过配置而不是写死实现：
 
 - Webhook 入口：MR diff。
-- 任务蓝图：`shield_mr_check`。
-- 任务模板：`task-template-shield-mr-check`。
-- 触发模板：`template-shield-mr-check`。
+- 任务蓝图：`merge_request_review`。
+- 任务模板：`task-template-merge-request-review`。
+- 触发模板：`template-merge-request-review`。
 - 执行环境：`env-shield-mr-check`。
 - Agent 团队：`PR Vanguard`。
 - 记忆层：仓库上下文、全局检视经验、安全、测试、数据与接口。

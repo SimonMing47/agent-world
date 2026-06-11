@@ -15,6 +15,7 @@ import {
 } from "@/components/task-workflow-block-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeCategory } from "@/lib/knowledge-categories";
 import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 import { cn } from "@/lib/utils";
 
@@ -198,7 +199,15 @@ function parseRunPlan(value: string) {
   };
 }
 
-const workflowBlockTypes = ["agent", "agent_team", "script_hook", "http_hook", "notification"] as const;
+const workflowBlockTypes = [
+  "agent",
+  "agent_team",
+  "script_hook",
+  "http_hook",
+  "notification",
+  "plugin_tool",
+  "publisher",
+] as const;
 
 function isWorkflowBlockType(value: unknown): value is WorkflowBlockType {
   return workflowBlockTypes.includes(value as WorkflowBlockType);
@@ -219,6 +228,8 @@ function inferBlockTool(type: WorkflowBlockType, value: unknown) {
   if (type === "agent_team") return "agent_team.invoke";
   if (type === "script_hook") return "script.run";
   if (type === "http_hook") return "hook.http";
+  if (type === "plugin_tool") return "plugin.tool";
+  if (type === "publisher") return "plugin.publish";
   return "connector.email";
 }
 
@@ -227,20 +238,14 @@ function inferBlockAction(type: WorkflowBlockType, value: unknown) {
   if (type === "agent_team") return "delegate";
   if (type === "script_hook") return "run_script";
   if (type === "http_hook") return "call_hook";
+  if (type === "plugin_tool") return "execute_plugin_tool";
+  if (type === "publisher") return "publish";
   if (type === "notification") return "notify";
   return "execute";
 }
 
-const workflowKnowledgeCategories = new Set(["public", "domain", "repository"]);
-
 function parseWorkflowKnowledgeCategory(value: unknown) {
-  if (typeof value === "string") {
-    const normalized = value.trim().toLowerCase();
-    if (workflowKnowledgeCategories.has(normalized)) {
-      return normalized as "public" | "domain" | "repository";
-    }
-  }
-  return "domain" as const;
+  return normalizeKnowledgeCategory(value);
 }
 
 function parseWorkflowRepositoryName(value: unknown) {
@@ -311,6 +316,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
         method: typeof raw.method === "string" ? raw.method : "POST",
         connectorType: typeof raw.connectorType === "string" ? raw.connectorType : "",
         publisherRef: typeof raw.publisherRef === "string" ? raw.publisherRef : "",
+        pluginRef: typeof raw.pluginRef === "string" ? raw.pluginRef : "",
+        toolRef: typeof raw.toolRef === "string" ? raw.toolRef : "",
+        forEach: typeof raw.forEach === "string" ? raw.forEach : "",
+        feedbackBaseUrl: typeof raw.feedbackBaseUrl === "string" ? raw.feedbackBaseUrl : "",
         payloadTemplate:
           typeof raw.payloadTemplate === "string"
             ? raw.payloadTemplate
@@ -322,7 +331,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
               ? raw.knowledgeCategories
               : Array.isArray(raw.knowledgeCategories)
                 ? raw.knowledgeCategories[0]
-              : undefined,
+                : undefined,
         ),
         repositoryName: parseWorkflowRepositoryName(
           typeof raw.repositoryName === "string"
@@ -360,6 +369,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       method: "POST",
       connectorType: "",
       publisherRef: "",
+      pluginRef: "",
+      toolRef: "",
+      forEach: "",
+      feedbackBaseUrl: "",
       payloadTemplate: "{}",
       knowledgeCategory: "domain",
       repositoryName: "",
@@ -379,6 +392,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       method: "POST",
       connectorType: "",
       publisherRef: "",
+      pluginRef: "",
+      toolRef: "",
+      forEach: "",
+      feedbackBaseUrl: "",
       payloadTemplate: "{}",
       knowledgeCategory: "domain",
       repositoryName: "",
@@ -410,6 +427,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       method: "POST",
       connectorType: "",
       publisherRef: "",
+      pluginRef: "",
+      toolRef: "",
+      forEach: "",
+      feedbackBaseUrl: "",
       payloadTemplate: "{}",
       knowledgeCategory: "domain",
       repositoryName: "",
@@ -432,6 +453,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       method: "POST",
       connectorType: "dashboard",
       publisherRef: "dashboard",
+      pluginRef: "",
+      toolRef: "",
+      forEach: "",
+      feedbackBaseUrl: "",
       payloadTemplate: "{}",
       knowledgeCategory: "domain",
       repositoryName: "",
@@ -518,6 +543,10 @@ function buildRunPlanJson(args: {
       targetAgentTeamId: block.type === "agent_team" ? block.agentTeamId || undefined : undefined,
       connectorType: block.type === "notification" ? block.connectorType || undefined : undefined,
       publisherRef: block.publisherRef || undefined,
+      pluginRef: block.pluginRef || undefined,
+      toolRef: block.toolRef || undefined,
+      forEach: block.forEach || undefined,
+      feedbackBaseUrl: block.feedbackBaseUrl || undefined,
     }));
   const terminalBlocks = blocks
     .map((block) => block.id)
@@ -542,11 +571,15 @@ function buildRunPlanJson(args: {
         method: block.method || undefined,
         connectorType: block.connectorType || undefined,
         publisherRef: block.publisherRef || undefined,
+        pluginRef: block.pluginRef || undefined,
+        toolRef: block.toolRef || undefined,
+        forEach: block.forEach || undefined,
+        feedbackBaseUrl: block.feedbackBaseUrl || undefined,
         payloadTemplate: block.payloadTemplate || undefined,
         knowledgeCategory: block.knowledgeCategory || "domain",
         repositoryName: block.repositoryName || undefined,
         repositoryNames:
-          block.knowledgeCategory === "repository" && block.repositoryName
+          block.knowledgeCategory === "code" && block.repositoryName
             ? repositoryAliasesByName.get(block.repositoryName) ?? buildRepositoryNameAliases(block.repositoryName)
             : undefined,
       })),
@@ -829,7 +862,7 @@ export function TaskBlueprintEditor({
     }
 
     const repositoryKnowledgeBlock = form.blocks.find(
-      (block) => block.knowledgeCategory === "repository" && !block.repositoryName.trim(),
+      (block) => block.knowledgeCategory === "code" && !block.repositoryName.trim(),
     );
     if (repositoryKnowledgeBlock) {
       setIsSaving(false);
@@ -858,7 +891,13 @@ export function TaskBlueprintEditor({
         JSON.parse(value);
       });
       form.blocks.forEach((block) => {
-        if ((block.type === "http_hook" || block.type === "notification") && block.payloadTemplate.trim()) {
+        if (
+          (block.type === "http_hook" ||
+            block.type === "notification" ||
+            block.type === "plugin_tool" ||
+            block.type === "publisher") &&
+          block.payloadTemplate.trim()
+        ) {
           JSON.parse(block.payloadTemplate);
         }
       });
@@ -1148,11 +1187,11 @@ export function TaskBlueprintEditor({
         icon={<SlidersHorizontal className="h-4 w-4" />}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <FieldGroup label="Parser / Connector">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.parserConnector")}>
             <Input
               value={form.triggerConnector}
               onChange={(event) => setForm({ ...form, triggerConnector: event.target.value })}
-              placeholder="official.codehub.webhook.merge_request"
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.parserConnector")}
             />
           </FieldGroup>
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.idempotencyTemplate")}>
@@ -1162,7 +1201,7 @@ export function TaskBlueprintEditor({
               placeholder="${task_blueprint_id}:${delivery_id}:${diff_ref}"
             />
           </FieldGroup>
-          <FieldGroup label="Webhook Secret Ref">
+          <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.webhookSecretRef")}>
             <Input
               value={form.triggerSecretRef}
               onChange={(event) => setForm({ ...form, triggerSecretRef: event.target.value })}
@@ -1170,11 +1209,11 @@ export function TaskBlueprintEditor({
             />
           </FieldGroup>
           {!isWebhookTrigger ? (
-            <FieldGroup label="Webhook Path">
+            <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.webhookPath")}>
               <Input
                 value={form.triggerWebhookPathKey}
                 onChange={(event) => setForm({ ...form, triggerWebhookPathKey: event.target.value })}
-                placeholder="merge-request-review"
+                placeholder={uiText("ui.taskBlueprintEditor.placeholders.webhookPath")}
               />
             </FieldGroup>
           ) : null}

@@ -63,6 +63,48 @@ async function requestJson(args: {
   return payload;
 }
 
+function firstRecord(value: unknown) {
+  return Array.isArray(value) && isRecord(value[0]) ? value[0] : null;
+}
+
+function normalizePublishedCommentRef(payload: unknown) {
+  const record = isRecord(payload) ? payload : {};
+  const note = firstRecord(record.notes) ?? record;
+  return {
+    discussionId:
+      typeof record.id === "string" || typeof record.id === "number"
+        ? String(record.id)
+        : typeof record.discussion_id === "string" || typeof record.discussion_id === "number"
+          ? String(record.discussion_id)
+          : null,
+    noteId:
+      typeof note.id === "string" || typeof note.id === "number"
+        ? String(note.id)
+        : typeof note.note_id === "string" || typeof note.note_id === "number"
+          ? String(note.note_id)
+          : null,
+    url:
+      typeof note.web_url === "string"
+        ? note.web_url
+        : typeof record.web_url === "string"
+          ? record.web_url
+          : null,
+  };
+}
+
+function readWebhookSharedSecret(request: Request) {
+  const explicit =
+    request.headers.get("x-agentworld-webhook-secret") ??
+    request.headers.get("x-webhook-secret") ??
+    request.headers.get("x-hook-secret");
+  if (explicit) return explicit;
+
+  const authorization = request.headers.get("authorization")?.trim() ?? "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (bearer) return bearer;
+  return authorization || null;
+}
+
 async function ensurePermission(ctx: PluginRuntimeContext | undefined, resource: string, scope?: string) {
   if (!ctx) return;
   const decision = await ctx.requestPermission({ resource, scope });
@@ -159,10 +201,7 @@ const webhookParser: ExecutableWebhookParser = {
     const expected = await args.resolveSecretRef(secretRef);
     if (!expected) return;
 
-    const provided =
-      args.request.headers.get("x-agentworld-webhook-secret") ??
-      args.request.headers.get("x-webhook-secret") ??
-      args.request.headers.get("x-hook-secret");
+    const provided = readWebhookSharedSecret(args.request);
 
     if (provided !== expected) {
       throw new Error("CodeHub webhook secret mismatch.");
@@ -244,8 +283,8 @@ const webhookParser: ExecutableWebhookParser = {
   },
 };
 
-const outputPublisher: ExecutableOutputPublisher = {
-      id: "official.codehub.publisher.merge_request_comment",
+const mergeRequestCommentPublisher: ExecutableOutputPublisher = {
+  id: "official.codehub.publisher.merge_request_comment",
   async publish(input, ctx) {
     const projectIdValue = String(input.projectId ?? input.project_id ?? "");
     const mrIidValue = String(input.mergeRequestIid ?? input.merge_request_iid ?? input.mr_iid ?? "");
@@ -274,12 +313,83 @@ const outputPublisher: ExecutableOutputPublisher = {
 
     const projectId = encodeURIComponent(projectIdValue);
     const mrIid = encodeURIComponent(mrIidValue);
-    return (await requestJson({
+    const noteId =
+      typeof input.noteId === "string" || typeof input.note_id === "string"
+        ? String(input.noteId ?? input.note_id)
+        : "";
+    const payload = (await requestJson({
       ...config,
-      path: `/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`,
-      method: "POST",
+      path: noteId
+        ? `/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes/${encodeURIComponent(noteId)}`
+        : `/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`,
+      method: noteId ? "PUT" : "POST",
       body,
     })) as Record<string, unknown>;
+    return {
+      ...payload,
+      publicationStatus: "published",
+      externalComment: normalizePublishedCommentRef(payload),
+      externalTarget: {
+        type: "merge_request",
+        projectId: projectIdValue,
+        mergeRequestIid: mrIidValue,
+      },
+    };
+  },
+};
+
+const issueCommentPublisher: ExecutableOutputPublisher = {
+  id: "official.codehub.publisher.issue_comment",
+  async publish(input, ctx) {
+    const projectIdValue = String(input.projectId ?? input.project_id ?? "");
+    const issueIidValue = String(input.issueIid ?? input.issue_iid ?? input.issueId ?? input.issue_id ?? "");
+    const body = isRecord(input.body) ? input.body : { body: String(input.comment ?? "") };
+    if (!projectIdValue || !issueIidValue) {
+      return {
+        publicationStatus: "drafted",
+        reason: "CodeHub projectId or issueIid is missing.",
+        body,
+      };
+    }
+
+    let config: { baseUrl: string; token: string };
+    try {
+      await ensurePermission(ctx, "repo.issue.comment", `${projectIdValue}:${issueIidValue}`);
+      config = await resolveCodeHubConfig(input, ctx);
+    } catch (error) {
+      return {
+        publicationStatus: "drafted",
+        reason: error instanceof Error ? error.message : "CodeHub credentials are not configured.",
+        projectId: projectIdValue,
+        issueIid: issueIidValue,
+        body,
+      };
+    }
+
+    const projectId = encodeURIComponent(projectIdValue);
+    const issueIid = encodeURIComponent(issueIidValue);
+    const noteId =
+      typeof input.noteId === "string" || typeof input.note_id === "string"
+        ? String(input.noteId ?? input.note_id)
+        : "";
+    const payload = (await requestJson({
+      ...config,
+      path: noteId
+        ? `/api/v4/projects/${projectId}/issues/${issueIid}/notes/${encodeURIComponent(noteId)}`
+        : `/api/v4/projects/${projectId}/issues/${issueIid}/notes`,
+      method: noteId ? "PUT" : "POST",
+      body,
+    })) as Record<string, unknown>;
+    return {
+      ...payload,
+      publicationStatus: "published",
+      externalComment: normalizePublishedCommentRef(payload),
+      externalTarget: {
+        type: "issue",
+        projectId: projectIdValue,
+        issueIid: issueIidValue,
+      },
+    };
   },
 };
 
@@ -301,6 +411,11 @@ const toolBundle: ExecutableToolBundle = {
       title: uiText("ui.generated.c86c0e27f8d"),
       description: uiText("ui.generated.c82f8f202e1"),
     },
+    {
+      id: "codehub.issue.comment.publish",
+      title: uiText("codehub.issueComment.title"),
+      description: uiText("codehub.issueComment.description"),
+    },
   ],
   async executeTool(toolId, input, ctx) {
     if (toolId === "codehub.project.get") {
@@ -310,7 +425,10 @@ const toolBundle: ExecutableToolBundle = {
       return repositoryConnector.getMergeRequestChanges?.(input, ctx) ?? {};
     }
     if (toolId === "codehub.merge_request.comment.publish") {
-      return outputPublisher.publish(input, ctx);
+      return mergeRequestCommentPublisher.publish(input, ctx);
+    }
+    if (toolId === "codehub.issue.comment.publish") {
+      return issueCommentPublisher.publish(input, ctx);
     }
     throw new Error(`Unsupported CodeHub tool: ${toolId}`);
   },
@@ -335,6 +453,7 @@ export const codehubExecutablePlugin: ExecutablePluginModule = {
         requested: [
           "repo.read",
           "repo.mr.comment",
+          "repo.issue.comment",
           "webhook.receive",
           "secret.use",
         ],
@@ -342,7 +461,7 @@ export const codehubExecutablePlugin: ExecutablePluginModule = {
       contributions: {
         repositoryConnectors: [{ id: repositoryConnector.id }],
         webhookParsers: [{ id: webhookParser.id }],
-        outputPublishers: [{ id: outputPublisher.id }],
+        outputPublishers: [{ id: mergeRequestCommentPublisher.id }, { id: issueCommentPublisher.id }],
         toolBundles: [{ id: toolBundle.id }],
       },
       configSchema: {
@@ -358,6 +477,6 @@ export const codehubExecutablePlugin: ExecutablePluginModule = {
   },
   repositoryConnectors: [repositoryConnector],
   webhookParsers: [webhookParser],
-  outputPublishers: [outputPublisher],
+  outputPublishers: [mergeRequestCommentPublisher, issueCommentPublisher],
   toolBundles: [toolBundle],
 };

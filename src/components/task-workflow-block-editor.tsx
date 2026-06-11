@@ -7,8 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguageText } from "@/components/language-pack-provider";
+import { type KnowledgeCategory } from "@/lib/knowledge-categories";
 
-export type WorkflowBlockType = "agent" | "agent_team" | "script_hook" | "http_hook" | "notification";
+export type WorkflowBlockType =
+  | "agent"
+  | "agent_team"
+  | "script_hook"
+  | "http_hook"
+  | "notification"
+  | "plugin_tool"
+  | "publisher";
 
 export type WorkflowBlock = {
   id: string;
@@ -25,8 +33,12 @@ export type WorkflowBlock = {
   method: string;
   connectorType: string;
   publisherRef: string;
+  pluginRef: string;
+  toolRef: string;
+  forEach: string;
+  feedbackBaseUrl: string;
   payloadTemplate: string;
-  knowledgeCategory: "public" | "domain" | "repository";
+  knowledgeCategory: KnowledgeCategory;
   repositoryName: string;
 };
 
@@ -60,8 +72,10 @@ const blockTypeLabels: Record<WorkflowBlockType, string> = {
   agent: "ui.common.workflow.blockTypes.agent",
   agent_team: "ui.common.workflow.blockTypes.agentTeam",
   script_hook: "ui.common.workflow.blockTypes.scriptHook",
-  http_hook: "HTTP Hook",
+  http_hook: "ui.common.workflow.blockTypes.httpHook",
   notification: "ui.common.workflow.blockTypes.notification",
+  plugin_tool: "ui.common.workflow.blockTypes.pluginTool",
+  publisher: "ui.common.workflow.blockTypes.publisher",
 };
 
 function nextBlockId(type: WorkflowBlockType, index: number) {
@@ -73,6 +87,8 @@ function defaultTool(type: WorkflowBlockType) {
   if (type === "agent_team") return "agent_team.invoke";
   if (type === "script_hook") return "script.run";
   if (type === "http_hook") return "hook.http";
+  if (type === "plugin_tool") return "plugin.tool";
+  if (type === "publisher") return "plugin.publish";
   return "connector.email";
 }
 
@@ -81,6 +97,8 @@ function defaultAction(type: WorkflowBlockType) {
   if (type === "agent_team") return "delegate";
   if (type === "script_hook") return "run_script";
   if (type === "http_hook") return "call_hook";
+  if (type === "plugin_tool") return "execute_plugin_tool";
+  if (type === "publisher") return "publish";
   return "notify";
 }
 
@@ -100,6 +118,10 @@ function createBlock(type: WorkflowBlockType, index: number) {
     method: "POST",
     connectorType: type === "notification" ? "email" : "",
     publisherRef: "",
+    pluginRef: "",
+    toolRef: "",
+    forEach: "",
+    feedbackBaseUrl: "",
     payloadTemplate: "{}",
     knowledgeCategory: "domain",
     repositoryName: "",
@@ -162,7 +184,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {(["agent", "agent_team", "script_hook", "http_hook", "notification"] as const).map((type) => (
+        {(["agent", "agent_team", "script_hook", "http_hook", "notification", "plugin_tool", "publisher"] as const).map((type) => (
           <Button key={type} type="button" size="sm" variant="secondary" onClick={() => addBlock(type)}>
             <Plus className="h-4 w-4" />
             {blockTypeLabels[type]}
@@ -347,7 +369,60 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                         onChange={(event) =>
                           onChange(updateBlock(blocks, block.id, { publisherRef: event.target.value }))
                         }
-                        placeholder="builtin.email / official.codehub.publisher..."
+                        placeholder="ui.taskWorkflow.placeholders.publisherRef"
+                      />
+                    </FieldGroup>
+                  </>
+                ) : null}
+
+                {block.type === "plugin_tool" ? (
+                  <>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginRef">
+                      <Input
+                        value={block.pluginRef}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { pluginRef: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.pluginRef"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.toolRef">
+                      <Input
+                        value={block.toolRef}
+                        onChange={(event) => onChange(updateBlock(blocks, block.id, { toolRef: event.target.value }))}
+                        placeholder="ui.taskWorkflow.placeholders.toolRef"
+                      />
+                    </FieldGroup>
+                  </>
+                ) : null}
+
+                {block.type === "publisher" ? (
+                  <>
+                    <FieldGroup label="ui.taskWorkflow.fields.publisherRef">
+                      <Input
+                        value={block.publisherRef}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { publisherRef: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.publisherRef"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.forEach">
+                      <Select
+                        value={block.forEach}
+                        onChange={(event) => onChange(updateBlock(blocks, block.id, { forEach: event.target.value }))}
+                      >
+                        <option value="">{text("ui.taskWorkflow.options.once")}</option>
+                        <option value="finding">{text("ui.taskWorkflow.options.eachFinding")}</option>
+                      </Select>
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.feedbackBaseUrl" className="md:col-span-2">
+                      <Input
+                        value={block.feedbackBaseUrl}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { feedbackBaseUrl: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.feedbackBaseUrl"
                       />
                     </FieldGroup>
                   </>
@@ -371,17 +446,17 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     onChange={(event) =>
                       onChange(
                         updateBlock(blocks, block.id, {
-                          knowledgeCategory: event.target.value as "public" | "domain" | "repository",
-                          ...(event.target.value === "repository"
+                          knowledgeCategory: event.target.value as KnowledgeCategory,
+                          ...(event.target.value === "code"
                             ? { repositoryName: block.repositoryName || repositoryOptions[0]?.name || "" }
                             : { repositoryName: "" }),
                         }),
                       )
                     }
                   >
-                    <option value="public">{text("knowledge.category.public")}</option>
+                    <option value="skill">{text("knowledge.category.public")}</option>
                     <option value="domain">{text("knowledge.category.domain")}</option>
-                    <option value="repository">{text("knowledge.category.repository")}</option>
+                    <option value="code">{text("knowledge.category.repository")}</option>
                   </Select>
                 </FieldGroup>
                 <FieldGroup label={text("knowledge.repositoryName")}>
@@ -389,7 +464,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Select
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "repository"}
+                      disabled={block.knowledgeCategory !== "code"}
                     >
                       <option value="">{text("knowledge.repositoryName.placeholder")}</option>
                       {block.repositoryName && !repositoryOptions.some((option) => option.name === block.repositoryName) ? (
@@ -405,7 +480,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Input
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "repository"}
+                      disabled={block.knowledgeCategory !== "code"}
                       placeholder={text("knowledge.repositoryName.placeholder")}
                     />
                   )}
@@ -418,7 +493,10 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     placeholder="ui.generated.c59562a8651"
                   />
                 </FieldGroup>
-                {block.type === "http_hook" || block.type === "notification" ? (
+                {block.type === "http_hook" ||
+                block.type === "notification" ||
+                block.type === "plugin_tool" ||
+                block.type === "publisher" ? (
                   <FieldGroup label="ui.generated.c74a4d559a2" className="md:col-span-2">
                     <Textarea
                       className="min-h-24 font-mono text-xs"
@@ -426,7 +504,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                       onChange={(event) =>
                         onChange(updateBlock(blocks, block.id, { payloadTemplate: event.target.value }))
                       }
-                      placeholder='{"taskRunId":"${task_run_id}","summary":"${summary}"}'
+                      placeholder="ui.taskWorkflow.placeholders.payloadTemplate"
                     />
                   </FieldGroup>
                 ) : null}

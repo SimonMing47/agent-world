@@ -1,5 +1,6 @@
 import { type Agent, type AgentTeam } from "@/server/db";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeCategories, type KnowledgeCategory } from "@/lib/knowledge-categories";
 
 export type AgentTeamRunPlanWorker = {
   agent: string;
@@ -12,11 +13,15 @@ export type AgentTeamRunPlanWorker = {
   targetAgentTeamId?: string;
   connectorType?: string;
   publisherRef?: string;
+  pluginRef?: string;
+  toolRef?: string;
+  forEach?: string;
+  feedbackBaseUrl?: string;
 };
 
 export type AgentTeamRunPlanBlock = {
   id: string;
-  type: "agent" | "agent_team" | "script_hook" | "http_hook" | "notification";
+  type: "agent" | "agent_team" | "script_hook" | "http_hook" | "notification" | "plugin_tool" | "publisher";
   title?: string;
   agentId?: string;
   agentTeamId?: string;
@@ -29,10 +34,21 @@ export type AgentTeamRunPlanBlock = {
   method?: string;
   connectorType?: string;
   publisherRef?: string;
+  pluginRef?: string;
+  toolRef?: string;
+  forEach?: string;
+  feedbackBaseUrl?: string;
   payloadTemplate?: string;
+  query?: string;
+  uri?: string;
+  scopeUris?: string[];
+  levels?: Array<"L0" | "L1" | "L2">;
+  level?: "L0" | "L1" | "L2";
+  limit?: number;
+  includeOutboundUris?: boolean;
   knowledgeCategories?: string[];
   repositoryNames?: string[];
-  knowledgeCategory?: "public" | "domain" | "repository";
+  knowledgeCategory?: KnowledgeCategory;
   repositoryName?: string;
 };
 
@@ -80,7 +96,9 @@ function normalizeBlockType(value: unknown): AgentTeamRunPlanBlock["type"] {
     value === "agent_team" ||
     value === "script_hook" ||
     value === "http_hook" ||
-    value === "notification"
+    value === "notification" ||
+    value === "plugin_tool" ||
+    value === "publisher"
   ) {
     return value;
   }
@@ -92,6 +110,8 @@ function defaultToolForBlock(type: AgentTeamRunPlanBlock["type"]) {
   if (type === "agent_team") return "agent_team.invoke";
   if (type === "script_hook") return "script.run";
   if (type === "http_hook") return "hook.http";
+  if (type === "plugin_tool") return "plugin.tool";
+  if (type === "publisher") return "plugin.publish";
   return "connector.email";
 }
 
@@ -99,20 +119,14 @@ function defaultActionForBlock(type: AgentTeamRunPlanBlock["type"]) {
   if (type === "agent_team") return "delegate";
   if (type === "script_hook") return "run_script";
   if (type === "http_hook") return "call_hook";
+  if (type === "plugin_tool") return "execute_plugin_tool";
+  if (type === "publisher") return "publish";
   if (type === "notification") return "notify";
   return "execute";
 }
 
-const knownKnowledgeCategories = new Set(["public", "domain", "repository"]);
-
 function parseKnowledgeCategories(value: unknown) {
-  const normalized = (Array.isArray(value) ? value : typeof value === "string" ? [value] : [])
-    .flatMap((item) => (typeof item === "string" ? item.split(",") : []))
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .filter((item) => knownKnowledgeCategories.has(item))
-    .map((item) => item as "public" | "domain" | "repository");
-  return [...new Set(normalized)];
+  return normalizeKnowledgeCategories(value);
 }
 
 function parseRepositoryNames(value: unknown) {
@@ -146,7 +160,20 @@ function parseRunPlan(value: string): AgentTeamRunPlan | null {
             method: typeof block.method === "string" ? block.method : undefined,
             connectorType: typeof block.connectorType === "string" ? block.connectorType : undefined,
             publisherRef: typeof block.publisherRef === "string" ? block.publisherRef : undefined,
+            pluginRef: typeof block.pluginRef === "string" ? block.pluginRef : undefined,
+            toolRef: typeof block.toolRef === "string" ? block.toolRef : undefined,
+            forEach: typeof block.forEach === "string" ? block.forEach : undefined,
+            feedbackBaseUrl: typeof block.feedbackBaseUrl === "string" ? block.feedbackBaseUrl : undefined,
             payloadTemplate: typeof block.payloadTemplate === "string" ? block.payloadTemplate : undefined,
+            query: typeof block.query === "string" ? block.query : undefined,
+            uri: typeof block.uri === "string" ? block.uri : undefined,
+            scopeUris: Array.isArray(block.scopeUris) ? block.scopeUris.map(String).filter(Boolean) : undefined,
+            levels: Array.isArray(block.levels)
+              ? block.levels.filter((level): level is "L0" | "L1" | "L2" => level === "L0" || level === "L1" || level === "L2")
+              : undefined,
+            level: block.level === "L0" || block.level === "L1" || block.level === "L2" ? block.level : undefined,
+            limit: Number.isFinite(Number(block.limit)) ? Number(block.limit) : undefined,
+            includeOutboundUris: typeof block.includeOutboundUris === "boolean" ? block.includeOutboundUris : undefined,
             knowledgeCategories: parseKnowledgeCategories(block.knowledgeCategories ?? block.knowledgeCategory),
             repositoryNames: parseRepositoryNames(block.repositoryNames ?? block.repositoryName),
           } satisfies AgentTeamRunPlanBlock;
@@ -193,6 +220,10 @@ export function summarizeAgentTeamRunPlan(
               targetAgentTeamId: block.agentTeamId,
               connectorType: block.connectorType,
               publisherRef: block.publisherRef,
+              pluginRef: block.pluginRef,
+              toolRef: block.toolRef,
+              forEach: block.forEach,
+              feedbackBaseUrl: block.feedbackBaseUrl,
               agentName: agents.find((agent) => agent.id === agentId)?.name ?? agentId,
             };
           })
@@ -258,7 +289,18 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
           method: block.method,
           connectorType: block.connectorType,
           publisherRef: block.publisherRef,
+          pluginRef: block.pluginRef,
+          toolRef: block.toolRef,
+          forEach: block.forEach,
+          feedbackBaseUrl: block.feedbackBaseUrl,
           payloadTemplate: block.payloadTemplate,
+          query: block.query,
+          uri: block.uri,
+          scopeUris: block.scopeUris,
+          levels: block.levels,
+          level: block.level,
+          limit: block.limit,
+          includeOutboundUris: block.includeOutboundUris,
           knowledgeCategories: block.knowledgeCategories,
           repositoryNames: block.repositoryNames,
         },

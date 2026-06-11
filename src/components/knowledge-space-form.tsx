@@ -18,6 +18,7 @@ import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { KnowledgeCategory } from "@/lib/knowledge-categories";
 
 type BusinessTeamOption = {
   id: string;
@@ -42,7 +43,7 @@ type KnowledgeSpaceValue = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
-  knowledgeCategory: "public" | "domain" | "repository";
+  knowledgeCategory: KnowledgeCategory;
   repositoryName: string;
   slug: string;
   name: string;
@@ -100,7 +101,9 @@ export function KnowledgeSpaceForm({
           slug: String(formData.get("slug") ?? "").trim() || undefined,
           spaceType,
           knowledgeCategory,
-          repositoryName: String(formData.get("repositoryName") ?? "").trim() || undefined,
+          repositoryName: knowledgeCategory === "code"
+            ? String(formData.get("repositoryName") ?? "").trim() || undefined
+            : undefined,
           businessTeamId: spaceType === "global" ? null : businessTeamId || null,
           agentTeamId: spaceType === "agent_team" ? String(formData.get("agentTeamId") ?? "") || null : null,
           projectKey: spaceType === "project" ? String(formData.get("projectKey") ?? "").trim() || null : null,
@@ -170,19 +173,19 @@ export function KnowledgeSpaceForm({
                 <FieldGroup label={text("knowledge.category.label")}>
                   <Select
                     value={knowledgeCategory}
-                    onChange={(event) => setKnowledgeCategory(event.target.value as "public" | "domain" | "repository")}
+                    onChange={(event) => setKnowledgeCategory(event.target.value as KnowledgeCategory)}
                   >
-                  <option value="public">{text("knowledge.category.public")}</option>
+                  <option value="skill">{text("knowledge.category.public")}</option>
                   <option value="domain">{text("knowledge.category.domain")}</option>
-                  <option value="repository">{text("knowledge.category.repository")}</option>
+                  <option value="code">{text("knowledge.category.repository")}</option>
                 </Select>
               </FieldGroup>
               <FieldGroup label={text("knowledge.repositoryName")}>
                 <Input
                   name="repositoryName"
                   defaultValue={space?.repositoryName ?? ""}
-                  disabled={knowledgeCategory !== "repository"}
-                  placeholder="repository name"
+                  disabled={knowledgeCategory !== "code"}
+                  placeholder={text("knowledge.repositoryName.placeholder")}
                 />
               </FieldGroup>
               <FieldGroup label={text("terminology.businessTeam")}>

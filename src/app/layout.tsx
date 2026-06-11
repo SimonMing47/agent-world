@@ -27,8 +27,10 @@ export default async function RootLayout({
   const requestHeaders = await headers();
   const pathname = requestHeaders.get("x-agentworld-pathname") ?? "/";
   const publicPaths = new Set(["/", "/signin"]);
+  const publicPrefixes = ["/finding-feedback/"];
+  const isPublic = publicPaths.has(pathname) || publicPrefixes.some((prefix) => pathname.startsWith(prefix));
   const authContext = await getRequestAuthContext();
-  if (!publicPaths.has(pathname)) {
+  if (!isPublic) {
     if (!authContext) {
       redirect(`/?next=${encodeURIComponent(pathname)}`);
     }

@@ -4,7 +4,7 @@
 
 Task Blueprint 是 AgentWorld 的统一任务配置契约。平台中所有手动触发、定时触发、Webhook 触发、跨团队服务调用和案例包导入，都必须先收敛为 Task Blueprint，再由调度器实例化为 TaskRun。
 
-Task Blueprint 不代表某个固定业务系统，也不包含硬编码流程。诸如“神盾计划”和“每日全量安全检视”只能作为配置样例或案例包出现，其本质是 Task Blueprint、Environment Template、插件声明、记忆空间和看板视图的组合。
+Task Blueprint 不代表某个固定业务系统，也不包含硬编码流程。具体业务名称和“每日全量安全检视”只能作为配置样例或案例包出现，其本质是 Task Blueprint、Environment Template、插件声明、记忆空间和看板视图的组合。
 
 ## 2. 设计目标
 
@@ -184,8 +184,8 @@ TaskBlueprint 采用 allow / ask / deny 三态权限：
 
 ```yaml
 metadata:
-  id: task-template-shield-mr-check
-  name: 神盾计划 MR 检视
+  id: task-template-merge-request-review
+  name: MR 检视配置样例
 spec:
   trigger:
     modes: [webhook, manual]

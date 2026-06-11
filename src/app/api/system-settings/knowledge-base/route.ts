@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { uiText } from "@/lib/language-pack";
 import { getRequestAuthContext } from "@/server/auth-core";
 import {
+  getKnowledgeCodebaseEngineStatus,
   getKnowledgeBaseConfigWarnings,
   getKnowledgeBaseSettings,
   getKnowledgeFoundationStatus,
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     setting,
     foundation: getKnowledgeFoundationStatus(setting),
+    codebaseEngine: getKnowledgeCodebaseEngineStatus(setting),
     warnings: getKnowledgeBaseConfigWarnings(setting),
   });
 }
@@ -41,6 +43,7 @@ export async function PUT(request: Request) {
       setting,
       storage,
       foundation: getKnowledgeFoundationStatus(setting),
+      codebaseEngine: getKnowledgeCodebaseEngineStatus(setting),
       warnings: getKnowledgeBaseConfigWarnings(setting),
     });
   } catch (error) {

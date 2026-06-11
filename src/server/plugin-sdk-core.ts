@@ -11,6 +11,7 @@ import {
 import { upsertFinding } from "@/server/finding-core";
 import type { PluginManifest } from "@/server/plugin-core";
 import { codehubExecutablePlugin } from "@/server/plugins/official/codehub";
+import { giteaExecutablePlugin } from "@/server/plugins/official/gitea";
 
 export type PluginPermissionRequest = {
   resource: string;
@@ -139,7 +140,10 @@ export type ExecutablePluginModule = {
   toolBundles?: ExecutableToolBundle[];
 };
 
-const executablePluginModules: ExecutablePluginModule[] = [codehubExecutablePlugin];
+const executablePluginModules: ExecutablePluginModule[] = [
+  codehubExecutablePlugin,
+  giteaExecutablePlugin,
+];
 
 function pluginRoot() {
   return path.join("plugins", "official");
@@ -364,6 +368,7 @@ function permissionResourceAliases(resource: string) {
   const aliases: Record<string, string[]> = {
     "repo.read": ["tool.repo.context.read", "tool.git.diff.read", "tool.repo.clone.read"],
     "repo.mr.comment": ["tool.mr.comment.write"],
+    "repo.issue.comment": ["tool.issue.comment.write", "tool.mr.comment.write"],
     "repo.mr.merge": ["tool.repo.write"],
     "secret.use": ["tool.secret.use"],
   };
@@ -462,6 +467,7 @@ export function createPluginRuntimeContext(
     if (
       request.resource === "repo.read" ||
       request.resource === "repo.mr.comment" ||
+      request.resource === "repo.issue.comment" ||
       request.resource === "secret.use" ||
       request.resource.startsWith("webhook.")
     ) {
