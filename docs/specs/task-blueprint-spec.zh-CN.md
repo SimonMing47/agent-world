@@ -28,7 +28,7 @@ Agent 调度负责“何时、为何、由谁执行”：
 Agent 调用负责“如何执行一次 Agent 节点”：
 
 - 基于 ProviderAdapter 选择模型、SDK、CLI 或远端执行器。
-- 读取 Environment Snapshot、记忆上下文、Skill 和权限决策。
+- 读取 Environment Snapshot、记忆上下文、知识和权限决策。
 - 进行工具调用、Provider 流式输出和结果解析。
 - 在工具或写操作触发 ask 时暂停并等待人工处理。
 - 写入 invocation、tool、permission、finding、artifact 等事件。
@@ -79,7 +79,7 @@ spec:
   memory:
     readScopes: []
     writeScopes: []
-    skillRefs: []
+    knowledgeRefs: []
   outputs:
     artifacts: []
     findings:
@@ -118,7 +118,7 @@ Finding 是任务输出中的结构化问题或结论，不等同于普通日志
 - `status`：open、acknowledged、fixed、false_positive、accepted_risk、dismissed。
 - `feedbackRef`：写回 AgentWorld 知识引擎 用户记忆的反馈引用。
 
-Finding 必须可追溯到事件流、Artifact、输入和相关 Skill 版本。
+Finding 必须可追溯到事件流、Artifact、输入和相关知识版本。
 
 ## 5. Blueprint 生命周期
 
@@ -204,7 +204,7 @@ spec:
   memory:
     readScopes:
       - agentworld://knowledge/resources/agentworld/code-inspection/repositories
-      - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+      - agentworld://knowledge/agent/knowledge/agentworld/code-inspection/security
     writeScopes:
       - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
   outputs:
@@ -238,7 +238,7 @@ spec:
       repo.write: deny
   memory:
     readScopes:
-      - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+      - agentworld://knowledge/agent/knowledge/agentworld/code-inspection/security
       - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
     writeScopes:
       - agentworld://knowledge/resources/agentworld/code-inspection/global

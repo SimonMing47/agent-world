@@ -5,6 +5,7 @@ export type PluginCapability =
   | "provider_adapter"
   | "provider"
   | "tool"
+  | "knowledge"
   | "skill"
   | "knowledge_source"
   | "notify_email"
@@ -91,18 +92,18 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
       activationEvents: ["onProviderInvoke", "onProviderHealthCheck"],
     }),
     extensionPoint({
-      id: "tool-skill-registry",
-      key: "toolSkillRegistry",
-      accepts: ["tool", "skill"],
-      contributionKinds: ["toolBundles", "skills"],
+      id: "tool-knowledge-registry",
+      key: "toolKnowledgeRegistry",
+      accepts: ["tool", "knowledge", "skill"],
+      contributionKinds: ["toolBundles", "knowledgeAssets", "skills"],
       host: "server",
-      activationEvents: ["onTaskNode", "onSkillLoad"],
+      activationEvents: ["onTaskNode", "onKnowledgeLoad", "onSkillLoad"],
     }),
     extensionPoint({
       id: "knowledge-source",
       key: "knowledgeSource",
-      accepts: ["knowledge_source", "skill"],
-      contributionKinds: ["knowledgeSources", "skills"],
+      accepts: ["knowledge_source", "knowledge", "skill"],
+      contributionKinds: ["knowledgeSources", "knowledgeAssets", "skills"],
       host: "server",
       activationEvents: ["onKnowledgeImport", "onKnowledgeRetrieve"],
     }),
@@ -197,7 +198,7 @@ export function listPluginExtensionPoints(): PluginExtensionPoint[] {
     extensionPoint({
       id: "agent-detail-tab",
       key: "agentDetailTab",
-      accepts: ["page_panel", "skill"],
+      accepts: ["page_panel", "knowledge", "skill"],
       contributionKinds: ["agentDetailTabs"],
       host: "client",
       activationEvents: ["onAgentDetailRender"],

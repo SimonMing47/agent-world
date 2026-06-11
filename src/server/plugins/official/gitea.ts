@@ -307,7 +307,7 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
     const contentRegex = compileRuleRegex(rule.contentRegex);
     const includesAll = parseStringArray(rule.includesAll ?? rule.allIncludes ?? rule.allLineIncludes);
     const includesAny = parseStringArray(rule.includesAny ?? rule.anyIncludes ?? rule.anyLineIncludes);
-    const skillRefs = parseStringArray(rule.skillRefs);
+    const skillRefs = parseStringArray(rule.knowledgeRefs ?? rule.skillRefs);
 
     for (const file of files) {
       if (pathRegex && !pathRegex.test(file.filename)) continue;
@@ -330,6 +330,7 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
         title,
         description: stringInput(rule, "description") || title,
         recommendation: stringInput(rule, "recommendation"),
+        knowledgeRefs: skillRefs,
         skillRefs,
         evidence: {
           repo_id: `${owner}/${repo}`,

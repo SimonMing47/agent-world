@@ -687,7 +687,7 @@ function buildRunPlanJson(args: {
         knowledgeCategory: block.knowledgeCategory || "domain",
         repositoryName: block.repositoryName || undefined,
         repositoryNames:
-          block.knowledgeCategory === "code" && block.repositoryName
+          block.knowledgeCategory === "codebase" && block.repositoryName
             ? repositoryAliasesByName.get(block.repositoryName) ?? buildRepositoryNameAliases(block.repositoryName)
             : undefined,
       })),
@@ -995,7 +995,7 @@ export function TaskBlueprintEditor({
     }
 
     const repositoryKnowledgeBlock = form.blocks.find(
-      (block) => block.knowledgeCategory === "code" && !block.repositoryName.trim(),
+      (block) => block.knowledgeCategory === "codebase" && !block.repositoryName.trim(),
     );
     if (repositoryKnowledgeBlock) {
       setIsSaving(false);

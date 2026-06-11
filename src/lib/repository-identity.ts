@@ -20,6 +20,13 @@ function pathSegmentsFromRepositoryValue(value: string) {
   }
 }
 
+function slugAlias(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export function buildRepositoryNameAliases(...values: Array<string | null | undefined>) {
   const aliases = new Set<string>();
 
@@ -29,10 +36,13 @@ export function buildRepositoryNameAliases(...values: Array<string | null | unde
 
     const normalized = normalizeRepositoryToken(raw).toLowerCase();
     if (normalized) aliases.add(normalized);
+    const normalizedSlug = slugAlias(normalized);
+    if (normalizedSlug) aliases.add(normalizedSlug);
 
     const segments = pathSegmentsFromRepositoryValue(raw).map((segment) => normalizeRepositoryToken(segment).toLowerCase());
     const [owner, repo] = segments.slice(-2);
     if (owner && repo) aliases.add(`${owner}/${repo}`);
+    if (owner && repo) aliases.add(`${owner}-${repo}`);
     if (repo) aliases.add(repo);
   }
 

@@ -488,16 +488,16 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                       onChange(
                         updateBlock(blocks, block.id, {
                           knowledgeCategory: event.target.value as KnowledgeCategory,
-                          ...(event.target.value === "code"
+                          ...(event.target.value === "codebase"
                             ? { repositoryName: block.repositoryName || repositoryOptions[0]?.name || "" }
                             : { repositoryName: "" }),
                         }),
                       )
                     }
                   >
-                    <option value="skill">{text("knowledge.category.public")}</option>
+                    <option value="global">{text("knowledge.category.global")}</option>
                     <option value="domain">{text("knowledge.category.domain")}</option>
-                    <option value="code">{text("knowledge.category.repository")}</option>
+                    <option value="codebase">{text("knowledge.category.codebase")}</option>
                   </Select>
                 </FieldGroup>
                 <FieldGroup label={text("knowledge.repositoryName")}>
@@ -505,7 +505,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Select
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "code"}
+                      disabled={block.knowledgeCategory !== "codebase"}
                     >
                       <option value="">{text("knowledge.repositoryName.placeholder")}</option>
                       {block.repositoryName && !repositoryOptions.some((option) => option.name === block.repositoryName) ? (
@@ -521,7 +521,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Input
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "code"}
+                      disabled={block.knowledgeCategory !== "codebase"}
                       placeholder={text("knowledge.repositoryName.placeholder")}
                     />
                   )}

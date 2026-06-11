@@ -2340,10 +2340,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     ...new Set([...parseKnowledgeScopeUris(nodeInput.scopeUris), ...skillLoadout.scopeUris]),
   ];
   const knowledgeCategories = [
-    ...new Set([
-      ...parseKnowledgeCategories(nodeInput.knowledgeCategories),
-      ...(skillLoadout.skills.length > 0 ? ["skill"] : []),
-    ]),
+    ...new Set(parseKnowledgeCategories(nodeInput.knowledgeCategories)),
   ];
   const repositoryNames = parseKnowledgeRepositoryNames(nodeInput.repositoryNames);
   const levels = parseKnowledgeLevels(nodeInput.levels);

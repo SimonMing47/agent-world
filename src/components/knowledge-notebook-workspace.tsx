@@ -59,7 +59,7 @@ import {
 import { KnowledgeRetrievalTestDialog } from "@/components/knowledge-retrieval-test-dialog";
 import { LEGACY_KNOWLEDGE_URI_SCHEME, normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 import { getMarkdownKeyboardEdit } from "@/lib/markdown-editor";
-import { type KnowledgeCategory } from "@/lib/knowledge-categories";
+import { isCodebaseKnowledgeCategory, type KnowledgeCategory } from "@/lib/knowledge-categories";
 import { cn, formatBytes, formatDateTime } from "@/lib/utils";
 
 type TenantSpaceOption = {
@@ -227,7 +227,7 @@ const draftId = "__draft__";
 
 const sourceTypeOptions = [
   { value: "manual", label: "knowledge.sourceType.manual" },
-  { value: "skill", label: "terminology.skill" },
+  { value: "skill", label: "terminology.knowledge" },
   { value: "inspection_context", label: "knowledge.sourceType.inspectionContext" },
   { value: "inspection_finding", label: "knowledge.sourceType.inspectionFinding" },
   { value: "inspection_feedback", label: "knowledge.sourceType.inspectionFeedback" },
@@ -1688,7 +1688,7 @@ function SpaceQuickDialog({
           agentTeamId: form.spaceType === "agent_team" ? form.agentTeamId || null : null,
           projectKey: form.spaceType === "project" ? form.projectKey.trim() || null : null,
           knowledgeCategory: form.knowledgeCategory,
-          repositoryName: form.knowledgeCategory === "code" ? form.repositoryName.trim() || null : null,
+          repositoryName: isCodebaseKnowledgeCategory(form.knowledgeCategory) ? form.repositoryName.trim() || null : null,
           description: form.description,
           visibility: form.visibility,
           status: form.status,
@@ -1794,16 +1794,16 @@ function SpaceQuickDialog({
               value={form.knowledgeCategory}
               onChange={(event) => setForm({ ...form, knowledgeCategory: event.target.value as KnowledgeCategory })}
             >
-              <option value="skill">{text("knowledge.category.public")}</option>
+              <option value="global">{text("knowledge.category.global")}</option>
               <option value="domain">{text("knowledge.category.domain")}</option>
-              <option value="code">{text("knowledge.category.repository")}</option>
+              <option value="codebase">{text("knowledge.category.codebase")}</option>
             </Select>
           </FieldGroup>
           <FieldGroup label={text("knowledge.repositoryName")}>
             <Input
               value={form.repositoryName}
               onChange={(event) => setForm({ ...form, repositoryName: event.target.value })}
-              disabled={form.knowledgeCategory !== "code"}
+              disabled={!isCodebaseKnowledgeCategory(form.knowledgeCategory)}
               placeholder={text("knowledge.repositoryName.placeholder")}
             />
           </FieldGroup>

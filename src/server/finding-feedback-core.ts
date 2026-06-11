@@ -1,6 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import {
   execute,
+  queryAll,
   queryOne,
   type Finding,
   type InspectionFeedback,
@@ -10,6 +11,7 @@ import {
 import { createKnowledgeSpace } from "@/server/knowledge-core";
 import { upsertKnowledgeEntry } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 
 export type FindingFeedbackVerdict = "accurate" | "inaccurate" | "unclear";
 
@@ -102,12 +104,17 @@ function slugify(value: string) {
 function resolveKnowledgeSpaceForFeedback(taskRun: TaskRun) {
   const input = parseRecord(taskRun.inputPayloadJson);
   const repositoryName = firstString(input.codebase_name, input.repo_id, input.repositoryName, input.repository_name);
-  const normalizedRepositoryName = repositoryName.toLowerCase();
-  if (normalizedRepositoryName) {
-    const existing = queryOne<KnowledgeSpace>(
-      "SELECT * FROM knowledge_spaces WHERE status <> 'deleted' AND knowledge_category = 'code' AND lower(repository_name) = ? ORDER BY updated_at DESC LIMIT 1",
-      normalizedRepositoryName,
-    );
+  const repositoryAliases = buildRepositoryNameAliases(
+    repositoryName,
+    firstString(input.repo_url, input.repositoryUrl, input.repository_url),
+  );
+  if (repositoryAliases.length) {
+    const existing = queryAll<KnowledgeSpace>(
+      "SELECT * FROM knowledge_spaces WHERE status <> 'deleted' AND knowledge_category IN ('codebase', 'code', 'repository') ORDER BY updated_at DESC",
+    ).find((space) => {
+      const spaceAliases = buildRepositoryNameAliases(space.repositoryName, space.projectKey, space.slug);
+      return spaceAliases.some((alias) => repositoryAliases.includes(alias));
+    });
     if (existing) return existing;
   }
 
@@ -120,7 +127,7 @@ function resolveKnowledgeSpaceForFeedback(taskRun: TaskRun) {
     slug: `finding-feedback-${slugify(repositoryName || taskRun.sourceRef || taskRun.id)}`,
     spaceType: "project",
     projectKey: slugify(repositoryName || taskRun.sourceRef || taskRun.id),
-    knowledgeCategory: "code",
+    knowledgeCategory: "codebase",
     repositoryName: repositoryName || undefined,
     description: uiText("findingFeedback.knowledge.spaceDescription"),
     visibility: "team",

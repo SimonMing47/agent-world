@@ -148,6 +148,7 @@ function serializeFinding(finding: Finding, baseUrl: string) {
     description: finding.description,
     recommendation: finding.recommendation,
     evidence: parseRecord(finding.evidenceJson),
+    knowledgeRefs: parseJsonValue(finding.skillRefsJson) ?? [],
     skillRefs: parseJsonValue(finding.skillRefsJson) ?? [],
     fingerprint: finding.fingerprint,
     status: finding.status,

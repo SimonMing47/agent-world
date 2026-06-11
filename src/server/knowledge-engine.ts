@@ -23,8 +23,10 @@ import {
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
 import {
   type KnowledgeCategory,
+  normalizeKnowledgeCategory,
   normalizeKnowledgeCategories,
 } from "@/lib/knowledge-categories";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 
 const KNOWLEDGE_ROOT = path.join("data", "knowledge-engine");
 const SHADOW_ROOT = path.join(KNOWLEDGE_ROOT, "shadow");
@@ -888,11 +890,7 @@ function parseKnowledgeSearchScopes(args: {
   const knowledgeSpaceIds = [...new Set((args.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
   const scopeUris = [...new Set((args.scopeUris ?? []).map((uri) => normalizeUriForCompare(uri)).filter(Boolean))];
   const knowledgeCategories = normalizeKnowledgeCategories(args.knowledgeCategories) as KnowledgeCategory[];
-  const repositoryNames = [...new Set(
-    (args.repositoryNames ?? [])
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  )];
+  const repositoryNames = buildRepositoryNameAliases(...(args.repositoryNames ?? []));
   return { knowledgeSpaceIds, scopeUris, knowledgeCategories, repositoryNames };
 }
 
@@ -919,7 +917,7 @@ function filterKnowledgeEntriesForScopes(input: {
   const spaceFilter = new Set(input.knowledgeSpaceIds.filter(Boolean));
   const uriFilter = new Set(input.scopeUris);
   const categoryFilter = new Set(input.knowledgeCategories);
-  const repositoryNameFilter = new Set(input.repositoryNames);
+  const repositoryNameFilter = new Set(buildRepositoryNameAliases(...input.repositoryNames));
   const knowledgeSpaceById = new Map(
     queryAll<{ id: string; knowledge_category: string; repository_name: string | null }>(
       "SELECT id, knowledge_category, repository_name FROM knowledge_spaces",
@@ -942,13 +940,13 @@ function filterKnowledgeEntriesForScopes(input: {
     const space = knowledgeSpaceById.get(entry.knowledgeSpaceId);
     if (!space) return false;
 
-    const normalizedSpaceCategory = normalizeKnowledgeCategories(space.knowledge_category);
-    if (categoryFilter.size > 0 && (!normalizedSpaceCategory[0] || !categoryFilter.has(normalizedSpaceCategory[0]))) {
+    const normalizedSpaceCategory = normalizeKnowledgeCategory(space.knowledge_category);
+    if (categoryFilter.size > 0 && !categoryFilter.has(normalizedSpaceCategory)) {
       return false;
     }
     if (repositoryNameFilter.size > 0) {
-      const repositoryName = space.repository_name?.trim().toLowerCase() || "";
-      if (!repositoryNameFilter.has(repositoryName)) return false;
+      const repositoryAliases = buildRepositoryNameAliases(space.repository_name ?? "");
+      if (!repositoryAliases.some((alias) => repositoryNameFilter.has(alias))) return false;
     }
 
     return true;

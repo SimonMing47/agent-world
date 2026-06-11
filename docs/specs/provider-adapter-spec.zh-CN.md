@@ -99,7 +99,7 @@ permissionSnapshot:
   default: ask
 memoryContext:
   readScopes: []
-  skillRefs: []
+  knowledgeRefs: []
 input:
   type: object
   payload: {}

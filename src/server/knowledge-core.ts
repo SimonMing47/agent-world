@@ -17,8 +17,9 @@ import {
   searchKnowledgeEntries,
 } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
-import { normalizeKnowledgeCategory, normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
+import { isCodebaseKnowledgeCategory, normalizeKnowledgeCategory, normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -58,11 +59,48 @@ function parseCommaSeparatedArray(value: unknown) {
     : [];
 }
 
+function readFirstString(record: JsonRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fa5/._-]+/g, "-")
     .replace(/^-+|-+$/g, "") || "default";
+}
+
+function codebaseAliasesFromTask(inputPayload: JsonRecord, environment: ExecutionEnvironment | null) {
+  const explicitCodebaseId = readFirstString(inputPayload, ["codebase_id", "codebaseId"]);
+  const codebase = explicitCodebaseId
+    ? queryOne<{ name: string; repositoryUrl: string }>(
+        "SELECT name, repository_url FROM codebase_profiles WHERE id = ? AND status <> 'deleted'",
+        explicitCodebaseId,
+      )
+    : null;
+
+  return buildRepositoryNameAliases(
+    explicitCodebaseId,
+    codebase?.name,
+    codebase?.repositoryUrl,
+    readFirstString(inputPayload, ["codebase_name", "codebaseName"]),
+    readFirstString(inputPayload, ["repo_id", "repository", "repositoryName", "repository_name", "project_key"]),
+    readFirstString(inputPayload, ["repo_url", "repositoryUrl", "repository_url"]),
+    environment?.repositoryName,
+    environment?.repositoryUrl,
+  );
+}
+
+function knowledgeSpaceMatchesCodebase(space: KnowledgeSpace, aliases: string[]) {
+  if (!isCodebaseKnowledgeCategory(space.knowledgeCategory)) return true;
+  if (!aliases.length) return false;
+  const spaceAliases = buildRepositoryNameAliases(space.repositoryName, space.projectKey, space.slug);
+  return spaceAliases.some((alias) => aliases.includes(alias));
 }
 
 function normalizeSpaceSlug(inputSlug: string | null | undefined, fallbackName: string) {
@@ -391,8 +429,8 @@ function directRefsFromMemoryPolicy(blueprint: TaskBlueprint) {
     accessLevel: "read",
     loadOrder: 100 + index,
   }));
-  const skillSpaces = parseStringArray(policy.skillSpaces).map((uri, index) => ({
-    source: "blueprint_skill",
+  const knowledgeSpaces = [...parseStringArray(policy.knowledgeSpaces), ...parseStringArray(policy.skillSpaces)].map((uri, index) => ({
+    source: "blueprint_knowledge",
     name: normalizeKnowledgeUri(uri),
     vikingUri: normalizeKnowledgeUri(uri),
     accessLevel: "read",
@@ -406,17 +444,19 @@ function directRefsFromMemoryPolicy(blueprint: TaskBlueprint) {
     loadOrder: 180 + index,
   }));
 
-  return { requiredSpaces, skillSpaces, archiveOutputTo, rawPolicy: policy };
+  return { requiredSpaces, knowledgeSpaces, archiveOutputTo, rawPolicy: policy };
 }
 
 function spacesForTeam(args: {
   team: AgentTeam;
   blueprint: TaskBlueprint;
+  environment: ExecutionEnvironment | null;
   inputPayload: JsonRecord;
 }) {
   const bindings = listKnowledgeSpaceBindings();
   const allSpaces = listKnowledgeSpaces().filter((space) => space.status === "active");
   const projectKey = slugify(String(args.inputPayload.repo_id ?? args.inputPayload.project_key ?? args.inputPayload.repository ?? ""));
+  const repositoryAliases = codebaseAliasesFromTask(args.inputPayload, args.environment);
   const boundSpaceIds = new Set(
     bindings
       .filter(
@@ -428,16 +468,24 @@ function spacesForTeam(args: {
       )
       .map((binding) => binding.knowledgeSpaceId),
   );
+  const projectBoundSpaceIds = new Set(
+    bindings
+      .filter((binding) => binding.targetType === "project" && projectKey && slugify(binding.targetId) === projectKey)
+      .map((binding) => binding.knowledgeSpaceId),
+  );
 
   return allSpaces
-    .filter(
-      (space) =>
+    .filter((space) => {
+      const structurallyVisible =
         space.spaceType === "global" ||
         space.businessTeamId === args.team.businessTeamId ||
         space.agentTeamId === args.team.id ||
         (space.projectKey && projectKey && slugify(space.projectKey) === projectKey) ||
-        boundSpaceIds.has(space.id),
-    )
+        boundSpaceIds.has(space.id);
+      if (!structurallyVisible) return false;
+      if (isCodebaseKnowledgeCategory(space.knowledgeCategory) && projectBoundSpaceIds.has(space.id)) return true;
+      return knowledgeSpaceMatchesCodebase(space, repositoryAliases);
+    })
     .map((space) => {
       const binding = bindings.find((candidate) => candidate.knowledgeSpaceId === space.id && boundSpaceIds.has(space.id));
       return {
@@ -445,6 +493,8 @@ function spacesForTeam(args: {
         source: space.spaceType,
         name: space.name,
         spaceType: space.spaceType,
+        knowledgeCategory: space.knowledgeCategory,
+        repositoryName: space.repositoryName,
         vikingUri: space.vikingUri,
         accessLevel: binding?.accessLevel ?? (space.businessTeamId === args.team.businessTeamId ? "write" : "read"),
         loadOrder: binding?.loadOrder ?? (space.spaceType === "global" ? 0 : space.spaceType === "agent_team" ? 10 : 40),
@@ -461,12 +511,13 @@ export function resolveTaskKnowledgeContext(args: {
   const spaces = spacesForTeam({
     team: args.team,
     blueprint: args.blueprint,
+    environment: args.environment,
     inputPayload: args.inputPayload,
   });
   const environmentRefs = layerUrisFromEnvironment(args.environment);
   const policyRefs = directRefsFromMemoryPolicy(args.blueprint);
   const loadRefs = dedupeByUri(
-    [...spaces, ...environmentRefs, ...policyRefs.requiredSpaces, ...policyRefs.skillSpaces]
+    [...spaces, ...environmentRefs, ...policyRefs.requiredSpaces, ...policyRefs.knowledgeSpaces]
       .filter((ref) => ref.accessLevel !== "archive")
       .sort((left, right) => left.loadOrder - right.loadOrder),
   );
@@ -486,6 +537,7 @@ export function resolveTaskKnowledgeContext(args: {
       blueprintId: args.blueprint.id,
       environmentId: args.environment?.id ?? null,
       projectKey: args.inputPayload.repo_id ?? args.inputPayload.project_key ?? null,
+      repositoryAliases: codebaseAliasesFromTask(args.inputPayload, args.environment),
       resolvedAt: nowIso(),
     },
   };
@@ -520,7 +572,16 @@ export async function buildTaskRunKnowledgeRetrieval(
   const scopeUris = [...new Set([...loadRefs, ...parseStringArray(options.scopeUris)])];
   const knowledgeSpaceIds = [...new Set((options.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
   const knowledgeCategories = normalizeKnowledgeCategories(options.knowledgeCategories);
-  const repositoryNames = [...new Set(parseCommaSeparatedArray(options.repositoryNames))];
+  const explicitRepositoryNames = [...new Set(parseCommaSeparatedArray(options.repositoryNames))];
+  const repositoryRecord = parseRecord(JSON.stringify(payload.repository ?? {}));
+  const inferredRepositoryNames = knowledgeCategories.includes("codebase")
+    ? buildRepositoryNameAliases(
+        String(repositoryRecord.repoId ?? ""),
+        String(repositoryRecord.name ?? ""),
+        String(repositoryRecord.url ?? ""),
+      )
+    : [];
+  const repositoryNames = explicitRepositoryNames.length ? explicitRepositoryNames : inferredRepositoryNames;
   const health = await getKnowledgeEngineHealth();
   const refs = [];
 

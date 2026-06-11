@@ -131,6 +131,7 @@ export type ExecutablePluginManifest = {
       providerAdapters?: Array<{ id: string }>;
       authAdapters?: Array<{ id: string }>;
       knowledgeSources?: Array<{ id: string }>;
+      knowledgeAssets?: Array<{ id: string }>;
       skills?: Array<{ id: string }>;
       taskBlueprints?: Array<{ id: string }>;
       environmentTemplates?: Array<{ id: string }>;
@@ -164,6 +165,7 @@ export type PluginContributionKind =
   | "providerAdapter"
   | "authAdapter"
   | "knowledgeSource"
+  | "knowledgeAsset"
   | "skill"
   | "taskBlueprint"
   | "environmentTemplate"
@@ -750,11 +752,13 @@ export function createPluginRuntimeContext(
           typeof findingInput.recommendation === "string"
             ? findingInput.recommendation
             : "",
-        skillRefsJson: Array.isArray(findingInput.skillRefs)
-          ? findingInput.skillRefs.map(String)
-          : Array.isArray(findingInput.skillRefsJson)
-            ? findingInput.skillRefsJson.map(String)
-            : [],
+        skillRefsJson: Array.isArray(findingInput.knowledgeRefs)
+          ? findingInput.knowledgeRefs.map(String)
+          : Array.isArray(findingInput.skillRefs)
+            ? findingInput.skillRefs.map(String)
+            : Array.isArray(findingInput.skillRefsJson)
+              ? findingInput.skillRefsJson.map(String)
+              : [],
         fingerprint: typeof findingInput.fingerprint === "string" ? findingInput.fingerprint : undefined,
         status: typeof findingInput.status === "string" ? findingInput.status : "open",
         publicationJson: isRecord(findingInput.publication)

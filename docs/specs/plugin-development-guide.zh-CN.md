@@ -1,12 +1,12 @@
 # AgentWorld 插件开发指南
 
-本文是后续开发插件的主入口。AgentWorld 核心只提供通用扩展协议、权限、生命周期和任务编排能力；任何外部系统差异都应放在插件、Skill、任务蓝图或知识库内容中。
+本文是后续开发插件的主入口。AgentWorld 核心只提供通用扩展协议、权限、生命周期和任务编排能力；任何外部系统差异都应放在插件、Agent 可加载知识、任务蓝图或知识库内容中。
 
-## 1. 插件和 Skill 的边界
+## 1. 插件和知识的边界
 
-优先使用 Skill 表达判断知识、规则、经验和提示词。只有需要访问外部系统、提供运行时代码、扩展页面或接管特定协议时，才开发插件。
+优先使用知识表达判断规则、经验、提示词和领域方法。只有需要访问外部系统、提供运行时代码、扩展页面或接管特定协议时，才开发插件。
 
-适合 Skill：
+适合知识：
 
 - 检视维度、判断规则、误报经验、修复建议模板。
 - 代码仓专有知识、领域知识、通用方法论。
@@ -23,7 +23,7 @@
 
 - 业务流程阶段顺序。
 - 哪些 Agent 执行哪些节点。
-- 节点加载哪些 Skill。
+- 节点加载哪些知识。
 - 哪个阶段调用哪个插件贡献项。
 - 输出发布策略和反馈闭环。
 
@@ -33,8 +33,8 @@
 | --- | --- | --- | --- |
 | 身份认证 | `authAdapters` | server | SSO 登录、回调、身份标准化 |
 | Provider 运行时 | `providerAdapters` | server | 模型服务、CLI 或远端执行器接入 |
-| 工具与 Skill | `toolBundles`, `skills` | server | 任务节点工具、Skill 包导入 |
-| 知识来源 | `knowledgeSources`, `skills` | server | 外部知识同步、转换、检索 |
+| 工具与知识 | `toolBundles`, `knowledgeAssets` | server | 任务节点工具、可加载知识包导入 |
+| 知识来源 | `knowledgeSources`, `knowledgeAssets` | server | 外部知识同步、转换、检索 |
 | 代码平台 | `repositoryConnectors`, `webhookParsers`, `outputPublishers`, `toolBundles` | server | Git 类系统 webhook、diff、评论、文件读取 |
 | 代码库引擎 | `codebaseEngines` | server | 代码索引、图谱、增量同步和查询 |
 | 通知通道 | `notificationChannels`, `outputPublishers` | server | IM、邮件、工单、外部通知 |
@@ -50,6 +50,8 @@
 | Secret Provider | `secretProviders` | server | secret ref 解析 |
 
 新增业务能力时，先在这张表里找到最接近的插件点。找不到时，先补通用插件点，再通过配置组合业务流程。
+
+历史 manifest 中的 `skills` 视为 `knowledgeAssets` 的兼容别名；新插件应使用 `knowledgeAssets`，并把内容落入知识库的全局知识、领域知识或代码仓知识空间。
 
 ## 3. Manifest 基线
 
@@ -149,7 +151,7 @@ export const executablePlugin = {
 - `createFinding(input)`
 - `createArtifact(input)`
 
-`resolveSecretRef(ref)` 只能解析插件配置、Skill 配置或页面配置中保存的密钥值；不得使用 `env:` 环境变量引用，也不得要求 AgentWorld 主进程注入第三方系统 token。
+`resolveSecretRef(ref)` 只能解析插件配置、知识配置或页面配置中保存的密钥值；不得使用 `env:` 环境变量引用，也不得要求 AgentWorld 主进程注入第三方系统 token。
 
 插件不得直接访问数据库、读取 `.env`、写入明文密钥或绕过权限模型。
 
@@ -174,7 +176,7 @@ Webhook parser 输出建议包含：
 - 读取项目信息。
 - 读取合并请求变更文件。
 - 读取指定提交下的文件内容。
-- 基于节点加载的 Skill rules 生成 Finding。
+- 基于节点加载的知识规则生成 Finding。
 
 发布器建议提供：
 
@@ -201,7 +203,7 @@ UI 插件只能挂载到受控插槽：
 
 1. Webhook 或手动触发创建任务。
 2. 准备执行环境或代码 worktree。
-3. Agent 节点加载知识库 Skill 和代码仓知识。
+3. Agent 节点加载知识库中的可加载知识和代码仓知识。
 4. `plugin_tool` 节点调用插件工具产出 Finding。
 5. `publisher` 节点调用发布器输出结果。
 6. 反馈入口写回知识库，后续任务按标签和代码仓范围检索。
@@ -215,7 +217,7 @@ UI 插件只能挂载到受控插槽：
 - 插件缺少 secret ref 时返回可解释错误，不输出明文。
 - Webhook parser 可以生成稳定幂等 key。
 - 工具调用前执行 `requestPermission()`。
-- Finding 包含文件、行号、规则、证据和 Skill 引用。
+- Finding 包含文件、行号、规则、证据和知识引用。
 - 发布器返回外部引用或草稿状态。
 - 禁用插件后，新的任务蓝图不能继续选择该插件贡献项。
 - 历史 TaskRun 仍能查看事件、Finding 和 Artifact。

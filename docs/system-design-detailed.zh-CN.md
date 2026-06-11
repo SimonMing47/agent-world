@@ -21,7 +21,7 @@ package "Control Plane" {
   component "租户 / 业务团队治理" as TeamGov
   component "Agent / Agent Team 定义" as AgentGov
   component "Task Blueprint 管理" as BlueprintGov
-  component "Connector / Codebase / MCP / Skill 管理" as ConfigGov
+  component "Connector / Codebase / MCP / 知识管理" as ConfigGov
 }
 
 package "Execution Plane" {
@@ -97,7 +97,7 @@ Trigger -> API: 提交 manual / webhook / schedule 触发
 API -> Scheduler: 解析 Blueprint 与输入
 Scheduler -> Run: 创建 TaskRun / TaskRunNode
 Run -> Policy: 生成权限快照
-Run -> Memory: 读取知识空间 / Skill
+Run -> Memory: 读取知识空间 / 可加载知识
 Run -> Runtime: 执行当前节点
 Runtime -> Plugin: 调用 connector / tool / publisher
 Plugin --> Runtime: 返回标准结果
@@ -127,7 +127,7 @@ class TaskRunNode
 class ExecutionEnvironment
 class EnvironmentSnapshot
 class KnowledgeLayer
-class Skill
+class KnowledgeAsset
 class Finding
 class AccessGrant
 class ServiceCatalogListing
@@ -146,7 +146,7 @@ TaskRun "1" -- "*" TaskRunNode
 TaskRun "*" --> "0..1" EnvironmentSnapshot
 TaskRun "*" --> "0..1" AccessGrant
 TaskRunNode "*" --> "0..*" Finding
-Skill "*" --> "1" KnowledgeLayer
+KnowledgeAsset "*" --> "1" KnowledgeLayer
 ServiceCatalogListing "*" --> "1" AgentTeam
 @enduml
 ```
@@ -241,7 +241,7 @@ Agent 团队是可运营服务单元，负责：
 
 - 基础信息、业务团队归属、任务类别和可见性。
 - 触发器：manual、cron、webhook、access grant。
-- 输入 Schema、环境选择器、Agent 团队编排、记忆和 Skill 依赖。
+- 输入 Schema、环境选择器、Agent 团队编排、记忆和知识依赖。
 - Provider 执行策略、权限策略、结果 Schema、输出通道和看板规则。
 - 失败重试、并发控制、幂等键和归档策略。
 
@@ -289,7 +289,7 @@ Agent 团队是可运营服务单元，负责：
 记忆层基于 AgentWorld 知识引擎，负责：
 
 - 记忆层定义。
-- Skill 管理。
+- Agent 可加载知识管理。
 - 任务上下文归档。
 - 检视结果归档。
 - 人工反馈回流。
@@ -468,12 +468,12 @@ node "Linux Host" {
 }
 
 component "Knowledge UI / API" as KnowledgeUI
-component "Skill Sync" as SkillSync
+component "Knowledge Sync" as KnowledgeSync
 component "Task Runtime" as TaskRuntime
 component "CodeHub / Email / Webhook Plugins" as Plugins
 
 KnowledgeUI --> App
-SkillSync --> App
+KnowledgeSync --> App
 TaskRuntime --> App
 Plugins --> App
 
@@ -481,7 +481,7 @@ App --> DB
 App --> OV : HTTP /health /content /fs
 OV --> OVData
 ThirdParty --> OV
-TaskRuntime --> OV : 读 Skill / 写反馈 / 归档结果
+TaskRuntime --> OV : 读知识 / 写反馈 / 归档结果
 KnowledgeUI --> OV : 管理知识空间 / 条目
 @enduml
 ```
@@ -556,9 +556,9 @@ AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 
 - 仓库上下文：`agentworld://knowledge/resources/agentworld/code-inspection/repositories`
 - 全局检视经验：`agentworld://knowledge/resources/agentworld/code-inspection/global`
-- 安全 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/security`
-- 测试 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/quality-test`
-- 数据与接口 Skill：`agentworld://knowledge/agent/skills/agentworld/code-inspection/data-api`
+- 安全检视知识：`agentworld://knowledge/agent/knowledge/agentworld/code-inspection/security`
+- 测试检视知识：`agentworld://knowledge/agent/knowledge/agentworld/code-inspection/quality-test`
+- 数据与接口知识：`agentworld://knowledge/agent/knowledge/agentworld/code-inspection/data-api`
 - 正确反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/correct`
 - 误报反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/incorrect`
 - 解释不足反馈：`agentworld://knowledge/user/memories/agentworld/code-inspection/feedback/unclear`
@@ -581,7 +581,7 @@ AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 2. `api/webhooks/:pathKey` 解析 endpoint、任务模板和执行环境。
 3. 写入 MR 上下文到 AgentWorld 知识引擎。
 4. `submitTaskRun()` 生成可观测任务。
-5. 检视 Skill 按层运行：MR 结构、安全敏感、测试影响、数据与接口。
+5. 检视知识按层运行：MR 结构、安全敏感、测试影响、数据与接口。
 6. 生成 MR 评论。
 7. 配置 token 时回写 MR；未配置时只记录本地评论内容。
 8. finding 和人工反馈写回 AgentWorld 知识引擎。
@@ -605,7 +605,7 @@ AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 
 1. 调度器按每日模板生成任务。
 2. 环境层选择仓库集合、分支、执行人和工作目录。
-3. 安全 Skill 从 AgentWorld 知识引擎 读取安全记忆和历史反馈。
+3. 安全检视知识从 AgentWorld 知识引擎读取安全记忆和历史反馈。
 4. Agent 团队执行全量安全扫描。
 5. 生成风险报告。
 6. 邮件插件发送摘要。
@@ -639,14 +639,14 @@ Linux 发布包由 `pnpm package:linux` 生成，要求在 Linux 构建机上执
 - 可观测：事件流、trace id、节点状态、策略命中和人工干预持久化。
 - 降级：AgentWorld 知识引擎 远端不可用时保留本地影子索引。
 - 安全：密钥只保存 secret ref；插件权限与运行约束对齐。
-- 扩展：新增代码平台、通知渠道、Provider 和 Skill 只新增插件或扩展包。
+- 扩展：新增代码平台、通知渠道、Provider 和知识资产只新增插件或扩展包。
 - 上线前可演进：当前没有兼容历史数据包袱，可继续打磨字段和模型命名。
 
 ## 9. 实现对照
 
 - Provider 执行层：`provider-core.ts`、`runtime-adapter-core.ts`、`runtime-provider-config.ts`、`runtime-session-core.ts`
 - Agent 定义层：`registry-core.ts`、`agent-teams/page.tsx`
-- 工具 / Skill 管理层：`execution-policy-core.ts`、`plugin-core.ts`、`knowledge-engine-core.ts`
+- 工具 / 知识管理层：`execution-policy-core.ts`、`plugin-core.ts`、`knowledge-engine-core.ts`
 - 多 Agent 编排层：`planner-core.ts`、`executor-core.ts`、`invocation-core.ts`
 - Agent 团队任务执行层：`queries.ts`、`trace-core.ts`、`task-runs/[id]/page.tsx`
 - 业务团队管理层：`tenant-space-core.ts`、`access-grant-core.ts`
