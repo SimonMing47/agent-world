@@ -83,7 +83,12 @@ function currentUserFromSession(payload: AuthSessionPayload): CurrentUserSummary
 }
 
 function isPublicWorkspacePath(pathname: string) {
-  return pathname === "/" || pathname === "/signin" || pathname === "/change-password";
+  return (
+    pathname === "/" ||
+    pathname === "/signin" ||
+    pathname === "/change-password" ||
+    pathname.startsWith("/finding-feedback/")
+  );
 }
 
 function subscribeToSidebarPreference(callback: () => void) {

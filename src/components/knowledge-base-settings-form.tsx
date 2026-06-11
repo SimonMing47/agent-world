@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BrainCircuit, ChevronDown, Database, Info, RotateCcw } from "lucide-react";
+import { BrainCircuit, ChevronDown, Code2, Database, Info, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { editableSecretValue, isEnvSecretReference, SecretInput } from "@/components/secret-field";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { KnowledgeBaseSettings, KnowledgeModelDefaults } from "@/server/knowledge-base-settings";
 
 type ProviderOption = {
@@ -24,7 +25,15 @@ type ProviderOption = {
 
 type TextFieldKey = Exclude<
   keyof KnowledgeBaseSettings,
-  "provider" | "enabled" | "autoStart" | "corsOrigins" | "vlmProviderProfileId" | "embeddingProviderProfileId"
+  | "provider"
+  | "enabled"
+  | "autoStart"
+  | "corsOrigins"
+  | "vlmProviderProfileId"
+  | "embeddingProviderProfileId"
+  | "codebaseEngineProvider"
+  | "codebaseEngineIndexStrategy"
+  | "codebaseEngineSyncMode"
 >;
 
 const storageFields: Array<{ field: TextFieldKey; labelKey: string }> = [
@@ -87,6 +96,7 @@ function prepareEditableSettings(setting: KnowledgeBaseSettings) {
     apiKey: editableSecretValue(setting.apiKey),
     vlmApiKey: editableSecretValue(setting.vlmApiKey),
     embeddingApiKey: editableSecretValue(setting.embeddingApiKey),
+    codebaseEngineApiKey: editableSecretValue(setting.codebaseEngineApiKey),
   };
 }
 
@@ -416,6 +426,135 @@ export function KnowledgeBaseSettingsForm({
     );
   }
 
+  function renderCodebaseEngineConfig() {
+    const configured =
+      form.codebaseEngineProvider === "tree_sitter"
+      || form.codebaseEngineProvider === "disabled"
+      || Boolean(form.codebaseEngineEndpoint || form.codebaseEngineMcpEndpoint || form.codebaseEngineCommand);
+
+    return (
+      <div className="rounded-lg border border-[var(--line)] bg-white/70 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+              <Code2 className="h-4 w-4 text-[var(--accent)]" />
+              {kbText("codebaseEngine.title")}
+            </div>
+            <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
+              {kbText("codebaseEngine.description")}
+            </div>
+          </div>
+          <div className={`rounded-full px-3 py-1 text-xs font-medium ${
+            configured ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#fffbeb] text-[#92400e]"
+          }`}>
+            {configured ? kbText("codebaseEngine.status.configured") : kbText("codebaseEngine.status.missingEndpoint")}
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <ModelRoleNote tone="blue" title={kbText("codebaseEngine.notes.recommendation.title")}>
+            {kbText("codebaseEngine.notes.recommendation.description")}
+          </ModelRoleNote>
+          <ModelRoleNote tone="green" title={kbText("codebaseEngine.notes.agentUse.title")}>
+            {kbText("codebaseEngine.notes.agentUse.description")}
+          </ModelRoleNote>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <FieldGroup label={kbText("codebaseEngine.fields.provider")}>
+            <Select
+              value={form.codebaseEngineProvider}
+              onChange={(event) => {
+                const provider = event.target.value as KnowledgeBaseSettings["codebaseEngineProvider"];
+                setForm((current) => ({
+                  ...current,
+                  codebaseEngineProvider: provider,
+                  codebaseEngineCommand:
+                    provider === "codegraph"
+                      ? current.codebaseEngineCommand || "codegraph"
+                      : provider === "sourcegraph"
+                        ? ""
+                        : current.codebaseEngineCommand,
+                }));
+              }}
+            >
+              <option value="codegraph">{kbText("codebaseEngine.providers.codegraph")}</option>
+              <option value="sourcegraph">{kbText("codebaseEngine.providers.sourcegraph")}</option>
+              <option value="tree_sitter">{kbText("codebaseEngine.providers.treeSitter")}</option>
+              <option value="disabled">{kbText("codebaseEngine.providers.disabled")}</option>
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.indexStrategy")}>
+            <Select
+              value={form.codebaseEngineIndexStrategy}
+              onChange={(event) =>
+                update("codebaseEngineIndexStrategy", event.target.value as KnowledgeBaseSettings["codebaseEngineIndexStrategy"])
+              }
+            >
+              <option value="hybrid">{kbText("codebaseEngine.indexStrategies.hybrid")}</option>
+              <option value="graph">{kbText("codebaseEngine.indexStrategies.graph")}</option>
+              <option value="semantic">{kbText("codebaseEngine.indexStrategies.semantic")}</option>
+              <option value="lexical">{kbText("codebaseEngine.indexStrategies.lexical")}</option>
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.syncMode")}>
+            <Select
+              value={form.codebaseEngineSyncMode}
+              onChange={(event) =>
+                update("codebaseEngineSyncMode", event.target.value as KnowledgeBaseSettings["codebaseEngineSyncMode"])
+              }
+            >
+              <option value="on_demand">{kbText("codebaseEngine.syncModes.onDemand")}</option>
+              <option value="manual">{kbText("codebaseEngine.syncModes.manual")}</option>
+              <option value="scheduled">{kbText("codebaseEngine.syncModes.scheduled")}</option>
+            </Select>
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.workspace")}>
+            <Input
+              value={form.codebaseEngineWorkspace}
+              onChange={(event) => update("codebaseEngineWorkspace", event.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.endpoint")}>
+            <Input
+              value={form.codebaseEngineEndpoint}
+              onChange={(event) => update("codebaseEngineEndpoint", event.target.value)}
+              placeholder={kbText("codebaseEngine.placeholders.endpoint")}
+            />
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.mcpEndpoint")}>
+            <Input
+              value={form.codebaseEngineMcpEndpoint}
+              onChange={(event) => update("codebaseEngineMcpEndpoint", event.target.value)}
+              placeholder={kbText("codebaseEngine.placeholders.mcpEndpoint")}
+            />
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.command")}>
+            <Input
+              value={form.codebaseEngineCommand}
+              onChange={(event) => update("codebaseEngineCommand", event.target.value)}
+              placeholder={kbText("codebaseEngine.placeholders.command")}
+            />
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.apiKey")}>
+            <SecretInput
+              value={form.codebaseEngineApiKey}
+              onChange={(value) => update("codebaseEngineApiKey", value)}
+              placeholder={kbText("codebaseEngine.placeholders.apiKey")}
+            />
+          </FieldGroup>
+          <FieldGroup label={kbText("codebaseEngine.fields.ignoreGlobs")} className="md:col-span-2">
+            <Textarea
+              className="min-h-24 font-mono text-xs"
+              value={form.codebaseEngineIgnoreGlobs}
+              onChange={(event) => update("codebaseEngineIgnoreGlobs", event.target.value)}
+            />
+          </FieldGroup>
+        </div>
+      </div>
+    );
+  }
+
   async function save() {
     setMessage(null);
     try {
@@ -482,6 +621,10 @@ export function KnowledgeBaseSettingsForm({
           </div>
         </SettingsSection>
 
+        <SettingsSection title={kbText("sections.codebaseEngine.title")} description={kbText("sections.codebaseEngine.description")}>
+          {renderCodebaseEngineConfig()}
+        </SettingsSection>
+
         <SettingsSection title={kbText("sections.models.title")} description={kbText("sections.models.description")}>
           <div className="space-y-4">
             {foundationWarningKey ? (
@@ -528,6 +671,17 @@ export function KnowledgeBaseSettingsForm({
           <div>
             <div className="font-medium text-[var(--ink)]">{kbText("summary.storageWorkspace")}</div>
             <div className="mt-1 break-all font-mono">{form.storageWorkspace}</div>
+          </div>
+          <div className="border-t border-[var(--line)] pt-3">
+            <div className="font-medium text-[var(--ink)]">{kbText("summary.codebaseEngine")}</div>
+            <div className="mt-1 break-all font-mono">
+              {kbText(`codebaseEngine.providers.${form.codebaseEngineProvider === "tree_sitter" ? "treeSitter" : form.codebaseEngineProvider}`)}
+            </div>
+            <div className="mt-1 text-[var(--ink-subtle)]">
+              {kbText("summary.codebaseEngineDetail", {
+                strategy: kbText(`codebaseEngine.indexStrategies.${form.codebaseEngineIndexStrategy}`),
+              })}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-[var(--line)] pt-3">
             <div>

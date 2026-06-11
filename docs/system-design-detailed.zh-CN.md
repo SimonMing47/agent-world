@@ -565,13 +565,13 @@ AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 
 ## 6. 核心案例
 
-### 6.1 神盾计划 MR 检视
+### 6.1 配置化 MR 检视
 
 配置对象：
 
-- `task-template-shield-mr-check`
-- `template-shield-mr-check`
-- `env-shield-mr-check`
+- `task-template-merge-request-review`
+- `template-merge-request-review`
+- `env-merge-request-review`
 - `PR Vanguard`
 - `builtin.repo.git`
 
@@ -590,7 +590,7 @@ AgentWorld 通过 `knowledge-engine-core.ts` 调用：
 
 - 企业 Git 插件只需导入 `enterprise.repo.git` manifest。
 - 插件声明 diff API、comment API、凭据引用和 webhook parser。
-- 神盾计划任务模板可以复用，不改主干任务流程。
+- MR 检视任务模板可以复用，不改主干任务流程。
 
 ### 6.2 每日全量安全检视
 

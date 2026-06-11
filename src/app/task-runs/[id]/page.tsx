@@ -286,7 +286,9 @@ export default async function TaskRunDetailPage({
                   <section key={group} className="space-y-2">
                     <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
                       <div className="text-sm font-semibold text-[var(--ink)]">{group}</div>
-                      <div className="text-xs text-[var(--ink-muted)]">{events.length} ui.generated.cee5f313268</div>
+                      <div className="text-xs text-[var(--ink-muted)]">
+                        {events.length} {uiText("ui.generated.cee5f313268")}
+                      </div>
                     </div>
                     <DataTable>
                       <DataTableHeader>

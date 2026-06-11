@@ -17,6 +17,7 @@ import {
   searchKnowledgeEntries,
 } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeCategory, normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
 
 type JsonRecord = Record<string, unknown>;
@@ -113,14 +114,10 @@ function dedupeByUri<T extends { vikingUri: string }>(items: T[]) {
 function normalizeKnowledgeSpaceRecord<T extends KnowledgeSpace>(space: T): T {
   return {
     ...space,
+    knowledgeCategory: normalizeKnowledgeCategory(space.knowledgeCategory),
     vikingUri: normalizeKnowledgeUri(space.vikingUri),
     retentionPolicyJson: replaceLegacyKnowledgeUriText(space.retentionPolicyJson),
   };
-}
-
-function normalizeKnowledgeCategory(value?: string | null) {
-  if (value === "public" || value === "domain" || value === "repository") return value;
-  return "domain";
 }
 
 function normalizeKnowledgeLayerRecord<T extends KnowledgeLayer>(layer: T): T {
@@ -173,7 +170,7 @@ export function createKnowledgeSpace(input: {
   businessTeamId?: string | null;
   agentTeamId?: string | null;
   projectKey?: string | null;
-  knowledgeCategory?: string;
+  knowledgeCategory?: unknown;
   repositoryName?: string;
   description?: string;
   visibility?: "global" | "team" | "private";
@@ -269,7 +266,7 @@ export function upsertKnowledgeSpace(input: {
   businessTeamId?: string | null;
   agentTeamId?: string | null;
   projectKey?: string | null;
-  knowledgeCategory?: string;
+  knowledgeCategory?: unknown;
   repositoryName?: string;
   description?: string;
   visibility?: "global" | "team" | "private";
@@ -522,7 +519,7 @@ export async function buildTaskRunKnowledgeRetrieval(
   );
   const scopeUris = [...new Set([...loadRefs, ...parseStringArray(options.scopeUris)])];
   const knowledgeSpaceIds = [...new Set((options.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
-  const knowledgeCategories = [...new Set(parseCommaSeparatedArray(options.knowledgeCategories))];
+  const knowledgeCategories = normalizeKnowledgeCategories(options.knowledgeCategories);
   const repositoryNames = [...new Set(parseCommaSeparatedArray(options.repositoryNames))];
   const health = await getKnowledgeEngineHealth();
   const refs = [];

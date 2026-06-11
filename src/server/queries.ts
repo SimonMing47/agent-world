@@ -71,6 +71,7 @@ import {
   resolveTaskKnowledgeContext,
 } from "@/server/knowledge-core";
 import { publishTaskRunOutputs } from "@/server/output-publisher-core";
+import { executePluginStage } from "@/server/plugin-stage-core";
 import {
   buildTaskBlueprintDetail,
   buildTaskBlueprintSummary,
@@ -79,8 +80,11 @@ import {
   renderTemplateValue,
 } from "@/server/task-blueprint-core";
 import { appendTaskRunEvent, getTaskRunNodes } from "@/server/task-run-event-store";
+import { cleanupTaskWorktree, prepareTaskWorktree } from "@/server/task-worktree-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
+import { buildAgentSkillLoadout } from "@/server/agent-skill-core";
 import { getLanguagePackSetting } from "@/server/language-pack-store";
+import { normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { uiText } from "@/lib/language-pack";
 
 export function listTenantSpaces() {
@@ -1653,9 +1657,9 @@ function buildDefaultIdempotencyTemplate(sourceType: TaskRun["sourceType"], inpu
   return "${task_blueprint_id}:${webhook_path_key}:${event_name}:${received_at}";
 }
 
-function parseJsonRecord(value: string) {
+function parseJsonRecord(value: string | null | undefined) {
   try {
-    const parsed = JSON.parse(value) as unknown;
+    const parsed = JSON.parse(value ?? "{}") as unknown;
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
       ? (parsed as Record<string, unknown>)
       : {};
@@ -1709,12 +1713,7 @@ function parseKnowledgeScopeUris(value: unknown) {
 }
 
 function parseKnowledgeCategories(value: unknown) {
-  const values = typeof value === "string" ? value.split(",") : parseStringArray(value);
-  const normalized = values
-    .flatMap((item) => item.split(","))
-    .map((item) => item.trim().toLowerCase())
-    .filter((item) => item === "public" || item === "domain" || item === "repository");
-  return [...new Set(normalized)];
+  return normalizeKnowledgeCategories(value);
 }
 
 function parseKnowledgeRepositoryNames(value: unknown) {
@@ -2140,6 +2139,13 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", taskRun.teamId);
   const nodes = getTaskRunNodes(taskRunId);
   if (!team || nodes.length === 0) return getTaskRunDetail(taskRunId);
+  const taskBlueprint = taskRun.blueprintId
+    ? queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", taskRun.blueprintId)
+    : null;
+
+  if (!parseJsonRecord(taskRun.outputPayloadJson).taskWorktree) {
+    await prepareTaskWorktree({ taskRun, blueprint: taskBlueprint });
+  }
 
   const composedExecutionPolicy = loadComposedExecutionPolicyForTaskRun(taskRun);
   const accessGrant = taskRun.accessGrantId
@@ -2168,7 +2174,13 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const refreshedNodes = getTaskRunNodes(taskRunId);
   const runnable = refreshedNodes.find((node) => node.status === "ready");
   if (!runnable) {
-    execute("UPDATE task_runs SET status = ? WHERE id = ?", resolveTaskRunStatusFromNodes(refreshedNodes), taskRun.id);
+    const resolvedStatus = resolveTaskRunStatusFromNodes(refreshedNodes);
+    execute(
+      "UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?",
+      resolvedStatus,
+      resolvedStatus,
+      taskRun.id,
+    );
     return getTaskRunDetail(taskRunId);
   }
 
@@ -2189,7 +2201,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     content: uiText("ui.server.taskBlueprint.nodeStarted", undefined, { nodeKey: runnable.nodeKey, requestedBy }),
   });
 
-  const nodeInput = JSON.parse(runnable.inputJson) as {
+  const rawNodeInput = JSON.parse(runnable.inputJson) as {
     action?: string;
     tool?: string;
     assignment?: string;
@@ -2212,8 +2224,34 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     includeOutboundUris?: unknown;
     connectorType?: string;
     publisherRef?: string;
+    pluginRef?: string;
+    toolRef?: string;
+    forEach?: string;
+    feedbackBaseUrl?: string;
     payloadTemplate?: string;
+    loadedSkills?: unknown;
+    skillRules?: unknown;
   };
+  const skillLoadout = buildAgentSkillLoadout(runnable.agentId);
+  const nodeInput = {
+    ...rawNodeInput,
+    loadedSkills: skillLoadout.skills,
+    skillRules: Array.isArray(rawNodeInput.skillRules) ? rawNodeInput.skillRules : skillLoadout.rules,
+  };
+  if (skillLoadout.skills.length > 0) {
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: "agent_skills_loaded",
+      foldGroup: "Analysis",
+      title: uiText("agentSkills.events.loadedTitle"),
+      content: uiText("agentSkills.events.loadedContent", undefined, {
+        count: skillLoadout.skills.length,
+      }),
+      metadata: skillLoadout,
+    });
+  }
   const simulatedDurationMs = Number(
     (nodeInput as { simulatedDurationMs?: unknown }).simulatedDurationMs ?? 0,
   );
@@ -2221,8 +2259,15 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const action = nodeInput.action ?? "execute";
   const tool = nodeInput.tool ?? "memory.read";
   const knowledgeSpaceIds = parseKnowledgeSpaceIds(nodeInput.knowledgeSpaceIds);
-  const scopeUris = parseKnowledgeScopeUris(nodeInput.scopeUris);
-  const knowledgeCategories = parseKnowledgeCategories(nodeInput.knowledgeCategories);
+  const scopeUris = [
+    ...new Set([...parseKnowledgeScopeUris(nodeInput.scopeUris), ...skillLoadout.scopeUris]),
+  ];
+  const knowledgeCategories = [
+    ...new Set([
+      ...parseKnowledgeCategories(nodeInput.knowledgeCategories),
+      ...(skillLoadout.skills.length > 0 ? ["skill"] : []),
+    ]),
+  ];
   const repositoryNames = parseKnowledgeRepositoryNames(nodeInput.repositoryNames);
   const levels = parseKnowledgeLevels(nodeInput.levels);
   const query = typeof nodeInput.query === "string" ? nodeInput.query.trim() : "";
@@ -2249,7 +2294,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "failed", "failed", taskRun.id);
     appendTaskRunEvent({
       traceId: taskRun.traceId,
       taskRunId: taskRun.id,
@@ -2284,7 +2329,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "failed", "failed", taskRun.id);
     appendTaskRunEvent({
       traceId: taskRun.traceId,
       taskRunId: taskRun.id,
@@ -2300,7 +2345,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
 
   if (executionPolicyDecision.requiresApproval) {
     execute("UPDATE task_run_nodes SET status = ? WHERE id = ?", "awaiting", runnable.id);
-    execute("UPDATE task_runs SET status = ? WHERE id = ?", "awaiting", taskRun.id);
+    execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "awaiting", "awaiting", taskRun.id);
     execute(
       "INSERT INTO task_run_interventions (id, task_run_id, node_id, kind, status, requested_action, resolution_note, requested_at, resolved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       randomUUID(),
@@ -2476,6 +2521,33 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       },
     });
   }
+  let pluginStageOutput: Record<string, unknown> | null = null;
+  if (blockType === "plugin_tool" || blockType === "publisher") {
+    const environmentSnapshot = taskRun.environmentSnapshotId
+      ? queryOne<EnvironmentSnapshot>("SELECT * FROM environment_snapshots WHERE id = ?", taskRun.environmentSnapshotId)
+      : null;
+    pluginStageOutput = await executePluginStage({
+      blockType,
+      pluginRef: nodeInput.pluginRef,
+      toolRef: nodeInput.toolRef,
+      publisherRef: nodeInput.publisherRef,
+      payloadTemplate: nodeInput.payloadTemplate,
+      taskRun,
+      blueprint: taskBlueprint,
+      environmentSnapshot,
+      nodeInput: nodeInput as Record<string, unknown>,
+    });
+    appendTaskRunEvent({
+      traceId: taskRun.traceId,
+      taskRunId: taskRun.id,
+      nodeId: runnable.id,
+      phase: blockType === "publisher" ? "publisher_stage_completed" : "plugin_tool_stage_completed",
+      foldGroup: "Execution",
+      title: nodeInput.title ?? runnable.nodeKey,
+      content: String(pluginStageOutput.status ?? "completed"),
+      metadata: pluginStageOutput,
+    });
+  }
 
   if (timeoutReached) {
     const failureClass = classifyFailure({
@@ -2489,7 +2561,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       nowIso(),
       runnable.id,
     );
-    execute("UPDATE task_runs SET status = ? WHERE id = ?", "failed", taskRun.id);
+    execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "failed", "failed", taskRun.id);
     appendTaskRunEvent({
       traceId: taskRun.traceId,
       taskRunId: taskRun.id,
@@ -2510,6 +2582,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
       result: "ok",
       action,
       tool,
+      pluginStage: pluginStageOutput,
       executedBy: requestedBy,
       completedAt: nowIso(),
     }),
@@ -2530,7 +2603,8 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const completedNodes = getTaskRunNodes(taskRun.id);
   const taskRunStatus = resolveTaskRunStatusFromNodes(completedNodes);
   execute(
-    "UPDATE task_runs SET status = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    "UPDATE task_runs SET status = ?, run_state = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    taskRunStatus,
     taskRunStatus,
     taskRunStatus === "completed" ? nowIso() : null,
     roundCurrency(
@@ -2613,6 +2687,7 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
         },
       });
     }
+    await cleanupTaskWorktree({ taskRun: completedTaskRun, blueprint });
   }
 
   return getTaskRunDetail(taskRunId);
@@ -2699,7 +2774,7 @@ export function retryTaskRunNode(args: { taskRunId: string; nodeId: string; requ
     null,
     node.id,
   );
-  execute("UPDATE task_runs SET status = ? WHERE id = ?", "running", taskRun.id);
+  execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "running", "running", taskRun.id);
 
   appendTaskRunEvent({
     traceId: taskRun.traceId,
@@ -2745,7 +2820,13 @@ export function resolveTaskRunIntervention(args: {
     );
   }
 
-  execute("UPDATE task_runs SET status = ? WHERE id = ?", args.decision === "approved" ? "running" : "failed", taskRun.id);
+  const nextTaskRunStatus = args.decision === "approved" ? "running" : "failed";
+  execute(
+    "UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?",
+    nextTaskRunStatus,
+    nextTaskRunStatus,
+    taskRun.id,
+  );
 
   appendTaskRunEvent({
     traceId: taskRun.traceId,
@@ -2766,7 +2847,7 @@ export function resumeTaskRun(taskRunId: string, requestedBy: string) {
   if (!taskRun) throw new Error(uiText("ui.generated.c7faa8038d2"));
 
   execute("UPDATE task_run_nodes SET status = ? WHERE task_run_id = ? AND status = ?", "ready", taskRunId, "awaiting");
-  execute("UPDATE task_runs SET status = ? WHERE id = ?", "running", taskRunId);
+  execute("UPDATE task_runs SET status = ?, run_state = ? WHERE id = ?", "running", "running", taskRunId);
 
   appendTaskRunEvent({
     traceId: taskRun.traceId,

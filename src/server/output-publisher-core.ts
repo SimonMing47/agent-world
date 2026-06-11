@@ -4,12 +4,22 @@ import {
   resolveOutputPublisher,
 } from "@/server/plugin-sdk-core";
 import { uiText } from "@/lib/language-pack";
+import {
+  buildFindingFeedbackPath,
+  buildFindingFeedbackToken,
+  buildFindingFeedbackUrl,
+} from "@/server/finding-feedback-core";
 
 type PublisherSpec = {
   type?: string;
   pluginId?: string;
   publisherRef?: string;
   config?: Record<string, unknown>;
+};
+
+type FindingFeedbackPolicy = {
+  enabled: boolean;
+  baseUrl: string;
 };
 
 export type OutputPublicationResult = {
@@ -42,7 +52,31 @@ function parsePublishers(blueprint: TaskBlueprint) {
     : [];
 }
 
-function buildFindingMarkdown(findings: Finding[]) {
+function parseFindingFeedbackPolicy(blueprint: TaskBlueprint, taskRunInput: Record<string, unknown>): FindingFeedbackPolicy {
+  const outputPolicy = parseRecord(blueprint.outputPolicyJson);
+  const rawPolicy = parseRecord(
+    typeof outputPolicy.findingFeedback === "string"
+      ? outputPolicy.findingFeedback
+      : JSON.stringify(outputPolicy.findingFeedback ?? {}),
+  );
+  const enabled = rawPolicy.enabled === true;
+  const configuredBaseUrl =
+    typeof rawPolicy.baseUrl === "string" && rawPolicy.baseUrl.trim()
+      ? rawPolicy.baseUrl.trim()
+      : "";
+  const inputBaseUrl =
+    typeof taskRunInput.public_base_url === "string" && taskRunInput.public_base_url.trim()
+      ? taskRunInput.public_base_url.trim()
+      : typeof taskRunInput.publicBaseUrl === "string" && taskRunInput.publicBaseUrl.trim()
+        ? taskRunInput.publicBaseUrl.trim()
+        : "";
+  return {
+    enabled,
+    baseUrl: configuredBaseUrl || inputBaseUrl || process.env.AGENTWORLD_PUBLIC_BASE_URL || "",
+  };
+}
+
+function buildFindingMarkdown(findings: Finding[], feedbackPolicy?: FindingFeedbackPolicy) {
   if (findings.length === 0) {
     return uiText("ui.generated.c9d4101ab82");
   }
@@ -64,6 +98,11 @@ function buildFindingMarkdown(findings: Finding[]) {
         finding.recommendation
           ? uiText("ui.server.outputPublisher.recommendation", undefined, { recommendation: finding.recommendation })
           : null,
+        feedbackPolicy?.enabled
+          ? uiText("ui.server.outputPublisher.feedback", undefined, {
+              feedbackUrl: buildFindingFeedbackUrl(finding, feedbackPolicy.baseUrl),
+            })
+          : null,
       ]
         .filter(Boolean)
         .join("\n");
@@ -80,13 +119,14 @@ function buildPublicationInput(args: {
 }) {
   const inputPayload = parseRecord(args.taskRun.inputPayloadJson);
   const environmentPayload = parseRecord(args.environmentSnapshot?.snapshotJson);
+  const feedbackPolicy = parseFindingFeedbackPolicy(args.blueprint, inputPayload);
   const commentBody = [
     `## ${args.blueprint.name}`,
     "",
     uiText("ui.server.outputPublisher.taskRun", undefined, { taskRunId: args.taskRun.id }),
     uiText("ui.server.outputPublisher.sourceType", undefined, { sourceType: args.taskRun.sourceType }),
     "",
-    buildFindingMarkdown(args.findings),
+    buildFindingMarkdown(args.findings, feedbackPolicy),
   ].join("\n");
 
   return {
@@ -104,7 +144,11 @@ function buildPublicationInput(args: {
       description: finding.description,
       recommendation: finding.recommendation,
       evidence: parseRecord(finding.evidenceJson),
+      feedbackToken: feedbackPolicy.enabled ? buildFindingFeedbackToken(finding) : null,
+      feedbackPath: feedbackPolicy.enabled ? buildFindingFeedbackPath(finding) : null,
+      feedbackUrl: feedbackPolicy.enabled ? buildFindingFeedbackUrl(finding, feedbackPolicy.baseUrl) : null,
     })),
+    findingFeedback: feedbackPolicy,
     environment: environmentPayload,
     comment: commentBody,
     body: {

@@ -11,6 +11,7 @@ import {
   matchWebhookBlueprints,
   validateWebhookSecret,
 } from "@/server/webhook-trigger-core";
+import { attachRegisteredCodebaseToInput } from "@/server/task-worktree-core";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -100,12 +101,12 @@ async function handleWebhookRequest(request: Request, context: RouteContext) {
   const results = [];
   for (const blueprint of matchedBlueprints) {
     try {
-      const inputPayload = await buildWebhookTaskInputForBlueprint({
+      const inputPayload = attachRegisteredCodebaseToInput(await buildWebhookTaskInputForBlueprint({
         pathKey,
         payload,
         request,
         blueprint,
-      });
+      }));
       const detail = submitTaskRunFromBlueprint({
         blueprintId: blueprint.id,
         requestedBy: String(inputPayload.author ?? "webhook"),

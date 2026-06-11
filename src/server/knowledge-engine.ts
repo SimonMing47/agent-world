@@ -21,6 +21,10 @@ import {
   getKnowledgeBaseSettings,
 } from "@/server/knowledge-base-settings";
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
+import {
+  type KnowledgeCategory,
+  normalizeKnowledgeCategories,
+} from "@/lib/knowledge-categories";
 
 const KNOWLEDGE_ROOT = path.join("data", "knowledge-engine");
 const SHADOW_ROOT = path.join(KNOWLEDGE_ROOT, "shadow");
@@ -131,12 +135,6 @@ export type KnowledgeSearchResult = {
   totalCandidates: number;
   hits: KnowledgeSearchHit[];
 };
-
-const knownKnowledgeCategories = new Set(["public", "domain", "repository"]);
-
-function normalizeKnowledgeCategory(value: unknown) {
-  return knownKnowledgeCategories.has(String(value ?? "")) ? String(value) : null;
-}
 
 export class KnowledgeEntryConflictError extends Error {
   currentEntry: KnowledgeEntryRecord | null;
@@ -889,9 +887,7 @@ function parseKnowledgeSearchScopes(args: {
 }) {
   const knowledgeSpaceIds = [...new Set((args.knowledgeSpaceIds ?? []).map((id) => id.trim()).filter(Boolean))];
   const scopeUris = [...new Set((args.scopeUris ?? []).map((uri) => normalizeUriForCompare(uri)).filter(Boolean))];
-  const knowledgeCategories = [...new Set((args.knowledgeCategories ?? []).map(normalizeKnowledgeCategory).filter(Boolean))] as Array<
-    string
-  >;
+  const knowledgeCategories = normalizeKnowledgeCategories(args.knowledgeCategories) as KnowledgeCategory[];
   const repositoryNames = [...new Set(
     (args.repositoryNames ?? [])
       .map((value) => value.trim().toLowerCase())
@@ -946,7 +942,8 @@ function filterKnowledgeEntriesForScopes(input: {
     const space = knowledgeSpaceById.get(entry.knowledgeSpaceId);
     if (!space) return false;
 
-    if (categoryFilter.size > 0 && !categoryFilter.has(normalizeKnowledgeCategory(space.knowledge_category) || "domain")) {
+    const normalizedSpaceCategory = normalizeKnowledgeCategories(space.knowledge_category);
+    if (categoryFilter.size > 0 && (!normalizedSpaceCategory[0] || !categoryFilter.has(normalizedSpaceCategory[0]))) {
       return false;
     }
     if (repositoryNameFilter.size > 0) {

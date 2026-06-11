@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { DatabaseSync as DatabaseSyncType, SQLInputValue } from "node:sqlite";
 import { LEGACY_KNOWLEDGE_URI_SCHEME, NATIVE_KNOWLEDGE_URI_SCHEME } from "@/lib/knowledge-uri";
+import { type KnowledgeCategory } from "@/lib/knowledge-categories";
 import { schemaSql } from "@/server/db-schema";
 
 type Row = Record<string, unknown>;
@@ -818,7 +819,7 @@ export type KnowledgeSpace = {
   businessTeamId: string | null;
   agentTeamId: string | null;
   projectKey: string | null;
-  knowledgeCategory: "public" | "domain" | "repository";
+  knowledgeCategory: KnowledgeCategory;
   repositoryName: string | null;
   slug: string;
   name: string;
