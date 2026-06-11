@@ -306,6 +306,8 @@ const enUSLanguagePackBase = {
     "ui.taskWorkflow.fields.pluginRef": "Plugin Ref",
     "ui.taskWorkflow.fields.toolRef": "Tool Ref",
     "ui.taskWorkflow.fields.publisherRef": "Publisher Ref",
+    "ui.taskWorkflow.fields.pluginBaseUrl": "Plugin Service URL",
+    "ui.taskWorkflow.fields.pluginTokenRef": "Plugin Access Secret",
     "ui.taskWorkflow.fields.forEach": "Loop Target",
     "ui.taskWorkflow.fields.feedbackBaseUrl": "Feedback Base URL",
     "ui.taskWorkflow.options.once": "Run Once",
@@ -313,6 +315,8 @@ const enUSLanguagePackBase = {
     "ui.taskWorkflow.placeholders.pluginRef": "Example: vendor.plugin.tool_bundle",
     "ui.taskWorkflow.placeholders.toolRef": "Example: tool.action",
     "ui.taskWorkflow.placeholders.publisherRef": "Example: vendor.plugin.publisher",
+    "ui.taskWorkflow.placeholders.pluginBaseUrl": "Example: https://code.example.com",
+    "ui.taskWorkflow.placeholders.pluginTokenRef": "Enter the access secret for this plugin",
     "ui.taskWorkflow.placeholders.feedbackBaseUrl": "Example: https://agentworld.example.com",
     "ui.taskWorkflow.placeholders.payloadTemplate": "{\"taskRunId\":\"${taskRun.id}\",\"finding\":\"${finding.title}\"}",
     "ui.taskBlueprintEditor.fields.parserConnector": "Parser / Connector",
@@ -1262,6 +1266,7 @@ const enUSLanguagePackBase = {
 	      secret: {
 	        show: "Show",
 	        hide: "Hide",
+	        configuredPlaceholder: "Configured; enter a new value to replace it",
 	        legacyEnvReference: "Legacy environment variable reference. Re-save a direct API key.",
 	      },
 	      workflow: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, Plus, Trash2 } from "lucide-react";
+import { SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ export type WorkflowBlock = {
   publisherRef: string;
   pluginRef: string;
   toolRef: string;
+  pluginBaseUrl: string;
+  pluginTokenRef: string;
   forEach: string;
   feedbackBaseUrl: string;
   payloadTemplate: string;
@@ -120,6 +123,8 @@ function createBlock(type: WorkflowBlockType, index: number) {
     publisherRef: "",
     pluginRef: "",
     toolRef: "",
+    pluginBaseUrl: "",
+    pluginTokenRef: "",
     forEach: "",
     feedbackBaseUrl: "",
     payloadTemplate: "{}",
@@ -393,6 +398,24 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                         placeholder="ui.taskWorkflow.placeholders.toolRef"
                       />
                     </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginBaseUrl">
+                      <Input
+                        value={block.pluginBaseUrl}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { pluginBaseUrl: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.pluginBaseUrl"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginTokenRef">
+                      <SecretInput
+                        value={block.pluginTokenRef}
+                        onChange={(value) =>
+                          onChange(updateBlock(blocks, block.id, { pluginTokenRef: value }))
+                        }
+                        placeholder={text("ui.taskWorkflow.placeholders.pluginTokenRef")}
+                      />
+                    </FieldGroup>
                   </>
                 ) : null}
 
@@ -423,6 +446,24 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                           onChange(updateBlock(blocks, block.id, { feedbackBaseUrl: event.target.value }))
                         }
                         placeholder="ui.taskWorkflow.placeholders.feedbackBaseUrl"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginBaseUrl">
+                      <Input
+                        value={block.pluginBaseUrl}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { pluginBaseUrl: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.pluginBaseUrl"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginTokenRef">
+                      <SecretInput
+                        value={block.pluginTokenRef}
+                        onChange={(value) =>
+                          onChange(updateBlock(blocks, block.id, { pluginTokenRef: value }))
+                        }
+                        placeholder={text("ui.taskWorkflow.placeholders.pluginTokenRef")}
                       />
                     </FieldGroup>
                   </>

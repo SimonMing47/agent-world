@@ -473,6 +473,12 @@ function assertWebhookTriggerNoEnvSecretReference(triggerJson: string) {
   }
 }
 
+function assertNoEnvPluginSecretReferencesInJson(value: string) {
+  if (parsedConfigHasEnvReference(value)) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
+  }
+}
+
 function parsedConfigHasEnvReference(value: string) {
   function walk(item: unknown): boolean {
     if (typeof item === "string") return item.trim().toLowerCase().startsWith("env:");
@@ -905,6 +911,9 @@ export function upsertTaskBlueprint(
   >,
 ) {
   assertWebhookTriggerNoEnvSecretReference(input.triggerJson);
+  assertNoEnvPluginSecretReferencesInJson(input.agentTeamRunPlanJson);
+  assertNoEnvPluginSecretReferencesInJson(input.permissionPolicyJson);
+  assertNoEnvPluginSecretReferencesInJson(input.outputPolicyJson);
   const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
   const executionPolicyJson = buildTaskBlueprintExecutionPolicyJson(
@@ -2232,6 +2241,9 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     publisherRef?: string;
     pluginRef?: string;
     toolRef?: string;
+    pluginBaseUrl?: string;
+    pluginTokenRef?: string;
+    pluginWebhookSecretRef?: string;
     forEach?: string;
     feedbackBaseUrl?: string;
     payloadTemplate?: string;

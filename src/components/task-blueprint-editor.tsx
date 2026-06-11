@@ -245,6 +245,71 @@ function inferBlockAction(type: WorkflowBlockType, value: unknown) {
   return "execute";
 }
 
+function readWorkflowString(record: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function cleanPluginPayloadTemplate(type: WorkflowBlockType, payloadTemplate: string) {
+  if (type !== "plugin_tool" && type !== "publisher") return payloadTemplate;
+  const payload = parseRecord(payloadTemplate);
+  if (Object.keys(payload).length === 0) return payloadTemplate;
+  const cleaned = { ...payload };
+  delete cleaned.baseUrl;
+  delete cleaned.base_url;
+  delete cleaned.tokenRef;
+  delete cleaned.token_ref;
+  delete cleaned.webhookSecretRef;
+  delete cleaned.webhook_secret_ref;
+  return JSON.stringify(cleaned, null, 2);
+}
+
+function stripSecretFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripSecretFields);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !["tokenRef", "token_ref", "webhookSecretRef", "webhook_secret_ref"].includes(key))
+      .map(([key, item]) => [key, stripSecretFields(item)]),
+  );
+}
+
+function cleanOutputPolicyJson(value: string) {
+  try {
+    return JSON.stringify(stripSecretFields(JSON.parse(value) as unknown), null, 2);
+  } catch {
+    return value;
+  }
+}
+
+function normalizePermissionPolicySecretScopes(value: string) {
+  function walk(item: unknown): unknown {
+    if (Array.isArray(item)) return item.map(walk);
+    if (!item || typeof item !== "object") return item;
+    const record = item as Record<string, unknown>;
+    const next = Object.fromEntries(Object.entries(record).map(([key, child]) => [key, walk(child)]));
+    if (
+      typeof next.resource === "string" &&
+      next.resource === "secret.use" &&
+      typeof next.scope === "string" &&
+      next.scope.trim().toLowerCase().startsWith("env:")
+    ) {
+      next.scope = "plugin.secret";
+    }
+    return next;
+  }
+
+  try {
+    return JSON.stringify(walk(JSON.parse(value) as unknown), null, 2);
+  } catch {
+    return value;
+  }
+}
+
 function parseWorkflowKnowledgeCategory(value: unknown) {
   return normalizeKnowledgeCategory(value);
 }
@@ -287,6 +352,14 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   if (runPlan.blocks.length > 0) {
     return runPlan.blocks.map((raw, index) => {
       const type = isWorkflowBlockType(raw.type) ? raw.type : "agent";
+      const payloadTemplate =
+        typeof raw.payloadTemplate === "string"
+          ? raw.payloadTemplate
+          : JSON.stringify(raw.payloadTemplate ?? {}, null, 2);
+      const payloadTemplateRecord = parseRecord(payloadTemplate);
+      const pluginConfig = raw.pluginConfig && typeof raw.pluginConfig === "object" && !Array.isArray(raw.pluginConfig)
+        ? (raw.pluginConfig as Record<string, unknown>)
+        : {};
       return {
         id: normalizeBlockId(raw.id, index),
         type,
@@ -319,12 +392,17 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
         publisherRef: typeof raw.publisherRef === "string" ? raw.publisherRef : "",
         pluginRef: typeof raw.pluginRef === "string" ? raw.pluginRef : "",
         toolRef: typeof raw.toolRef === "string" ? raw.toolRef : "",
+        pluginBaseUrl: readWorkflowString(raw, "pluginBaseUrl") ||
+          readWorkflowString(pluginConfig, "baseUrl", "url") ||
+          readWorkflowString(payloadTemplateRecord, "baseUrl", "base_url"),
+        pluginTokenRef: editableSecretValue(
+          readWorkflowString(raw, "pluginTokenRef", "tokenRef") ||
+          readWorkflowString(pluginConfig, "tokenRef", "token") ||
+          readWorkflowString(payloadTemplateRecord, "tokenRef", "token_ref"),
+        ),
         forEach: typeof raw.forEach === "string" ? raw.forEach : "",
         feedbackBaseUrl: typeof raw.feedbackBaseUrl === "string" ? raw.feedbackBaseUrl : "",
-        payloadTemplate:
-          typeof raw.payloadTemplate === "string"
-            ? raw.payloadTemplate
-            : JSON.stringify(raw.payloadTemplate ?? {}, null, 2),
+        payloadTemplate: cleanPluginPayloadTemplate(type, payloadTemplate),
         knowledgeCategory: parseWorkflowKnowledgeCategory(
           typeof raw.knowledgeCategory === "string"
             ? raw.knowledgeCategory
@@ -348,6 +426,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   }
 
   const members = team?.members ?? [];
+  const defaultPluginStageConfig = {
+    pluginBaseUrl: "",
+    pluginTokenRef: "",
+  };
   const leader =
     members.find((member) => member.id === team?.leaderAgentId) ??
     members.find((member) => member.memberRole.toLowerCase().includes("leader")) ??
@@ -372,6 +454,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -395,6 +478,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -430,6 +514,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -456,6 +541,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "dashboard",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -574,6 +660,8 @@ function buildRunPlanJson(args: {
         publisherRef: block.publisherRef || undefined,
         pluginRef: block.pluginRef || undefined,
         toolRef: block.toolRef || undefined,
+        pluginBaseUrl: block.pluginBaseUrl || undefined,
+        pluginTokenRef: block.pluginTokenRef || undefined,
         forEach: block.forEach || undefined,
         feedbackBaseUrl: block.feedbackBaseUrl || undefined,
         payloadTemplate: block.payloadTemplate || undefined,
@@ -773,13 +861,11 @@ export function TaskBlueprintEditor({
       JSON.stringify({ requiredSpaces: [], archiveOutputTo: [] }, null, 2),
     ),
     providerPolicyJson: normalizeJson(blueprint.providerPolicyJson, "{}"),
-    permissionPolicyJson: normalizeJson(
-      blueprint.permissionPolicyJson,
-      JSON.stringify({ defaultMode: "ask", rules: [] }, null, 2),
+    permissionPolicyJson: normalizePermissionPolicySecretScopes(
+      normalizeJson(blueprint.permissionPolicyJson, JSON.stringify({ defaultMode: "ask", rules: [] }, null, 2)),
     ),
-    outputPolicyJson: normalizeJson(
-      blueprint.outputPolicyJson,
-      JSON.stringify({ publishers: [] }, null, 2),
+    outputPolicyJson: cleanOutputPolicyJson(
+      normalizeJson(blueprint.outputPolicyJson, JSON.stringify({ publishers: [] }, null, 2)),
     ),
     dashboardPolicyJson: normalizeJson(blueprint.dashboardPolicyJson, "{}"),
     executionPolicyJson: normalizeJson(blueprint.executionPolicyJson, "{}"),

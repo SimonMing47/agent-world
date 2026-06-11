@@ -568,6 +568,8 @@ export const zhCNLanguagePack = {
     "ui.taskWorkflow.fields.pluginRef": "插件引用",
     "ui.taskWorkflow.fields.toolRef": "工具引用",
     "ui.taskWorkflow.fields.publisherRef": "发布器引用",
+    "ui.taskWorkflow.fields.pluginBaseUrl": "插件服务地址",
+    "ui.taskWorkflow.fields.pluginTokenRef": "插件访问密钥",
     "ui.taskWorkflow.fields.forEach": "循环对象",
     "ui.taskWorkflow.fields.feedbackBaseUrl": "反馈链接基址",
     "ui.taskWorkflow.options.once": "执行一次",
@@ -575,6 +577,8 @@ export const zhCNLanguagePack = {
     "ui.taskWorkflow.placeholders.pluginRef": "例如：vendor.plugin.tool_bundle",
     "ui.taskWorkflow.placeholders.toolRef": "例如：tool.action",
     "ui.taskWorkflow.placeholders.publisherRef": "例如：vendor.plugin.publisher",
+    "ui.taskWorkflow.placeholders.pluginBaseUrl": "例如：https://code.example.com",
+    "ui.taskWorkflow.placeholders.pluginTokenRef": "直接填写该插件的访问密钥",
     "ui.taskWorkflow.placeholders.feedbackBaseUrl": "例如：https://agentworld.example.com",
     "ui.taskWorkflow.placeholders.payloadTemplate": "{\"taskRunId\":\"${taskRun.id}\",\"finding\":\"${finding.title}\"}",
     "ui.taskBlueprintEditor.fields.parserConnector": "Parser / Connector",
@@ -1857,6 +1861,7 @@ export const zhCNLanguagePack = {
       secret: {
         show: "显示",
         hide: "隐藏",
+        configuredPlaceholder: "已配置，重新输入可覆盖",
         legacyEnvReference: "旧环境变量引用，请重新保存直接 API Key",
       },
       workflow: {
