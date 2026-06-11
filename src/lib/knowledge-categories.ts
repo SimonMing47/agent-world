@@ -1,4 +1,4 @@
-export const knowledgeCategoryValues = ["global", "domain", "codebase"] as const;
+export const knowledgeCategoryValues = ["global", "domain", "skill", "codebase"] as const;
 
 export type KnowledgeCategory = (typeof knowledgeCategoryValues)[number];
 
@@ -7,11 +7,14 @@ const knowledgeCategoryAlias: Record<string, KnowledgeCategory> = {
   public: "global",
   common: "global",
   shared: "global",
-  skill: "global",
   knowledge: "global",
   domain: "domain",
   field: "domain",
   business: "domain",
+  skill: "skill",
+  skills: "skill",
+  agent_skill: "skill",
+  agent_knowledge: "skill",
   codebase: "codebase",
   code: "codebase",
   repository: "codebase",

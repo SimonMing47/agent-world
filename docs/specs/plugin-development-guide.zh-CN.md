@@ -51,7 +51,7 @@
 
 新增业务能力时，先在这张表里找到最接近的插件点。找不到时，先补通用插件点，再通过配置组合业务流程。
 
-历史 manifest 中的 `skills` 视为 `knowledgeAssets` 的兼容别名；新插件应使用 `knowledgeAssets`，并把内容落入知识库的全局知识、领域知识或代码仓知识空间。
+历史 manifest 中的 `skills` 视为 `knowledgeAssets` 的兼容别名；新插件应使用 `knowledgeAssets`，并把内容落入知识库的全局知识、领域知识、Skill 知识或代码仓知识空间。
 
 ## 3. Manifest 基线
 

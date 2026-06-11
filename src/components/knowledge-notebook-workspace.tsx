@@ -1796,6 +1796,7 @@ function SpaceQuickDialog({
             >
               <option value="global">{text("knowledge.category.global")}</option>
               <option value="domain">{text("knowledge.category.domain")}</option>
+              <option value="skill">{text("knowledge.category.skill")}</option>
               <option value="codebase">{text("knowledge.category.codebase")}</option>
             </Select>
           </FieldGroup>

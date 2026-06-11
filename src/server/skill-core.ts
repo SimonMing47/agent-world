@@ -14,6 +14,7 @@ import {
 } from "@/server/db";
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
 import { writeLayeredKnowledge } from "@/server/knowledge-engine";
+import { createKnowledgeSpace, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { uiText } from "@/lib/language-pack";
 import { normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 
@@ -237,6 +238,46 @@ function resolveDefaultProviderRuntime() {
   return { runtimeBinding, providerProfile, apiKey };
 }
 
+function normalizeSkillSpaceVisibility(value: string | null | undefined) {
+  if (value === "global" || value === "private" || value === "team") return value;
+  return "team";
+}
+
+function ensureSkillKnowledgeSpace(skill: InspectionSkill) {
+  const ownerBusinessTeam = skill.ownerBusinessTeamId
+    ? queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ? AND status <> 'deleted'",
+        skill.ownerBusinessTeamId,
+      )
+    : null;
+  const spaceType = ownerBusinessTeam ? "team" : "global";
+  const existing = listKnowledgeSpaces().find(
+    (space) =>
+      space.status === "active" &&
+      space.knowledgeCategory === "skill" &&
+      space.spaceType === spaceType &&
+      (ownerBusinessTeam ? space.businessTeamId === ownerBusinessTeam.id : !space.businessTeamId),
+  );
+  if (existing) return existing;
+
+  const tenantSpaceId = ownerBusinessTeam?.tenantSpaceId ??
+    queryOne<{ id: string }>("SELECT id FROM tenant_spaces WHERE status <> 'deleted' ORDER BY created_at ASC LIMIT 1")?.id;
+  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
+
+  const created = createKnowledgeSpace({
+    tenantSpaceId,
+    businessTeamId: ownerBusinessTeam?.id ?? null,
+    name: uiText("knowledge.skillSpace.name"),
+    slug: ownerBusinessTeam ? `agent-loadable-knowledge-${slugify(ownerBusinessTeam.slug)}` : "agent-loadable-knowledge",
+    spaceType,
+    knowledgeCategory: "skill",
+    description: uiText("knowledge.skillSpace.description"),
+    visibility: ownerBusinessTeam ? normalizeSkillSpaceVisibility(skill.visibility) : "global",
+  });
+  if (!created) throw new Error(uiText("knowledge.skillSpace.errors.createFailed"));
+  return created;
+}
+
 export function listSkills() {
   return queryAll<InspectionSkill>("SELECT * FROM inspection_skills ORDER BY layer ASC, name ASC").map((skill) => ({
     ...skill,
@@ -322,8 +363,10 @@ export function discoverSkillsFromRepository(input: {
 export async function syncSkillToKnowledgeEngine(skillId: string) {
   const skill = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
   if (!skill) throw new Error(uiText("ui.generated.cd4fe99088a"));
+  const knowledgeSpace = ensureSkillKnowledgeSpace(skill);
 
   const result = await writeLayeredKnowledge({
+    knowledgeSpaceId: knowledgeSpace?.id,
     layer: skill.layer,
     scopeKey: `knowledge/${skill.id}`,
     skillId: skill.id,
@@ -331,6 +374,8 @@ export async function syncSkillToKnowledgeEngine(skillId: string) {
     sourceType: "skill",
     metadata: {
       skillId: skill.id,
+      knowledgeCategory: "skill",
+      knowledgeSpaceId: knowledgeSpace?.id ?? null,
       ownerBusinessTeamId: skill.ownerBusinessTeamId,
       tags: normalizeTags(JSON.parse(skill.tagsJson || "[]")),
       visibility: skill.visibility,
@@ -352,6 +397,17 @@ export async function syncSkillToKnowledgeEngine(skillId: string) {
 
   execute("UPDATE inspection_skills SET viking_uri = ?, updated_at = ? WHERE id = ?", result.vikingUri, nowIso(), skill.id);
   return { ...result, skill: queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skill.id) };
+}
+
+export async function syncAllSkillsToKnowledgeEngine() {
+  const skills = queryAll<InspectionSkill>(
+    "SELECT * FROM inspection_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
+  );
+  const results = [];
+  for (const skill of skills) {
+    results.push(await syncSkillToKnowledgeEngine(skill.id));
+  }
+  return results;
 }
 
 export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizationGoal?: string }) {

@@ -51,6 +51,7 @@ Knowledge Space 是知识授权和检索的最小运营单元。
 
 - `global`：全局知识，作为跨团队通用背景知识。
 - `domain`：领域知识，描述业务领域、流程、规范和方法论。
+- `skill`：Skill 知识，描述 Agent 可加载的规则、提示词、操作方法和检视维度，与其他知识空间使用同一套授权、版本和检索抽象。
 - `codebase`：代码仓知识，必须通过 `repositoryName`、仓库 URL、`owner/repo` 或代码仓 ID 等别名与任务输入匹配后才默认加载。
 
 ### 3.2 Knowledge Binding

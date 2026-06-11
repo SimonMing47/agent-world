@@ -8,7 +8,8 @@ import {
 } from "@/lib/knowledge-categories";
 
 test("normalizes legacy knowledge categories to the new scope model", () => {
-  assert.equal(normalizeKnowledgeCategory("skill"), "global");
+  assert.equal(normalizeKnowledgeCategory("skill"), "skill");
+  assert.equal(normalizeKnowledgeCategory("skills"), "skill");
   assert.equal(normalizeKnowledgeCategory("public"), "global");
   assert.equal(normalizeKnowledgeCategory("code"), "codebase");
   assert.equal(normalizeKnowledgeCategory("repository"), "codebase");
@@ -18,7 +19,7 @@ test("normalizes legacy knowledge categories to the new scope model", () => {
 test("deduplicates comma-separated knowledge scopes", () => {
   assert.deepEqual(
     normalizeKnowledgeCategories(["skill,domain", "code", "codebase", "global"]),
-    ["global", "domain", "codebase"],
+    ["skill", "domain", "codebase", "global"],
   );
 });
 
@@ -31,7 +32,8 @@ test("identifies codebase knowledge aliases", () => {
 
 test("keeps canonical category checks separate from legacy aliases", () => {
   assert.equal(isKnowledgeCategory("global"), true);
+  assert.equal(isKnowledgeCategory("skill"), true);
   assert.equal(isKnowledgeCategory("codebase"), true);
-  assert.equal(isKnowledgeCategory("skill"), false);
   assert.equal(isKnowledgeCategory("code"), false);
+  assert.equal(isKnowledgeCategory("public"), false);
 });

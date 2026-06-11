@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { syncInspectionSkillsToKnowledgeEngine } from "@/server/knowledge-engine";
+import { syncAllSkillsToKnowledgeEngine } from "@/server/skill-core";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const results = await syncInspectionSkillsToKnowledgeEngine();
+  const results = await syncAllSkillsToKnowledgeEngine();
 
   return NextResponse.json({
     ok: true,
@@ -13,4 +13,3 @@ export async function POST() {
     results,
   });
 }
-
