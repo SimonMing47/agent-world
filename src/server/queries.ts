@@ -86,6 +86,7 @@ import { buildAgentSkillLoadout } from "@/server/agent-skill-core";
 import { getLanguagePackSetting } from "@/server/language-pack-store";
 import { normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { uiText } from "@/lib/language-pack";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 
 export function listTenantSpaces() {
   return queryAll<TenantSpace>("SELECT * FROM tenant_spaces WHERE status <> 'deleted' ORDER BY name ASC");
@@ -1689,6 +1690,63 @@ function parseStringArray(value: unknown) {
     : [];
 }
 
+function readPayloadString(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function parseTaskBlueprintCodebaseScope(blueprint: TaskBlueprint) {
+  const selector = parseJsonRecord(blueprint.environmentSelectorJson);
+  const scope = selector.codebaseScope;
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) {
+    return { mode: "all", codebaseIds: [] };
+  }
+  const record = scope as Record<string, unknown>;
+  const codebaseIds = parseStringArray(record.codebaseIds).map((item) => item.trim()).filter(Boolean);
+  return {
+    mode: record.mode === "selected" ? "selected" : "all",
+    codebaseIds: [...new Set(codebaseIds)],
+  };
+}
+
+function resolveInputCodebaseIdForScope(inputPayload: Record<string, unknown>, codebases: CodebaseProfile[]) {
+  const explicitId = readPayloadString(inputPayload, ["codebase_id", "codebaseId"]);
+  if (explicitId && codebases.some((codebase) => codebase.id === explicitId)) return explicitId;
+
+  const inputAliases = buildRepositoryNameAliases(
+    readPayloadString(inputPayload, ["repo_url", "repositoryUrl", "repository_url"]),
+    readPayloadString(inputPayload, ["repo_id", "repositoryName", "repository_name", "codebase_name"]),
+  );
+  if (inputAliases.length === 0) return "";
+
+  return (
+    codebases.find((codebase) => {
+      const codebaseAliases = buildRepositoryNameAliases(codebase.id, codebase.name, codebase.repositoryUrl);
+      return inputAliases.some((alias) => codebaseAliases.includes(alias));
+    })?.id ?? ""
+  );
+}
+
+function assertTaskBlueprintCodebaseScope(blueprint: TaskBlueprint, inputPayload: Record<string, unknown>) {
+  const scope = parseTaskBlueprintCodebaseScope(blueprint);
+  if (scope.mode !== "selected") return;
+  if (scope.codebaseIds.length === 0) {
+    throw new Error(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRequiresSelection"));
+  }
+
+  const codebaseId = resolveInputCodebaseIdForScope(inputPayload, listCodebaseProfiles());
+  if (codebaseId && scope.codebaseIds.includes(codebaseId)) return;
+
+  const repository =
+    readPayloadString(inputPayload, ["repo_id", "repositoryName", "repository_name", "repo_url", "repositoryUrl", "repository_url"]) ||
+    uiText("ui.generated.c72077749f7");
+  throw new Error(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRejected", undefined, { repository }));
+}
+
 function parseKnowledgeSpaceIds(value: unknown) {
   if (!value) return [];
   if (typeof value === "string") {
@@ -2004,6 +2062,7 @@ export function submitTaskRunFromBlueprint(args: {
     branch: environment?.defaultBranch ?? "",
     ...args.inputPayload,
   };
+  assertTaskBlueprintCodebaseScope(blueprint, inputPayload);
   const pluginIdempotencyKey =
     typeof inputPayload.plugin_idempotency_key === "string" && inputPayload.plugin_idempotency_key.trim()
       ? inputPayload.plugin_idempotency_key.trim()

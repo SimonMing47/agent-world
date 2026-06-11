@@ -11,14 +11,12 @@ import {
   Globe,
   LayoutDashboard,
   MessageSquareMore,
-  Network,
   Plug,
   ScrollText,
   Settings,
   ShieldCheck,
   Users,
   UserRoundCog,
-  Wrench,
   Workflow,
 } from "lucide-react";
 
@@ -64,8 +62,6 @@ export const navigationGroups: NavGroup[] = [
     title: "navigation.groups.foundation",
     items: [
       { href: "/runtimes", label: "ui.common.resources.providerProfile", sidebarLabel: "nav.runtimes.sidebarLabel", description: "nav.runtimes.description", icon: Cable },
-      { href: "/skills", label: "nav.skills.label", sidebarLabel: "terminology.skill", description: "nav.skills.description", icon: Wrench },
-      { href: "/mcp", label: "nav.mcp.label", sidebarLabel: "MCP", description: "nav.mcp.description", icon: Network },
       { href: "/connectors", label: "nav.connectors.label", sidebarLabel: "terminology.connector", description: "nav.connectors.description", icon: Plug },
       { href: "/codebases", label: "nav.codebases.label", sidebarLabel: "terminology.codebase", description: "nav.codebases.description", icon: Code2 },
       { href: "/knowledge", label: "nav.knowledge.label", sidebarLabel: "terminology.knowledge", description: "nav.knowledge.description", icon: BookOpen },

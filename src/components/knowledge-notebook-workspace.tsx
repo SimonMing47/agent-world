@@ -436,7 +436,7 @@ function sameSegments(left: string[], right: string[]) {
 function knowledgeScopeLabel(uri: string) {
   const parts = parseKnowledgeUri(uri);
   if (parts[0] === "resources") return "Resources";
-  if (parts[0] === "agent" && parts[1] === "skills") return "Agent Skills";
+  if (parts[0] === "agent" && parts[1] === "skills") return "Agent Knowledge";
   if (parts[0] === "user" && parts[1] === "memories") return "User Memories";
   return parts[0] ? `agentworld://knowledge/${parts[0]}` : "AgentWorld Knowledge";
 }

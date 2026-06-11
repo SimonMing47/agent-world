@@ -161,7 +161,7 @@ function layerFallback(layer: string) {
     return `agentworld://knowledge/user/memories/code-inspection/${safeLayer}`;
   }
   if (["security", "quality/test", "data-interface"].includes(layer)) {
-    return `agentworld://knowledge/agent/skills/code-inspection/${safeLayer}`;
+    return `agentworld://knowledge/agent/knowledge/code-inspection/${safeLayer}`;
   }
 
   return `agentworld://knowledge/resources/code-inspection/${safeLayer}`;
@@ -486,7 +486,7 @@ export async function writeLayeredKnowledge(input: KnowledgeInput) {
     `- Layer: ${input.layer}`,
     `- Scope: ${input.scopeKey}`,
     `- Source: ${input.sourceType}`,
-    input.skillId ? `- Skill: ${input.skillId}` : null,
+    input.skillId ? `- Knowledge: ${input.skillId}` : null,
     `- Knowledge URI: ${vikingUri}`,
     "",
     input.contentMd,
@@ -1272,7 +1272,7 @@ export async function getKnowledgeEngineHealth() {
       status: "ok",
       healthy: true,
       provider: "agentworld-native",
-      capabilities: ["L0", "L1", "L2", "tree", "retrieval", "versioning", "mutable-source", "skill-sync", "local-shadow"],
+      capabilities: ["L0", "L1", "L2", "tree", "retrieval", "versioning", "mutable-source", "knowledge-sync", "local-shadow"],
       spaces: spaceCount,
       entries: entryCount,
     },
@@ -1346,9 +1346,9 @@ export async function syncInspectionSkillsToKnowledgeEngine() {
     results.push(
       await writeLayeredKnowledge({
         layer: skill.layer,
-        scopeKey: `skills/${skill.id}`,
+        scopeKey: `knowledge/${skill.id}`,
         skillId: skill.id,
-        title: `Inspection Skill: ${skill.name}`,
+        title: `Inspection Knowledge: ${skill.name}`,
         sourceType: "skill",
         metadata: {
           skillId: skill.id,

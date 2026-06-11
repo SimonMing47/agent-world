@@ -56,6 +56,8 @@ type CodebaseOption = {
   status?: string;
 };
 
+type CodebaseScopeMode = "all" | "selected";
+
 type TaskBlueprintEditorProps = {
   blueprint: {
     id: string;
@@ -318,6 +320,20 @@ function parseWorkflowRepositoryName(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function parseCodebaseScope(value: unknown): { mode: CodebaseScopeMode; codebaseIds: string[] } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { mode: "all", codebaseIds: [] };
+  }
+  const record = value as Record<string, unknown>;
+  const codebaseIds = Array.isArray(record.codebaseIds)
+    ? record.codebaseIds.map(String).map((item) => item.trim()).filter(Boolean)
+    : [];
+  return {
+    mode: record.mode === "selected" ? "selected" : "all",
+    codebaseIds: [...new Set(codebaseIds)],
+  };
+}
+
 function buildRepositoryOptions(args: {
   codebases?: CodebaseOption[];
   businessTeamId: string;
@@ -555,6 +571,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
 
 function parseEnvironmentSelector(value: string) {
   const parsed = parseRecord(value);
+  const codebaseScope = parseCodebaseScope(parsed.codebaseScope);
   return {
     type: typeof parsed.type === "string" ? parsed.type : "repository_workspace",
     repoBinding: typeof parsed.repoBinding === "string" ? parsed.repoBinding : "",
@@ -562,6 +579,7 @@ function parseEnvironmentSelector(value: string) {
     executionPath: typeof parsed.executionPath === "string" ? parsed.executionPath : "",
     sandboxMode: typeof parsed.sandboxMode === "string" ? parsed.sandboxMode : "inherit",
     sandboxRef: typeof parsed.sandboxRef === "string" ? parsed.sandboxRef : "",
+    codebaseScope,
     extraJson: JSON.stringify(
       Object.fromEntries(
         Object.entries(parsed).filter(
@@ -574,6 +592,7 @@ function parseEnvironmentSelector(value: string) {
               "sandboxMode",
               "sandboxRef",
               "environmentId",
+              "codebaseScope",
             ].includes(key),
         ),
       ),
@@ -711,10 +730,13 @@ function buildEnvironmentSelectorJson(args: {
   executionPath: string;
   sandboxMode: string;
   sandboxRef: string;
+  codebaseScopeMode: CodebaseScopeMode;
+  codebaseScopeIds: string[];
   environmentSelectorExtraJson: string;
 }) {
   const base = parseRecord(args.environmentSelectorJson);
   const extra = parseRecord(args.environmentSelectorExtraJson);
+  const scopedIds = [...new Set(args.codebaseScopeIds.map((item) => item.trim()).filter(Boolean))];
 
   return JSON.stringify(
     {
@@ -722,6 +744,10 @@ function buildEnvironmentSelectorJson(args: {
       ...extra,
       type: "repository_workspace",
       environmentId: args.environment?.id ?? null,
+      codebaseScope: {
+        mode: args.codebaseScopeMode,
+        codebaseIds: args.codebaseScopeMode === "selected" ? scopedIds : [],
+      },
       repoBinding: args.repoBinding.trim() || undefined,
       checkoutMode: args.checkoutMode,
       executionPath:
@@ -844,6 +870,8 @@ export function TaskBlueprintEditor({
     executionPath: selector.executionPath,
     sandboxMode: selector.sandboxMode,
     sandboxRef: selector.sandboxRef,
+    codebaseScopeMode: selector.codebaseScope.mode,
+    codebaseScopeIds: selector.codebaseScope.codebaseIds,
     environmentSelectorExtraJson: selector.extraJson,
     taskObjective: runPlan.objective,
     orchestrationStrategy: runPlan.strategy || initialSelectedTeam?.workflowType || "block_graph",
@@ -889,6 +917,17 @@ export function TaskBlueprintEditor({
       }),
     [form.ownerBusinessTeamId, options.codebases, selectedEnvironment],
   );
+  const scopedCodebaseOptions = useMemo(
+    () =>
+      (options.codebases ?? []).filter(
+        (codebase) => !form.ownerBusinessTeamId || codebase.businessTeamId === form.ownerBusinessTeamId,
+      ),
+    [form.ownerBusinessTeamId, options.codebases],
+  );
+  const selectedCodebaseIdSet = useMemo(
+    () => new Set(form.codebaseScopeIds),
+    [form.codebaseScopeIds],
+  );
 
   async function save() {
     setIsSaving(true);
@@ -929,6 +968,12 @@ export function TaskBlueprintEditor({
     if (form.blocks.length === 0) {
       setIsSaving(false);
       setMessage("ui.generated.cc79d90e253");
+      return;
+    }
+
+    if (form.codebaseScopeMode === "selected" && form.codebaseScopeIds.length === 0) {
+      setIsSaving(false);
+      setMessage(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRequiresSelection"));
       return;
     }
 
@@ -1039,6 +1084,8 @@ export function TaskBlueprintEditor({
       executionPath: form.executionPath,
       sandboxMode: form.sandboxMode,
       sandboxRef: form.sandboxRef,
+      codebaseScopeMode: form.codebaseScopeMode,
+      codebaseScopeIds: form.codebaseScopeIds,
       environmentSelectorExtraJson: form.environmentSelectorExtraJson,
     });
     const executionPolicyJson = buildExecutionPolicyJson(form.executionPolicyJson, form.blocks);
@@ -1136,7 +1183,19 @@ export function TaskBlueprintEditor({
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.businessTeam")}>
             <Select
               value={form.ownerBusinessTeamId}
-              onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
+              onChange={(event) => {
+                const nextBusinessTeamId = event.target.value;
+                const visibleCodebaseIds = new Set(
+                  (options.codebases ?? [])
+                    .filter((codebase) => !nextBusinessTeamId || codebase.businessTeamId === nextBusinessTeamId)
+                    .map((codebase) => codebase.id),
+                );
+                setForm({
+                  ...form,
+                  ownerBusinessTeamId: nextBusinessTeamId,
+                  codebaseScopeIds: form.codebaseScopeIds.filter((id) => visibleCodebaseIds.has(id)),
+                });
+              }}
             >
               <option value="">{uiText("ui.taskBlueprintEditor.options.selectBusinessTeam")}</option>
               {options.businessTeams.map((option) => (
@@ -1344,6 +1403,65 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
+          <FieldGroup
+            label={uiText("ui.taskBlueprintEditor.fields.codebaseScope")}
+            hint="ui.taskBlueprintEditor.help.codebaseScope"
+          >
+            <Select
+              value={form.codebaseScopeMode}
+              onChange={(event) => {
+                const nextMode = event.target.value === "selected" ? "selected" : "all";
+                setForm({
+                  ...form,
+                  codebaseScopeMode: nextMode,
+                  codebaseScopeIds: nextMode === "selected" ? form.codebaseScopeIds : [],
+                });
+              }}
+            >
+              <option value="all">{uiText("ui.taskBlueprintEditor.codebaseScope.all")}</option>
+              <option value="selected">{uiText("ui.taskBlueprintEditor.codebaseScope.selected")}</option>
+            </Select>
+          </FieldGroup>
+          {form.codebaseScopeMode === "selected" ? (
+            <div className="md:col-span-2 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+              <div className="text-xs font-medium text-[var(--ink)]">
+                {uiText("ui.taskBlueprintEditor.fields.selectedCodebases")}
+              </div>
+              {scopedCodebaseOptions.length ? (
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {scopedCodebaseOptions.map((codebase) => {
+                    const checked = selectedCodebaseIdSet.has(codebase.id);
+                    const detail = [codebase.provider, codebase.defaultBranch].filter(Boolean).join(" / ");
+                    return (
+                      <label
+                        key={codebase.id}
+                        className="flex items-start gap-3 rounded-lg border border-[var(--line)] bg-white/70 px-3 py-2 text-sm text-[var(--ink-muted)]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextIds = event.target.checked
+                              ? [...form.codebaseScopeIds, codebase.id]
+                              : form.codebaseScopeIds.filter((id) => id !== codebase.id);
+                            setForm({ ...form, codebaseScopeIds: [...new Set(nextIds)] });
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-[var(--ink)]">{codebase.name}</span>
+                          <span className="block truncate text-xs">{detail || codebase.repositoryUrl || codebase.id}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-[var(--ink-muted)]">
+                  {uiText("ui.taskBlueprintEditor.empty.codebases")}
+                </div>
+              )}
+            </div>
+          ) : null}
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.repoBinding")}>
             <Input
               value={form.repoBinding}
