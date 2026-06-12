@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, Eye, Plus, Users, Workflow } from "lucide-react";
+import { Activity, Bot, Eye, Plus, UserRoundCheck, Users, Workflow } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { RuntimeSessionCreateForm } from "@/components/runtime-session-create-form";
 import { PageHeader } from "@/components/page-header";
@@ -36,13 +36,34 @@ import {
   listProviderRuntimeBindings,
   listTenantSpaces,
 } from "@/server/queries";
-import { listRuntimeSessions } from "@/server/runtime-session-core";
+import { listRuntimeSessionWorkItems, listRuntimeSessions } from "@/server/runtime-session-core";
 
 function statusVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
   if (status === "running") return "accent";
   if (status === "error") return "danger";
   if (status === "idle") return "neutral";
   return "success";
+}
+
+function latestActivityVariant(type: string): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (type.includes("failed") || type.includes("error")) return "danger";
+  if (type.includes("approval") || type.includes("queued") || type.includes("waiting")) return "warning";
+  if (type.includes("completed") || type.includes("finished")) return "success";
+  if (type.includes("tool") || type.includes("message")) return "accent";
+  return "neutral";
+}
+
+function compactActivityType(type: string) {
+  return type.replace(/_/g, " ");
+}
+
+function activityLabel(
+  t: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
+  type: string,
+) {
+  const key = `console.interactions.activity.${type}`;
+  const translated = t(key);
+  return translated === key ? compactActivityType(type) : translated;
 }
 
 function launchDialog(
@@ -110,6 +131,9 @@ export default async function RuntimeInteractionsPage() {
   const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
   const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
   const runtimeSessions = listRuntimeSessions().filter((session) => visibleBusinessTeamIds.has(session.businessTeamId));
+  const workItems = listRuntimeSessionWorkItems().filter((item) =>
+    visibleBusinessTeamIds.has(item.session.businessTeamId),
+  );
   const runtimeBindings = listProviderRuntimeBindings().filter((binding) =>
     canAccessBusinessTeam(authContext, binding.businessTeamId, { allowGlobal: true }),
   );
@@ -144,7 +168,12 @@ export default async function RuntimeInteractionsPage() {
 
   const runningSessions = runtimeSessions.filter((session) => session.status === "running");
   const teamSessions = runtimeSessions.filter((session) => session.mode === "agent_team");
-  const recentSessions = runtimeSessions.slice(0, 5);
+  const waitingWorkItems = workItems.filter((item) =>
+    item.latestActivityType.includes("approval") ||
+    item.latestActivityType.includes("queued") ||
+    item.session.status === "error",
+  );
+  const recentWorkItems = workItems.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -153,7 +182,7 @@ export default async function RuntimeInteractionsPage() {
         title="console.interactions.title"
         description="console.interactions.pageDescription"
         badges={[
-          { label: `${runtimeSessions.length} ${t("ui.common.count.sessions")}`, variant: "accent" },
+          { label: `${workItems.length} ${t("console.interactions.badges.workItems")}`, variant: "accent" },
           { label: `${runningSessions.length} ${t("ui.common.detail.running")}`, variant: "neutral" },
         ]}
       />
@@ -166,9 +195,19 @@ export default async function RuntimeInteractionsPage() {
             detail: `${runningSessions.length} ${t("ui.common.detail.running")}`,
           },
           {
+            label: "console.interactions.summary.workItems",
+            value: workItems.length,
+            detail: "console.interactions.summary.workItemsDetail",
+          },
+          {
             label: "console.interactions.summary.teamSessions",
             value: teamSessions.length,
             detail: "console.interactions.summary.teamDetail",
+          },
+          {
+            label: "console.interactions.summary.waiting",
+            value: waitingWorkItems.length,
+            detail: "console.interactions.summary.waitingDetail",
           },
           {
             label: "ui.common.resources.runtimeBinding",
@@ -222,29 +261,40 @@ export default async function RuntimeInteractionsPage() {
             description="console.interactions.recent.description"
           />
           <PanelBody className="p-0">
-            {recentSessions.length ? (
+            {recentWorkItems.length ? (
               <DataTable>
                 <DataTableHeader>
                   <DataTableRow className="hover:bg-transparent">
                     <DataTableHead>{t("console.interactions.columns.session")}</DataTableHead>
-                    <DataTableHead>{t("console.interactions.columns.mode")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.assignee")}</DataTableHead>
                     <DataTableHead>{t("console.interactions.columns.status")}</DataTableHead>
+                    <DataTableHead>{t("console.interactions.columns.latestActivity")}</DataTableHead>
                     <DataTableHead align="right">{t("console.interactions.columns.actions")}</DataTableHead>
                   </DataTableRow>
                 </DataTableHeader>
                 <DataTableBody>
-                  {recentSessions.map((session) => (
-                    <DataTableRow key={session.id}>
+                  {recentWorkItems.map((item) => (
+                    <DataTableRow key={item.session.id}>
                       <DataTableCell className="min-w-[260px]">
-                        <div className="font-medium text-[var(--ink)]">{session.title}</div>
-                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.model}</div>
+                        <div className="font-medium text-[var(--ink)]">{item.session.title}</div>
+                        <div className="mt-1 text-xs text-[var(--ink-muted)]">{item.session.model}</div>
                       </DataTableCell>
-                      <DataTableCell>{label("sessionMode", session.mode)}</DataTableCell>
                       <DataTableCell>
-                        <Badge variant={statusVariant(session.status)}>{label("status", session.status)}</Badge>
+                        <div className="flex items-center gap-2">
+                          {item.assigneeKind === "agent_team" ? <Users className="h-4 w-4 text-[var(--ink-subtle)]" /> : <UserRoundCheck className="h-4 w-4 text-[var(--ink-subtle)]" />}
+                          <span>{item.assigneeName}</span>
+                        </div>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <Badge variant={statusVariant(item.session.status)}>{label("status", item.session.status)}</Badge>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <Badge variant={latestActivityVariant(item.latestActivityType)}>
+                          {activityLabel(t, item.latestActivityType)}
+                        </Badge>
                       </DataTableCell>
                       <DataTableCell align="right">
-                        <Link href={`/interactions/${session.id}`} className="text-sm font-medium text-[var(--accent)]">
+                        <Link href={`/interactions/${item.session.id}`} className="text-sm font-medium text-[var(--accent)]">
                           {t("console.interactions.openSession")}
                         </Link>
                       </DataTableCell>
@@ -265,58 +315,76 @@ export default async function RuntimeInteractionsPage() {
       </div>
 
       <Panel>
-        <PanelHeader
-          eyebrow="console.interactions.table.eyebrow"
-          title="console.interactions.table.title"
+          <PanelHeader
+            eyebrow="console.interactions.table.eyebrow"
+            title="console.interactions.table.title"
           description="console.interactions.table.description"
         />
         <PanelBody className="p-0">
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                    <DataTableHead>{t("console.interactions.columns.session")}</DataTableHead>
-                    <DataTableHead>{t("console.interactions.columns.mode")}</DataTableHead>
-                    <DataTableHead>{t("ui.common.resources.runtimeBinding")}</DataTableHead>
-                    <DataTableHead>{t("console.interactions.columns.model")}</DataTableHead>
-                    <DataTableHead>{t("console.interactions.columns.status")}</DataTableHead>
-                    <DataTableHead>{t("console.interactions.columns.updatedAt")}</DataTableHead>
-                    <DataTableHead align="right">{t("console.interactions.columns.actions")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.session")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.assignee")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.lifecycle")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.latestActivity")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.runtime")}</DataTableHead>
+                <DataTableHead>{t("console.interactions.columns.updatedAt")}</DataTableHead>
+                <DataTableHead align="right">{t("console.interactions.columns.actions")}</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
-              {runtimeSessions.map((session) => {
-                const runtime = runtimeBindings.find((binding) => binding.id === session.runtimeBindingId);
-                return (
-                  <DataTableRow key={session.id}>
-                    <DataTableCell className="min-w-[220px]">
-                      <div className="font-medium text-[var(--ink)]">{session.title}</div>
-                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{session.id}</div>
+              {workItems.map((item) => (
+                  <DataTableRow key={item.session.id}>
+                    <DataTableCell className="min-w-[260px]">
+                      <div className="font-medium text-[var(--ink)]">{item.session.title}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{item.session.id}</div>
                     </DataTableCell>
-                    <DataTableCell>{label("sessionMode", session.mode)}</DataTableCell>
-                    <DataTableCell>{runtime?.name ?? t("console.interactions.defaultRuntimeBinding")}</DataTableCell>
-                    <DataTableCell>{session.model}</DataTableCell>
                     <DataTableCell>
-                      <Badge variant={statusVariant(session.status)}>{label("status", session.status)}</Badge>
+                      <div className="flex items-center gap-2">
+                        {item.assigneeKind === "agent_team" ? <Users className="h-4 w-4 text-[var(--ink-subtle)]" /> : <UserRoundCheck className="h-4 w-4 text-[var(--ink-subtle)]" />}
+                        <div>
+                          <div className="font-medium text-[var(--ink)]">{item.assigneeName}</div>
+                          <div className="mt-0.5 text-xs text-[var(--ink-muted)]">{label("sessionMode", item.session.mode)}</div>
+                        </div>
+                      </div>
                     </DataTableCell>
-                    <DataTableCell>{formatDateTime(session.updatedAt)}</DataTableCell>
+                    <DataTableCell>
+                      <Badge variant={statusVariant(item.session.status)}>{label("status", item.session.status)}</Badge>
+                    </DataTableCell>
+                    <DataTableCell className="min-w-[240px]">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-[var(--ink-subtle)]" />
+                        <Badge variant={latestActivityVariant(item.latestActivityType)}>
+                          {activityLabel(t, item.latestActivityType)}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 max-w-[320px] truncate text-xs text-[var(--ink-muted)]">
+                        {item.latestActivityActor} · {item.latestActivitySummary || t("console.interactions.activity.noSummary")}
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell>
+                      <div className="font-medium text-[var(--ink)]">{item.runtimeName}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">{item.providerName} · {item.session.model}</div>
+                    </DataTableCell>
+                    <DataTableCell>{formatDateTime(item.latestActivityAt || item.session.updatedAt)}</DataTableCell>
                     <DataTableCell align="right">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/interactions/${session.id}`}>
+                        <Link href={`/interactions/${item.session.id}`}>
                           <Button size="sm" variant="ghost">
                             <Eye className="h-4 w-4" />
                             {t("console.interactions.openSession")}
                           </Button>
                         </Link>
                         <DeleteResourceButton
-                          endpoint={`/api/runtime-sessions/${session.id}`}
-                          id={session.id}
-                          confirmParams={{ resource: "ui.common.resources.session", name: session.title }}
+                          endpoint={`/api/runtime-sessions/${item.session.id}`}
+                          id={item.session.id}
+                          confirmParams={{ resource: "ui.common.resources.session", name: item.session.title }}
                         />
                       </div>
                     </DataTableCell>
                   </DataTableRow>
-                );
-              })}
+              ))}
             </DataTableBody>
           </DataTable>
         </PanelBody>
