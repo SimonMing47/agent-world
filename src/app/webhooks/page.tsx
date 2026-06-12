@@ -1,6 +1,7 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
+import { SecretValue } from "@/components/secret-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -157,7 +158,7 @@ export default async function WebhooksPage() {
                                   { label: "ui.generated.cb1d337493c", value: webhook.method },
                                   { label: "ui.generated.c9614806f47", value: webhook.pathKey },
                                   { label: "ui.generated.c75c9a7408e", value: `/api/webhooks/${webhook.pathKey}` },
-                                  { label: "ui.generated.cf7981046c3", value: webhook.secretHint || "ui.generated.c63595e95b7" },
+                                  { label: "ui.generated.cf7981046c3", value: <SecretValue value={webhook.secretHint} /> },
                                   { label: "ui.generated.c02aa35d407", value: <pre className="whitespace-pre-wrap font-mono text-xs">{webhook.requestSchemaJson}</pre> },
                                 ]}
                               />

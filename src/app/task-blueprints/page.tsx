@@ -100,6 +100,23 @@ function compactValue(value: unknown) {
   return String(value);
 }
 
+function codebaseScopeLabel(
+  selector: Record<string, unknown>,
+  codebases: Array<{ id: string; name: string }>,
+  t: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
+) {
+  const scope = selector.codebaseScope;
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) return t("ui.taskBlueprintEditor.codebaseScope.all");
+  const record = scope as Record<string, unknown>;
+  if (record.mode !== "selected") return t("ui.taskBlueprintEditor.codebaseScope.all");
+  const ids = Array.isArray(record.codebaseIds) ? record.codebaseIds.map(String).filter(Boolean) : [];
+  if (ids.length === 0) return t("ui.taskBlueprintEditor.codebaseScope.emptySelected");
+  const names = ids.map((id) => codebases.find((codebase) => codebase.id === id)?.name ?? id);
+  return names.length <= 2
+    ? names.join(", ")
+    : t("ui.taskBlueprintEditor.codebaseScope.selectedCount", undefined, { count: names.length });
+}
+
 export default async function TaskBlueprintsPage({
   searchParams,
 }: {
@@ -229,6 +246,7 @@ export default async function TaskBlueprintsPage({
                 const selector = parseRecord(raw.environmentSelectorJson);
                 const outputPolicy = parseRecord(raw.outputPolicyJson);
                 const publishers = parsePublishers(outputPolicy.publishers);
+                const scopeLabel = codebaseScopeLabel(selector, options.codebases ?? [], t);
 
                 return (
                   <DataTableRow key={blueprint.id}>
@@ -258,6 +276,9 @@ export default async function TaskBlueprintsPage({
                       <div>{blueprint.environmentName}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {selector.executionPath ? <>{t("ui.common.pathPrefix")} {String(selector.executionPath)}</> : t("ui.generated.c4202f60d95")}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">
+                        {t("ui.taskBlueprintEditor.fields.codebaseScope")} · {scopeLabel}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
@@ -316,6 +337,7 @@ export default async function TaskBlueprintsPage({
                               <DefinitionList
                                 items={[
                                   { label: "ui.generated.c2e570732c1", value: compactValue(selector.repoBinding) },
+                                  { label: "ui.taskBlueprintEditor.fields.codebaseScope", value: scopeLabel },
                                   { label: "ui.generated.cba5d810d8e", value: compactValue(selector.checkoutMode) },
                                   { label: "ui.generated.c9ff2c99ee4", value: compactValue(selector.executionPath) },
                                   { label: "ui.generated.c5b587a4e31", value: compactValue(selector.sandboxMode) },

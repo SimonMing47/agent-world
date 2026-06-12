@@ -2,11 +2,6 @@ import { type AccessGrant } from "@/server/db";
 import { uiText } from "@/lib/language-pack";
 
 export function buildAccessGrantSummary(accessGrant: AccessGrant) {
-  const pricing = JSON.parse(accessGrant.pricingModelJson) as {
-    baseUsd?: number;
-    tokenMultiplier?: number;
-    platformFeePct?: number;
-  };
   const scope = JSON.parse(accessGrant.accessScopeJson) as {
     actions?: string[];
     tools?: string[];
@@ -20,7 +15,6 @@ export function buildAccessGrantSummary(accessGrant: AccessGrant) {
     id: accessGrant.id,
     status: accessGrant.status,
     serviceAccountRef: accessGrant.serviceAccountRef,
-    pricing,
     scope,
     sla,
   };

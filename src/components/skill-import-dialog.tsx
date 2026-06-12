@@ -56,9 +56,9 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
       error?: string;
       result?: { imported?: number; skipped?: number; messages?: string[] };
     };
-	    if (!response.ok || result.ok === false) throw new Error(result.error ?? text("skills.import.importFailed", "Skill import failed."));
+    if (!response.ok || result.ok === false) throw new Error(result.error ?? text("skills.import.importFailed", "Knowledge import failed."));
     setMessage(
-      text("skills.import.result", "Imported {imported} Skill(s), skipped {skipped}.", {
+      text("skills.import.result", "Imported {imported} knowledge item(s), skipped {skipped}.", {
         imported: result.result?.imported ?? 0,
         skipped: result.result?.skipped ?? 0,
       }),
@@ -71,7 +71,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
       await submitImport({ files });
       setFiles([]);
     } catch (error) {
-	      setMessage(error instanceof Error ? error.message : text("skills.import.importFailed", "Skill import failed."));
+	      setMessage(error instanceof Error ? error.message : text("skills.import.importFailed", "Knowledge import failed."));
     }
   }
 
@@ -80,7 +80,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
       await submitImport({ repoUrl });
       setRepoUrl("");
     } catch (error) {
-	      setMessage(error instanceof Error ? error.message : text("skills.import.discoveryFailed", "Skill discovery failed."));
+	      setMessage(error instanceof Error ? error.message : text("skills.import.discoveryFailed", "Knowledge discovery failed."));
     }
   }
 
@@ -117,7 +117,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-[var(--ink)]">{text("skills.import.dropTitle", "Drop Skill files here")}</div>
+            <div className="text-sm font-semibold text-[var(--ink)]">{text("skills.import.dropTitle", "Drop knowledge files here")}</div>
             <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">
               {text("skills.import.dropDescription", "Supports SKILL.md, skill.json, *.skill.md, and *.skill.json.")}
             </div>
@@ -142,7 +142,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
           className="mt-4 min-h-[120px] font-mono text-xs"
           readOnly
           value={files.map((file) => file.relativePath || file.name).join("\n")}
-          placeholder={text("skills.import.filePlaceholder", "Selected Skill files will appear here.")}
+          placeholder={text("skills.import.filePlaceholder", "Selected knowledge files will appear here.")}
         />
         <div className="mt-3">
           <Button type="button" variant="primary" disabled={!files.length || isPending} onClick={importSelectedFiles}>
@@ -160,7 +160,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
             <Input
               value={repoUrl}
               onChange={(event) => setRepoUrl(event.target.value)}
-              placeholder="https://github.com/example/agentworld-skills.git"
+              placeholder="https://github.com/example/agentworld-knowledge.git"
             />
             <Button type="button" variant="secondary" disabled={!repoUrl.trim() || isPending} onClick={discoverRepository}>
               <GitBranch className="h-4 w-4" />

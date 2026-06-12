@@ -34,22 +34,31 @@ export function SecretInput({
   className?: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const [draftValue, setDraftValue] = useState("");
+  const [hasEdited, setHasEdited] = useState(false);
   const text = useLanguageText();
+  const hasSavedValue = value.trim().length > 0 && !hasEdited;
 
   return (
     <div className={cn("flex gap-2", className)}>
       <Input
         className="font-mono"
         type={visible ? "text" : "password"}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
+        value={hasEdited ? draftValue : ""}
+        onChange={(event) => {
+          setHasEdited(true);
+          setDraftValue(event.target.value);
+          onChange(event.target.value);
+        }}
+        placeholder={hasSavedValue ? text("ui.common.secret.configuredPlaceholder") : placeholder}
+        autoComplete="new-password"
       />
       <Button
         type="button"
         variant="secondary"
         size="sm"
         className="h-11 shrink-0 px-3"
+        disabled={!hasEdited || !draftValue}
         onClick={() => setVisible((current) => !current)}
       >
         {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

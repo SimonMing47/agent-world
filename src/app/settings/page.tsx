@@ -45,20 +45,6 @@ const systemEntries = [
     description: "nav.runtimes.description",
   },
   {
-    name: "nav.skills.label",
-    href: "/skills",
-    group: "ui.generated.cfad8b39e99",
-    scope: "ui.generated.c51d7485af0",
-    description: "nav.skills.description",
-  },
-  {
-    name: "nav.mcp.label",
-    href: "/mcp",
-    group: "ui.generated.cfad8b39e99",
-    scope: "ui.generated.c04935ddca3",
-    description: "nav.mcp.description",
-  },
-  {
     name: "nav.connectors.label",
     href: "/connectors",
     group: "ui.generated.cfad8b39e99",

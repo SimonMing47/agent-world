@@ -86,6 +86,7 @@ import { buildAgentSkillLoadout } from "@/server/agent-skill-core";
 import { getLanguagePackSetting } from "@/server/language-pack-store";
 import { normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { uiText } from "@/lib/language-pack";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 
 export function listTenantSpaces() {
   return queryAll<TenantSpace>("SELECT * FROM tenant_spaces WHERE status <> 'deleted' ORDER BY name ASC");
@@ -456,6 +457,26 @@ export function deleteProviderRuntimeBinding(id: string) {
 function assertNoEnvSecretReference(value: string, label: string) {
   if (value.trim().toLowerCase().startsWith("env:")) {
     throw new Error(uiText("ui.providerProfiles.errors.envSecretRefUnsupported", undefined, { label }));
+  }
+}
+
+function assertNoEnvPluginSecretReference(value: string) {
+  if (value.trim().toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
+  }
+}
+
+function assertWebhookTriggerNoEnvSecretReference(triggerJson: string) {
+  const trigger = parseJsonRecord(triggerJson);
+  for (const key of ["secretRef", "webhookSecretRef"]) {
+    const value = trigger[key];
+    if (typeof value === "string") assertNoEnvPluginSecretReference(value);
+  }
+}
+
+function assertNoEnvPluginSecretReferencesInJson(value: string) {
+  if (parsedConfigHasEnvReference(value)) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
   }
 }
 
@@ -890,6 +911,10 @@ export function upsertTaskBlueprint(
     | "archivePolicyJson"
   >,
 ) {
+  assertWebhookTriggerNoEnvSecretReference(input.triggerJson);
+  assertNoEnvPluginSecretReferencesInJson(input.agentTeamRunPlanJson);
+  assertNoEnvPluginSecretReferencesInJson(input.permissionPolicyJson);
+  assertNoEnvPluginSecretReferencesInJson(input.outputPolicyJson);
   const current = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", input.id);
   const createdAt = current?.createdAt ?? new Date().toISOString();
   const executionPolicyJson = buildTaskBlueprintExecutionPolicyJson(
@@ -1074,6 +1099,7 @@ export function upsertWebhookEndpoint(
     | "isEnabled"
   >,
 ) {
+  assertNoEnvPluginSecretReference(input.secretHint);
   execute(
     "INSERT OR REPLACE INTO webhook_endpoints (id, business_team_id, team_id, name, path_key, method, request_schema_json, secret_hint, is_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     input.id,
@@ -1185,7 +1211,6 @@ export function getTaskRunDetail(taskRunId: string) {
     }),
     executionInsights: getTaskRunExecutionBoard(taskRun.id),
     dependencyGraph: getTaskRunDependencyGraph(taskRun.id),
-    costBreakdown: getTaskRunCostBreakdown(taskRun.id),
     policyHits: getTaskRunPolicyHits(taskRun.id),
     executionPolicy: teamExecutionPolicy ? buildExecutionPolicySummary(teamExecutionPolicy) : null,
     invocationStages:
@@ -1623,17 +1648,8 @@ function classifyFailure(args: {
   if (args.policyViolation) return "policy_violation";
   if (args.accessGrantViolation) return "access_grant_violation";
   if (args.timeout) return "timeout";
-  if (args.reason.toLowerCase().includes("budget")) return "budget_exceeded";
+  if (args.reason.toLowerCase().includes("limit")) return "limit_exceeded";
   return "runtime_error";
-}
-
-const COST_PER_COMPLETED_NODE_USD = 0.5;
-const BASE_ESTIMATED_NODE_COST_USD = 0.25;
-const BASE_ACTUAL_NODE_COST_USD = 0.3;
-const PER_ATTEMPT_NODE_COST_USD = 0.2;
-
-function roundCurrency(value: number) {
-  return Math.round(value * 100) / 100;
 }
 
 function stablePayloadValue(inputPayload: Record<string, unknown>, key: string) {
@@ -1672,6 +1688,63 @@ function parseStringArray(value: unknown) {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
     : [];
+}
+
+function readPayloadString(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function parseTaskBlueprintCodebaseScope(blueprint: TaskBlueprint) {
+  const selector = parseJsonRecord(blueprint.environmentSelectorJson);
+  const scope = selector.codebaseScope;
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) {
+    return { mode: "all", codebaseIds: [] };
+  }
+  const record = scope as Record<string, unknown>;
+  const codebaseIds = parseStringArray(record.codebaseIds).map((item) => item.trim()).filter(Boolean);
+  return {
+    mode: record.mode === "selected" ? "selected" : "all",
+    codebaseIds: [...new Set(codebaseIds)],
+  };
+}
+
+function resolveInputCodebaseIdForScope(inputPayload: Record<string, unknown>, codebases: CodebaseProfile[]) {
+  const explicitId = readPayloadString(inputPayload, ["codebase_id", "codebaseId"]);
+  if (explicitId && codebases.some((codebase) => codebase.id === explicitId)) return explicitId;
+
+  const inputAliases = buildRepositoryNameAliases(
+    readPayloadString(inputPayload, ["repo_url", "repositoryUrl", "repository_url"]),
+    readPayloadString(inputPayload, ["repo_id", "repositoryName", "repository_name", "codebase_name"]),
+  );
+  if (inputAliases.length === 0) return "";
+
+  return (
+    codebases.find((codebase) => {
+      const codebaseAliases = buildRepositoryNameAliases(codebase.id, codebase.name, codebase.repositoryUrl);
+      return inputAliases.some((alias) => codebaseAliases.includes(alias));
+    })?.id ?? ""
+  );
+}
+
+function assertTaskBlueprintCodebaseScope(blueprint: TaskBlueprint, inputPayload: Record<string, unknown>) {
+  const scope = parseTaskBlueprintCodebaseScope(blueprint);
+  if (scope.mode !== "selected") return;
+  if (scope.codebaseIds.length === 0) {
+    throw new Error(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRequiresSelection"));
+  }
+
+  const codebaseId = resolveInputCodebaseIdForScope(inputPayload, listCodebaseProfiles());
+  if (codebaseId && scope.codebaseIds.includes(codebaseId)) return;
+
+  const repository =
+    readPayloadString(inputPayload, ["repo_id", "repositoryName", "repository_name", "repo_url", "repositoryUrl", "repository_url"]) ||
+    uiText("ui.generated.c72077749f7");
+  throw new Error(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRejected", undefined, { repository }));
 }
 
 function parseKnowledgeSpaceIds(value: unknown) {
@@ -1989,6 +2062,7 @@ export function submitTaskRunFromBlueprint(args: {
     branch: environment?.defaultBranch ?? "",
     ...args.inputPayload,
   };
+  assertTaskBlueprintCodebaseScope(blueprint, inputPayload);
   const pluginIdempotencyKey =
     typeof inputPayload.plugin_idempotency_key === "string" && inputPayload.plugin_idempotency_key.trim()
       ? inputPayload.plugin_idempotency_key.trim()
@@ -2226,6 +2300,9 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
     publisherRef?: string;
     pluginRef?: string;
     toolRef?: string;
+    pluginBaseUrl?: string;
+    pluginTokenRef?: string;
+    pluginWebhookSecretRef?: string;
     forEach?: string;
     feedbackBaseUrl?: string;
     payloadTemplate?: string;
@@ -2603,14 +2680,10 @@ export async function executeTaskRunTick(taskRunId: string, requestedBy = "syste
   const completedNodes = getTaskRunNodes(taskRun.id);
   const taskRunStatus = resolveTaskRunStatusFromNodes(completedNodes);
   execute(
-    "UPDATE task_runs SET status = ?, run_state = ?, completed_at = ?, cost_actual = ? WHERE id = ?",
+    "UPDATE task_runs SET status = ?, run_state = ?, completed_at = ? WHERE id = ?",
     taskRunStatus,
     taskRunStatus,
     taskRunStatus === "completed" ? nowIso() : null,
-    roundCurrency(
-      completedNodes.filter((node) => node.status === "completed").length *
-        COST_PER_COMPLETED_NODE_USD,
-    ),
     taskRun.id,
   );
 
@@ -2926,39 +2999,6 @@ export function getTaskRunDependencyGraph(taskRunId: string) {
       dependsOn: JSON.parse(node.dependsOnJson) as string[],
     })),
     edges: dag.edges ?? [],
-  };
-}
-
-export function getTaskRunCostBreakdown(taskRunId: string) {
-  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
-  if (!taskRun) return null;
-  const nodes = getTaskRunNodes(taskRunId);
-  const nodeCosts = nodes.map((node) => ({
-    nodeId: node.id,
-    nodeKey: node.nodeKey,
-    status: node.status,
-    attemptCount: node.attemptCount,
-    estimatedUsd: roundCurrency(
-      BASE_ESTIMATED_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD,
-    ),
-    actualUsd:
-      node.status === "completed"
-        ? roundCurrency(BASE_ACTUAL_NODE_COST_USD + node.attemptCount * PER_ATTEMPT_NODE_COST_USD)
-        : 0,
-  }));
-  const estimatedUsd = roundCurrency(
-    nodeCosts.reduce((sum, node) => sum + node.estimatedUsd, 0),
-  );
-  const actualUsd = roundCurrency(nodeCosts.reduce((sum, node) => sum + node.actualUsd, 0));
-
-  return {
-    taskRunId,
-    status: taskRun.status,
-    estimateFromTaskRun: taskRun.costEstimate,
-    actualFromTaskRun: taskRun.costActual,
-    estimatedUsd,
-    actualUsd,
-    nodeCosts,
   };
 }
 

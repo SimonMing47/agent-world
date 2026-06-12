@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 import { ChevronDown, GitBranch, Settings2, SlidersHorizontal, Users, Webhook, Workflow } from "lucide-react";
+import { editableSecretValue, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,8 @@ type CodebaseOption = {
   defaultBranch?: string;
   status?: string;
 };
+
+type CodebaseScopeMode = "all" | "selected";
 
 type TaskBlueprintEditorProps = {
   blueprint: {
@@ -244,12 +247,91 @@ function inferBlockAction(type: WorkflowBlockType, value: unknown) {
   return "execute";
 }
 
+function readWorkflowString(record: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function cleanPluginPayloadTemplate(type: WorkflowBlockType, payloadTemplate: string) {
+  if (type !== "plugin_tool" && type !== "publisher") return payloadTemplate;
+  const payload = parseRecord(payloadTemplate);
+  if (Object.keys(payload).length === 0) return payloadTemplate;
+  const cleaned = { ...payload };
+  delete cleaned.baseUrl;
+  delete cleaned.base_url;
+  delete cleaned.tokenRef;
+  delete cleaned.token_ref;
+  delete cleaned.webhookSecretRef;
+  delete cleaned.webhook_secret_ref;
+  return JSON.stringify(cleaned, null, 2);
+}
+
+function stripSecretFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripSecretFields);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !["tokenRef", "token_ref", "webhookSecretRef", "webhook_secret_ref"].includes(key))
+      .map(([key, item]) => [key, stripSecretFields(item)]),
+  );
+}
+
+function cleanOutputPolicyJson(value: string) {
+  try {
+    return JSON.stringify(stripSecretFields(JSON.parse(value) as unknown), null, 2);
+  } catch {
+    return value;
+  }
+}
+
+function normalizePermissionPolicySecretScopes(value: string) {
+  function walk(item: unknown): unknown {
+    if (Array.isArray(item)) return item.map(walk);
+    if (!item || typeof item !== "object") return item;
+    const record = item as Record<string, unknown>;
+    const next = Object.fromEntries(Object.entries(record).map(([key, child]) => [key, walk(child)]));
+    if (
+      typeof next.resource === "string" &&
+      next.resource === "secret.use" &&
+      typeof next.scope === "string" &&
+      next.scope.trim().toLowerCase().startsWith("env:")
+    ) {
+      next.scope = "plugin.secret";
+    }
+    return next;
+  }
+
+  try {
+    return JSON.stringify(walk(JSON.parse(value) as unknown), null, 2);
+  } catch {
+    return value;
+  }
+}
+
 function parseWorkflowKnowledgeCategory(value: unknown) {
   return normalizeKnowledgeCategory(value);
 }
 
 function parseWorkflowRepositoryName(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function parseCodebaseScope(value: unknown): { mode: CodebaseScopeMode; codebaseIds: string[] } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { mode: "all", codebaseIds: [] };
+  }
+  const record = value as Record<string, unknown>;
+  const codebaseIds = Array.isArray(record.codebaseIds)
+    ? record.codebaseIds.map(String).map((item) => item.trim()).filter(Boolean)
+    : [];
+  return {
+    mode: record.mode === "selected" ? "selected" : "all",
+    codebaseIds: [...new Set(codebaseIds)],
+  };
 }
 
 function buildRepositoryOptions(args: {
@@ -286,6 +368,14 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   if (runPlan.blocks.length > 0) {
     return runPlan.blocks.map((raw, index) => {
       const type = isWorkflowBlockType(raw.type) ? raw.type : "agent";
+      const payloadTemplate =
+        typeof raw.payloadTemplate === "string"
+          ? raw.payloadTemplate
+          : JSON.stringify(raw.payloadTemplate ?? {}, null, 2);
+      const payloadTemplateRecord = parseRecord(payloadTemplate);
+      const pluginConfig = raw.pluginConfig && typeof raw.pluginConfig === "object" && !Array.isArray(raw.pluginConfig)
+        ? (raw.pluginConfig as Record<string, unknown>)
+        : {};
       return {
         id: normalizeBlockId(raw.id, index),
         type,
@@ -318,12 +408,17 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
         publisherRef: typeof raw.publisherRef === "string" ? raw.publisherRef : "",
         pluginRef: typeof raw.pluginRef === "string" ? raw.pluginRef : "",
         toolRef: typeof raw.toolRef === "string" ? raw.toolRef : "",
+        pluginBaseUrl: readWorkflowString(raw, "pluginBaseUrl") ||
+          readWorkflowString(pluginConfig, "baseUrl", "url") ||
+          readWorkflowString(payloadTemplateRecord, "baseUrl", "base_url"),
+        pluginTokenRef: editableSecretValue(
+          readWorkflowString(raw, "pluginTokenRef", "tokenRef") ||
+          readWorkflowString(pluginConfig, "tokenRef", "token") ||
+          readWorkflowString(payloadTemplateRecord, "tokenRef", "token_ref"),
+        ),
         forEach: typeof raw.forEach === "string" ? raw.forEach : "",
         feedbackBaseUrl: typeof raw.feedbackBaseUrl === "string" ? raw.feedbackBaseUrl : "",
-        payloadTemplate:
-          typeof raw.payloadTemplate === "string"
-            ? raw.payloadTemplate
-            : JSON.stringify(raw.payloadTemplate ?? {}, null, 2),
+        payloadTemplate: cleanPluginPayloadTemplate(type, payloadTemplate),
         knowledgeCategory: parseWorkflowKnowledgeCategory(
           typeof raw.knowledgeCategory === "string"
             ? raw.knowledgeCategory
@@ -347,6 +442,10 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
   }
 
   const members = team?.members ?? [];
+  const defaultPluginStageConfig = {
+    pluginBaseUrl: "",
+    pluginTokenRef: "",
+  };
   const leader =
     members.find((member) => member.id === team?.leaderAgentId) ??
     members.find((member) => member.memberRole.toLowerCase().includes("leader")) ??
@@ -371,6 +470,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -394,6 +494,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -429,6 +530,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -455,6 +557,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
       publisherRef: "dashboard",
       pluginRef: "",
       toolRef: "",
+      ...defaultPluginStageConfig,
       forEach: "",
       feedbackBaseUrl: "",
       payloadTemplate: "{}",
@@ -468,6 +571,7 @@ function parseWorkflowBlocks(value: string, team: AgentTeamOption | null): Workf
 
 function parseEnvironmentSelector(value: string) {
   const parsed = parseRecord(value);
+  const codebaseScope = parseCodebaseScope(parsed.codebaseScope);
   return {
     type: typeof parsed.type === "string" ? parsed.type : "repository_workspace",
     repoBinding: typeof parsed.repoBinding === "string" ? parsed.repoBinding : "",
@@ -475,6 +579,7 @@ function parseEnvironmentSelector(value: string) {
     executionPath: typeof parsed.executionPath === "string" ? parsed.executionPath : "",
     sandboxMode: typeof parsed.sandboxMode === "string" ? parsed.sandboxMode : "inherit",
     sandboxRef: typeof parsed.sandboxRef === "string" ? parsed.sandboxRef : "",
+    codebaseScope,
     extraJson: JSON.stringify(
       Object.fromEntries(
         Object.entries(parsed).filter(
@@ -487,6 +592,7 @@ function parseEnvironmentSelector(value: string) {
               "sandboxMode",
               "sandboxRef",
               "environmentId",
+              "codebaseScope",
             ].includes(key),
         ),
       ),
@@ -573,13 +679,15 @@ function buildRunPlanJson(args: {
         publisherRef: block.publisherRef || undefined,
         pluginRef: block.pluginRef || undefined,
         toolRef: block.toolRef || undefined,
+        pluginBaseUrl: block.pluginBaseUrl || undefined,
+        pluginTokenRef: block.pluginTokenRef || undefined,
         forEach: block.forEach || undefined,
         feedbackBaseUrl: block.feedbackBaseUrl || undefined,
         payloadTemplate: block.payloadTemplate || undefined,
         knowledgeCategory: block.knowledgeCategory || "domain",
         repositoryName: block.repositoryName || undefined,
         repositoryNames:
-          block.knowledgeCategory === "code" && block.repositoryName
+          block.knowledgeCategory === "codebase" && block.repositoryName
             ? repositoryAliasesByName.get(block.repositoryName) ?? buildRepositoryNameAliases(block.repositoryName)
             : undefined,
       })),
@@ -622,10 +730,13 @@ function buildEnvironmentSelectorJson(args: {
   executionPath: string;
   sandboxMode: string;
   sandboxRef: string;
+  codebaseScopeMode: CodebaseScopeMode;
+  codebaseScopeIds: string[];
   environmentSelectorExtraJson: string;
 }) {
   const base = parseRecord(args.environmentSelectorJson);
   const extra = parseRecord(args.environmentSelectorExtraJson);
+  const scopedIds = [...new Set(args.codebaseScopeIds.map((item) => item.trim()).filter(Boolean))];
 
   return JSON.stringify(
     {
@@ -633,6 +744,10 @@ function buildEnvironmentSelectorJson(args: {
       ...extra,
       type: "repository_workspace",
       environmentId: args.environment?.id ?? null,
+      codebaseScope: {
+        mode: args.codebaseScopeMode,
+        codebaseIds: args.codebaseScopeMode === "selected" ? scopedIds : [],
+      },
       repoBinding: args.repoBinding.trim() || undefined,
       checkoutMode: args.checkoutMode,
       executionPath:
@@ -701,6 +816,12 @@ export function TaskBlueprintEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const trigger = parseRecord(blueprint.triggerJson);
+  const initialTriggerSecretRef =
+    typeof trigger.webhookSecretRef === "string"
+      ? trigger.webhookSecretRef
+      : typeof trigger.secretRef === "string"
+        ? trigger.secretRef
+        : "";
   const selector = parseEnvironmentSelector(blueprint.environmentSelectorJson);
   const runPlan = parseRunPlan(blueprint.agentTeamRunPlanJson);
   const initialSelectedTeam = options.agentTeams.find((team) => team.id === blueprint.teamId) ?? null;
@@ -723,12 +844,7 @@ export function TaskBlueprintEditor({
       typeof trigger.webhookPathKey === "string" ? trigger.webhookPathKey : "",
     triggerIdempotencyKey:
       typeof trigger.idempotencyKey === "string" ? trigger.idempotencyKey : "",
-    triggerSecretRef:
-      typeof trigger.webhookSecretRef === "string"
-        ? trigger.webhookSecretRef
-        : typeof trigger.secretRef === "string"
-          ? trigger.secretRef
-          : "",
+    triggerSecretRef: editableSecretValue(initialTriggerSecretRef),
     triggerExtraJson: JSON.stringify(
       Object.fromEntries(
         Object.entries(trigger).filter(
@@ -754,6 +870,8 @@ export function TaskBlueprintEditor({
     executionPath: selector.executionPath,
     sandboxMode: selector.sandboxMode,
     sandboxRef: selector.sandboxRef,
+    codebaseScopeMode: selector.codebaseScope.mode,
+    codebaseScopeIds: selector.codebaseScope.codebaseIds,
     environmentSelectorExtraJson: selector.extraJson,
     taskObjective: runPlan.objective,
     orchestrationStrategy: runPlan.strategy || initialSelectedTeam?.workflowType || "block_graph",
@@ -771,13 +889,11 @@ export function TaskBlueprintEditor({
       JSON.stringify({ requiredSpaces: [], archiveOutputTo: [] }, null, 2),
     ),
     providerPolicyJson: normalizeJson(blueprint.providerPolicyJson, "{}"),
-    permissionPolicyJson: normalizeJson(
-      blueprint.permissionPolicyJson,
-      JSON.stringify({ defaultMode: "ask", rules: [] }, null, 2),
+    permissionPolicyJson: normalizePermissionPolicySecretScopes(
+      normalizeJson(blueprint.permissionPolicyJson, JSON.stringify({ defaultMode: "ask", rules: [] }, null, 2)),
     ),
-    outputPolicyJson: normalizeJson(
-      blueprint.outputPolicyJson,
-      JSON.stringify({ publishers: [] }, null, 2),
+    outputPolicyJson: cleanOutputPolicyJson(
+      normalizeJson(blueprint.outputPolicyJson, JSON.stringify({ publishers: [] }, null, 2)),
     ),
     dashboardPolicyJson: normalizeJson(blueprint.dashboardPolicyJson, "{}"),
     executionPolicyJson: normalizeJson(blueprint.executionPolicyJson, "{}"),
@@ -800,6 +916,17 @@ export function TaskBlueprintEditor({
         environment: selectedEnvironment,
       }),
     [form.ownerBusinessTeamId, options.codebases, selectedEnvironment],
+  );
+  const scopedCodebaseOptions = useMemo(
+    () =>
+      (options.codebases ?? []).filter(
+        (codebase) => !form.ownerBusinessTeamId || codebase.businessTeamId === form.ownerBusinessTeamId,
+      ),
+    [form.ownerBusinessTeamId, options.codebases],
+  );
+  const selectedCodebaseIdSet = useMemo(
+    () => new Set(form.codebaseScopeIds),
+    [form.codebaseScopeIds],
   );
 
   async function save() {
@@ -844,6 +971,12 @@ export function TaskBlueprintEditor({
       return;
     }
 
+    if (form.codebaseScopeMode === "selected" && form.codebaseScopeIds.length === 0) {
+      setIsSaving(false);
+      setMessage(uiText("ui.taskBlueprintEditor.errors.codebaseScopeRequiresSelection"));
+      return;
+    }
+
     const invalidBlock = form.blocks.find((block) => {
       if (!block.id.trim() || !block.title.trim()) return true;
       if (block.type === "agent" && !block.agentId.trim()) return true;
@@ -862,7 +995,7 @@ export function TaskBlueprintEditor({
     }
 
     const repositoryKnowledgeBlock = form.blocks.find(
-      (block) => block.knowledgeCategory === "code" && !block.repositoryName.trim(),
+      (block) => block.knowledgeCategory === "codebase" && !block.repositoryName.trim(),
     );
     if (repositoryKnowledgeBlock) {
       setIsSaving(false);
@@ -951,6 +1084,8 @@ export function TaskBlueprintEditor({
       executionPath: form.executionPath,
       sandboxMode: form.sandboxMode,
       sandboxRef: form.sandboxRef,
+      codebaseScopeMode: form.codebaseScopeMode,
+      codebaseScopeIds: form.codebaseScopeIds,
       environmentSelectorExtraJson: form.environmentSelectorExtraJson,
     });
     const executionPolicyJson = buildExecutionPolicyJson(form.executionPolicyJson, form.blocks);
@@ -1048,7 +1183,19 @@ export function TaskBlueprintEditor({
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.businessTeam")}>
             <Select
               value={form.ownerBusinessTeamId}
-              onChange={(event) => setForm({ ...form, ownerBusinessTeamId: event.target.value })}
+              onChange={(event) => {
+                const nextBusinessTeamId = event.target.value;
+                const visibleCodebaseIds = new Set(
+                  (options.codebases ?? [])
+                    .filter((codebase) => !nextBusinessTeamId || codebase.businessTeamId === nextBusinessTeamId)
+                    .map((codebase) => codebase.id),
+                );
+                setForm({
+                  ...form,
+                  ownerBusinessTeamId: nextBusinessTeamId,
+                  codebaseScopeIds: form.codebaseScopeIds.filter((id) => visibleCodebaseIds.has(id)),
+                });
+              }}
             >
               <option value="">{uiText("ui.taskBlueprintEditor.options.selectBusinessTeam")}</option>
               {options.businessTeams.map((option) => (
@@ -1202,10 +1349,10 @@ export function TaskBlueprintEditor({
             />
           </FieldGroup>
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.webhookSecretRef")}>
-            <Input
+            <SecretInput
               value={form.triggerSecretRef}
-              onChange={(event) => setForm({ ...form, triggerSecretRef: event.target.value })}
-              placeholder="env:CODE_PLATFORM_WEBHOOK_SECRET"
+              onChange={(value) => setForm({ ...form, triggerSecretRef: value })}
+              placeholder={uiText("ui.taskBlueprintEditor.placeholders.webhookSecretRef")}
             />
           </FieldGroup>
           {!isWebhookTrigger ? (
@@ -1256,6 +1403,65 @@ export function TaskBlueprintEditor({
               ))}
             </Select>
           </FieldGroup>
+          <FieldGroup
+            label={uiText("ui.taskBlueprintEditor.fields.codebaseScope")}
+            hint="ui.taskBlueprintEditor.help.codebaseScope"
+          >
+            <Select
+              value={form.codebaseScopeMode}
+              onChange={(event) => {
+                const nextMode = event.target.value === "selected" ? "selected" : "all";
+                setForm({
+                  ...form,
+                  codebaseScopeMode: nextMode,
+                  codebaseScopeIds: nextMode === "selected" ? form.codebaseScopeIds : [],
+                });
+              }}
+            >
+              <option value="all">{uiText("ui.taskBlueprintEditor.codebaseScope.all")}</option>
+              <option value="selected">{uiText("ui.taskBlueprintEditor.codebaseScope.selected")}</option>
+            </Select>
+          </FieldGroup>
+          {form.codebaseScopeMode === "selected" ? (
+            <div className="md:col-span-2 rounded-lg border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+              <div className="text-xs font-medium text-[var(--ink)]">
+                {uiText("ui.taskBlueprintEditor.fields.selectedCodebases")}
+              </div>
+              {scopedCodebaseOptions.length ? (
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {scopedCodebaseOptions.map((codebase) => {
+                    const checked = selectedCodebaseIdSet.has(codebase.id);
+                    const detail = [codebase.provider, codebase.defaultBranch].filter(Boolean).join(" / ");
+                    return (
+                      <label
+                        key={codebase.id}
+                        className="flex items-start gap-3 rounded-lg border border-[var(--line)] bg-white/70 px-3 py-2 text-sm text-[var(--ink-muted)]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextIds = event.target.checked
+                              ? [...form.codebaseScopeIds, codebase.id]
+                              : form.codebaseScopeIds.filter((id) => id !== codebase.id);
+                            setForm({ ...form, codebaseScopeIds: [...new Set(nextIds)] });
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-[var(--ink)]">{codebase.name}</span>
+                          <span className="block truncate text-xs">{detail || codebase.repositoryUrl || codebase.id}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-[var(--ink-muted)]">
+                  {uiText("ui.taskBlueprintEditor.empty.codebases")}
+                </div>
+              )}
+            </div>
+          ) : null}
           <FieldGroup label={uiText("ui.taskBlueprintEditor.fields.repoBinding")}>
             <Input
               value={form.repoBinding}

@@ -67,6 +67,15 @@ function firstRecord(value: unknown) {
   return Array.isArray(value) && isRecord(value[0]) ? value[0] : null;
 }
 
+function stringInput(input: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = input[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
 function normalizePublishedCommentRef(payload: unknown) {
   const record = isRecord(payload) ? payload : {};
   const note = firstRecord(record.notes) ?? record;
@@ -114,19 +123,17 @@ async function ensurePermission(ctx: PluginRuntimeContext | undefined, resource:
 }
 
 async function resolveCodeHubConfig(input: Record<string, unknown>, ctx?: PluginRuntimeContext) {
+  const contextConfiguration = isRecord(ctx?.configuration) ? ctx.configuration : {};
   const baseUrl =
-    typeof input.baseUrl === "string" && input.baseUrl
-      ? input.baseUrl
-      : process.env.CODEHUB_HOST ?? "";
+    stringInput(input, "baseUrl", "base_url") ||
+    stringInput(contextConfiguration, "baseUrl", "base_url");
   const tokenRef =
-    typeof input.tokenRef === "string" && input.tokenRef
-      ? input.tokenRef
-      : "env:CODEHUB_TOKEN";
-  const token = ctx
-    ? await ctx.resolveSecretRef(tokenRef)
-    : tokenRef.startsWith("env:")
-      ? process.env[tokenRef.slice(4)] ?? null
-      : null;
+    stringInput(input, "tokenRef", "token_ref") ||
+    stringInput(contextConfiguration, "tokenRef", "token_ref");
+  if (tokenRef.toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
+  }
+  const token = tokenRef ? (ctx ? await ctx.resolveSecretRef(tokenRef) : tokenRef) : null;
 
   if (!baseUrl) throw new Error(uiText("ui.generated.c828e083628"));
   if (!token) throw new Error(uiText("ui.server.codehub.tokenMissing", undefined, { tokenRef }));
@@ -194,17 +201,23 @@ const repositoryConnector: ExecutableRepositoryConnector = {
 const webhookParser: ExecutableWebhookParser = {
   id: "official.codehub.webhook.merge_request",
   async verify(args) {
-    const secretRef =
+    const secretRef = (
       typeof args.configuration?.webhookSecretRef === "string"
         ? String(args.configuration.webhookSecretRef)
-        : "env:CODEHUB_WEBHOOK_SECRET";
+        : ""
+    ).trim();
+    if (!secretRef) {
+      throw new Error(uiText("codehub.errors.webhookSecretMissing"));
+    }
     const expected = await args.resolveSecretRef(secretRef);
-    if (!expected) return;
+    if (!expected) {
+      throw new Error(uiText("codehub.errors.webhookSecretMissing"));
+    }
 
     const provided = readWebhookSharedSecret(args.request);
 
     if (provided !== expected) {
-      throw new Error("CodeHub webhook secret mismatch.");
+      throw new Error(uiText("codehub.errors.webhookSecretMismatch"));
     }
   },
   async parse(args) {

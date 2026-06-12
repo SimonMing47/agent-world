@@ -7,7 +7,7 @@ AgentWorld 已经有插件雏形：`plugin-core.ts` 定义了扩展点，`extens
 插件系统的目标是：
 
 - 外部开发者可以在 AgentWorld 外部做好插件包，通过界面导入后获得插件能力。
-- 插件可以贡献左侧菜单、页面展示、配置面板、SSO 入口、工具、Webhook parser、输出发布器、任务蓝图、Skill 和看板视图。
+- 插件可以贡献左侧菜单、页面展示、配置面板、SSO 入口、工具、Webhook parser、输出发布器、任务蓝图、知识资产和看板视图。
 - 默认插件随产品发布，但新装环境保持干净，不自动写入业务配置。
 - 插件加载可禁用、可升级、可回滚、可审计。
 - 第三方插件不能直接进入 Next.js 主进程执行任意代码，不能访问数据库、明文密钥或内部调度状态。
@@ -476,7 +476,7 @@ onHealthCheck
 - `outputPublishers`：进入 Output Publisher Host。
 - `providerAdapters`：进入 Provider Runtime Host。
 - `taskBlueprints` 和 `scheduleTemplates`：导入标准表，但保留插件来源和版本。
-- `skills`：导入 Skill 表和 AgentWorld 知识引擎 URI 绑定，但必须做团队范围和内容安全校验。
+- `knowledgeAssets`：导入 Agent 可加载知识和 AgentWorld 知识引擎 URI 绑定，但必须做团队范围和内容安全校验。历史 `skills` 字段作为兼容别名读取。
 - `boardViews`：进入看板视图 registry。
 
 运行时隔离：
@@ -498,6 +498,8 @@ SDK 只暴露：
 - `readPluginState`
 - `writePluginState`
 - `fetchAllowedUrl`
+
+其中 `resolveSecretRef` 只解析插件配置、知识配置或页面配置保存的密钥值；插件不得通过 `env:` 环境变量引用读取第三方系统凭据。
 
 默认权限应收紧为 deny/ask。当前 `plugin-sdk-core.ts` 对部分能力默认 allow，需要在真正执行第三方插件前修正。
 
@@ -560,7 +562,7 @@ Core -> User: set AgentWorld session cookie
 - 插件菜单只在客户端隐藏但服务端页面仍可访问。
 - 插件绕过 SSO state、nonce、PKCE、JWKS、cookie 设置。
 - 插件把 secret ref 解析成明文后写入日志、事件、知识库或 Artifact。
-- 插件绕过团队可见范围写 Skill、知识、任务蓝图或输出发布器。
+- 插件绕过团队可见范围写知识、任务蓝图或输出发布器。
 - 插件在 webhook parser 中绕过验签、重放保护和请求大小限制。
 
 默认策略：
@@ -584,7 +586,7 @@ Core -> User: set AgentWorld session cookie
   - 保留旧 `importExtensionBundle()` 作为兼容入口。
 
 - `src/server/plugin-sdk-core.ts`
-  - 把 `executablePluginModules` 从硬编码改成 registry loader。
+  - 已提供 executable contribution registry，用统一 resolver 解析 repository connector、webhook parser、output publisher 和 tool bundle。
   - 收紧默认权限。
   - 增加 worker/IPC host。
 
@@ -621,6 +623,7 @@ Core -> User: set AgentWorld session cookie
 - 新增数据库表。
 - 新增插件 catalog/install/config/enable/disable API。
 - 官方插件只显示为可安装，不自动写配置。
+- 当前代码已先落地运行时 contribution registry 与 `/api/plugins/manifests` 快照，作为后续插件包加载器的基础。
 
 第二阶段：UI 插件
 

@@ -116,7 +116,7 @@ function buildNewTeamTemplate(defaultBusinessTeamId: string, defaultExecutionPol
     maxConcurrency: 4,
     timeoutMs: 20 * 60 * 1000,
     successRateThreshold: 0.9,
-    pricingModelJson: JSON.stringify({ baseUsd: 0, tokenMultiplier: 1 }, null, 2),
+    pricingModelJson: "{}",
     visibility: "team",
     defaultExecutionPolicyId,
   };

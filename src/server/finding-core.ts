@@ -96,6 +96,7 @@ export function summarizeFinding(finding: Finding) {
     description: finding.description,
     evidence: parseRecord(finding.evidenceJson),
     recommendation: finding.recommendation,
+    knowledgeRefs: parseArray(finding.skillRefsJson),
     skillRefs: parseArray(finding.skillRefsJson),
     fingerprint: finding.fingerprint,
     status: finding.status,

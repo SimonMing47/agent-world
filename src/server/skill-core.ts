@@ -14,6 +14,7 @@ import {
 } from "@/server/db";
 import { buildPiModel, resolveProviderApiKey } from "@/server/runtime-provider-config";
 import { writeLayeredKnowledge } from "@/server/knowledge-engine";
+import { createKnowledgeSpace, listKnowledgeSpaces } from "@/server/knowledge-core";
 import { uiText } from "@/lib/language-pack";
 import { normalizeKnowledgeUri } from "@/lib/knowledge-uri";
 
@@ -99,7 +100,7 @@ function draftFromJson(value: unknown, fallbackName: string, defaults: Partial<S
     id: typeof record.id === "string" && record.id.trim() ? record.id.trim() : undefined,
     ownerBusinessTeamId: defaults.ownerBusinessTeamId ?? null,
     name,
-    layer: stringFromRecord(record, ["layer", "category"], defaults.layer ?? "skill/import"),
+    layer: stringFromRecord(record, ["layer", "category"], defaults.layer ?? "knowledge/import"),
     description: stringFromRecord(record, ["description", "summary"], name),
     tags: normalizeTags(record.tags ?? defaults.tags ?? []),
     visibility: stringFromRecord(record, ["visibility"], defaults.visibility ?? "team"),
@@ -111,7 +112,7 @@ function draftFromJson(value: unknown, fallbackName: string, defaults: Partial<S
 
 function draftFromMarkdown(file: SkillImportFile, defaults: Partial<SkillDraft>): SkillDraft | null {
   const { meta, body } = parseFrontmatter(file.content.trim());
-  const fallbackName = path.basename(file.name || file.relativePath || "Skill", path.extname(file.name || ""));
+  const fallbackName = path.basename(file.name || file.relativePath || "Knowledge", path.extname(file.name || ""));
   const firstHeading = /^#\s+(.+)$/m.exec(body)?.[1]?.trim();
   const name = meta.name || meta.title || firstHeading || fallbackName;
   const description = meta.description || body.split(/\r?\n/).find((line) => line.trim() && !line.startsWith("#"))?.trim() || name;
@@ -121,14 +122,14 @@ function draftFromMarkdown(file: SkillImportFile, defaults: Partial<SkillDraft>)
   return {
     ownerBusinessTeamId: defaults.ownerBusinessTeamId ?? null,
     name,
-    layer: meta.layer || defaults.layer || "skill/import",
+    layer: meta.layer || defaults.layer || "knowledge/import",
     description,
     tags: normalizeTags(meta.tags || defaults.tags || []),
     visibility: meta.visibility || defaults.visibility || "team",
     promptMd,
     heuristicsJson: JSON.stringify({
       importedFrom: file.relativePath || file.name,
-      source: "skill-file",
+      source: "knowledge-file",
     }, null, 2),
     isEnabled: 1,
   };
@@ -175,9 +176,9 @@ function walkSkillFiles(rootDir: string, limit = 80) {
 
 function assertSupportedRepoUrl(repoUrl: string) {
   const trimmed = repoUrl.trim();
-  if (!trimmed) throw new Error("Skill repository URL is required.");
+  if (!trimmed) throw new Error("Knowledge repository URL is required.");
   if (/^(https?:\/\/|git@|ssh:\/\/)/.test(trimmed)) return trimmed;
-  throw new Error("Skill repository URL must use https, ssh, or git@ format.");
+  throw new Error("Knowledge repository URL must use https, ssh, or git@ format.");
 }
 
 function parseJsonRecord(value: string, fallback: Record<string, unknown> = {}) {
@@ -237,6 +238,46 @@ function resolveDefaultProviderRuntime() {
   return { runtimeBinding, providerProfile, apiKey };
 }
 
+function normalizeSkillSpaceVisibility(value: string | null | undefined) {
+  if (value === "global" || value === "private" || value === "team") return value;
+  return "team";
+}
+
+function ensureSkillKnowledgeSpace(skill: InspectionSkill) {
+  const ownerBusinessTeam = skill.ownerBusinessTeamId
+    ? queryOne<{ id: string; slug: string; tenantSpaceId: string }>(
+        "SELECT id, slug, tenant_space_id FROM business_teams WHERE id = ? AND status <> 'deleted'",
+        skill.ownerBusinessTeamId,
+      )
+    : null;
+  const spaceType = ownerBusinessTeam ? "team" : "global";
+  const existing = listKnowledgeSpaces().find(
+    (space) =>
+      space.status === "active" &&
+      space.knowledgeCategory === "skill" &&
+      space.spaceType === spaceType &&
+      (ownerBusinessTeam ? space.businessTeamId === ownerBusinessTeam.id : !space.businessTeamId),
+  );
+  if (existing) return existing;
+
+  const tenantSpaceId = ownerBusinessTeam?.tenantSpaceId ??
+    queryOne<{ id: string }>("SELECT id FROM tenant_spaces WHERE status <> 'deleted' ORDER BY created_at ASC LIMIT 1")?.id;
+  if (!tenantSpaceId) throw new Error(uiText("ui.generated.c0eb3cd990d"));
+
+  const created = createKnowledgeSpace({
+    tenantSpaceId,
+    businessTeamId: ownerBusinessTeam?.id ?? null,
+    name: uiText("knowledge.skillSpace.name"),
+    slug: ownerBusinessTeam ? `agent-loadable-knowledge-${slugify(ownerBusinessTeam.slug)}` : "agent-loadable-knowledge",
+    spaceType,
+    knowledgeCategory: "skill",
+    description: uiText("knowledge.skillSpace.description"),
+    visibility: ownerBusinessTeam ? normalizeSkillSpaceVisibility(skill.visibility) : "global",
+  });
+  if (!created) throw new Error(uiText("knowledge.skillSpace.errors.createFailed"));
+  return created;
+}
+
 export function listSkills() {
   return queryAll<InspectionSkill>("SELECT * FROM inspection_skills ORDER BY layer ASC, name ASC").map((skill) => ({
     ...skill,
@@ -275,13 +316,13 @@ export function importSkillsFromFiles(files: SkillImportFile[], defaults: Partia
     const draft = draftFromFile(file, defaults);
     if (!draft) {
       result.skipped += 1;
-      result.messages.push(`Skipped ${file.relativePath || file.name}: unsupported or incomplete Skill file.`);
+      result.messages.push(`Skipped ${file.relativePath || file.name}: unsupported or incomplete knowledge file.`);
       continue;
     }
 
     const skill = upsertSkill({
       ...draft,
-      id: draft.id || `skill-${slugify(draft.name)}-${randomUUID().slice(0, 8)}`,
+      id: draft.id || `knowledge-${slugify(draft.name)}-${randomUUID().slice(0, 8)}`,
     });
     if (skill) {
       result.imported += 1;
@@ -297,7 +338,7 @@ export function discoverSkillsFromRepository(input: {
   visibility?: string;
 }) {
   const repoUrl = assertSupportedRepoUrl(input.repoUrl);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentworld-skills-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentworld-knowledge-"));
   try {
     execFileSync("git", ["clone", "--depth=1", repoUrl, tempDir], {
       stdio: "ignore",
@@ -311,7 +352,7 @@ export function discoverSkillsFromRepository(input: {
     return importSkillsFromFiles(files, {
       ownerBusinessTeamId: input.ownerBusinessTeamId ?? null,
       visibility: input.visibility ?? "team",
-      layer: "skill/repository",
+      layer: "knowledge/repository",
       tags: ["repository-import"],
     });
   } finally {
@@ -322,15 +363,19 @@ export function discoverSkillsFromRepository(input: {
 export async function syncSkillToKnowledgeEngine(skillId: string) {
   const skill = queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skillId);
   if (!skill) throw new Error(uiText("ui.generated.cd4fe99088a"));
+  const knowledgeSpace = ensureSkillKnowledgeSpace(skill);
 
   const result = await writeLayeredKnowledge({
+    knowledgeSpaceId: knowledgeSpace?.id,
     layer: skill.layer,
-    scopeKey: `skills/${skill.id}`,
+    scopeKey: `knowledge/${skill.id}`,
     skillId: skill.id,
-    title: `Skill: ${skill.name}`,
+    title: `Knowledge: ${skill.name}`,
     sourceType: "skill",
     metadata: {
       skillId: skill.id,
+      knowledgeCategory: "skill",
+      knowledgeSpaceId: knowledgeSpace?.id ?? null,
       ownerBusinessTeamId: skill.ownerBusinessTeamId,
       tags: normalizeTags(JSON.parse(skill.tagsJson || "[]")),
       visibility: skill.visibility,
@@ -352,6 +397,17 @@ export async function syncSkillToKnowledgeEngine(skillId: string) {
 
   execute("UPDATE inspection_skills SET viking_uri = ?, updated_at = ? WHERE id = ?", result.vikingUri, nowIso(), skill.id);
   return { ...result, skill: queryOne<InspectionSkill>("SELECT * FROM inspection_skills WHERE id = ?", skill.id) };
+}
+
+export async function syncAllSkillsToKnowledgeEngine() {
+  const skills = queryAll<InspectionSkill>(
+    "SELECT * FROM inspection_skills WHERE is_enabled = 1 ORDER BY layer ASC, name ASC",
+  );
+  const results = [];
+  for (const skill of skills) {
+    results.push(await syncSkillToKnowledgeEngine(skill.id));
+  }
+  return results;
 }
 
 export async function optimizeSkillDraft(input: { skill: SkillDraft; optimizationGoal?: string }) {

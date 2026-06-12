@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
+import { editableSecretValue, SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ export function WebhookEndpointForm({
   onSaved,
 }: WebhookEndpointFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -55,7 +58,7 @@ export function WebhookEndpointForm({
     pathKey: webhook.pathKey,
     method: webhook.method,
     requestSchemaJson: normalizeJson(webhook.requestSchemaJson, "{}"),
-    secretHint: webhook.secretHint,
+    secretHint: editableSecretValue(webhook.secretHint),
     isEnabled: webhook.isEnabled === 1,
   });
 
@@ -167,10 +170,10 @@ export function WebhookEndpointForm({
             </Select>
           </FieldGroup>
           <FieldGroup label="ui.generated.cf7981046c3">
-            <Input
+            <SecretInput
               value={form.secretHint}
-              onChange={(event) => setForm({ ...form, secretHint: event.target.value })}
-              placeholder="env:CODE_PLATFORM_WEBHOOK_SECRET"
+              onChange={(value) => setForm({ ...form, secretHint: value })}
+              placeholder={text("ui.webhookEndpointForm.secret.placeholder")}
             />
           </FieldGroup>
           <FieldGroup label="ui.generated.c02aa35d407" className="md:col-span-2">

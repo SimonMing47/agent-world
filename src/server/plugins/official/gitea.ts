@@ -100,20 +100,22 @@ async function resolveGiteaConfig(input: Record<string, unknown>, ctx?: PluginRu
   const baseUrl =
     stringInput(input, "baseUrl", "base_url") ||
     stringInput(contextConfiguration, "baseUrl", "base_url") ||
-    process.env.GITEA_BASE_URL ||
     "";
   const tokenRef =
     stringInput(input, "tokenRef", "token_ref") ||
-    stringInput(contextConfiguration, "tokenRef", "token_ref") ||
-    "env:GITEA_TOKEN";
-  const token = ctx
-    ? await ctx.resolveSecretRef(tokenRef)
-    : tokenRef.startsWith("env:")
-      ? process.env[tokenRef.slice(4)] ?? null
-      : null;
+    stringInput(contextConfiguration, "tokenRef", "token_ref");
+  if (tokenRef.toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
+  }
+  const token = tokenRef ? (ctx ? await ctx.resolveSecretRef(tokenRef) : tokenRef) : null;
 
   if (!baseUrl) throw new Error(uiText("gitea.errors.baseUrlMissing"));
   return { baseUrl, token };
+}
+
+function requireGiteaToken(config: Awaited<ReturnType<typeof resolveGiteaConfig>>) {
+  if (!config.token) throw new Error(uiText("gitea.errors.tokenMissing"));
+  return { baseUrl: config.baseUrl, token: config.token };
 }
 
 async function ensurePermission(ctx: PluginRuntimeContext, resource: string, scope?: string) {
@@ -188,7 +190,7 @@ async function readPullRequestFilesWithContent(args: {
   owner: string;
   repo: string;
   pullIndex: string;
-  config: { baseUrl: string; token?: string | null };
+  config: { baseUrl: string; token: string };
 }) {
   const pull = await requestJson({
     ...args.config,
@@ -292,7 +294,12 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
     : Array.isArray(contextConfiguration.skillRules)
       ? contextConfiguration.skillRules.filter(isRecord)
       : [];
-  const { headSha, files } = await readPullRequestFilesWithContent({ owner, repo, pullIndex, config });
+  const { headSha, files } = await readPullRequestFilesWithContent({
+    owner,
+    repo,
+    pullIndex,
+    config: requireGiteaToken(config),
+  });
   const created = [];
   for (const rule of rules) {
     const pathRegex = compileRuleRegex(rule.pathRegex ?? rule.filePathRegex);
@@ -300,7 +307,7 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
     const contentRegex = compileRuleRegex(rule.contentRegex);
     const includesAll = parseStringArray(rule.includesAll ?? rule.allIncludes ?? rule.allLineIncludes);
     const includesAny = parseStringArray(rule.includesAny ?? rule.anyIncludes ?? rule.anyLineIncludes);
-    const skillRefs = parseStringArray(rule.skillRefs);
+    const skillRefs = parseStringArray(rule.knowledgeRefs ?? rule.skillRefs);
 
     for (const file of files) {
       if (pathRegex && !pathRegex.test(file.filename)) continue;
@@ -323,6 +330,7 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
         title,
         description: stringInput(rule, "description") || title,
         recommendation: stringInput(rule, "recommendation"),
+        knowledgeRefs: skillRefs,
         skillRefs,
         evidence: {
           repo_id: `${owner}/${repo}`,
@@ -384,7 +392,7 @@ const repositoryConnector: ExecutableRepositoryConnector = {
     await ensurePermission(ctx, "repo.read", `${owner}/${repo}`);
     const config = await resolveGiteaConfig(input, ctx);
     return requestJson({
-      ...config,
+      ...requireGiteaToken(config),
       path: `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
     });
   },
@@ -394,7 +402,7 @@ const repositoryConnector: ExecutableRepositoryConnector = {
     await ensurePermission(ctx, "repo.read", `${owner}/${repo}:${pullIndex}`);
     const config = await resolveGiteaConfig(input, ctx);
     return requestJson({
-      ...config,
+      ...requireGiteaToken(config),
       path: `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pulls/${encodeURIComponent(pullIndex)}/files`,
     });
   },
@@ -403,12 +411,18 @@ const repositoryConnector: ExecutableRepositoryConnector = {
 const webhookParser: ExecutableWebhookParser = {
   id: "official.gitea.webhook.pull_request",
   async verify(args) {
-    const secretRef =
+    const secretRef = (
       typeof args.configuration?.webhookSecretRef === "string"
         ? String(args.configuration.webhookSecretRef)
-        : "env:GITEA_WEBHOOK_SECRET";
+        : ""
+    ).trim();
+    if (!secretRef) {
+      throw new Error(uiText("gitea.errors.webhookSecretMissing"));
+    }
     const expected = await args.resolveSecretRef(secretRef);
-    if (!expected) return;
+    if (!expected) {
+      throw new Error(uiText("gitea.errors.webhookSecretMissing"));
+    }
 
     const provided = readWebhookSharedSecret(args.request);
     if (provided !== expected) {
@@ -496,7 +510,7 @@ const issueCommentPublisher: ExecutableOutputPublisher = {
 
     const commentId = stringInput(input, "commentId", "comment_id", "noteId", "note_id");
     const payload = await requestJson({
-      ...config,
+      ...requireGiteaToken(config),
       path: commentId
         ? `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/comments/${encodeURIComponent(commentId)}`
         : `/api/v1/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${encodeURIComponent(issueIndex)}/comments`,
@@ -614,9 +628,10 @@ export const giteaExecutablePlugin: ExecutablePluginModule = {
         type: "object",
         properties: {
           baseUrl: { type: "string" },
-          tokenRef: { type: "string", default: "env:GITEA_TOKEN" },
-          webhookSecretRef: { type: "string", default: "env:GITEA_WEBHOOK_SECRET" },
+          tokenRef: { type: "string" },
+          webhookSecretRef: { type: "string" },
         },
+        required: ["baseUrl", "tokenRef"],
       },
     },
   },

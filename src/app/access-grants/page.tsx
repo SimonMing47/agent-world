@@ -76,7 +76,7 @@ export default async function AccessGrantsPage() {
 	                      id: "",
 	                      providerTeamId: "",
 	                      consumerBusinessTeamId: "",
-	                      pricingModelJson: JSON.stringify({ baseUsd: 0, tokenMultiplier: 1 }, null, 2),
+	                      pricingModelJson: "{}",
 	                      slaJson: JSON.stringify({ responseSeconds: 60, successRateFloor: 0.95 }, null, 2),
 	                      accessScopeJson: "{}",
 	                      serviceAccountRef: "",
@@ -95,7 +95,6 @@ export default async function AccessGrantsPage() {
                 <DataTableHead>ui.generated.c6a7069fb0c</DataTableHead>
                 <DataTableHead>ui.generated.cfa32a6feeb</DataTableHead>
                 <DataTableHead>ui.generated.c65596a6283</DataTableHead>
-                <DataTableHead>ui.generated.cb70c2d28a1</DataTableHead>
                 <DataTableHead>SLA</DataTableHead>
                 <DataTableHead>ui.generated.c62e951a692</DataTableHead>
                 <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
@@ -105,14 +104,12 @@ export default async function AccessGrantsPage() {
               {accessGrants.map((grant) => {
                 const providerTeam = agentTeams.find((team) => team.id === grant.providerTeamId);
                 const consumerTeam = businessTeams.find((team) => team.id === grant.consumerBusinessTeamId);
-                const pricing = parseRecord(grant.pricingModelJson);
                 const sla = parseRecord(grant.slaJson);
                 return (
                   <DataTableRow key={grant.id}>
                     <DataTableCell>{providerTeam?.name ?? grant.providerTeamId}</DataTableCell>
                     <DataTableCell>{consumerTeam?.name ?? grant.consumerBusinessTeamId}</DataTableCell>
                     <DataTableCell>{grant.serviceAccountRef}</DataTableCell>
-                    <DataTableCell>${pricing.baseUsd ?? 0} / x{pricing.tokenMultiplier ?? 1}</DataTableCell>
                     <DataTableCell>{sla.responseSeconds ?? 0}s / {Math.round(Number(sla.successRateFloor ?? 0) * 100)}%</DataTableCell>
                     <DataTableCell><Badge variant={grant.status === "active" ? "success" : "neutral"}>{translateStatus(grant.status)}</Badge></DataTableCell>
                     <DataTableCell align="right">
@@ -121,7 +118,7 @@ export default async function AccessGrantsPage() {
                           <DialogTrigger asChild><Button size="sm" variant="ghost"><Eye className="h-4 w-4" />ui.generated.cf7acefd2d4</Button></DialogTrigger>
                           <DialogContent>
                             <DialogHeader><DialogTitle>{providerTeam?.name ?? "ui.generated.c3a6e607f0c"}</DialogTitle><DialogDescription>ui.generated.cd6ada860cf</DialogDescription></DialogHeader>
-                            <DialogBody><DefinitionList items={[{ label: "ui.generated.c1af8d01a5d", value: grant.id }, { label: "ui.generated.cbbfed2f2c3", value: grant.pricingModelJson }, { label: "SLA", value: grant.slaJson }, { label: "ui.generated.c241d8ef92f", value: grant.accessScopeJson }]} /></DialogBody>
+                            <DialogBody><DefinitionList items={[{ label: "ui.generated.c1af8d01a5d", value: grant.id }, { label: "SLA", value: grant.slaJson }, { label: "ui.generated.c241d8ef92f", value: grant.accessScopeJson }]} /></DialogBody>
                           </DialogContent>
                         </Dialog>
                         <Dialog>

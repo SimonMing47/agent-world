@@ -1,5 +1,5 @@
 import { Eye, PencilLine, Plus } from "lucide-react";
-import { ConnectorForm } from "@/components/admin-forms";
+import { ConnectorForm, McpServerForm } from "@/components/admin-forms";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -24,10 +24,19 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { canAccessBusinessTeam, filterBusinessTeamsForAuthContext, getRequestAuthContext } from "@/server/auth-core";
-import { listConnectors } from "@/server/governance-core";
+import { listConnectors, listMcpServers } from "@/server/governance-core";
 import { listBusinessTeams } from "@/server/queries";
 
 function parseCapabilities(value: string) {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseTools(value: string) {
   try {
     const parsed = JSON.parse(value) as unknown;
     return Array.isArray(parsed) ? parsed.map(String) : [];
@@ -42,6 +51,9 @@ export default async function ConnectorsPage() {
   const connectors = listConnectors().filter((connector) =>
     canAccessBusinessTeam(authContext, connector.businessTeamId, { allowGlobal: true }),
   );
+  const mcpServers = listMcpServers().filter((server) =>
+    canAccessBusinessTeam(authContext, server.businessTeamId, { allowGlobal: true }),
+  );
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (
@@ -52,7 +64,8 @@ export default async function ConnectorsPage() {
         description="nav.connectors.description"
         badges={[
           { label: <>{connectors.length} ui.common.count.connectors</>, variant: "accent" },
-          { label: <>{connectors.filter((connector) => connector.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
+          { label: <>{mcpServers.length} connector.mcp.count</>, variant: "neutral" },
+          { label: <>{connectors.filter((connector) => connector.status === "active").length + mcpServers.filter((server) => server.status === "active").length} ui.common.count.enabledItems</>, variant: "success" },
         ]}
       />
 
@@ -143,6 +156,131 @@ export default async function ConnectorsPage() {
                           </DialogContent>
                         </Dialog>
                         <DeleteResourceButton endpoint="/api/connectors" id={connector.id} confirmParams={{ resource: "ui.common.resources.connector", name: connector.name }} />
+                      </div>
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
+        </PanelBody>
+      </Panel>
+
+      <Panel id="mcp-connectors">
+        <PanelHeader
+          eyebrow="connector.mcp.eyebrow"
+          title="connector.mcp.title"
+          description="connector.mcp.description"
+          action={
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="secondary">
+                  <Plus className="h-4 w-4" />
+                  connector.mcp.create
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[min(94vw,860px)]">
+                <DialogHeader>
+                  <DialogTitle>connector.mcp.create</DialogTitle>
+                  <DialogDescription>connector.mcp.createDescription</DialogDescription>
+                </DialogHeader>
+                <DialogBody>
+                  <McpServerForm
+                    businessTeams={teamOptions}
+                    server={{
+                      id: "",
+                      businessTeamId: null,
+                      name: "",
+                      transport: "stdio",
+                      command: "",
+                      url: "",
+                      authRef: "",
+                      toolAllowlistJson: "[]",
+                      status: "active",
+                    }}
+                  />
+                </DialogBody>
+              </DialogContent>
+            </Dialog>
+          }
+        />
+        <PanelBody className="p-0">
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>connector.mcp.columns.server</DataTableHead>
+                <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
+                <DataTableHead>connector.mcp.columns.transport</DataTableHead>
+                <DataTableHead>connector.mcp.columns.tools</DataTableHead>
+                <DataTableHead>ui.generated.c28ff5ffe95</DataTableHead>
+                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {mcpServers.map((server) => {
+                const team = businessTeams.find((item) => item.id === server.businessTeamId);
+                const tools = parseTools(server.toolAllowlistJson);
+                return (
+                  <DataTableRow key={server.id}>
+                    <DataTableCell className="min-w-[260px]">
+                      <div className="font-semibold text-[var(--ink)]">{server.name}</div>
+                      <div className="mt-1 break-all text-xs text-[var(--ink-muted)]">
+                        {server.command || server.url || "ui.generated.cc63d0e243e"}
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell>{team?.name ?? "ui.generated.ca5644f4bbf"}</DataTableCell>
+                    <DataTableCell>{server.transport}</DataTableCell>
+                    <DataTableCell>{tools.length ? tools.slice(0, 3).join(", ") : "ui.generated.c7a433d5959"}</DataTableCell>
+                    <DataTableCell>
+                      <Badge variant={server.status === "active" ? "success" : "neutral"}>{server.lastHealthStatus}</Badge>
+                    </DataTableCell>
+                    <DataTableCell align="right">
+                      <div className="flex justify-end gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <Eye className="h-4 w-4" />
+                              ui.generated.cf7acefd2d4
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>{server.name}</DialogTitle>
+                              <DialogDescription>connector.mcp.viewDescription</DialogDescription>
+                            </DialogHeader>
+                            <DialogBody>
+                              <DefinitionList
+                                items={[
+                                  { label: "ID", value: server.id },
+                                  { label: "ui.generated.c21d7042ff0", value: team?.name ?? "ui.generated.ca5644f4bbf" },
+                                  { label: "connector.mcp.columns.transport", value: server.transport },
+                                  { label: "ui.generated.cb114b91547", value: server.command || "ui.generated.c72077749f7" },
+                                  { label: "URL", value: server.url || "ui.generated.c72077749f7" },
+                                  { label: "Auth Ref", value: server.authRef || "ui.generated.c72077749f7" },
+                                  { label: "connector.mcp.columns.tools", value: tools.join(", ") || "ui.generated.c7a433d5959" },
+                                ]}
+                              />
+                            </DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" variant="ghost">
+                              <PencilLine className="h-4 w-4" />
+                              ui.generated.ca7f814c0a4
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="w-[min(94vw,860px)]">
+                            <DialogHeader>
+                              <DialogTitle>connector.mcp.edit</DialogTitle>
+                              <DialogDescription>{server.name}</DialogDescription>
+                            </DialogHeader>
+                            <DialogBody>
+                              <McpServerForm businessTeams={teamOptions} server={server} />
+                            </DialogBody>
+                          </DialogContent>
+                        </Dialog>
+                        <DeleteResourceButton endpoint="/api/mcp-servers" id={server.id} confirmParams={{ resource: "ui.common.resources.mcpServer", name: server.name }} />
                       </div>
                     </DataTableCell>
                   </DataTableRow>

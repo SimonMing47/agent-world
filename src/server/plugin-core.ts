@@ -1,15 +1,30 @@
 import { uiText } from "@/lib/language-pack";
 export type PluginCapability =
+  | "auth_adapter"
   | "auth_sso"
+  | "provider_adapter"
   | "provider"
   | "tool"
+  | "knowledge"
   | "skill"
+  | "knowledge_source"
   | "notify_email"
   | "notify_im"
+  | "notification_channel"
   | "code_repo"
+  | "repository_connector"
+  | "webhook_parser"
   | "trigger"
+  | "workflow_block"
   | "output_publisher"
-  | "dashboard_metric";
+  | "dashboard_metric"
+  | "task_blueprint"
+  | "environment_template"
+  | "settings_panel"
+  | "navigation_item"
+  | "page_panel"
+  | "codebase_engine"
+  | "secret_provider";
 
 export type PluginLifecycle = "declared" | "configured" | "healthy" | "degraded";
 
@@ -31,68 +46,171 @@ export type PluginExtensionPoint = {
   id: string;
   name: string;
   accepts: PluginCapability[];
+  contributionKinds: string[];
+  host: "server" | "client" | "both";
+  activationEvents: string[];
   implementationContract: string;
   noCoreChangeRule: string;
 };
 
+function extensionPoint(input: {
+  id: string;
+  key: string;
+  accepts: PluginCapability[];
+  contributionKinds: string[];
+  host: PluginExtensionPoint["host"];
+  activationEvents: string[];
+}): PluginExtensionPoint {
+  return {
+    id: input.id,
+    name: uiText(`plugins.extension.${input.key}.name`),
+    accepts: input.accepts,
+    contributionKinds: input.contributionKinds,
+    host: input.host,
+    activationEvents: input.activationEvents,
+    implementationContract: uiText(`plugins.extension.${input.key}.contract`),
+    noCoreChangeRule: uiText(`plugins.extension.${input.key}.noCoreChange`),
+  };
+}
+
 export function listPluginExtensionPoints(): PluginExtensionPoint[] {
   return [
-    {
+    extensionPoint({
       id: "identity-auth",
-      name: uiText("plugins.extension.identityAuth.name"),
-      accepts: ["auth_sso"],
-      implementationContract: uiText("plugins.extension.identityAuth.contract"),
-      noCoreChangeRule: uiText("plugins.extension.identityAuth.noCoreChange"),
-    },
-    {
+      key: "identityAuth",
+      accepts: ["auth_adapter", "auth_sso"],
+      contributionKinds: ["authAdapters"],
+      host: "server",
+      activationEvents: ["onSignInStart", "onSignInCallback"],
+    }),
+    extensionPoint({
       id: "provider-runtime",
-      name: uiText("ui.generated.ccccb1f3b93"),
-      accepts: ["provider"],
-      implementationContract: uiText("ui.generated.c61ae8fc81d"),
-      noCoreChangeRule: uiText("ui.generated.cb7b7f0ebb7"),
-    },
-    {
-      id: "tool-skill-registry",
-      name: uiText("ui.generated.ccd071c0275"),
-      accepts: ["tool", "skill"],
-      implementationContract: uiText("ui.generated.c171a42720d"),
-      noCoreChangeRule: uiText("ui.generated.cb4c1bcf3f1"),
-    },
-    {
+      key: "providerRuntime",
+      accepts: ["provider_adapter", "provider"],
+      contributionKinds: ["providerAdapters"],
+      host: "server",
+      activationEvents: ["onProviderInvoke", "onProviderHealthCheck"],
+    }),
+    extensionPoint({
+      id: "tool-knowledge-registry",
+      key: "toolKnowledgeRegistry",
+      accepts: ["tool", "knowledge", "skill"],
+      contributionKinds: ["toolBundles", "knowledgeAssets", "skills"],
+      host: "server",
+      activationEvents: ["onTaskNode", "onKnowledgeLoad", "onSkillLoad"],
+    }),
+    extensionPoint({
+      id: "knowledge-source",
+      key: "knowledgeSource",
+      accepts: ["knowledge_source", "knowledge", "skill"],
+      contributionKinds: ["knowledgeSources", "knowledgeAssets", "skills"],
+      host: "server",
+      activationEvents: ["onKnowledgeImport", "onKnowledgeRetrieve"],
+    }),
+    extensionPoint({
+      id: "repository-platform",
+      key: "repositoryPlatform",
+      accepts: ["code_repo", "repository_connector", "webhook_parser", "output_publisher"],
+      contributionKinds: ["repositoryConnectors", "webhookParsers", "outputPublishers", "toolBundles"],
+      host: "server",
+      activationEvents: ["onWebhookReceived", "onTaskNode", "onOutputPublish"],
+    }),
+    extensionPoint({
+      id: "codebase-engine",
+      key: "codebaseEngine",
+      accepts: ["codebase_engine", "code_repo"],
+      contributionKinds: ["codebaseEngines"],
+      host: "server",
+      activationEvents: ["onCodebaseIndex", "onCodebaseQuery"],
+    }),
+    extensionPoint({
       id: "notification-channel",
-      name: uiText("ui.generated.c8a70566169"),
-      accepts: ["notify_email", "notify_im"],
-      implementationContract: uiText("ui.generated.c7c1832d5ab"),
-      noCoreChangeRule: uiText("ui.generated.cba28092b21"),
-    },
-    {
+      key: "notificationChannel",
+      accepts: ["notify_email", "notify_im", "notification_channel", "output_publisher"],
+      contributionKinds: ["notificationChannels", "outputPublishers"],
+      host: "server",
+      activationEvents: ["onOutputPublish", "onNotificationSend"],
+    }),
+    extensionPoint({
       id: "execution-environment",
-      name: uiText("ui.generated.c876aed85e3"),
-      accepts: ["code_repo"],
-      implementationContract: uiText("ui.generated.cdc64063e0f"),
-      noCoreChangeRule: uiText("ui.generated.c369f9ab399"),
-    },
-    {
+      key: "executionEnvironment",
+      accepts: ["environment_template", "code_repo"],
+      contributionKinds: ["environmentTemplates"],
+      host: "server",
+      activationEvents: ["onEnvironmentPrepare", "onEnvironmentCleanup"],
+    }),
+    extensionPoint({
       id: "task-trigger",
-      name: uiText("ui.generated.ce9852dc24c"),
-      accepts: ["trigger"],
-      implementationContract: uiText("ui.generated.c19036d0068"),
-      noCoreChangeRule: uiText("ui.generated.c0fe7faf90e"),
-    },
-    {
+      key: "taskTrigger",
+      accepts: ["trigger", "webhook_parser"],
+      contributionKinds: ["webhookParsers"],
+      host: "server",
+      activationEvents: ["onWebhookReceived", "onScheduleTick"],
+    }),
+    extensionPoint({
+      id: "workflow-block",
+      key: "workflowBlock",
+      accepts: ["workflow_block", "tool", "output_publisher"],
+      contributionKinds: ["workflowBlocks", "toolBundles", "outputPublishers"],
+      host: "server",
+      activationEvents: ["onTaskNode"],
+    }),
+    extensionPoint({
       id: "output-publisher",
-      name: uiText("ui.generated.c392147014c"),
+      key: "outputPublisher",
       accepts: ["output_publisher", "notify_email", "notify_im", "code_repo"],
-      implementationContract: uiText("ui.generated.cc8a731496b"),
-      noCoreChangeRule: uiText("ui.generated.c052f99a7b5"),
-    },
-    {
+      contributionKinds: ["outputPublishers"],
+      host: "server",
+      activationEvents: ["onOutputPublish"],
+    }),
+    extensionPoint({
       id: "dashboard-metric",
-      name: uiText("ui.generated.c2990573379"),
+      key: "dashboardMetric",
       accepts: ["dashboard_metric"],
-      implementationContract: uiText("ui.generated.c5c84bfb8dc"),
-      noCoreChangeRule: uiText("ui.generated.c87b3c77504"),
-    },
+      contributionKinds: ["dashboardWidgets"],
+      host: "client",
+      activationEvents: ["onDashboardRender"],
+    }),
+    extensionPoint({
+      id: "ui-navigation",
+      key: "uiNavigation",
+      accepts: ["navigation_item", "settings_panel", "page_panel"],
+      contributionKinds: ["navigationItems", "settingsPanels"],
+      host: "client",
+      activationEvents: ["onNavigationResolve", "onPluginPageRender"],
+    }),
+    extensionPoint({
+      id: "task-blueprint",
+      key: "taskBlueprint",
+      accepts: ["task_blueprint", "workflow_block"],
+      contributionKinds: ["taskBlueprints", "workflowBlocks"],
+      host: "both",
+      activationEvents: ["onBlueprintImport", "onTaskCreate"],
+    }),
+    extensionPoint({
+      id: "task-run-panel",
+      key: "taskRunPanel",
+      accepts: ["page_panel", "dashboard_metric"],
+      contributionKinds: ["taskRunPanels"],
+      host: "client",
+      activationEvents: ["onTaskRunDetailRender"],
+    }),
+    extensionPoint({
+      id: "agent-detail-tab",
+      key: "agentDetailTab",
+      accepts: ["page_panel", "knowledge", "skill"],
+      contributionKinds: ["agentDetailTabs"],
+      host: "client",
+      activationEvents: ["onAgentDetailRender"],
+    }),
+    extensionPoint({
+      id: "secret-provider",
+      key: "secretProvider",
+      accepts: ["secret_provider"],
+      contributionKinds: ["secretProviders"],
+      host: "server",
+      activationEvents: ["onSecretResolve", "onHealthCheck"],
+    }),
   ];
 }
 

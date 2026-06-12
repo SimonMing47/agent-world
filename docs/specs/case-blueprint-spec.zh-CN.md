@@ -2,14 +2,14 @@
 
 ## 1. 定位
 
-Case Blueprint 是面向业务场景的配置包。它将 Task Blueprint、Environment Template、插件依赖、Skill、记忆 URI、看板视图、报告模板和权限策略组合为可导入、可试运行、可发布的场景配置。
+Case Blueprint 是面向业务场景的配置包。它将 Task Blueprint、Environment Template、插件依赖、知识资产、记忆 URI、看板视图、报告模板和权限策略组合为可导入、可试运行、可发布的场景配置。
 
 Case Blueprint 不等同于平台硬编码模块。平台不应在主干中判断某个具体业务名或“每日全量安全检视”并执行特殊逻辑；业务名称只能作为外部配置包 metadata、展示名称或样例出现。
 
 ## 2. 设计目标
 
 - 用配置方式表达完整任务场景。
-- 降低部署方接入代码平台、通知渠道、Provider 和记忆空间的成本。
+- 简化部署方接入代码平台、通知渠道、Provider 和记忆空间的工作。
 - 让案例可复制到不同业务团队并覆盖环境、权限和 Secret 引用。
 - 保证案例导入后仍遵守统一 Task Blueprint、ProviderAdapter、插件、环境、记忆和事件规格。
 - 使案例可在 dev、staging、prod 间提升，并保留版本审计。
@@ -31,8 +31,8 @@ spec:
       - builtin.notify.email@1.x
     providerAdapters:
       - agentworld-runtime-adapter
-    skills:
-      - skill-code-inspection-security@1.0.0
+    knowledgeAssets:
+      - knowledge-code-inspection-security@1.0.0
   imports:
     taskBlueprints:
       - task-template-merge-request-review
@@ -56,7 +56,7 @@ Case Blueprint 导入后生成或更新标准对象。运行时仍由 TaskBluepr
 ## 4. 导入流程
 
 1. 校验 Case Blueprint schema。
-2. 校验插件、ProviderAdapter、Skill 和版本依赖。
+2. 校验插件、ProviderAdapter、知识资产和版本依赖。
 3. 校验 TaskBlueprint、Environment Template、Schedule Template 和 Board View。
 4. 检查权限默认值，不允许未声明的敏感能力。
 5. 绑定业务团队、Secret 引用和环境覆盖项。
@@ -92,10 +92,10 @@ spec:
       - enterprise.repo.git@1.x
     providerAdapters:
       - agentworld-runtime-adapter
-    skills:
-      - skill-code-inspection-security@1.0.0
-      - skill-code-inspection-quality-test@1.0.0
-      - skill-code-inspection-data-api@1.0.0
+    knowledgeAssets:
+      - knowledge-code-inspection-security@1.0.0
+      - knowledge-code-inspection-quality-test@1.0.0
+      - knowledge-code-inspection-data-api@1.0.0
   imports:
     taskBlueprints:
       - task-template-shield-mr-check
@@ -112,7 +112,7 @@ spec:
     memory:
       readScopes:
         - agentworld://knowledge/resources/agentworld/code-inspection/repositories
-        - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+        - agentworld://knowledge/agent/knowledge/agentworld/code-inspection/security
       writeScopes:
         - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
 ```
@@ -140,8 +140,8 @@ spec:
       - builtin.notify.email@1.x
     providerAdapters:
       - agentworld-runtime-adapter
-    skills:
-      - skill-code-inspection-security@1.0.0
+    knowledgeAssets:
+      - knowledge-code-inspection-security@1.0.0
   imports:
     taskBlueprints:
       - task-template-daily-security-scan
@@ -159,7 +159,7 @@ spec:
         repo.write: deny
     memory:
       readScopes:
-        - agentworld://knowledge/agent/skills/agentworld/code-inspection/security
+        - agentworld://knowledge/agent/knowledge/agentworld/code-inspection/security
         - agentworld://knowledge/user/memories/agentworld/code-inspection/feedback
       writeScopes:
         - agentworld://knowledge/resources/agentworld/code-inspection/global
@@ -205,7 +205,7 @@ draft -> validated -> dry_run_passed -> active -> deprecated -> archived
 
 ## 10. 完成条件
 
-- 案例包导入后只产生标准 TaskBlueprint、Environment Template、插件依赖、Skill、看板和权限配置。
+- 案例包导入后只产生标准 TaskBlueprint、Environment Template、插件依赖、知识资产、看板和权限配置。
 - 平台主干不包含针对案例名称的条件分支。
 - 两个样例均可作为配置导入、试运行和发布。
 - 案例输出统一使用 Finding、Artifact、事件流和 AgentWorld 知识引擎 记忆写回。

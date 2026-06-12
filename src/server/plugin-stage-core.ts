@@ -148,6 +148,7 @@ function serializeFinding(finding: Finding, baseUrl: string) {
     description: finding.description,
     recommendation: finding.recommendation,
     evidence: parseRecord(finding.evidenceJson),
+    knowledgeRefs: parseJsonValue(finding.skillRefsJson) ?? [],
     skillRefs: parseJsonValue(finding.skillRefsJson) ?? [],
     fingerprint: finding.fingerprint,
     status: finding.status,
@@ -163,7 +164,18 @@ function shouldIterateFindings(value: unknown) {
 }
 
 function buildPluginConfiguration(args: PluginStageExecutionInput) {
+  const pluginConfig = isRecord(args.nodeInput.pluginConfig) ? args.nodeInput.pluginConfig : {};
+  const baseUrl = readString(args.nodeInput, "pluginBaseUrl", "baseUrl", "base_url") ||
+    readString(pluginConfig, "baseUrl", "base_url", "url");
+  const tokenRef = readString(args.nodeInput, "pluginTokenRef", "tokenRef", "token_ref") ||
+    readString(pluginConfig, "tokenRef", "token_ref", "token");
+  const webhookSecretRef = readString(args.nodeInput, "pluginWebhookSecretRef", "webhookSecretRef", "webhook_secret_ref") ||
+    readString(pluginConfig, "webhookSecretRef", "webhook_secret_ref");
   return {
+    ...pluginConfig,
+    baseUrl: baseUrl || undefined,
+    tokenRef: tokenRef || undefined,
+    webhookSecretRef: webhookSecretRef || undefined,
     nodeInput: args.nodeInput,
     loadedSkills: args.nodeInput.loadedSkills,
     skillRules: args.nodeInput.skillRules,

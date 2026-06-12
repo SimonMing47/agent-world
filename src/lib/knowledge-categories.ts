@@ -1,15 +1,25 @@
-export const knowledgeCategoryValues = ["skill", "domain", "code"] as const;
+export const knowledgeCategoryValues = ["global", "domain", "skill", "codebase"] as const;
 
 export type KnowledgeCategory = (typeof knowledgeCategoryValues)[number];
 
 const knowledgeCategoryAlias: Record<string, KnowledgeCategory> = {
-  skill: "skill",
-  public: "skill",
+  global: "global",
+  public: "global",
+  common: "global",
+  shared: "global",
+  knowledge: "global",
   domain: "domain",
-  code: "code",
-  repository: "code",
-  repository_name: "code",
-  repo: "code",
+  field: "domain",
+  business: "domain",
+  skill: "skill",
+  skills: "skill",
+  agent_skill: "skill",
+  agent_knowledge: "skill",
+  codebase: "codebase",
+  code: "codebase",
+  repository: "codebase",
+  repository_name: "codebase",
+  repo: "codebase",
 };
 
 function normalizeKnowledgeCategoryValue(value: string | undefined | null): KnowledgeCategory | null {
@@ -33,5 +43,10 @@ export function normalizeKnowledgeCategories(value: unknown): KnowledgeCategory[
 }
 
 export function isKnowledgeCategory(value: unknown): value is KnowledgeCategory {
-  return normalizeKnowledgeCategoryValue(typeof value === "string" ? value : null) !== null;
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return knowledgeCategoryValues.includes(normalized as KnowledgeCategory);
+}
+
+export function isCodebaseKnowledgeCategory(value: unknown) {
+  return normalizeKnowledgeCategory(value) === "codebase";
 }

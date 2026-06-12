@@ -337,8 +337,8 @@ async function importDirectoryFiles({
 
     const entry = await upsertKnowledgeEntry({
       knowledgeSpaceId,
-      layer: "skill/import",
-      scopeKey: scopeFromPath("skills/directory", parts.join("/")),
+      layer: "knowledge/import",
+      scopeKey: scopeFromPath("knowledge/directory", parts.join("/")),
       title: fileName,
       contentMd: markdownForFile({
         ...file,

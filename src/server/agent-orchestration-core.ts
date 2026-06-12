@@ -15,6 +15,9 @@ export type AgentTeamRunPlanWorker = {
   publisherRef?: string;
   pluginRef?: string;
   toolRef?: string;
+  pluginBaseUrl?: string;
+  pluginTokenRef?: string;
+  pluginWebhookSecretRef?: string;
   forEach?: string;
   feedbackBaseUrl?: string;
 };
@@ -36,6 +39,9 @@ export type AgentTeamRunPlanBlock = {
   publisherRef?: string;
   pluginRef?: string;
   toolRef?: string;
+  pluginBaseUrl?: string;
+  pluginTokenRef?: string;
+  pluginWebhookSecretRef?: string;
   forEach?: string;
   feedbackBaseUrl?: string;
   payloadTemplate?: string;
@@ -162,6 +168,9 @@ function parseRunPlan(value: string): AgentTeamRunPlan | null {
             publisherRef: typeof block.publisherRef === "string" ? block.publisherRef : undefined,
             pluginRef: typeof block.pluginRef === "string" ? block.pluginRef : undefined,
             toolRef: typeof block.toolRef === "string" ? block.toolRef : undefined,
+            pluginBaseUrl: typeof block.pluginBaseUrl === "string" ? block.pluginBaseUrl : undefined,
+            pluginTokenRef: typeof block.pluginTokenRef === "string" ? block.pluginTokenRef : undefined,
+            pluginWebhookSecretRef: typeof block.pluginWebhookSecretRef === "string" ? block.pluginWebhookSecretRef : undefined,
             forEach: typeof block.forEach === "string" ? block.forEach : undefined,
             feedbackBaseUrl: typeof block.feedbackBaseUrl === "string" ? block.feedbackBaseUrl : undefined,
             payloadTemplate: typeof block.payloadTemplate === "string" ? block.payloadTemplate : undefined,
@@ -291,6 +300,9 @@ export function buildNodeSpecsFromRunPlan(value: string, agents: Agent[]) {
           publisherRef: block.publisherRef,
           pluginRef: block.pluginRef,
           toolRef: block.toolRef,
+          pluginBaseUrl: block.pluginBaseUrl,
+          pluginTokenRef: block.pluginTokenRef,
+          pluginWebhookSecretRef: block.pluginWebhookSecretRef,
           forEach: block.forEach,
           feedbackBaseUrl: block.feedbackBaseUrl,
           payloadTemplate: block.payloadTemplate,

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, Plus, Trash2 } from "lucide-react";
+import { SecretInput } from "@/components/secret-field";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ export type WorkflowBlock = {
   publisherRef: string;
   pluginRef: string;
   toolRef: string;
+  pluginBaseUrl: string;
+  pluginTokenRef: string;
   forEach: string;
   feedbackBaseUrl: string;
   payloadTemplate: string;
@@ -120,6 +123,8 @@ function createBlock(type: WorkflowBlockType, index: number) {
     publisherRef: "",
     pluginRef: "",
     toolRef: "",
+    pluginBaseUrl: "",
+    pluginTokenRef: "",
     forEach: "",
     feedbackBaseUrl: "",
     payloadTemplate: "{}",
@@ -393,6 +398,24 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                         placeholder="ui.taskWorkflow.placeholders.toolRef"
                       />
                     </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginBaseUrl">
+                      <Input
+                        value={block.pluginBaseUrl}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { pluginBaseUrl: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.pluginBaseUrl"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginTokenRef">
+                      <SecretInput
+                        value={block.pluginTokenRef}
+                        onChange={(value) =>
+                          onChange(updateBlock(blocks, block.id, { pluginTokenRef: value }))
+                        }
+                        placeholder={text("ui.taskWorkflow.placeholders.pluginTokenRef")}
+                      />
+                    </FieldGroup>
                   </>
                 ) : null}
 
@@ -425,6 +448,24 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                         placeholder="ui.taskWorkflow.placeholders.feedbackBaseUrl"
                       />
                     </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginBaseUrl">
+                      <Input
+                        value={block.pluginBaseUrl}
+                        onChange={(event) =>
+                          onChange(updateBlock(blocks, block.id, { pluginBaseUrl: event.target.value }))
+                        }
+                        placeholder="ui.taskWorkflow.placeholders.pluginBaseUrl"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ui.taskWorkflow.fields.pluginTokenRef">
+                      <SecretInput
+                        value={block.pluginTokenRef}
+                        onChange={(value) =>
+                          onChange(updateBlock(blocks, block.id, { pluginTokenRef: value }))
+                        }
+                        placeholder={text("ui.taskWorkflow.placeholders.pluginTokenRef")}
+                      />
+                    </FieldGroup>
                   </>
                 ) : null}
 
@@ -447,16 +488,17 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                       onChange(
                         updateBlock(blocks, block.id, {
                           knowledgeCategory: event.target.value as KnowledgeCategory,
-                          ...(event.target.value === "code"
+                          ...(event.target.value === "codebase"
                             ? { repositoryName: block.repositoryName || repositoryOptions[0]?.name || "" }
                             : { repositoryName: "" }),
                         }),
                       )
                     }
                   >
-                    <option value="skill">{text("knowledge.category.public")}</option>
+                    <option value="global">{text("knowledge.category.global")}</option>
                     <option value="domain">{text("knowledge.category.domain")}</option>
-                    <option value="code">{text("knowledge.category.repository")}</option>
+                    <option value="skill">{text("knowledge.category.skill")}</option>
+                    <option value="codebase">{text("knowledge.category.codebase")}</option>
                   </Select>
                 </FieldGroup>
                 <FieldGroup label={text("knowledge.repositoryName")}>
@@ -464,7 +506,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Select
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "code"}
+                      disabled={block.knowledgeCategory !== "codebase"}
                     >
                       <option value="">{text("knowledge.repositoryName.placeholder")}</option>
                       {block.repositoryName && !repositoryOptions.some((option) => option.name === block.repositoryName) ? (
@@ -480,7 +522,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                     <Input
                       value={block.repositoryName}
                       onChange={(event) => onChange(updateBlock(blocks, block.id, { repositoryName: event.target.value }))}
-                      disabled={block.knowledgeCategory !== "code"}
+                      disabled={block.knowledgeCategory !== "codebase"}
                       placeholder={text("knowledge.repositoryName.placeholder")}
                     />
                   )}

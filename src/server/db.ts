@@ -1061,7 +1061,7 @@ const builtInProviderAdapterDefinitions: Array<{
       null,
       2,
     ),
-    secretRefsJson: JSON.stringify(["env:*"], null, 2),
+    secretRefsJson: JSON.stringify([], null, 2),
     permissionRefsJson: JSON.stringify(["tool.read", "tool.execute", "memory.read"], null, 2),
     healthStatus: "healthy",
   },
@@ -1191,6 +1191,9 @@ function ensureKnowledgeSpaceColumns(db: DatabaseSyncType) {
   if (!tableHasColumn(db, "knowledge_spaces", "repository_name")) {
     db.exec("ALTER TABLE knowledge_spaces ADD COLUMN repository_name TEXT");
   }
+  db.exec("UPDATE knowledge_spaces SET knowledge_category = 'global' WHERE knowledge_category = 'public'");
+  db.exec("UPDATE knowledge_spaces SET knowledge_category = 'skill' WHERE knowledge_category = 'global' AND (viking_uri LIKE 'agentworld://knowledge/agent/knowledge/%' OR viking_uri LIKE 'agentworld://knowledge/agent/skills/%')");
+  db.exec("UPDATE knowledge_spaces SET knowledge_category = 'codebase' WHERE knowledge_category IN ('code', 'repository', 'repo')");
 }
 
 function ensureSkillGovernanceColumns(db: DatabaseSyncType) {

@@ -4,6 +4,7 @@ import {
   type KnowledgeNotebookEntry,
   type KnowledgeNotebookSpace,
 } from "@/components/knowledge-notebook-workspace";
+import { KnowledgeAssetsPanel } from "@/components/knowledge-assets-panel";
 import { KnowledgeSpaceForm } from "@/components/knowledge-space-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { listKnowledgeSpaceBindings, listKnowledgeSpaces } from "@/server/knowle
 import { getKnowledgeCodebaseEngineStatus, getKnowledgeFoundationStatus } from "@/server/knowledge-base-settings";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getKnowledgeManagementSnapshot, listLayeredKnowledge, retryPendingKnowledgeSyncs } from "@/server/knowledge-engine";
+import { listSkills } from "@/server/skill-core";
 import {
   listAgentDefinitions,
   listAgentTeams,
@@ -41,6 +43,7 @@ export default async function KnowledgePage() {
     rawAgentDefinitions,
     rawTaskBlueprints,
     rawEntries,
+    rawSkills,
   ] = await Promise.all([
     getKnowledgeManagementSnapshot(),
     Promise.resolve(listKnowledgeSpaces()),
@@ -51,6 +54,7 @@ export default async function KnowledgePage() {
     Promise.resolve(listAgentDefinitions()),
     Promise.resolve(listTaskBlueprints()),
     Promise.resolve(listLayeredKnowledge(500)),
+    Promise.resolve(listSkills()),
   ]);
 
   const businessTeams = filterBusinessTeamsForAuthContext(rawBusinessTeams, authContext);
@@ -62,6 +66,9 @@ export default async function KnowledgePage() {
   );
   const taskBlueprints = rawTaskBlueprints.filter((blueprint) =>
     canAccessBusinessTeam(authContext, blueprint.ownerBusinessTeamId),
+  );
+  const skills = rawSkills.filter((skill) =>
+    canAccessBusinessTeam(authContext, skill.ownerBusinessTeamId, { allowGlobal: skill.visibility === "global" }),
   );
   const spaces = rawSpaces.filter((space) => {
     if (space.agentTeamId) return visibleAgentTeamIds.has(space.agentTeamId);
@@ -225,7 +232,7 @@ export default async function KnowledgePage() {
             </span>
           ) : null}
           <Button asChild size="sm" variant="secondary">
-            <Link href="/skills">nav.skills.label</Link>
+            <Link href="#knowledge-assets">knowledge.assets.title</Link>
           </Button>
           <KnowledgeSpaceForm
             tenantSpaces={tenantSpaceOptions}
@@ -242,6 +249,8 @@ export default async function KnowledgePage() {
         businessTeams={businessTeamOptions}
         agentTeams={agentTeamOptions}
       />
+
+      <KnowledgeAssetsPanel skills={skills} businessTeams={businessTeams} />
     </div>
   );
 }

@@ -41,6 +41,8 @@ Agent 执行时，默认会在工作流中按工具名调用。
 - `query`（必填）
 - `knowledgeSpaceIds`（可选，string[]）
 - `scopeUris`（可选，string[]）
+- `knowledgeCategories`（可选，string[]）：`global | domain | skill | codebase`。旧值 `public`、`code`、`repository` 仅作为兼容别名读取。
+- `repositoryNames`（可选，string[]）：代码仓知识过滤，支持仓库名、`owner/repo`、仓库 URL 等别名。
 - `levels`（可选，`L0`/`L1`/`L2`，可多选）
 - `limit`（可选，1-64）
 - `includeOutboundUris`（可选，bool）
@@ -101,6 +103,15 @@ curl -X POST http://localhost:7369/api/knowledge/query \
   -H 'Authorization: Bearer <YOUR_KNOWLEDGE_API_TOKEN>' \
   -H 'Content-Type: application/json' \
   -d '{"query":"LLM Wiki","levels":["L1","L2"],"limit":5}'
+```
+
+示例（只检索某个代码仓知识）：
+
+```bash
+curl -X POST http://localhost:7369/api/knowledge/query \
+  -H 'Authorization: Bearer <YOUR_KNOWLEDGE_API_TOKEN>' \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"鉴权边界","knowledgeCategories":["codebase"],"repositoryNames":["sigmund/obsidian-articles"],"levels":["L0","L1","L2"],"limit":8}'
 ```
 
 返回：

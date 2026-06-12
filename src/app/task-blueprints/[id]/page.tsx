@@ -108,6 +108,19 @@ function compactJson(value: unknown) {
   return String(value);
 }
 
+function codebaseScopeDetail(
+  selector: Record<string, unknown>,
+  codebases: Array<{ id: string; name: string }>,
+) {
+  const scope = selector.codebaseScope;
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) return "ui.taskBlueprintEditor.codebaseScope.all";
+  const record = scope as Record<string, unknown>;
+  if (record.mode !== "selected") return "ui.taskBlueprintEditor.codebaseScope.all";
+  const ids = Array.isArray(record.codebaseIds) ? record.codebaseIds.map(String).filter(Boolean) : [];
+  if (ids.length === 0) return "ui.taskBlueprintEditor.codebaseScope.emptySelected";
+  return ids.map((id) => codebases.find((codebase) => codebase.id === id)?.name ?? id).join(", ");
+}
+
 export default async function TaskBlueprintDetailPage({
   params,
 }: {
@@ -121,6 +134,7 @@ export default async function TaskBlueprintDetailPage({
   }
 
   const inputSchemaRows = getSchemaRows(detail.inputSchema);
+  const codebaseScope = codebaseScopeDetail(detail.environmentSelector, detail.options.codebases ?? []);
 
   return (
     <div className="space-y-6">
@@ -161,6 +175,7 @@ export default async function TaskBlueprintDetailPage({
                   { label: "ui.generated.c2b90028ff3", value: detail.businessTeamName },
                   { label: "ui.generated.c70f970c1fc", value: detail.agentTeamName },
                   { label: "ui.generated.c059d73c843", value: detail.environmentName },
+                  { label: "ui.taskBlueprintEditor.fields.codebaseScope", value: codebaseScope },
                   { label: "ui.generated.cbc56f948bb", value: detail.providerName },
                   { label: "ui.generated.c84e3802f60", value: formatDateTime(detail.blueprint.createdAt) },
                   { label: "ui.generated.c093dea88c9", value: formatDateTime(detail.blueprint.updatedAt) },
@@ -340,7 +355,6 @@ export default async function TaskBlueprintDetailPage({
                       <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
                       <DataTableHead>ui.generated.c62e951a692</DataTableHead>
                       <DataTableHead>ui.generated.c3c75f3646a</DataTableHead>
-                      <DataTableHead align="right">ui.generated.c5354b098e2</DataTableHead>
                       <DataTableHead>ui.generated.c84e3802f60</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
@@ -357,7 +371,6 @@ export default async function TaskBlueprintDetailPage({
                           <Badge variant={statusVariant(run.status)}>{translateStatus(run.status)}</Badge>
                         </DataTableCell>
                         <DataTableCell>{run.requestedBy}</DataTableCell>
-                        <DataTableCell align="right">${run.costActual}</DataTableCell>
                         <DataTableCell>{formatDateTime(run.createdAt)}</DataTableCell>
                       </DataTableRow>
                     ))}

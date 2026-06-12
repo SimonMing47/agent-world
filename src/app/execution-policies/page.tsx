@@ -97,7 +97,6 @@ export default async function ExecutionPolicyPage() {
               <DataTableRow className="hover:bg-transparent">
                 <DataTableHead>ui.generated.cf3c49831c6</DataTableHead>
                 <DataTableHead>ui.generated.c785b52eb97</DataTableHead>
-                <DataTableHead>ui.generated.cc4a935a9c3</DataTableHead>
                 <DataTableHead>ui.generated.c1ce79677a9</DataTableHead>
                 <DataTableHead>ui.generated.c8e662a5618</DataTableHead>
                 <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
@@ -114,7 +113,6 @@ export default async function ExecutionPolicyPage() {
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{executionPolicy.instruction}</div>
                     </DataTableCell>
                     <DataTableCell><Badge variant="neutral">{translateExecutionPolicyScope(scope)}</Badge></DataTableCell>
-                    <DataTableCell>{executionPolicy.budget.maxRuntimeMinutes} ui.generated.cc15da1ef70 {executionPolicy.budget.maxToolCalls} ui.generated.c02acc3b1c4</DataTableCell>
                     <DataTableCell>{executionPolicy.approvalRequiredTools.join(", ") || "ui.generated.c72077749f7"}</DataTableCell>
                     <DataTableCell>{executionPolicy.safety.promptScan ? "ui.generated.cea15810cf6" : "ui.generated.cd35af39b0a"}</DataTableCell>
                     <DataTableCell align="right">
@@ -129,7 +127,6 @@ export default async function ExecutionPolicyPage() {
                                   { label: "ui.generated.c225a81e171", value: profile.id },
                                   { label: "ui.generated.cc15757bcfa", value: profile.toolPolicyJson },
                                   { label: "ui.generated.c065633d525", value: profile.approvalPolicyJson },
-                                  { label: "ui.generated.c4499bd58a7", value: profile.budgetPolicyJson },
                                   { label: "ui.generated.c084415a1ec", value: profile.outputPolicyJson },
                                   { label: "ui.generated.c7fb27626a0", value: profile.securityPolicyJson },
                                 ]}

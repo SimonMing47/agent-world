@@ -12,6 +12,7 @@ import { upsertFinding } from "@/server/finding-core";
 import type { PluginManifest } from "@/server/plugin-core";
 import { codehubExecutablePlugin } from "@/server/plugins/official/codehub";
 import { giteaExecutablePlugin } from "@/server/plugins/official/gitea";
+import { uiText } from "@/lib/language-pack";
 
 export type PluginPermissionRequest = {
   resource: string;
@@ -127,6 +128,22 @@ export type ExecutablePluginManifest = {
       webhookParsers?: Array<{ id: string }>;
       outputPublishers?: Array<{ id: string }>;
       toolBundles?: Array<{ id: string }>;
+      providerAdapters?: Array<{ id: string }>;
+      authAdapters?: Array<{ id: string }>;
+      knowledgeSources?: Array<{ id: string }>;
+      knowledgeAssets?: Array<{ id: string }>;
+      skills?: Array<{ id: string }>;
+      taskBlueprints?: Array<{ id: string }>;
+      environmentTemplates?: Array<{ id: string }>;
+      navigationItems?: Array<{ id: string; slot?: string }>;
+      settingsPanels?: Array<{ id: string; slot?: string }>;
+      dashboardWidgets?: Array<{ id: string; slot?: string }>;
+      taskRunPanels?: Array<{ id: string; slot?: string }>;
+      agentDetailTabs?: Array<{ id: string; slot?: string }>;
+      codebaseEngines?: Array<{ id: string }>;
+      notificationChannels?: Array<{ id: string }>;
+      secretProviders?: Array<{ id: string }>;
+      workflowBlocks?: Array<{ id: string }>;
     };
     configSchema?: Record<string, unknown>;
   };
@@ -140,21 +157,150 @@ export type ExecutablePluginModule = {
   toolBundles?: ExecutableToolBundle[];
 };
 
-const executablePluginModules: ExecutablePluginModule[] = [
-  codehubExecutablePlugin,
-  giteaExecutablePlugin,
-];
+export type PluginContributionKind =
+  | "repositoryConnector"
+  | "webhookParser"
+  | "outputPublisher"
+  | "toolBundle"
+  | "providerAdapter"
+  | "authAdapter"
+  | "knowledgeSource"
+  | "knowledgeAsset"
+  | "skill"
+  | "taskBlueprint"
+  | "environmentTemplate"
+  | "navigationItem"
+  | "settingsPanel"
+  | "dashboardWidget"
+  | "taskRunPanel"
+  | "agentDetailTab"
+  | "codebaseEngine"
+  | "notificationChannel"
+  | "secretProvider"
+  | "workflowBlock";
+
+export type ExecutableContributionKind =
+  | "repositoryConnector"
+  | "webhookParser"
+  | "outputPublisher"
+  | "toolBundle";
+
+export type ExecutableContributionMap = {
+  repositoryConnector: ExecutableRepositoryConnector;
+  webhookParser: ExecutableWebhookParser;
+  outputPublisher: ExecutableOutputPublisher;
+  toolBundle: ExecutableToolBundle;
+};
+
+export type ExecutablePluginContribution<
+  Kind extends ExecutableContributionKind = ExecutableContributionKind,
+> = {
+  id: string;
+  kind: Kind;
+  pluginId: string;
+  pluginName: string;
+  manifest: ExecutablePluginManifest;
+  contribution: ExecutableContributionMap[Kind];
+};
+
+export type ExecutablePluginRegistry = {
+  modules: ExecutablePluginModule[];
+  contributions: ExecutablePluginContribution[];
+  diagnostics: string[];
+};
+
+function loadBundledExecutablePluginModules(): ExecutablePluginModule[] {
+  return [
+    codehubExecutablePlugin,
+    giteaExecutablePlugin,
+  ];
+}
+
+const executableContributionAccessors = {
+  repositoryConnector: (module: ExecutablePluginModule) => module.repositoryConnectors ?? [],
+  webhookParser: (module: ExecutablePluginModule) => module.webhookParsers ?? [],
+  outputPublisher: (module: ExecutablePluginModule) => module.outputPublishers ?? [],
+  toolBundle: (module: ExecutablePluginModule) => module.toolBundles ?? [],
+} satisfies {
+  [Kind in ExecutableContributionKind]: (
+    module: ExecutablePluginModule,
+  ) => ExecutableContributionMap[Kind][];
+};
+
+const executableContributionManifestKeys = {
+  repositoryConnector: "repositoryConnectors",
+  webhookParser: "webhookParsers",
+  outputPublisher: "outputPublishers",
+  toolBundle: "toolBundles",
+} satisfies Record<ExecutableContributionKind, keyof ExecutablePluginManifest["spec"]["contributions"]>;
+
+function createExecutableContribution<Kind extends ExecutableContributionKind>(args: {
+  kind: Kind;
+  pluginModule: ExecutablePluginModule;
+  contribution: ExecutableContributionMap[Kind];
+}): ExecutablePluginContribution<Kind> {
+  return {
+    id: args.contribution.id,
+    kind: args.kind,
+    pluginId: args.pluginModule.manifest.metadata.id,
+    pluginName: args.pluginModule.manifest.metadata.name,
+    manifest: args.pluginModule.manifest,
+    contribution: args.contribution,
+  };
+}
+
+export function buildExecutablePluginRegistry(
+  modules: ExecutablePluginModule[],
+): ExecutablePluginRegistry {
+  const contributions: ExecutablePluginContribution[] = [];
+  const diagnostics: string[] = [];
+  const seen = new Map<string, ExecutablePluginContribution>();
+
+  for (const pluginModule of modules) {
+    const pluginId = pluginModule.manifest.metadata.id;
+    for (const kind of Object.keys(executableContributionAccessors) as ExecutableContributionKind[]) {
+      const manifestKey = executableContributionManifestKeys[kind];
+      const declaredIds = new Set(
+        ((pluginModule.manifest.spec.contributions[manifestKey] ?? []) as Array<{ id: string }>)
+          .map((item) => item.id)
+          .filter(Boolean),
+      );
+      for (const contribution of executableContributionAccessors[kind](pluginModule)) {
+        if (declaredIds.size > 0 && !declaredIds.has(contribution.id)) {
+          diagnostics.push(
+            `${pluginId}:${contribution.id} implements ${kind} but does not declare it in manifest.`,
+          );
+        }
+        const record = createExecutableContribution({ kind, pluginModule, contribution });
+        const duplicateKey = `${kind}:${record.id}`;
+        if (seen.has(duplicateKey)) {
+          diagnostics.push(
+            `Duplicate ${kind} contribution id ${record.id} from ${pluginId}; first provider is ${seen.get(duplicateKey)?.pluginId}.`,
+          );
+          continue;
+        }
+        seen.set(duplicateKey, record);
+        contributions.push(record);
+      }
+    }
+  }
+
+  return { modules, contributions, diagnostics };
+}
+
+const executablePluginRegistry = buildExecutablePluginRegistry(loadBundledExecutablePluginModules());
 
 function pluginRoot() {
   return path.join("plugins", "official");
 }
 
 export function resolveSecretRef(ref: string) {
-  if (!ref) return null;
-  if (ref.startsWith("env:")) {
-    return process.env[ref.slice(4)] ?? null;
+  const value = ref.trim();
+  if (!value) return null;
+  if (value.toLowerCase().startsWith("env:")) {
+    throw new Error(uiText("pluginSdk.errors.envSecretRefUnsupported"));
   }
-  return null;
+  return value;
 }
 
 export function toPluginManifest(module: ExecutablePluginModule): PluginManifest {
@@ -174,13 +320,37 @@ export function toPluginManifest(module: ExecutablePluginModule): PluginManifest
 }
 
 export function listExecutablePluginModules() {
-  return executablePluginModules;
+  return executablePluginRegistry.modules;
+}
+
+export function getExecutablePluginRegistrySnapshot() {
+  return {
+    modules: executablePluginRegistry.modules.map((module) => module.manifest),
+    contributions: executablePluginRegistry.contributions.map((record) => ({
+      id: record.id,
+      kind: record.kind,
+      pluginId: record.pluginId,
+      pluginName: record.pluginName,
+    })),
+    diagnostics: executablePluginRegistry.diagnostics,
+  };
+}
+
+export function listExecutablePluginContributions<Kind extends ExecutableContributionKind>(
+  kind?: Kind,
+) {
+  const contributions = kind
+    ? executablePluginRegistry.contributions.filter(
+        (record): record is ExecutablePluginContribution<Kind> => record.kind === kind,
+      )
+    : executablePluginRegistry.contributions;
+  return contributions;
 }
 
 export function listOfficialPluginManifests() {
   const dir = pluginRoot();
   if (!existsSync(dir)) {
-    return executablePluginModules.map(toPluginManifest);
+    return executablePluginRegistry.modules.map(toPluginManifest);
   }
 
   const manifests: PluginManifest[] = [];
@@ -207,7 +377,7 @@ export function listOfficialPluginManifests() {
     }
   }
 
-  const fallback = executablePluginModules.map(toPluginManifest);
+  const fallback = executablePluginRegistry.modules.map(toPluginManifest);
   const seen = new Set(manifests.map((manifest) => manifest.id));
   for (const manifest of fallback) {
     if (!seen.has(manifest.id)) manifests.push(manifest);
@@ -216,61 +386,61 @@ export function listOfficialPluginManifests() {
 }
 
 export function getExecutablePluginModule(pluginId: string) {
-  return executablePluginModules.find((module) => module.manifest.metadata.id === pluginId) ?? null;
+  return executablePluginRegistry.modules.find((module) => module.manifest.metadata.id === pluginId) ?? null;
 }
 
-export function resolveWebhookParser(ref: string | null | undefined) {
+function normalizeContributionRef(ref: string | null | undefined) {
   if (!ref) return null;
+  const trimmed = ref.trim();
+  return trimmed || null;
+}
 
-  for (const pluginModule of executablePluginModules) {
-    for (const parser of pluginModule.webhookParsers ?? []) {
-      if (parser.id === ref) return parser;
-    }
-    if (
-      pluginModule.manifest.metadata.id === ref &&
-      (pluginModule.webhookParsers?.length ?? 0) === 1
-    ) {
-      return pluginModule.webhookParsers?.[0] ?? null;
-    }
+function resolveExecutableContribution<Kind extends ExecutableContributionKind>(
+  kind: Kind,
+  ref: string | null | undefined,
+) {
+  const normalizedRef = normalizeContributionRef(ref);
+  if (!normalizedRef) return null;
+  const contributions = listExecutablePluginContributions(kind);
+  const [pluginIdFromQualifiedRef, contributionIdFromQualifiedRef] =
+    normalizedRef.includes(":") ? normalizedRef.split(":", 2) : [null, null];
+
+  const exact = contributions.find((record) => record.id === normalizedRef);
+  if (exact) return exact.contribution;
+
+  if (pluginIdFromQualifiedRef && contributionIdFromQualifiedRef) {
+    const qualified = contributions.find(
+      (record) =>
+        record.pluginId === pluginIdFromQualifiedRef &&
+        record.id === contributionIdFromQualifiedRef,
+    );
+    if (qualified) return qualified.contribution;
   }
+
+  const pluginMatches = contributions.filter((record) => record.pluginId === normalizedRef);
+  if (pluginMatches.length === 1) return pluginMatches[0]?.contribution ?? null;
 
   return null;
 }
 
-export function resolveOutputPublisher(ref: string | null | undefined) {
-  if (!ref) return null;
-
-  for (const pluginModule of executablePluginModules) {
-    for (const publisher of pluginModule.outputPublishers ?? []) {
-      if (publisher.id === ref) return publisher;
-    }
-    if (
-      pluginModule.manifest.metadata.id === ref &&
-      (pluginModule.outputPublishers?.length ?? 0) === 1
-    ) {
-      return pluginModule.outputPublishers?.[0] ?? null;
-    }
-  }
-
-  return null;
+export function resolveRepositoryConnector(
+  ref: string | null | undefined,
+): ExecutableRepositoryConnector | null {
+  return resolveExecutableContribution("repositoryConnector", ref) as ExecutableRepositoryConnector | null;
 }
 
-export function resolveToolBundle(ref: string | null | undefined) {
-  if (!ref) return null;
+export function resolveWebhookParser(ref: string | null | undefined): ExecutableWebhookParser | null {
+  return resolveExecutableContribution("webhookParser", ref) as ExecutableWebhookParser | null;
+}
 
-  for (const pluginModule of executablePluginModules) {
-    for (const bundle of pluginModule.toolBundles ?? []) {
-      if (bundle.id === ref) return bundle;
-    }
-    if (
-      pluginModule.manifest.metadata.id === ref &&
-      (pluginModule.toolBundles?.length ?? 0) === 1
-    ) {
-      return pluginModule.toolBundles?.[0] ?? null;
-    }
-  }
+export function resolveOutputPublisher(
+  ref: string | null | undefined,
+): ExecutableOutputPublisher | null {
+  return resolveExecutableContribution("outputPublisher", ref) as ExecutableOutputPublisher | null;
+}
 
-  return null;
+export function resolveToolBundle(ref: string | null | undefined): ExecutableToolBundle | null {
+  return resolveExecutableContribution("toolBundle", ref) as ExecutableToolBundle | null;
 }
 
 function nowIso() {
@@ -582,11 +752,13 @@ export function createPluginRuntimeContext(
           typeof findingInput.recommendation === "string"
             ? findingInput.recommendation
             : "",
-        skillRefsJson: Array.isArray(findingInput.skillRefs)
-          ? findingInput.skillRefs.map(String)
-          : Array.isArray(findingInput.skillRefsJson)
-            ? findingInput.skillRefsJson.map(String)
-            : [],
+        skillRefsJson: Array.isArray(findingInput.knowledgeRefs)
+          ? findingInput.knowledgeRefs.map(String)
+          : Array.isArray(findingInput.skillRefs)
+            ? findingInput.skillRefs.map(String)
+            : Array.isArray(findingInput.skillRefsJson)
+              ? findingInput.skillRefsJson.map(String)
+              : [],
         fingerprint: typeof findingInput.fingerprint === "string" ? findingInput.fingerprint : undefined,
         status: typeof findingInput.status === "string" ? findingInput.status : "open",
         publicationJson: isRecord(findingInput.publication)

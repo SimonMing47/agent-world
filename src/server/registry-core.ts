@@ -26,7 +26,6 @@ export function buildServiceCatalogEntry(listing: ServiceCatalogListing) {
   const resume = JSON.parse(listing.resumeJson) as {
     successRate?: number;
     avgLatencyMs?: number;
-    avgCostUsd?: number;
     topTasks?: string[];
   };
 

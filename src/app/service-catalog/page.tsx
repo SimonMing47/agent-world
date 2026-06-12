@@ -38,7 +38,7 @@ function parseTags(value: string) {
 
 function parseResume(value: string) {
   try {
-    return JSON.parse(value) as { successRate?: number; avgLatencyMs?: number; avgCostUsd?: number };
+    return JSON.parse(value) as { successRate?: number; avgLatencyMs?: number };
   } catch {
     return {};
   }

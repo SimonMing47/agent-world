@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.importSkillFailed", "Skill import failed.") },
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.importSkillFailed", "Knowledge import failed.") },
       { status: 400 },
     );
   }

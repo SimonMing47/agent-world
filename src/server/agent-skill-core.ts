@@ -66,6 +66,7 @@ function normalizeSkillRef(value: unknown, allowRawId = false) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
+  if (trimmed.startsWith("knowledge:")) return trimmed.slice("knowledge:".length).trim();
   if (trimmed.startsWith("skill:")) return trimmed.slice("skill:".length).trim();
   if (trimmed.startsWith("inspection-skill:")) {
     return trimmed.slice("inspection-skill:".length).trim();
@@ -87,18 +88,18 @@ function collectSkillRefs(value: unknown, refs: Set<string>, allowRawIds = false
   }
   if (!isRecord(value)) return;
 
-  for (const key of ["id", "skillId", "skillRef", "vikingUri", "uri"]) {
-    const normalized = normalizeSkillRef(value[key], key === "id" || key === "skillId");
+  for (const key of ["id", "knowledgeId", "knowledgeRef", "skillId", "skillRef", "vikingUri", "uri"]) {
+    const normalized = normalizeSkillRef(value[key], key === "id" || key === "knowledgeId" || key === "skillId");
     if (normalized) refs.add(normalized);
   }
-  for (const key of ["skills", "skillRefs", "skillIds", "inspectionSkills"]) {
+  for (const key of ["knowledge", "knowledgeRefs", "knowledgeIds", "skills", "skillRefs", "skillIds", "inspectionSkills"]) {
     collectSkillRefs(value[key], refs, true);
   }
 }
 
 function collectSkillRefsFromText(value: string | null | undefined, refs: Set<string>) {
   if (!value) return;
-  for (const match of value.matchAll(/\b(?:skill|inspection-skill):([A-Za-z0-9._:/-]+)/g)) {
+  for (const match of value.matchAll(/\b(?:knowledge|skill|inspection-skill):([A-Za-z0-9._:/-]+)/g)) {
     const normalized = normalizeSkillRef(`${match[0].split(":")[0]}:${match[1]}`);
     if (normalized) refs.add(normalized);
   }
@@ -111,6 +112,7 @@ function extractSkillRules(skill: InspectionSkill) {
   return rawRules.filter(isRecord).map((rule) => ({
     ...rule,
     skillRefs: [...new Set([...parseStringArray(rule.skillRefs), ...skillRefs])],
+    knowledgeRefs: [...new Set([...parseStringArray(rule.knowledgeRefs), ...parseStringArray(rule.skillRefs), ...skillRefs])],
     sourceAgent: typeof rule.sourceAgent === "string" && rule.sourceAgent.trim()
       ? rule.sourceAgent.trim()
       : skill.name,
