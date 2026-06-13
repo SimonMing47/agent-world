@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   buildExecutablePluginRegistry,
   listExecutablePluginContributions,
+  resolveAuthAdapter,
   resolveOutputPublisher,
   resolveRepositoryConnector,
   resolveSecretRef,
@@ -62,11 +63,29 @@ test("runtime resolvers use contribution registry semantics", () => {
   assert.ok(resolveRepositoryConnector("official.gitea"));
   assert.ok(resolveToolBundle("official.gitea"));
   assert.equal(resolveOutputPublisher("official.gitea"), null);
+  assert.equal(resolveAuthAdapter("official.gitea"), null);
   assert.ok(
     listExecutablePluginContributions("webhookParser").some(
       (record) => record.pluginId === "official.gitea",
     ),
   );
+});
+
+test("executable plugin registry indexes auth adapters", () => {
+  const plugin = createPluginModule("auth.plugin");
+  plugin.manifest.spec.contributions.authAdapters = [{ id: "auth.plugin.sso" }];
+  plugin.authAdapters = [
+    {
+      id: "auth.plugin.sso",
+      protocol: "oidc",
+      mode: "redirect",
+      capabilities: ["authorization_code_flow"],
+    },
+  ];
+  const registry = buildExecutablePluginRegistry([plugin]);
+
+  assert.deepEqual(registry.diagnostics, []);
+  assert.ok(registry.contributions.some((record) => record.kind === "authAdapter" && record.id === "auth.plugin.sso"));
 });
 
 test("plugin secret refs reject environment variable references", () => {

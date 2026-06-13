@@ -1,9 +1,11 @@
+import { inflateRawSync } from "node:zlib";
 import {
   execute,
   queryAll,
   queryOne,
   type AgentTeam,
   type ImportedPluginManifest,
+  type ImportedPluginContribution,
   type BusinessTeam,
   type ScheduleTemplate,
   type TaskTemplate,
@@ -20,6 +22,56 @@ import {
   listOfficialPluginManifests,
 } from "@/server/plugin-sdk-core";
 import { uiText } from "@/lib/language-pack";
+
+type AgentWorldPluginPackageManifest = {
+  apiVersion?: string;
+  kind?: string;
+  metadata?: {
+    id?: string;
+    name?: string;
+    version?: string;
+    description?: string;
+    vendor?: string;
+  };
+  spec?: {
+    runtime?: {
+      type?: string;
+      kind?: string;
+      entry?: string;
+      activationEvents?: string[];
+    };
+    permissions?: {
+      requested?: string[];
+    };
+    contributions?: {
+      authAdapters?: Array<Record<string, unknown>>;
+      providerAdapters?: Array<Record<string, unknown>>;
+      repositoryConnectors?: Array<Record<string, unknown>>;
+      webhookParsers?: Array<Record<string, unknown>>;
+      outputPublishers?: Array<Record<string, unknown>>;
+      toolBundles?: Array<Record<string, unknown>>;
+      knowledgeSources?: Array<Record<string, unknown>>;
+      knowledgeAssets?: Array<Record<string, unknown>>;
+      skills?: Array<Record<string, unknown>>;
+      taskBlueprints?: Array<Record<string, unknown>>;
+      environmentTemplates?: Array<Record<string, unknown>>;
+      navigationItems?: Array<Record<string, unknown>>;
+      settingsPanels?: Array<Record<string, unknown>>;
+      dashboardWidgets?: Array<Record<string, unknown>>;
+      taskRunPanels?: Array<Record<string, unknown>>;
+      agentDetailTabs?: Array<Record<string, unknown>>;
+      codebaseEngines?: Array<Record<string, unknown>>;
+      notificationChannels?: Array<Record<string, unknown>>;
+      secretProviders?: Array<Record<string, unknown>>;
+      workflowBlocks?: Array<Record<string, unknown>>;
+      pages?: Array<Record<string, unknown>>;
+      languagePacks?: Array<Record<string, unknown>>;
+    };
+    configSchema?: Record<string, unknown>;
+  };
+};
+
+type ContributionBucket = keyof NonNullable<NonNullable<AgentWorldPluginPackageManifest["spec"]>["contributions"]>;
 
 type ExtensionEnvironmentInput = {
   id: string;
@@ -118,6 +170,7 @@ export type AgentWorldExtensionBundle = {
   name?: string;
   source?: string;
   plugins?: PluginManifest[];
+  pluginPackages?: AgentWorldPluginPackageManifest[];
   environments?: ExtensionEnvironmentInput[];
   webhooks?: ExtensionWebhookInput[];
   taskTemplates?: ExtensionTaskTemplateInput[];
@@ -132,6 +185,171 @@ function nowIso() {
 function parseArray(value: string) {
   const parsed = JSON.parse(value) as unknown;
   return Array.isArray(parsed) ? parsed.map(String) : [];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringifyJson(value: unknown, fallback: unknown = {}) {
+  try {
+    return JSON.stringify(value ?? fallback, null, 2);
+  } catch {
+    return JSON.stringify(fallback, null, 2);
+  }
+}
+
+const contributionKindByManifestKey = {
+  authAdapters: "authAdapter",
+  providerAdapters: "providerAdapter",
+  repositoryConnectors: "repositoryConnector",
+  webhookParsers: "webhookParser",
+  outputPublishers: "outputPublisher",
+  toolBundles: "toolBundle",
+  knowledgeSources: "knowledgeSource",
+  knowledgeAssets: "knowledgeAsset",
+  skills: "skill",
+  taskBlueprints: "taskBlueprint",
+  environmentTemplates: "environmentTemplate",
+  navigationItems: "navigationItem",
+  settingsPanels: "settingsPanel",
+  dashboardWidgets: "dashboardWidget",
+  taskRunPanels: "taskRunPanel",
+  agentDetailTabs: "agentDetailTab",
+  codebaseEngines: "codebaseEngine",
+  notificationChannels: "notificationChannel",
+  secretProviders: "secretProvider",
+  workflowBlocks: "workflowBlock",
+  pages: "page",
+  languagePacks: "languagePack",
+} satisfies Partial<Record<ContributionBucket, string>>;
+
+function contributionId(pluginId: string, contribution: Record<string, unknown>, fallback: string) {
+  const rawId = contribution.id;
+  return typeof rawId === "string" && rawId.trim() ? rawId.trim() : `${pluginId}.${fallback}`;
+}
+
+function firstContribution(
+  manifest: AgentWorldPluginPackageManifest,
+  key: ContributionBucket,
+) {
+  const entries = manifest.spec?.contributions?.[key];
+  return Array.isArray(entries) ? entries.find(isRecord) ?? null : null;
+}
+
+function derivePluginCapability(manifest: AgentWorldPluginPackageManifest): PluginCapability {
+  const contributions = manifest.spec?.contributions ?? {};
+  if (Array.isArray(contributions.authAdapters) && contributions.authAdapters.length > 0) return "auth_sso";
+  if (
+    Array.isArray(contributions.repositoryConnectors) ||
+    Array.isArray(contributions.webhookParsers) ||
+    Array.isArray(contributions.outputPublishers)
+  ) {
+    return "code_repo";
+  }
+  if (Array.isArray(contributions.providerAdapters)) return "provider_adapter";
+  if (Array.isArray(contributions.codebaseEngines)) return "codebase_engine";
+  if (Array.isArray(contributions.notificationChannels)) return "notification_channel";
+  if (Array.isArray(contributions.knowledgeSources)) return "knowledge_source";
+  if (Array.isArray(contributions.knowledgeAssets) || Array.isArray(contributions.skills)) return "knowledge";
+  if (Array.isArray(contributions.workflowBlocks)) return "workflow_block";
+  if (Array.isArray(contributions.secretProviders)) return "secret_provider";
+  return "tool";
+}
+
+function derivePluginMountPoint(pluginId: string, manifest: AgentWorldPluginPackageManifest) {
+  const page = firstContribution(manifest, "pages");
+  const route = page?.route;
+  if (typeof route === "string" && route.startsWith(`/plugins/${pluginId}/`)) return route;
+
+  const authAdapter = firstContribution(manifest, "authAdapters");
+  if (authAdapter) {
+    return `/api/auth/plugins/${encodeURIComponent(contributionId(pluginId, authAdapter, "sso"))}/start`;
+  }
+
+  return `/plugins/${pluginId}/admin`;
+}
+
+function derivePluginConfigSchema(manifest: AgentWorldPluginPackageManifest) {
+  if (manifest.spec?.configSchema) return manifest.spec.configSchema;
+  const authAdapter = firstContribution(manifest, "authAdapters");
+  const authSchema = authAdapter?.configSchema;
+  return isRecord(authSchema) ? authSchema : {};
+}
+
+function deriveRequiredSecretRefs(manifest: AgentWorldPluginPackageManifest) {
+  const schema = derivePluginConfigSchema(manifest);
+  const required = Array.isArray(schema.required) ? schema.required.map(String) : [];
+  return required.filter((key) => /(secret|token|credential|password|privateKey|private_key)/i.test(key));
+}
+
+function normalizePackageManifest(input: unknown): AgentWorldPluginPackageManifest {
+  if (!isRecord(input)) throw new Error("plugin manifest must be an object");
+  const manifest = input as AgentWorldPluginPackageManifest;
+  if (manifest.kind !== "AgentWorldPlugin") {
+    throw new Error("plugin manifest kind must be AgentWorldPlugin");
+  }
+  if (!manifest.metadata?.id || !manifest.metadata.name || !manifest.metadata.version) {
+    throw new Error("plugin manifest metadata requires id, name and version");
+  }
+  return manifest;
+}
+
+function toCompatiblePluginManifest(
+  manifest: AgentWorldPluginPackageManifest,
+  source: string,
+): PluginManifest {
+  const id = manifest.metadata!.id!.trim();
+  const runtime = manifest.spec?.runtime;
+  return {
+    id,
+    name: manifest.metadata!.name!.trim(),
+    version: manifest.metadata!.version!.trim(),
+    capability: derivePluginCapability(manifest),
+    lifecycle: "declared",
+    mountPoint: derivePluginMountPoint(id, manifest),
+    configSchema: stringifyJson(derivePluginConfigSchema(manifest)),
+    requiredSecretRefs: deriveRequiredSecretRefs(manifest),
+    permissions: manifest.spec?.permissions?.requested?.map(String) ?? [],
+    healthCheck: `${runtime?.type ?? runtime?.kind ?? "declarative"}:${runtime?.entry ?? "agentworld.plugin.json"}:${source}`,
+    extensionOnly: true,
+  };
+}
+
+function importPluginContributionRows(
+  manifest: AgentWorldPluginPackageManifest,
+  source: string,
+  createdAt: string,
+) {
+  const pluginId = manifest.metadata!.id!.trim();
+  const imported: string[] = [];
+  const contributions = manifest.spec?.contributions ?? {};
+
+  execute("DELETE FROM plugin_contributions WHERE plugin_id = ?", pluginId);
+
+  for (const [manifestKey, kind] of Object.entries(contributionKindByManifestKey)) {
+    const entries = contributions[manifestKey as ContributionBucket];
+    if (!Array.isArray(entries)) continue;
+    entries.filter(isRecord).forEach((entry, index) => {
+      const id = contributionId(pluginId, entry, `${manifestKey}.${index + 1}`);
+      const rowId = `${pluginId}:${kind}:${id}`;
+      execute(
+        "INSERT OR REPLACE INTO plugin_contributions (id, plugin_id, contribution_id, kind, contribution_json, lifecycle, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rowId,
+        pluginId,
+        id,
+        kind,
+        stringifyJson(entry),
+        "declared",
+        source,
+        createdAt,
+        createdAt,
+      );
+      imported.push(`${kind}:${id}`);
+    });
+  }
+
+  return imported;
 }
 
 function toManifest(row: ImportedPluginManifest): PluginManifest {
@@ -181,6 +399,21 @@ export function listImportedPluginManifests() {
   ).map(toManifest);
 }
 
+export function listImportedPluginContributions(kind?: string) {
+  const rows = kind
+    ? queryAll<ImportedPluginContribution>(
+        "SELECT * FROM plugin_contributions WHERE kind = ? ORDER BY plugin_id ASC, contribution_id ASC",
+        kind,
+      )
+    : queryAll<ImportedPluginContribution>(
+        "SELECT * FROM plugin_contributions ORDER BY plugin_id ASC, kind ASC, contribution_id ASC",
+      );
+  return rows.map((row) => ({
+    ...row,
+    contribution: parseJsonRecord(row.contributionJson),
+  }));
+}
+
 export function listAllPluginManifests() {
   const imported = listImportedPluginManifests();
   const importedIds = new Set(imported.map((plugin) => plugin.id));
@@ -193,9 +426,43 @@ export function listAllPluginManifests() {
 export function getExtensionRegistrySnapshot() {
   return {
     manifests: listAllPluginManifests(),
+    contributions: listImportedPluginContributions(),
     extensionPoints: listPluginExtensionPoints(),
     runtimeRegistry: getExecutablePluginRegistrySnapshot(),
     securityModel: getPluginSecurityModel(),
+  };
+}
+
+export function importPluginPackageManifest(
+  input: unknown,
+  options: { source?: string } = {},
+) {
+  const manifest = normalizePackageManifest(input);
+  const source = options.source ?? manifest.metadata?.id ?? "plugin-package";
+  const createdAt = nowIso();
+  const plugin = toCompatiblePluginManifest(manifest, source);
+  validatePlugin(plugin);
+  execute(
+    "INSERT OR REPLACE INTO plugin_manifests (id, name, version, capability, lifecycle, mount_point, config_schema, required_secret_refs_json, permissions_json, health_check, extension_only, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    plugin.id,
+    plugin.name,
+    plugin.version,
+    plugin.capability,
+    plugin.lifecycle,
+    plugin.mountPoint,
+    plugin.configSchema,
+    JSON.stringify(plugin.requiredSecretRefs),
+    JSON.stringify(plugin.permissions),
+    plugin.healthCheck,
+    plugin.extensionOnly ? 1 : 0,
+    source,
+    createdAt,
+  );
+
+  return {
+    source,
+    importedPlugins: [plugin.id],
+    importedContributions: importPluginContributionRows(manifest, source, createdAt),
   };
 }
 
@@ -208,6 +475,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
   const importedTaskTemplates: string[] = [];
   const importedTaskBlueprints: string[] = [];
   const importedScheduleTemplates: string[] = [];
+  const importedContributions: string[] = [];
 
   for (const plugin of bundle.plugins ?? []) {
     validatePlugin(plugin);
@@ -228,6 +496,12 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
       createdAt,
     );
     importedPlugins.push(plugin.id);
+  }
+
+  for (const pluginPackage of bundle.pluginPackages ?? []) {
+    const result = importPluginPackageManifest(pluginPackage, { source });
+    importedPlugins.push(...result.importedPlugins);
+    importedContributions.push(...result.importedContributions);
   }
 
   for (const environment of bundle.environments ?? []) {
@@ -380,6 +654,7 @@ export function importExtensionBundle(bundle: AgentWorldExtensionBundle) {
     importedTaskTemplates,
     importedTaskBlueprints,
     importedScheduleTemplates,
+    importedContributions,
   };
 }
 
@@ -401,6 +676,72 @@ function parseJsonArray(value: string) {
   } catch {
     return [];
   }
+}
+
+function isSafeZipPath(value: string) {
+  if (!value || value.startsWith("/") || value.startsWith("\\")) return false;
+  return !value.split(/[\\/]+/).some((part) => part === "..");
+}
+
+function findEndOfCentralDirectory(buffer: Buffer) {
+  const signature = 0x06054b50;
+  const minOffset = Math.max(0, buffer.length - 0xffff - 22);
+  for (let offset = buffer.length - 22; offset >= minOffset; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === signature) return offset;
+  }
+  return -1;
+}
+
+function extractFileFromZip(buffer: Buffer, fileName: string) {
+  const eocdOffset = findEndOfCentralDirectory(buffer);
+  if (eocdOffset < 0) throw new Error("zip package is missing central directory");
+
+  const totalEntries = buffer.readUInt16LE(eocdOffset + 10);
+  const centralDirectoryOffset = buffer.readUInt32LE(eocdOffset + 16);
+  let offset = centralDirectoryOffset;
+  let fallbackEntry: {
+    name: string;
+    method: number;
+    compressedSize: number;
+    localHeaderOffset: number;
+  } | null = null;
+
+  for (let index = 0; index < totalEntries; index += 1) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) throw new Error("zip package has an invalid central directory");
+    const method = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const nameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localHeaderOffset = buffer.readUInt32LE(offset + 42);
+    const name = buffer.toString("utf8", offset + 46, offset + 46 + nameLength);
+    if (!isSafeZipPath(name)) throw new Error(`zip package contains unsafe path: ${name}`);
+    const entry = { name, method, compressedSize, localHeaderOffset };
+    if (name === fileName) fallbackEntry = entry;
+    if (!fallbackEntry && name.endsWith(`/${fileName}`)) fallbackEntry = entry;
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+
+  if (!fallbackEntry) throw new Error(`${fileName} not found in zip package`);
+  const localOffset = fallbackEntry.localHeaderOffset;
+  if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error("zip package has an invalid local file header");
+  const nameLength = buffer.readUInt16LE(localOffset + 26);
+  const extraLength = buffer.readUInt16LE(localOffset + 28);
+  const dataOffset = localOffset + 30 + nameLength + extraLength;
+  const compressed = buffer.subarray(dataOffset, dataOffset + fallbackEntry.compressedSize);
+
+  if (fallbackEntry.method === 0) return compressed.toString("utf8");
+  if (fallbackEntry.method === 8) return inflateRawSync(compressed).toString("utf8");
+  throw new Error(`zip compression method ${fallbackEntry.method} is not supported`);
+}
+
+export function readPluginPackageManifestFromBuffer(fileName: string, input: Buffer) {
+  const lowerName = fileName.toLowerCase();
+  const manifestText =
+    lowerName.endsWith(".zip") || lowerName.endsWith(".awp")
+      ? extractFileFromZip(input, "agentworld.plugin.json")
+      : input.toString("utf8");
+  return normalizePackageManifest(JSON.parse(manifestText) as unknown);
 }
 
 export function getWebhookScheduleTemplate(teamId: string, pathKey?: string) {

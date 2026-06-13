@@ -307,34 +307,34 @@ function ProviderForm({
             <option value="paused">paused</option>
           </Select>
         </FieldGroup>
-        <FieldGroup label="Client ID">
+        <FieldGroup label="identityAccess.providers.fields.clientId">
           <Input value={form.clientId} onChange={(event) => setForm({ ...form, clientId: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Issuer URL">
+        <FieldGroup label="identityAccess.providers.fields.issuerUrl">
           <Input value={form.issuerUrl} onChange={(event) => setForm({ ...form, issuerUrl: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Authorize URL">
+        <FieldGroup label="identityAccess.providers.fields.authorizeUrl">
           <Input value={form.authorizeUrl} onChange={(event) => setForm({ ...form, authorizeUrl: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Token URL">
+        <FieldGroup label="identityAccess.providers.fields.tokenUrl">
           <Input value={form.tokenUrl} onChange={(event) => setForm({ ...form, tokenUrl: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Userinfo URL">
+        <FieldGroup label="identityAccess.providers.fields.userinfoUrl">
           <Input value={form.userinfoUrl} onChange={(event) => setForm({ ...form, userinfoUrl: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="JWKS URL">
+        <FieldGroup label="identityAccess.providers.fields.jwksUrl">
           <Input value={form.jwksUrl} onChange={(event) => setForm({ ...form, jwksUrl: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Client Secret Ref">
+        <FieldGroup label="identityAccess.providers.fields.clientSecretRef">
           <Input
             value={form.clientSecretRef}
             onChange={(event) => setForm({ ...form, clientSecretRef: event.target.value })}
           />
         </FieldGroup>
-        <FieldGroup label="Scopes JSON" className="md:col-span-2">
+        <FieldGroup label="identityAccess.providers.fields.scopesJson" className="md:col-span-2">
           <Textarea value={form.scopesJson} onChange={(event) => setForm({ ...form, scopesJson: event.target.value })} />
         </FieldGroup>
-        <FieldGroup label="Claim Mapping JSON" className="md:col-span-2">
+        <FieldGroup label="identityAccess.providers.fields.mappingJson" className="md:col-span-2">
           <Textarea value={form.mappingJson} onChange={(event) => setForm({ ...form, mappingJson: event.target.value })} />
         </FieldGroup>
         <FieldGroup label="identityAccess.providers.fields.extraConfig" className="md:col-span-2">
@@ -556,7 +556,7 @@ export function IdentityAccessConsole({
           </div>
           <span className="inline-flex items-center gap-2 rounded-full bg-[rgba(29,78,216,0.08)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
             <Shield className="h-3.5 w-3.5" />
-            Access Gate
+            {text("identityAccess.settings.accessGateBadge")}
           </span>
         </div>
         <div className="mt-6">
@@ -592,7 +592,7 @@ export function IdentityAccessConsole({
                 <DataTableHead>identityAccess.providers.columns.name</DataTableHead>
                 <DataTableHead>identityAccess.providers.columns.adapter</DataTableHead>
                 <DataTableHead>identityAccess.providers.columns.status</DataTableHead>
-                <DataTableHead>Client ID</DataTableHead>
+                <DataTableHead>identityAccess.providers.columns.clientId</DataTableHead>
                 <DataTableHead align="right">identityAccess.common.actions</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
@@ -609,7 +609,7 @@ export function IdentityAccessConsole({
                       <div className="flex justify-end gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />actions.edit</Button>
+                            <Button size="sm" variant="ghost"><PencilLine className="h-4 w-4" />{text("identityAccess.common.edit")}</Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
@@ -621,7 +621,7 @@ export function IdentityAccessConsole({
                             </DialogBody>
                           </DialogContent>
                         </Dialog>
-                        <Button size="sm" variant="ghost" onClick={() => deleteProvider(provider.id)}>actions.delete</Button>
+                        <Button size="sm" variant="ghost" onClick={() => deleteProvider(provider.id)}>{text("identityAccess.common.delete")}</Button>
                       </div>
                     </DataTableCell>
                   </DataTableRow>
