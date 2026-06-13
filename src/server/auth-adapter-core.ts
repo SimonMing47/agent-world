@@ -112,5 +112,5 @@ export function listAuthAdapterCatalog() {
 }
 
 export function getAuthAdapter(key: string) {
-  return authAdapters.find((adapter) => adapter.key === key) ?? null;
+  return listAuthAdapterCatalog().find((adapter) => adapter.key === key) ?? null;
 }
