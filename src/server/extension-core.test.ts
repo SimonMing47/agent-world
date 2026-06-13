@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { readPluginPackageManifestFromBuffer } from "@/server/extension-core";
+import { getAuthAdapter, listAuthAdapterCatalog } from "@/server/auth-adapter-core";
+import {
+  getIdentityAccessSettings,
+  upsertAuthProviderConfig,
+  upsertIdentityAccessSettings,
+} from "@/server/auth-core";
+import { startEnterpriseSsoSignIn } from "@/server/auth-sso-core";
+import { execute } from "@/server/db";
+import {
+  importPluginPackageManifest,
+  readPluginPackageManifestFromBuffer,
+} from "@/server/extension-core";
 
 function createStoredZip(fileName: string, content: string) {
   const name = Buffer.from(fileName);
@@ -93,4 +104,83 @@ test("plugin package manifest reader accepts zip awp packages", () => {
 
   assert.equal(manifest.metadata?.id, "company.sso");
   assert.equal(manifest.spec?.contributions?.authAdapters?.[0]?.id, "company.sso");
+});
+
+test("imported SSO auth adapters are available to the runtime resolver", async () => {
+  const pluginId = "test.company.sso";
+  const adapterId = "test.company.sso.oidc";
+  const providerId = "test-company-sso-provider";
+  const originalSettings = getIdentityAccessSettings();
+  const manifest = {
+    ...ssoManifest,
+    metadata: {
+      ...ssoManifest.metadata,
+      id: pluginId,
+      name: "Test Company SSO",
+    },
+    spec: {
+      ...ssoManifest.spec,
+      contributions: {
+        authAdapters: [
+          {
+            id: adapterId,
+            name: "Test Company OIDC",
+            protocol: "oidc",
+            mode: "redirect",
+            capabilities: ["authorization_code_flow", "pkce", "jwks_verify"],
+          },
+        ],
+      },
+    },
+  };
+
+  execute("DELETE FROM plugin_contributions WHERE plugin_id = ?", pluginId);
+  execute("DELETE FROM plugin_manifests WHERE id = ?", pluginId);
+  execute("DELETE FROM auth_sso_states WHERE adapter_key = ?", adapterId);
+  execute("DELETE FROM auth_provider_configs WHERE id = ?", providerId);
+
+  try {
+    importPluginPackageManifest(manifest, { source: "test-company-sso.awp" });
+
+    assert.ok(listAuthAdapterCatalog().some((adapter) => adapter.key === adapterId));
+    assert.equal(getAuthAdapter(adapterId)?.protocol, "oidc");
+    assert.equal(getAuthAdapter(adapterId)?.source, "plugin");
+
+    upsertAuthProviderConfig({
+      id: providerId,
+      name: "Test Company Provider",
+      adapterKey: adapterId,
+      status: "active",
+      issuerUrl: "https://idp.example.test",
+      authorizeUrl: "https://idp.example.test/oauth2/authorize",
+      tokenUrl: "https://idp.example.test/oauth2/token",
+      userinfoUrl: "https://idp.example.test/oauth2/userinfo",
+      jwksUrl: "https://idp.example.test/oauth2/jwks",
+      clientId: "agentworld-test-client",
+      clientSecretRef: "test-client-secret",
+      scopesJson: JSON.stringify(["openid", "profile", "email"]),
+      mappingJson: JSON.stringify({ idClaim: "sub", nameClaim: "name", emailClaim: "email", teamClaims: [] }),
+      configJson: JSON.stringify({ clientAuth: "client_secret_post" }),
+    });
+    upsertIdentityAccessSettings({ ...originalSettings, ssoLoginEnabled: true, ssoPluginId: pluginId }, "test");
+
+    const result = await startEnterpriseSsoSignIn(
+      adapterId,
+      new Request(`http://agentworld.local/api/auth/plugins/${encodeURIComponent(adapterId)}/start?next=/overview`),
+    );
+    const redirectUrl = new URL(result.redirectUrl);
+    assert.equal(redirectUrl.origin, "https://idp.example.test");
+    assert.equal(redirectUrl.pathname, "/oauth2/authorize");
+    assert.equal(redirectUrl.searchParams.get("client_id"), "agentworld-test-client");
+    assert.equal(redirectUrl.searchParams.get("response_type"), "code");
+    assert.equal(redirectUrl.searchParams.get("code_challenge_method"), "S256");
+    assert.ok(redirectUrl.searchParams.get("state"));
+    assert.ok(redirectUrl.searchParams.get("nonce"));
+  } finally {
+    upsertIdentityAccessSettings(originalSettings, "test");
+    execute("DELETE FROM auth_sso_states WHERE adapter_key = ?", adapterId);
+    execute("DELETE FROM auth_provider_configs WHERE id = ?", providerId);
+    execute("DELETE FROM plugin_contributions WHERE plugin_id = ?", pluginId);
+    execute("DELETE FROM plugin_manifests WHERE id = ?", pluginId);
+  }
 });
