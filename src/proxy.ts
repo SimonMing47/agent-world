@@ -9,6 +9,7 @@ const PUBLIC_PREFIXES = [
   "/api/knowledge/query",
   "/api/knowledge/read",
   "/api/knowledge/retrieve",
+  "/api/auth/plugins/",
 ];
 const PUBLIC_PAGE_PREFIXES = ["/finding-feedback/"];
 const PUBLIC_API_PATHS = new Set(["/api/auth/login", "/api/auth/register", "/api/auth/session"]);

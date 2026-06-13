@@ -1,4 +1,5 @@
 import type { AgentCapabilityKey } from "@/lib/agent-capability-profile";
+import { zhCNLanguagePack } from "@/locales/zh-CN";
 import v1ReferencePackJson from "../../public/agentworld-assets/hero-pack/v1/AgentWorld_Download_Pack_v1/legacy/AgentWorld_ReferenceLocked_PixelKit_v0_2/metadata/agentworld_reference_locked_traits.json";
 import v2ImportConfigJson from "../../public/agentworld-assets/hero-pack/v2/agentworld_import_config.json";
 import v2ManifestJson from "../../public/agentworld-assets/hero-pack/v2/metadata/agentworld_qpixel_manifest.json";
@@ -322,12 +323,49 @@ function inferSpecialRoleKeywords() {
   return inferred.length ? inferred : ["leader", "boss", "archmage", "commander", "cyber"];
 }
 
+type HeroKeywordConfig = {
+  specialRoleAliases: Record<string, string[]>;
+  roleAliasGroups: Record<string, string[]>;
+};
+
+const heroKeywordConfig =
+  (
+    zhCNLanguagePack.ui.agentWorldHero as
+      | {
+          keywords?: Partial<HeroKeywordConfig>;
+        }
+      | undefined
+  )?.keywords ?? {};
+
+function localizedHeroKeywords(group: keyof HeroKeywordConfig, key: string) {
+  return (heroKeywordConfig[group]?.[key] ?? [])
+    .map((value) => normalizeRoleText(value))
+    .filter(Boolean);
+}
+
 const SPECIAL_ROLE_ALIASES: Record<string, string[]> = {
-  leader: ["leader", "captain", "captain leader", "leader_leader", "leader-lord", "队长", "首领", "领导"],
-  boss: ["boss", "boss_lair", "boss lair", "boss", "首脑", "指挥官", "头目"],
-  archmage: ["archmage", "master mage", "arch mage", "大法师", "法师长"],
-  commander: ["commander", "cyber commander", "cyber_leader", "cyber commander", "指挥官", "队长"],
-  cyber: ["cyber", "cyberpunk", "赛博", "cyber commander"],
+  leader: [
+    "leader",
+    "captain",
+    "captain leader",
+    "leader_leader",
+    "leader-lord",
+    ...localizedHeroKeywords("specialRoleAliases", "leader"),
+  ],
+  boss: ["boss", "boss_lair", "boss lair", ...localizedHeroKeywords("specialRoleAliases", "boss")],
+  archmage: [
+    "archmage",
+    "master mage",
+    "arch mage",
+    ...localizedHeroKeywords("specialRoleAliases", "archmage"),
+  ],
+  commander: [
+    "commander",
+    "cyber commander",
+    "cyber_leader",
+    ...localizedHeroKeywords("specialRoleAliases", "commander"),
+  ],
+  cyber: ["cyber", "cyberpunk", "cyber commander", ...localizedHeroKeywords("specialRoleAliases", "cyber")],
 };
 
 function normalizePackId(value: string | null | undefined): AgentWorldHeroPackId {
@@ -690,12 +728,37 @@ function pickFullCharacterTraitByRoleAlias(pack: HeroPackDefinition, roleHint: s
   if (!normalized) return undefined;
 
   const aliasGroups: Array<{ keywords: string[]; ids: string[] }> = [
-    { keywords: ["architecture", "architect", "架构"], ids: ["mage", "engineer_mage", "young_wizard"] },
-    { keywords: ["implementation", "implement", "developer", "coding", "code", "研发", "实现", "开发"], ids: ["engineer", "cyber_alchemist", "cyber"] },
-    { keywords: ["security", "secure", "safety", "sec", "guard", "安全", "风控"], ids: ["monk", "red_monk_leader", "cyber"] },
-    { keywords: ["leader", "lead", "captain", "commander", "负责人", "队长", "指挥"], ids: ["captain_leader", "royal_leader", "red_monk_leader"] },
-    { keywords: ["memory", "knowledge", "context", "知识", "记忆", "上下文"], ids: ["druid", "druid_rogue", "monk"] },
-    { keywords: ["review", "audit", "qa", "test", "评审", "审查", "测试"], ids: ["mage", "young_wizard", "engineer_mage"] },
+    {
+      keywords: ["architecture", "architect", ...localizedHeroKeywords("roleAliasGroups", "architecture")],
+      ids: ["mage", "engineer_mage", "young_wizard"],
+    },
+    {
+      keywords: [
+        "implementation",
+        "implement",
+        "developer",
+        "coding",
+        "code",
+        ...localizedHeroKeywords("roleAliasGroups", "implementation"),
+      ],
+      ids: ["engineer", "cyber_alchemist", "cyber"],
+    },
+    {
+      keywords: ["security", "secure", "safety", "sec", "guard", ...localizedHeroKeywords("roleAliasGroups", "security")],
+      ids: ["monk", "red_monk_leader", "cyber"],
+    },
+    {
+      keywords: ["leader", "lead", "captain", "commander", ...localizedHeroKeywords("roleAliasGroups", "leader")],
+      ids: ["captain_leader", "royal_leader", "red_monk_leader"],
+    },
+    {
+      keywords: ["memory", "knowledge", "context", ...localizedHeroKeywords("roleAliasGroups", "memory")],
+      ids: ["druid", "druid_rogue", "monk"],
+    },
+    {
+      keywords: ["review", "audit", "qa", "test", ...localizedHeroKeywords("roleAliasGroups", "review")],
+      ids: ["mage", "young_wizard", "engineer_mage"],
+    },
   ];
 
   const matchedGroup = aliasGroups.find((group) => group.keywords.some((keyword) => normalized.includes(keyword)));

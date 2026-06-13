@@ -1015,6 +1015,101 @@ export function listRuntimeSessions() {
   );
 }
 
+type RuntimeSessionWorkItemRow = RuntimeSession & {
+  runtimeBindingName: string | null;
+  providerProfileName: string | null;
+  agentTeamName: string | null;
+  agentDefinitionName: string | null;
+  latestEventType: string | null;
+  latestEventActorName: string | null;
+  latestEventAt: string | null;
+  latestEventPayloadJson: string | null;
+  latestMessageActorName: string | null;
+  latestMessageRole: string | null;
+  latestMessageAt: string | null;
+  latestMessageContentJson: string | null;
+};
+
+function summarizeRuntimeContent(value: string | null | undefined) {
+  if (!value) return "";
+  const content = parseContentJson<Record<string, unknown>>(value, {});
+  if (typeof content.text === "string" && content.text.trim()) return content.text.trim();
+  if (typeof content.delta === "string" && content.delta.trim()) return content.delta.trim();
+  if (typeof content.toolName === "string" && content.toolName.trim()) return content.toolName.trim();
+  if (typeof content.error === "string" && content.error.trim()) return content.error.trim();
+  if (typeof content.content === "string" && content.content.trim()) return content.content.trim();
+  return "";
+}
+
+export function listRuntimeSessionWorkItems() {
+  const rows = queryAll<RuntimeSessionWorkItemRow>(
+    `SELECT
+      s.*,
+      rb.name AS runtime_binding_name,
+      pp.name AS provider_profile_name,
+      at.name AS agent_team_name,
+      ad.name AS agent_definition_name,
+      e.event_type AS latest_event_type,
+      e.actor_name AS latest_event_actor_name,
+      e.created_at AS latest_event_at,
+      e.payload_json AS latest_event_payload_json,
+      m.actor_name AS latest_message_actor_name,
+      m.role AS latest_message_role,
+      m.created_at AS latest_message_at,
+      m.content_json AS latest_message_content_json
+    FROM runtime_sessions s
+    LEFT JOIN provider_runtime_bindings rb ON rb.id = s.runtime_binding_id
+    LEFT JOIN provider_profiles pp ON pp.id = s.provider_profile_id
+    LEFT JOIN agent_teams at ON at.id = s.agent_team_id
+    LEFT JOIN agent_definitions ad ON ad.id = s.agent_definition_id
+    LEFT JOIN runtime_session_events e ON e.id = (
+      SELECT id FROM runtime_session_events
+      WHERE session_id = s.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    )
+    LEFT JOIN runtime_session_messages m ON m.id = (
+      SELECT id FROM runtime_session_messages
+      WHERE session_id = s.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    )
+    ORDER BY s.updated_at DESC, s.created_at DESC`,
+  );
+
+  return rows.map((row) => {
+    const latestEventAt = row.latestEventAt ?? "";
+    const latestMessageAt = row.latestMessageAt ?? "";
+    const preferEvent = latestEventAt >= latestMessageAt;
+    const assigneeName =
+      row.mode === "agent_team"
+        ? row.agentTeamName ?? row.agentTeamId ?? uiText("ui.common.unbound")
+        : row.agentDefinitionName ?? row.agentDefinitionId ?? uiText("ui.common.unbound");
+    const latestActivityType = preferEvent
+      ? row.latestEventType ?? "session"
+      : row.latestMessageRole ?? "message";
+    const latestActivityActor = preferEvent
+      ? row.latestEventActorName ?? "System"
+      : row.latestMessageActorName ?? "System";
+    const latestActivityAt = (preferEvent ? row.latestEventAt : row.latestMessageAt) ?? row.updatedAt;
+    const latestActivitySummary = summarizeRuntimeContent(
+      preferEvent ? row.latestEventPayloadJson : row.latestMessageContentJson,
+    );
+
+    return {
+      session: row,
+      assigneeName,
+      assigneeKind: row.mode === "agent_team" ? "agent_team" : "agent",
+      runtimeName: row.runtimeBindingName ?? uiText("console.interactions.defaultRuntimeBinding"),
+      providerName: row.providerProfileName ?? uiText("ui.common.unbound"),
+      latestActivityType,
+      latestActivityActor,
+      latestActivityAt,
+      latestActivitySummary,
+    };
+  });
+}
+
 export function createRuntimeSession(input: CreateRuntimeSessionInput) {
   const tenantSpace = queryOne<TenantSpace>(
     "SELECT * FROM tenant_spaces WHERE id = ?",

@@ -1,13 +1,12 @@
-import Link from "next/link";
 import {
   KnowledgeNotebookWorkspace,
   type KnowledgeNotebookEntry,
   type KnowledgeNotebookSpace,
 } from "@/components/knowledge-notebook-workspace";
-import { KnowledgeAssetsPanel } from "@/components/knowledge-assets-panel";
+import { KnowledgeSkillPanel } from "@/components/knowledge-skill-panel";
+import { KnowledgePageTabs } from "@/components/knowledge-page-tabs";
 import { KnowledgeSpaceForm } from "@/components/knowledge-space-form";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { translateWithPack } from "@/lib/language-pack";
 import {
   canAccessBusinessTeam,
@@ -192,7 +191,7 @@ export default async function KnowledgePage() {
     name: team.name,
   }));
   return (
-    <div className="flex min-h-full flex-col gap-3">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
       <section className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
           <div className="min-w-0">
@@ -231,9 +230,6 @@ export default async function KnowledgePage() {
               {foundationModelDetail} · {foundationDetail}
             </span>
           ) : null}
-          <Button asChild size="sm" variant="secondary">
-            <Link href="#knowledge-assets">knowledge.assets.title</Link>
-          </Button>
           <KnowledgeSpaceForm
             tenantSpaces={tenantSpaceOptions}
             businessTeams={businessTeamOptions}
@@ -242,15 +238,20 @@ export default async function KnowledgePage() {
         </div>
       </section>
 
-      <KnowledgeNotebookWorkspace
-        spaces={notebookSpaces}
-        entries={notebookEntries}
-        tenantSpaces={tenantSpaceOptions}
-        businessTeams={businessTeamOptions}
-        agentTeams={agentTeamOptions}
+      <KnowledgePageTabs
+        editor={
+          <div id="knowledge-editor" className="flex h-full min-h-0" data-testid="knowledge-editor">
+            <KnowledgeNotebookWorkspace
+              spaces={notebookSpaces}
+              entries={notebookEntries}
+              tenantSpaces={tenantSpaceOptions}
+              businessTeams={businessTeamOptions}
+              agentTeams={agentTeamOptions}
+            />
+          </div>
+        }
+        skill={<KnowledgeSkillPanel skills={skills} businessTeams={businessTeams} />}
       />
-
-      <KnowledgeAssetsPanel skills={skills} businessTeams={businessTeams} />
     </div>
   );
 }

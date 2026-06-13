@@ -37,17 +37,12 @@ function parseTags(value: string) {
   }
 }
 
-function displayKnowledgeValue(value: string) {
-  if (value === "skill" || value === "skills") return "knowledge";
-  return value
-    .replace(/\bskills\//g, "knowledge/")
-    .replace(/\bskill\//g, "knowledge/")
-    .replace(/\bskill-/g, "knowledge-")
-    .replace(/\/skills\//g, "/knowledge/")
-    .replace(/\/skills-/g, "/knowledge-");
+function displaySkillValue(value: string) {
+  if (value === "skill" || value === "skills") return "Skill";
+  return value;
 }
 
-export function KnowledgeAssetsPanel({
+export function KnowledgeSkillPanel({
   skills,
   businessTeams,
 }: {
@@ -57,11 +52,11 @@ export function KnowledgeAssetsPanel({
   const teamOptions = businessTeams.map((team) => ({ id: team.id, name: team.name }));
 
   return (
-    <Panel id="knowledge-assets">
+    <Panel id="skill">
       <PanelHeader
-        eyebrow="knowledge.assets.eyebrow"
-        title="knowledge.assets.title"
-        description="knowledge.assets.description"
+        eyebrow="knowledge.skill.eyebrow"
+        title="knowledge.skill.title"
+        description="knowledge.skill.description"
         action={
           <div className="flex flex-wrap gap-2">
             <Dialog>
@@ -85,13 +80,13 @@ export function KnowledgeAssetsPanel({
               <DialogTrigger asChild>
                 <Button size="sm" variant="secondary">
                   <Plus className="h-4 w-4" />
-                  knowledge.assets.create
+                  knowledge.skill.create
                 </Button>
               </DialogTrigger>
               <DialogContent className="w-[min(96vw,980px)]">
                 <DialogHeader>
-                  <DialogTitle>knowledge.assets.create</DialogTitle>
-                  <DialogDescription>knowledge.assets.createDescription</DialogDescription>
+                  <DialogTitle>knowledge.skill.create</DialogTitle>
+                  <DialogDescription>knowledge.skill.createDescription</DialogDescription>
                 </DialogHeader>
                 <DialogBody>
                   <SkillForm
@@ -118,21 +113,21 @@ export function KnowledgeAssetsPanel({
       <PanelBody className="space-y-5">
         <SummaryStrip
           items={[
-            { label: "knowledge.assets.metrics.total", value: skills.length, detail: "knowledge.assets.metrics.totalDetail" },
+            { label: "knowledge.skill.metrics.total", value: skills.length, detail: "knowledge.skill.metrics.totalDetail" },
             {
-              label: "knowledge.assets.metrics.teamVisible",
+              label: "knowledge.skill.metrics.teamVisible",
               value: skills.filter((skill) => skill.visibility === "team").length,
-              detail: "knowledge.assets.metrics.teamVisibleDetail",
+              detail: "knowledge.skill.metrics.teamVisibleDetail",
             },
             {
-              label: "knowledge.assets.metrics.global",
+              label: "knowledge.skill.metrics.global",
               value: skills.filter((skill) => skill.visibility === "global").length,
-              detail: "knowledge.assets.metrics.globalDetail",
+              detail: "knowledge.skill.metrics.globalDetail",
             },
             {
-              label: "knowledge.assets.metrics.synced",
+              label: "knowledge.skill.metrics.synced",
               value: skills.filter((skill) => skill.vikingUri).length,
-              detail: "knowledge.assets.metrics.syncedDetail",
+              detail: "knowledge.skill.metrics.syncedDetail",
             },
           ]}
         />
@@ -140,12 +135,12 @@ export function KnowledgeAssetsPanel({
         <DataTable>
           <DataTableHeader>
             <DataTableRow className="hover:bg-transparent">
-              <DataTableHead>knowledge.assets.columns.knowledge</DataTableHead>
-              <DataTableHead>ui.generated.c53d4919c45</DataTableHead>
-              <DataTableHead>ui.generated.c986ff01617</DataTableHead>
-              <DataTableHead>ui.generated.cae0a7afece</DataTableHead>
-              <DataTableHead>ui.generated.c2a4080ad9f</DataTableHead>
-              <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+              <DataTableHead>knowledge.skill.columns.skill</DataTableHead>
+              <DataTableHead>knowledge.skill.columns.ownerTeam</DataTableHead>
+              <DataTableHead>knowledge.skill.columns.layer</DataTableHead>
+              <DataTableHead>knowledge.skill.columns.tags</DataTableHead>
+              <DataTableHead>knowledge.skill.columns.status</DataTableHead>
+              <DataTableHead align="right">knowledge.skill.columns.actions</DataTableHead>
             </DataTableRow>
           </DataTableHeader>
           <DataTableBody>
@@ -160,15 +155,15 @@ export function KnowledgeAssetsPanel({
                     {skill.vikingUri ? (
                       <div className="mt-1 flex items-center gap-1 text-xs text-[var(--ink-muted)]">
                         <RefreshCcw className="h-3.5 w-3.5" />
-                        {displayKnowledgeValue(skill.vikingUri)}
+                        {displaySkillValue(skill.vikingUri)}
                       </div>
                     ) : null}
                   </DataTableCell>
                   <DataTableCell>{team?.name ?? "ui.generated.ca5644f4bbf"}</DataTableCell>
-                  <DataTableCell>{displayKnowledgeValue(skill.layer)}</DataTableCell>
+                  <DataTableCell>{displaySkillValue(skill.layer)}</DataTableCell>
                   <DataTableCell>
                     <div className="flex max-w-[240px] flex-wrap gap-1">
-                      {tags.length ? tags.map((tag) => <Badge key={tag} variant="neutral">{displayKnowledgeValue(tag)}</Badge>) : "ui.generated.c86f9195e25"}
+                      {tags.length ? tags.map((tag) => <Badge key={tag} variant="neutral">{displaySkillValue(tag)}</Badge>) : "ui.generated.c86f9195e25"}
                     </div>
                   </DataTableCell>
                   <DataTableCell>
@@ -188,16 +183,16 @@ export function KnowledgeAssetsPanel({
                         <DialogContent>
                           <DialogHeader>
                             <DialogTitle>{skill.name}</DialogTitle>
-                            <DialogDescription>knowledge.assets.viewDescription</DialogDescription>
+                            <DialogDescription>knowledge.skill.viewDescription</DialogDescription>
                           </DialogHeader>
                           <DialogBody className="space-y-5">
                             <DefinitionList
                               items={[
-                                { label: "knowledge.assets.fields.id", value: skill.id },
-                                { label: "ui.generated.c53d4919c45", value: team?.name ?? "ui.generated.ca5644f4bbf" },
-                                { label: "ui.generated.c986ff01617", value: displayKnowledgeValue(skill.layer) },
-                                { label: "ui.generated.c747b74cec9", value: skill.visibility },
-                                { label: "knowledge.labels.knowledgeUri", value: skill.vikingUri ? displayKnowledgeValue(skill.vikingUri) : "ui.generated.c16f4087b8b" },
+                                { label: "knowledge.skill.fields.id", value: skill.id },
+                                { label: "knowledge.skill.columns.ownerTeam", value: team?.name ?? "ui.generated.ca5644f4bbf" },
+                                { label: "knowledge.skill.columns.layer", value: displaySkillValue(skill.layer) },
+                                { label: "knowledge.skill.fields.visibility", value: skill.visibility },
+                                { label: "knowledge.labels.knowledgeUri", value: skill.vikingUri ? displaySkillValue(skill.vikingUri) : "ui.generated.c16f4087b8b" },
                                 { label: "ui.generated.c62e951a692", value: skill.isEnabled ? "ui.generated.cd4e9ca3dd4" : "ui.generated.cd989e55188" },
                               ]}
                             />
@@ -216,7 +211,7 @@ export function KnowledgeAssetsPanel({
                         </DialogTrigger>
                         <DialogContent className="w-[min(96vw,980px)]">
                           <DialogHeader>
-                            <DialogTitle>knowledge.assets.edit</DialogTitle>
+                            <DialogTitle>knowledge.skill.edit</DialogTitle>
                             <DialogDescription>{skill.name}</DialogDescription>
                           </DialogHeader>
                           <DialogBody>

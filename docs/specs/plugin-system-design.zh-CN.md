@@ -513,12 +513,12 @@ SSO 插件是第一类真实验证插件。
 - `auth-adapter-core.ts` 保留 `oidc_generic` 与 `assertion_bridge` 通用占位，企业 SSO 差异通过 `auth_sso` 插件能力接入。
 - `auth-core.ts` 已有身份入库、membership、session cookie 和访问白名单逻辑。
 
-目标设计：
+当前落地：
 
 - 插件贡献 `authAdapters`，例如 `official.oidc` 或 `company.sso`。
 - 核心平台控制 `/api/auth/plugins/:adapterId/start` 和 `/api/auth/plugins/:adapterId/callback`。
 - 核心平台负责 state、nonce、PKCE、token exchange、JWKS 校验、userinfo 拉取和 session cookie。
-- 插件只贡献协议类型、claim mapping、配置 schema 和可选的 normalize hook。
+- 插件只贡献协议类型、claim mapping、配置 schema；后续可在隔离 host 中补充 normalize hook。
 - 企业 assertion bridge 可以贡献验签逻辑，但必须运行在隔离 host 中。
 - 管理员判定、团队归属、白名单匹配必须由核心平台执行，插件不得直接设置管理员权限。
 
@@ -634,10 +634,10 @@ Core -> User: set AgentWorld session cookie
 
 第三阶段：SSO 插件
 
-- 实现官方 OIDC 插件。
-- 新增 SSO start/callback 路由。
-- 抽象 `signInWithEnterpriseIdentity()`。
-- 接入 claim mapping、团队映射和白名单。
+- 已新增 SSO start/callback 路由。
+- 已抽象 `signInWithEnterpriseIdentity()`。
+- 已接入 OIDC claim mapping、团队映射、userinfo 同步和白名单评估。
+- 后续补充官方 OIDC 插件包模板、normalize hook 隔离 host 和插件兼容性测试。
 
 第四阶段：逻辑插件运行时
 

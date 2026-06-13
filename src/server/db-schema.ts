@@ -128,6 +128,20 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   last_seen_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS auth_sso_states (
+  state TEXT PRIMARY KEY,
+  adapter_key TEXT NOT NULL,
+  auth_provider_config_id TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  code_verifier TEXT NOT NULL,
+  redirect_uri TEXT NOT NULL,
+  next_path TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS access_whitelist_rules (
   id TEXT PRIMARY KEY,
   tenant_space_id TEXT,
@@ -716,6 +730,19 @@ CREATE TABLE IF NOT EXISTS plugin_manifests (
   extension_only INTEGER NOT NULL,
   source TEXT NOT NULL,
   created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS plugin_contributions (
+  id TEXT PRIMARY KEY,
+  plugin_id TEXT NOT NULL,
+  contribution_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  contribution_json TEXT NOT NULL,
+  lifecycle TEXT NOT NULL,
+  source TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(plugin_id, kind, contribution_id)
 );
 
 CREATE TABLE IF NOT EXISTS provider_adapter_definitions (

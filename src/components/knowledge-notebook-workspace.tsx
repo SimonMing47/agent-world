@@ -2913,6 +2913,7 @@ export function KnowledgeNotebookWorkspace({
 
   return (
     <section
+      data-testid="knowledge-notebook-workspace"
       className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] shadow-[0_22px_64px_rgba(15,23,42,0.07)]"
       onBlurCapture={handleWorkspaceBlur}
       onDragEnter={handleWorkspaceDragEnter}

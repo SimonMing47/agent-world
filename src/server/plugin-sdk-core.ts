@@ -90,6 +90,36 @@ export type ExecutableOutputPublisher = {
   publish(input: Record<string, unknown>, ctx: PluginRuntimeContext): Promise<Record<string, unknown>>;
 };
 
+export type AuthAdapterProtocol = "oidc" | "assertion_bridge" | "external_redirect";
+
+export type AuthAdapterStartResult =
+  | { type: "redirect"; url: string }
+  | { type: "handled"; response: Response };
+
+export type AuthAdapterCallbackResult =
+  | {
+      type: "identity";
+      identity: Record<string, unknown>;
+    }
+  | { type: "handled"; response: Response };
+
+export type ExecutableAuthAdapter = {
+  id: string;
+  mode?: "redirect" | "assertion_bridge";
+  protocol?: AuthAdapterProtocol;
+  capabilities?: string[];
+  start?(input: Record<string, unknown>, ctx: PluginRuntimeContext): Promise<AuthAdapterStartResult>;
+  callback?(input: Record<string, unknown>, ctx: PluginRuntimeContext): Promise<AuthAdapterCallbackResult>;
+  normalizeIdentity?(
+    input: {
+      provider: Record<string, unknown>;
+      claims: Record<string, unknown>;
+      tokens?: Record<string, unknown>;
+    },
+    ctx: PluginRuntimeContext,
+  ): Promise<Record<string, unknown>>;
+};
+
 export type ExecutableToolDefinition = {
   id: string;
   title: string;
@@ -154,6 +184,7 @@ export type ExecutablePluginModule = {
   repositoryConnectors?: ExecutableRepositoryConnector[];
   webhookParsers?: ExecutableWebhookParser[];
   outputPublishers?: ExecutableOutputPublisher[];
+  authAdapters?: ExecutableAuthAdapter[];
   toolBundles?: ExecutableToolBundle[];
 };
 
@@ -183,12 +214,14 @@ export type ExecutableContributionKind =
   | "repositoryConnector"
   | "webhookParser"
   | "outputPublisher"
+  | "authAdapter"
   | "toolBundle";
 
 export type ExecutableContributionMap = {
   repositoryConnector: ExecutableRepositoryConnector;
   webhookParser: ExecutableWebhookParser;
   outputPublisher: ExecutableOutputPublisher;
+  authAdapter: ExecutableAuthAdapter;
   toolBundle: ExecutableToolBundle;
 };
 
@@ -220,6 +253,7 @@ const executableContributionAccessors = {
   repositoryConnector: (module: ExecutablePluginModule) => module.repositoryConnectors ?? [],
   webhookParser: (module: ExecutablePluginModule) => module.webhookParsers ?? [],
   outputPublisher: (module: ExecutablePluginModule) => module.outputPublishers ?? [],
+  authAdapter: (module: ExecutablePluginModule) => module.authAdapters ?? [],
   toolBundle: (module: ExecutablePluginModule) => module.toolBundles ?? [],
 } satisfies {
   [Kind in ExecutableContributionKind]: (
@@ -231,6 +265,7 @@ const executableContributionManifestKeys = {
   repositoryConnector: "repositoryConnectors",
   webhookParser: "webhookParsers",
   outputPublisher: "outputPublishers",
+  authAdapter: "authAdapters",
   toolBundle: "toolBundles",
 } satisfies Record<ExecutableContributionKind, keyof ExecutablePluginManifest["spec"]["contributions"]>;
 
@@ -308,7 +343,7 @@ export function toPluginManifest(module: ExecutablePluginModule): PluginManifest
     id: module.manifest.metadata.id,
     name: module.manifest.metadata.name,
     version: module.manifest.metadata.version,
-    capability: "code_repo",
+    capability: deriveManifestCapability(module.manifest),
     lifecycle: "declared",
     mountPoint: "execution-environment",
     configSchema: JSON.stringify(module.manifest.spec.configSchema ?? {}),
@@ -317,6 +352,23 @@ export function toPluginManifest(module: ExecutablePluginModule): PluginManifest
     healthCheck: `${module.manifest.spec.runtime.type}:${module.manifest.spec.runtime.entry}`,
     extensionOnly: true,
   };
+}
+
+function deriveManifestCapability(manifest: ExecutablePluginManifest): PluginManifest["capability"] {
+  const contributions = manifest.spec.contributions;
+  if (contributions.authAdapters?.length) return "auth_sso";
+  if (contributions.providerAdapters?.length) return "provider_adapter";
+  if (contributions.codebaseEngines?.length) return "codebase_engine";
+  if (contributions.knowledgeSources?.length) return "knowledge_source";
+  if (contributions.knowledgeAssets?.length || contributions.skills?.length) return "knowledge";
+  if (
+    contributions.repositoryConnectors?.length ||
+    contributions.webhookParsers?.length ||
+    contributions.outputPublishers?.length
+  ) {
+    return "code_repo";
+  }
+  return "tool";
 }
 
 export function listExecutablePluginModules() {
@@ -363,7 +415,7 @@ export function listOfficialPluginManifests() {
         id: parsed.metadata.id,
         name: parsed.metadata.name,
         version: parsed.metadata.version,
-        capability: "code_repo",
+        capability: deriveManifestCapability(parsed),
         lifecycle: "declared",
         mountPoint: "execution-environment",
         configSchema: JSON.stringify(parsed.spec.configSchema ?? {}),
@@ -437,6 +489,10 @@ export function resolveOutputPublisher(
   ref: string | null | undefined,
 ): ExecutableOutputPublisher | null {
   return resolveExecutableContribution("outputPublisher", ref) as ExecutableOutputPublisher | null;
+}
+
+export function resolveAuthAdapter(ref: string | null | undefined): ExecutableAuthAdapter | null {
+  return resolveExecutableContribution("authAdapter", ref) as ExecutableAuthAdapter | null;
 }
 
 export function resolveToolBundle(ref: string | null | undefined): ExecutableToolBundle | null {

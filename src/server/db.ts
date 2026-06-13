@@ -142,6 +142,20 @@ export type AuthSession = {
   lastSeenAt: string;
 };
 
+export type AuthSsoState = {
+  state: string;
+  adapterKey: string;
+  authProviderConfigId: string;
+  nonce: string;
+  codeVerifier: string;
+  redirectUri: string;
+  nextPath: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
+  updatedAt: string;
+};
+
 export type AccessWhitelistRule = {
   id: string;
   tenantSpaceId: string | null;
@@ -726,6 +740,18 @@ export type ImportedPluginManifest = {
   extensionOnly: number;
   source: string;
   createdAt: string;
+};
+
+export type ImportedPluginContribution = {
+  id: string;
+  pluginId: string;
+  contributionId: string;
+  kind: string;
+  contributionJson: string;
+  lifecycle: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ProviderAdapterDefinition = {

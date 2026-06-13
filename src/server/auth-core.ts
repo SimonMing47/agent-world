@@ -16,7 +16,6 @@ import {
   type LocalAuthCredential,
   type SystemSetting,
 } from "@/server/db";
-import { listBusinessTeams } from "@/server/queries";
 
 export { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 
@@ -109,8 +108,18 @@ function parseJsonArray(value: string | null | undefined) {
   }
 }
 
+function listAuthBusinessTeams() {
+  return queryAll<BusinessTeam>("SELECT * FROM business_teams WHERE status <> 'deleted' ORDER BY name ASC");
+}
+
 function normalizeUsername(value: string) {
   return value.trim().toLowerCase();
+}
+
+function assertNoEnvSecretReference(value: string | null | undefined) {
+  if (value?.trim().toLowerCase().startsWith("env:")) {
+    throw new Error("pluginSdk.errors.envSecretRefUnsupported");
+  }
 }
 
 function hashPassword(password: string) {
@@ -199,6 +208,27 @@ export type AuthContext = {
   settings: IdentityAccessSettings;
 };
 
+export type EnterpriseIdentityTeamMembership = {
+  businessTeamId?: string | null;
+  teamSlug?: string | null;
+  teamName?: string | null;
+  roleTitle?: string | null;
+  isPrimary?: boolean;
+};
+
+export type EnterpriseIdentityInput = {
+  authProviderConfigId: string;
+  externalUserId: string;
+  employeeNo?: string | null;
+  email?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+  title?: string | null;
+  isSystemAdmin?: boolean;
+  profile?: Record<string, unknown>;
+  teamMemberships?: EnterpriseIdentityTeamMembership[];
+};
+
 export function listAuthProviderConfigs() {
   return queryAll<AuthProviderConfig>(
     "SELECT * FROM auth_provider_configs WHERE status <> 'deleted' ORDER BY updated_at DESC, name ASC",
@@ -209,6 +239,7 @@ export function upsertAuthProviderConfig(
   input: Partial<AuthProviderConfig> &
     Pick<AuthProviderConfig, "name" | "adapterKey" | "status">,
 ) {
+  assertNoEnvSecretReference(input.clientSecretRef);
   const id = input.id || randomUUID();
   const current = queryOne<AuthProviderConfig>("SELECT * FROM auth_provider_configs WHERE id = ?", id);
   const createdAt = current?.createdAt ?? nowIso();
@@ -442,6 +473,134 @@ function createAuthSession(userId: string, authProviderConfigId: string | null =
     sessionToken,
     context,
   };
+}
+
+function normalizeEmail(value: string | null | undefined, externalUserId: string) {
+  const trimmed = value?.trim().toLowerCase();
+  return trimmed || `${externalUserId.replace(/[^a-zA-Z0-9._-]/g, "_")}@identity.local`;
+}
+
+function resolveIdentityBusinessTeam(
+  membership: EnterpriseIdentityTeamMembership,
+  teams: BusinessTeam[],
+) {
+  if (membership.businessTeamId) {
+    return teams.find((team) => team.id === membership.businessTeamId) ?? null;
+  }
+  if (membership.teamSlug) {
+    return teams.find((team) => team.slug === membership.teamSlug) ?? null;
+  }
+  if (membership.teamName) {
+    return teams.find((team) => team.name === membership.teamName) ?? null;
+  }
+  return null;
+}
+
+function syncEnterpriseIdentityMemberships(userId: string, memberships: EnterpriseIdentityTeamMembership[]) {
+  if (memberships.length === 0) return null;
+  const teams = listAuthBusinessTeams();
+  let primaryBusinessTeamId: string | null = null;
+  const now = nowIso();
+  const seen = new Set<string>();
+
+  memberships.forEach((membership, index) => {
+    const team = resolveIdentityBusinessTeam(membership, teams);
+    if (!team || seen.has(team.id)) return;
+    seen.add(team.id);
+    const isPrimary = membership.isPrimary === true || (!primaryBusinessTeamId && index === 0);
+    if (isPrimary) primaryBusinessTeamId = team.id;
+    const existing = queryOne<IdentityUserBusinessTeamMembership>(
+      "SELECT * FROM identity_user_business_team_memberships WHERE user_id = ? AND business_team_id = ? LIMIT 1",
+      userId,
+      team.id,
+    );
+    execute(
+      "INSERT OR REPLACE INTO identity_user_business_team_memberships (id, user_id, business_team_id, membership_source, source_ref, role_title, is_primary, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      existing?.id ?? randomUUID(),
+      userId,
+      team.id,
+      "sso",
+      membership.teamSlug ?? membership.teamName ?? team.slug,
+      membership.roleTitle ?? existing?.roleTitle ?? "",
+      isPrimary ? 1 : 0,
+      existing?.createdAt ?? now,
+      now,
+    );
+  });
+
+  if (primaryBusinessTeamId) {
+    execute(
+      "UPDATE identity_user_business_team_memberships SET is_primary = 0, updated_at = ? WHERE user_id = ? AND business_team_id <> ?",
+      now,
+      userId,
+      primaryBusinessTeamId,
+    );
+  }
+
+  return primaryBusinessTeamId;
+}
+
+export function signInWithEnterpriseIdentity(input: EnterpriseIdentityInput) {
+  const provider = queryOne<AuthProviderConfig>(
+    "SELECT * FROM auth_provider_configs WHERE id = ? AND status = 'active' LIMIT 1",
+    input.authProviderConfigId,
+  );
+  if (!provider) {
+    throw new Error("identityAccess.sso.errors.providerNotFound");
+  }
+
+  const externalUserId = input.externalUserId.trim();
+  if (!externalUserId) {
+    throw new Error("identityAccess.sso.errors.externalUserMissing");
+  }
+
+  const email = normalizeEmail(input.email, externalUserId);
+  const existing =
+    queryOne<IdentityUser>(
+      "SELECT * FROM identity_users WHERE auth_provider_config_id = ? AND external_user_id = ? AND status <> 'deleted' LIMIT 1",
+      provider.id,
+      externalUserId,
+    ) ??
+    queryOne<IdentityUser>(
+      "SELECT * FROM identity_users WHERE email = ? AND status <> 'deleted' ORDER BY updated_at DESC LIMIT 1",
+      email,
+    );
+  const userId = existing?.id ?? randomUUID();
+  const createdAt = existing?.createdAt ?? nowIso();
+  const now = nowIso();
+  const teamPrimaryId = syncEnterpriseIdentityMemberships(userId, input.teamMemberships ?? []);
+  const profile = {
+    ...parseJsonRecord(existing?.profileJson),
+    ...(input.profile ?? {}),
+    sso: {
+      providerId: provider.id,
+      adapterKey: provider.adapterKey,
+      externalUserId,
+      syncedAt: now,
+    },
+  };
+
+  execute(
+    "INSERT OR REPLACE INTO identity_users (id, tenant_space_id, auth_provider_config_id, external_user_id, employee_no, email, name, avatar_url, title, status, is_system_admin, primary_business_team_id, profile_json, created_at, updated_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    userId,
+    provider.tenantSpaceId ?? existing?.tenantSpaceId ?? null,
+    provider.id,
+    externalUserId,
+    input.employeeNo?.trim() || existing?.employeeNo || externalUserId,
+    email,
+    input.name?.trim() || existing?.name || email,
+    input.avatarUrl?.trim() || existing?.avatarUrl || "",
+    input.title?.trim() || existing?.title || "",
+    "active",
+    existing?.isSystemAdmin === 1 || input.isSystemAdmin === true ? 1 : 0,
+    teamPrimaryId ?? existing?.primaryBusinessTeamId ?? null,
+    normalizeJson(profile, {}),
+    createdAt,
+    now,
+    now,
+  );
+
+  return createAuthSession(userId, provider.id);
 }
 
 export function ensureBootstrapLocalAdmin() {
@@ -683,7 +842,7 @@ export function getAuthContextBySessionToken(sessionToken: string | null | undef
   const memberships = listIdentityUserMemberships(user.id);
   const localCredential = getLocalAuthCredentialForUser(user.id);
   const whitelistRules = listAccessWhitelistRules().filter((rule) => rule.status === "active");
-  const teams = listBusinessTeams().filter((team) => team.status !== "deleted");
+  const teams = listAuthBusinessTeams();
   const access = evaluateWhitelistAccess({
     user,
     memberships,

@@ -80,6 +80,7 @@ export function SignInEntry({
   const searchParams = useSearchParams();
   const text = useLanguageText();
   const next = normalizeNextPath(searchParams.get("next"));
+  const signInError = searchParams.get("error");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -97,10 +98,25 @@ export function SignInEntry({
       ? ssoPlugin.name
       : text(settings.ssoButtonLabel, settings.ssoButtonLabel);
 
+  function buildSsoHref() {
+    if (!ssoHref) return "";
+    try {
+      const url = new URL(ssoHref, window.location.origin);
+      url.searchParams.set("next", next);
+      return url.origin === window.location.origin ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+    } catch {
+      return ssoHref;
+    }
+  }
+
   useEffect(() => {
     router.prefetch(next);
     router.prefetch(`/change-password?next=${encodeURIComponent(next)}`);
   }, [next, router]);
+
+  useEffect(() => {
+    if (signInError) setMessage(signInError);
+  }, [signInError]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -362,7 +378,8 @@ export function SignInEntry({
               className="aw-auth-sso-button h-11 w-full"
               disabled={!ssoHref}
               onClick={() => {
-                if (ssoHref) window.location.href = ssoHref;
+                const nextSsoHref = buildSsoHref();
+                if (nextSsoHref) window.location.href = nextSsoHref;
               }}
             >
               {settings.ssoButtonLogoUrl ? (
