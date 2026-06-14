@@ -97,6 +97,17 @@ export function matchWebhookBlueprints(pathKey: string, blueprints: TaskBlueprin
   });
 }
 
+export function matchWebhookBlueprintsForEndpoint(
+  webhook: Pick<WebhookEndpoint, "businessTeamId" | "pathKey" | "teamId">,
+  blueprints: TaskBlueprint[],
+) {
+  return matchWebhookBlueprints(webhook.pathKey, blueprints).filter(
+    (blueprint) =>
+      blueprint.teamId === webhook.teamId &&
+      blueprint.ownerBusinessTeamId === webhook.businessTeamId,
+  );
+}
+
 export function buildWebhookTaskInput(pathKey: string, payload: unknown, request: Request) {
   const eventName =
     request.headers.get("x-gitlab-event") ??

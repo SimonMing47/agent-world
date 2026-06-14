@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ type RuntimeSessionCreateFormProps = {
 
 export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const defaultMode = props.initialMode ?? "single_agent";
@@ -265,7 +267,7 @@ export function RuntimeSessionCreateForm(props: RuntimeSessionCreateFormProps) {
         <Button type="button" onClick={submit} disabled={isSaving}>
           {isSaving ? "ui.generated.c0db71cb110" : "ui.generated.c69feaeaa1c"}
         </Button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="text-xs text-[var(--ink-muted)]">{text(message, message)}</div> : null}
       </div>
     </div>
   );

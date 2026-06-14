@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, LockKeyhole, Mail, ShieldCheck, UserPlus, UserRound } from "lucide-react";
 import { AgentWorldLogo } from "@/components/agentworld-logo";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
+import { ExternalImage } from "@/components/ui/external-image";
 import { Input } from "@/components/ui/input";
 
 type SignInSettings = {
@@ -227,6 +228,12 @@ export function SignInEntry({
     }
   }
 
+  function submitCredentials(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSubmitting || isEntering) return;
+    void (mode === "register" ? submitRegister() : submitLogin());
+  }
+
   return (
     <>
       {isEntering ? <WormholeTransition /> : null}
@@ -262,7 +269,7 @@ export function SignInEntry({
               </div>
             ) : null}
 
-            <div className="aw-auth-form-fields mt-5 space-y-4">
+            <form className="aw-auth-form-fields mt-5 space-y-4" onSubmit={submitCredentials}>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-white/72">
                   {text("identityAccess.signIn.fields.username")}
@@ -273,9 +280,6 @@ export function SignInEntry({
                     autoComplete="username"
                     value={username}
                     onChange={(event) => setUsername(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") void (mode === "register" ? submitRegister() : submitLogin());
-                    }}
                     className={inputClass}
                   />
                 </div>
@@ -326,9 +330,6 @@ export function SignInEntry({
                     autoComplete={mode === "register" ? "new-password" : "current-password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") void (mode === "register" ? submitRegister() : submitLogin());
-                    }}
                     className={inputClass}
                   />
                 </div>
@@ -346,9 +347,6 @@ export function SignInEntry({
                       autoComplete="new-password"
                       value={registerConfirmPassword}
                       onChange={(event) => setRegisterConfirmPassword(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") void submitRegister();
-                      }}
                       className={inputClass}
                     />
                   </div>
@@ -356,9 +354,8 @@ export function SignInEntry({
               ) : null}
 
               <Button
-                type="button"
+                type="submit"
                 className={`aw-auth-primary-button h-11 w-full ${isSubmitting || isEntering ? "is-charging" : ""}`}
-                onClick={mode === "register" ? submitRegister : submitLogin}
                 disabled={isSubmitting || isEntering}
               >
                 {mode === "register" ? <UserPlus className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
@@ -366,7 +363,7 @@ export function SignInEntry({
                   ? text(mode === "register" ? "identityAccess.register.submitting" : "identityAccess.signIn.submitting")
                   : text(mode === "register" ? "identityAccess.register.submit" : "identityAccess.signIn.submit")}
               </Button>
-            </div>
+            </form>
           </>
         ) : null}
 
@@ -383,8 +380,7 @@ export function SignInEntry({
               }}
             >
               {settings.ssoButtonLogoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={settings.ssoButtonLogoUrl} alt="" className="h-5 w-5 rounded-[4px] object-contain" />
+                <ExternalImage src={settings.ssoButtonLogoUrl} alt="" className="h-5 w-5 rounded-[4px] object-contain" />
               ) : (
                 <ShieldCheck className="h-4 w-4 text-cyan-100" />
               )}

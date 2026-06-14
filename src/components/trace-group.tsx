@@ -34,7 +34,7 @@ export function TraceGroup({
               {events.length} {uiText("ui.generated.cee5f313268")}
             </div>
           </div>
-          <div className="text-sm text-[var(--ink-muted)]">ui.generated.cbecc67987b</div>
+          <div className="text-sm text-[var(--ink-muted)]">{uiText("ui.generated.cbecc67987b")}</div>
         </div>
       </summary>
       <div className="space-y-3 border-t border-[var(--line)] px-5 py-4">

@@ -223,7 +223,7 @@ export function ProviderProfileForm({
         checked={form.isEnabled}
         onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      ui.generated.cd4e9ca3dd4
+      {text("ui.generated.cd4e9ca3dd4")}
     </label>
   );
 
@@ -376,7 +376,7 @@ export function ProviderProfileForm({
                 checked={form.reasoning}
                 onChange={(event) => setForm({ ...form, reasoning: event.target.checked })}
               />
-              ui.generated.caa23f730d0
+              {text("ui.generated.caa23f730d0")}
             </label>
           </div>
           <FieldGroup
@@ -399,7 +399,7 @@ export function ProviderProfileForm({
           >
             {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.cd3a54b3d46"}
           </Button>
-          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{text(message, message)}</div> : null}
         </div>
       </div>
     </>

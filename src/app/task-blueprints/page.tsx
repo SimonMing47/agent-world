@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Eye, PencilLine, Plus } from "lucide-react";
 import { DeleteResourceButton } from "@/components/delete-resource-button";
 import { PageHeader } from "@/components/page-header";
+import { SoftwareTeamWorkflowStarter } from "@/components/software-team-workflow-starter";
 import { TaskBlueprintEditor } from "@/components/task-blueprint-editor";
+import { TaskBlueprintSchedulerConsole } from "@/components/task-blueprint-scheduler-console";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DataTable,
@@ -59,11 +62,20 @@ function parsePublishers(value: unknown) {
     .filter(Boolean);
 }
 
-function triggerLabel(trigger: Record<string, unknown>) {
-  if (trigger.type === "webhook") return `Webhook · ${String(trigger.event ?? trigger.webhookPathKey ?? "")}`;
-  if (trigger.type === "cron") return `Cron · ${String(trigger.expression ?? "")}`;
-  if (trigger.type === "access_grant") return "ui.generated.c2c4520c3e3";
-  return "ui.generated.c044f207b47";
+function triggerLabel(
+  trigger: Record<string, unknown>,
+  t: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
+) {
+  if (trigger.type === "webhook") {
+    const value = String(trigger.event ?? trigger.webhookPathKey ?? t("ui.taskBlueprints.trigger.empty"));
+    return t("ui.taskBlueprints.trigger.webhook", undefined, { value });
+  }
+  if (trigger.type === "cron") {
+    const value = String(trigger.expression ?? t("ui.taskBlueprints.trigger.empty"));
+    return t("ui.taskBlueprints.trigger.cron", undefined, { value });
+  }
+  if (trigger.type === "access_grant") return t("ui.taskBlueprints.trigger.accessGrant");
+  return t("ui.taskBlueprints.trigger.manual");
 }
 
 function defaultBlueprint() {
@@ -94,10 +106,17 @@ function defaultBlueprint() {
 }
 
 function compactValue(value: unknown) {
-  if (value === undefined || value === null || value === "") return "ui.generated.c72077749f7";
-  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "ui.generated.c72077749f7";
+  if (value === undefined || value === null || value === "") return "ui.taskBlueprints.values.none";
+  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "ui.taskBlueprints.values.none";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
+}
+
+function readinessVariant(status: string): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (status === "ready") return "success";
+  if (status === "needs_attention") return "warning";
+  if (status === "blocked") return "danger";
+  return "neutral";
 }
 
 function codebaseScopeLabel(
@@ -115,6 +134,11 @@ function codebaseScopeLabel(
   return names.length <= 2
     ? names.join(", ")
     : t("ui.taskBlueprintEditor.codebaseScope.selectedCount", undefined, { count: names.length });
+}
+
+function blueprintIdFromScheduleTemplateId(templateId: string) {
+  const match = templateId.match(/^blueprint:(.+):trigger$/);
+  return match?.[1] ?? "";
 }
 
 export default async function TaskBlueprintsPage({
@@ -152,6 +176,13 @@ export default async function TaskBlueprintsPage({
       .map((blueprint) => blueprint.id),
   );
   const visibleBlueprints = snapshot.blueprints.filter((blueprint) => visibleBlueprintIds.has(blueprint.id));
+  const visibleScheduleAssessments = snapshot.scheduleAssessments.filter((assessment) =>
+    visibleBlueprintIds.has(blueprintIdFromScheduleTemplateId(assessment.templateId)),
+  );
+  const scheduledCount = visibleScheduleAssessments.filter((assessment) =>
+    assessment.state === "due" || assessment.state === "scheduled",
+  ).length;
+  const dueCount = visibleScheduleAssessments.filter((assessment) => assessment.state === "due").length;
   const baseDefaultBlueprint = defaultBlueprint();
   const defaultNewBlueprint = {
     ...baseDefaultBlueprint,
@@ -161,61 +192,69 @@ export default async function TaskBlueprintsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.c4b2b8be8a2"
-        title="ui.generated.c971c6e5190"
-        description="ui.generated.c8fc234d252"
+        eyebrow="ui.taskBlueprints.header.eyebrow"
+        title="ui.taskBlueprints.header.title"
+        description="ui.taskBlueprints.header.description"
         badges={[
           { label: <>{visibleBlueprints.length} ui.common.count.taskBlueprints</>, variant: "accent" },
-          { label: selectedTeam?.name ?? "ui.generated.ce3bcba3752", variant: "neutral" },
+          { label: selectedTeam?.name ?? "ui.taskBlueprints.values.allTeams", variant: "neutral" },
         ]}
       />
 
       <SummaryStrip
         items={[
           {
-            label: "ui.generated.c971c6e5190",
+            label: "ui.taskBlueprints.summary.total",
             value: visibleBlueprints.length,
             detail: <>{visibleBlueprints.filter((item) => item.status === "active").length} ui.common.detail.enabled</>,
           },
           {
-            label: "Webhook / Cron",
+            label: "ui.taskBlueprints.summary.automation",
             value: visibleBlueprints.filter((item) => ["webhook", "cron"].includes(String(item.trigger.type))).length,
-            detail: "ui.generated.c59abb92a56",
+            detail: "ui.taskBlueprints.summary.automationDetail",
           },
           {
-            label: "ui.generated.c549d54135d",
-            value: visibleBlueprints.filter((item) => item.environmentName !== "ui.generated.c304b35fa0b").length,
-            detail: "ui.generated.c3fd83f822a",
+            label: "ui.taskBlueprints.summary.boundEnvironment",
+            value: visibleBlueprints.filter((item) => Boolean(rawMap.get(item.id)?.environmentId)).length,
+            detail: "ui.taskBlueprints.summary.boundEnvironmentDetail",
           },
         ]}
       />
 
+      <SoftwareTeamWorkflowStarter options={options} selectedBusinessTeamId={selectedTeam?.id} />
+
+      <TaskBlueprintSchedulerConsole scheduledCount={scheduledCount} dueCount={dueCount} />
+
       <Panel>
         <PanelHeader
-          eyebrow="ui.generated.c41e5243e2d"
-          title="ui.generated.c1d43bcb9b7"
-          description={selectedTeam ? <>ui.common.detail.currentOnlyShows {selectedTeam.name} ui.common.detail.blueprintsOnly</> : "ui.generated.c22951a6db9"}
+          eyebrow="ui.taskBlueprints.list.eyebrow"
+          title="ui.taskBlueprints.list.title"
+          description={
+            selectedTeam
+              ? t("ui.taskBlueprints.list.descriptionTeam", undefined, { teamName: selectedTeam.name })
+              : "ui.taskBlueprints.list.descriptionAll"
+          }
           action={
             <div className="flex flex-wrap gap-2">
               {selectedTeam ? (
-                <Button asChild size="sm" variant="ghost"><Link href="/task-blueprints">ui.generated.ced2172fd78</Link></Button>
+                <Button asChild size="sm" variant="ghost"><Link href="/task-blueprints">ui.taskBlueprints.list.clearTeam</Link></Button>
               ) : null}
               <Dialog>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="secondary">
                     <Plus className="h-4 w-4" />
-                    ui.generated.ca503a0712c
+                    ui.taskBlueprints.list.create
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="w-[min(96vw,1180px)]">
                   <DialogHeader>
-                    <DialogTitle>ui.generated.c776ad11882</DialogTitle>
-                    <DialogDescription>ui.generated.c4ab4516d37</DialogDescription>
+                    <DialogTitle>ui.taskBlueprints.list.createTitle</DialogTitle>
+                    <DialogDescription>ui.taskBlueprints.list.createDescription</DialogDescription>
                   </DialogHeader>
                   <DialogBody>
                     <TaskBlueprintEditor
                       embedded
-                      title="ui.generated.c776ad11882"
+                      title="ui.taskBlueprints.list.createTitle"
                       blueprint={defaultNewBlueprint}
                       options={options}
                     />
@@ -229,13 +268,14 @@ export default async function TaskBlueprintsPage({
           <DataTable>
             <DataTableHeader>
               <DataTableRow className="hover:bg-transparent">
-                <DataTableHead>ui.generated.c971c6e5190</DataTableHead>
-                <DataTableHead>ui.generated.c97fa784b22</DataTableHead>
-                <DataTableHead>ui.generated.cf67f1852d8</DataTableHead>
-                <DataTableHead>ui.generated.c059d73c843</DataTableHead>
-                <DataTableHead>ui.generated.cdcb82b8701</DataTableHead>
-                <DataTableHead>ui.generated.c093dea88c9</DataTableHead>
-                <DataTableHead align="right">ui.generated.cf3ea6d345e</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.blueprint</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.team</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.trigger</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.environment</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.status</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.readiness</DataTableHead>
+                <DataTableHead>ui.taskBlueprints.columns.updated</DataTableHead>
+                <DataTableHead align="right">ui.taskBlueprints.columns.actions</DataTableHead>
               </DataTableRow>
             </DataTableHeader>
             <DataTableBody>
@@ -267,15 +307,15 @@ export default async function TaskBlueprintsPage({
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">{blueprint.agentTeamName}</div>
                     </DataTableCell>
                     <DataTableCell>
-                      <div>{triggerLabel(trigger)}</div>
+                      <div>{triggerLabel(trigger, t)}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {trigger.idempotencyKey ? <>ui.common.idempotencyKeyPrefix {String(trigger.idempotencyKey)}</> : "ui.generated.cb2b6bde95b"}
+                        {trigger.idempotencyKey ? <>ui.common.idempotencyKeyPrefix {String(trigger.idempotencyKey)}</> : "ui.taskBlueprints.values.none"}
                       </div>
                     </DataTableCell>
                     <DataTableCell>
                       <div>{blueprint.environmentName}</div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
-                        {selector.executionPath ? <>{t("ui.common.pathPrefix")} {String(selector.executionPath)}</> : t("ui.generated.c4202f60d95")}
+                        {selector.executionPath ? <>{t("ui.common.pathPrefix")} {String(selector.executionPath)}</> : t("ui.taskBlueprints.values.none")}
                       </div>
                       <div className="mt-1 text-xs text-[var(--ink-muted)]">
                         {t("ui.taskBlueprintEditor.fields.codebaseScope")} · {scopeLabel}
@@ -291,7 +331,23 @@ export default async function TaskBlueprintsPage({
                         </span>
                       </div>
                       <div className="mt-2 text-xs text-[var(--ink-muted)]">
-                        {t("ui.generated.c94f172d02f")} {publishers.length ? publishers.join(", ") : "dashboard"}
+                        {t("ui.taskBlueprints.outputPrefix")} {publishers.length ? publishers.join(", ") : t("ui.taskBlueprints.values.dashboard")}
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell className="min-w-[180px]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={readinessVariant(blueprint.readiness.status)}>
+                          {t(`ui.taskBlueprintReadiness.status.${blueprint.readiness.status}`)}
+                        </Badge>
+                        <span className="text-sm font-medium text-[var(--ink)]">
+                          {t("ui.taskBlueprintReadiness.score", undefined, { score: blueprint.readiness.score })}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--ink-muted)]">
+                        {t("ui.taskBlueprintReadiness.issueSummary", undefined, {
+                          blockers: blueprint.readiness.blockerCount,
+                          warnings: blueprint.readiness.warningCount,
+                        })}
                       </div>
                     </DataTableCell>
                     <DataTableCell>{formatDateTime(raw.updatedAt)}</DataTableCell>
@@ -301,48 +357,47 @@ export default async function TaskBlueprintsPage({
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <Eye className="h-4 w-4" />
-                              ui.generated.cf7acefd2d4
+                              ui.taskBlueprints.list.view
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,980px)]">
                             <DialogHeader>
                               <DialogTitle>{blueprint.name}</DialogTitle>
-                              <DialogDescription>ui.generated.c70a5b469a0</DialogDescription>
+                              <DialogDescription>ui.taskBlueprints.list.viewDescription</DialogDescription>
                             </DialogHeader>
                             <DialogBody className="space-y-5">
                               <DefinitionList
                                 items={[
-                                  { label: "ui.generated.c617a5f9a25", value: blueprint.id },
-                                  { label: "ui.generated.c3c943b28b2", value: blueprint.category },
-                                  { label: "ui.generated.c2b90028ff3", value: blueprint.businessTeamName },
-                                  { label: "ui.generated.c70f970c1fc", value: blueprint.agentTeamName },
-                                  { label: "ui.generated.c059d73c843", value: blueprint.environmentName },
-                                  { label: "ui.generated.c130e6348e4", value: "ui.generated.c130e6348e4" },
-                                  { label: "ui.generated.c62e951a692", value: translateStatus(blueprint.status) },
-                                  { label: "ui.generated.c747b74cec9", value: translateVisibility(blueprint.visibility) },
+                                  { label: "ui.taskBlueprints.fields.id", value: blueprint.id },
+                                  { label: "ui.taskBlueprints.fields.category", value: blueprint.category },
+                                  { label: "ui.taskBlueprints.fields.businessTeam", value: blueprint.businessTeamName },
+                                  { label: "ui.taskBlueprints.fields.agentTeam", value: blueprint.agentTeamName },
+                                  { label: "ui.taskBlueprints.fields.environment", value: blueprint.environmentName },
+                                  { label: "ui.taskBlueprints.columns.status", value: translateStatus(blueprint.status) },
+                                  { label: "ui.taskBlueprints.fields.visibility", value: translateVisibility(blueprint.visibility) },
                                 ]}
                               />
 
                               <DefinitionList
                                 items={[
-                                  { label: "ui.generated.cf67f1852d8", value: triggerLabel(trigger) },
-                                  { label: "ui.generated.cc2dd028659", value: compactValue(trigger.connector) },
-                                  { label: "ui.generated.c550e328062", value: compactValue(trigger.event) },
-                                  { label: "ui.generated.cb2b35cae7f", value: compactValue(trigger.webhookPathKey) },
-                                  { label: "Cron", value: compactValue(trigger.expression) },
-                                  { label: "ui.generated.cbec9421d1b", value: compactValue(trigger.idempotencyKey) },
+                                  { label: "ui.taskBlueprints.fields.summary", value: triggerLabel(trigger, t) },
+                                  { label: "ui.taskBlueprints.fields.connector", value: compactValue(trigger.connector) },
+                                  { label: "ui.taskBlueprints.fields.event", value: compactValue(trigger.event) },
+                                  { label: "ui.taskBlueprints.fields.webhookPath", value: compactValue(trigger.webhookPathKey) },
+                                  { label: "ui.taskBlueprints.fields.cron", value: compactValue(trigger.expression) },
+                                  { label: "ui.taskBlueprints.fields.idempotencyKey", value: compactValue(trigger.idempotencyKey) },
                                 ]}
                               />
 
                               <DefinitionList
                                 items={[
-                                  { label: "ui.generated.c2e570732c1", value: compactValue(selector.repoBinding) },
+                                  { label: "ui.taskBlueprints.fields.repoBinding", value: compactValue(selector.repoBinding) },
                                   { label: "ui.taskBlueprintEditor.fields.codebaseScope", value: scopeLabel },
-                                  { label: "ui.generated.cba5d810d8e", value: compactValue(selector.checkoutMode) },
-                                  { label: "ui.generated.c9ff2c99ee4", value: compactValue(selector.executionPath) },
-                                  { label: "ui.generated.c5b587a4e31", value: compactValue(selector.sandboxMode) },
-                                  { label: "ui.generated.c945fc763f7", value: compactValue(selector.sandboxRef) },
-                                  { label: "ui.generated.c305d5f7578", value: publishers.length ? publishers.join(", ") : "dashboard" },
+                                  { label: "ui.taskBlueprints.fields.checkoutMode", value: compactValue(selector.checkoutMode) },
+                                  { label: "ui.taskBlueprints.fields.executionPath", value: compactValue(selector.executionPath) },
+                                  { label: "ui.taskBlueprints.fields.sandboxMode", value: compactValue(selector.sandboxMode) },
+                                  { label: "ui.taskBlueprints.fields.sandboxRef", value: compactValue(selector.sandboxRef) },
+                                  { label: "ui.taskBlueprints.fields.publishers", value: publishers.length ? publishers.join(", ") : "ui.taskBlueprints.values.dashboard" },
                                 ]}
                               />
                             </DialogBody>
@@ -353,18 +408,18 @@ export default async function TaskBlueprintsPage({
                           <DialogTrigger asChild>
                             <Button size="sm" variant="ghost">
                               <PencilLine className="h-4 w-4" />
-                              ui.generated.ca7f814c0a4
+                              ui.taskBlueprints.list.edit
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="w-[min(96vw,1180px)]">
                             <DialogHeader>
-                              <DialogTitle>ui.generated.ca7f814c0a4 {blueprint.name}</DialogTitle>
-                              <DialogDescription>ui.generated.cec4658d09a</DialogDescription>
+                              <DialogTitle>{t("ui.taskBlueprints.list.editTitle", undefined, { name: blueprint.name })}</DialogTitle>
+                              <DialogDescription>ui.taskBlueprints.list.editDescription</DialogDescription>
                             </DialogHeader>
                             <DialogBody>
                               <TaskBlueprintEditor
                                 embedded
-                                title="actions.edit"
+                                title="ui.taskBlueprints.list.edit"
                                 blueprint={raw}
                                 options={options}
                               />

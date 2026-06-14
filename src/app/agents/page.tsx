@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Panel, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { formatDateTime } from "@/lib/utils";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { parseAgentCapabilityProfile } from "@/lib/agent-capability-profile";
@@ -42,6 +43,7 @@ import {
   listProviders,
   listProviderRuntimeBindings,
 } from "@/server/queries";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 
 function parseStringArray(value: string) {
   try {
@@ -53,6 +55,9 @@ function parseStringArray(value: string) {
 }
 
 export default async function AgentsPage() {
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const authContext = await getRequestAuthContext();
   const businessTeams = filterBusinessTeamsForAuthContext(listBusinessTeams(), authContext);
   const visibleBusinessTeamIds = new Set(businessTeams.map((team) => team.id));
@@ -76,7 +81,7 @@ export default async function AgentsPage() {
         description="ui.generated.c69802baf5e"
         badges={[
           { label: <>{definitions.length} ui.common.count.agents</>, variant: "accent" },
-          { label: <>{definitions.filter((item) => item.validationStatus === "passed").length} ui.generated.c923a1cdedd</>, variant: "neutral" },
+          { label: <>{definitions.filter((item) => item.validationStatus === "passed").length} {t("ui.generated.c923a1cdedd")}</>, variant: "neutral" },
         ]}
       />
 
@@ -90,7 +95,7 @@ export default async function AgentsPage() {
           {
             label: "ui.generated.ce995c6b170",
             value: definitions.filter((item) => item.visibility === "team").length,
-            detail: <>{shares.length} ui.generated.c3e2aa4cf66</>,
+            detail: <>{shares.length} {t("ui.generated.c3e2aa4cf66")}</>,
           },
           {
             label: "ui.generated.cdab54dd8bb",

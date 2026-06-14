@@ -1,15 +1,35 @@
 import { NextResponse } from "next/server";
 import { uiText } from "@/lib/language-pack";
-import { optimizeAgentTeamDraft } from "@/server/agent-team-core";
+import {
+  apiAccessErrorResponse,
+  assertAgentTeamSaveAccess,
+  requireAuthenticatedActor,
+} from "@/server/api-access-control";
+import { queryOne, type AgentTeam } from "@/server/db";
 
 export const dynamic = "force-dynamic";
 
+type AgentTeamActionBody = {
+  team?: {
+    id?: string;
+    businessTeamId?: string | null;
+  };
+};
+
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Parameters<typeof optimizeAgentTeamDraft>[0];
-    const result = await optimizeAgentTeamDraft(body);
+    const { authContext } = await requireAuthenticatedActor(request, "agent-team-console");
+    const body = (await request.json()) as AgentTeamActionBody;
+    const currentTeam = body.team?.id
+      ? queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", body.team.id)
+      : null;
+    assertAgentTeamSaveAccess(authContext, currentTeam, body.team?.businessTeamId ?? null, []);
+    const { optimizeAgentTeamDraft } = await import("@/server/agent-team-core");
+    const result = await optimizeAgentTeamDraft(body as Parameters<typeof optimizeAgentTeamDraft>[0]);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    const accessResponse = apiAccessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     return NextResponse.json(
       {
         ok: false,

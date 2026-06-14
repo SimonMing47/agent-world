@@ -38,7 +38,7 @@ export function RuntimeDiscoveryButton() {
         {pending ? "ui.generated.c6336f539ff" : "ui.generated.cb5a56eb61f"}
       </Button>
       {message ? (
-        <p className="text-sm text-[var(--ink-muted)]">{message}</p>
+        <p className="text-sm text-[var(--ink-muted)]">{text(message, message)}</p>
       ) : null}
     </div>
   );

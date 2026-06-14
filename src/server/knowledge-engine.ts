@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { completeSimple, type AssistantMessage } from "@earendil-works/pi-ai";
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
@@ -344,6 +343,7 @@ async function buildKnowledgeFoundation({
   ];
 
   try {
+    const { completeSimple } = await import("@earendil-works/pi-ai");
     const response = await completeSimple(
       foundationDescriptor.model,
       {
@@ -391,11 +391,14 @@ async function buildKnowledgeFoundation({
   };
 }
 
-function flattenVisibleText(message: AssistantMessage | null | undefined) {
+function flattenVisibleText(message: { content?: unknown } | null | undefined) {
   if (!message?.content) return "";
   return (Array.isArray(message.content)
     ? message.content
-        .map((chunk) => (chunk.type === "text" ? String(chunk.text ?? "") : ""))
+        .map((chunk) => {
+          const record = chunk && typeof chunk === "object" ? (chunk as { type?: unknown; text?: unknown }) : null;
+          return record?.type === "text" ? String(record.text ?? "") : "";
+        })
         .join(" ")
     : String((message.content as { text?: string })?.text ?? message.content))
     .trim();
@@ -895,15 +898,23 @@ function parseKnowledgeSearchScopes(args: {
 }
 
 function filterKnowledgeEntriesForScopes(input: {
+  allowedKnowledgeSpaceIds?: string[];
   knowledgeSpaceIds: string[];
   scopeUris: string[];
   knowledgeCategories: string[];
   repositoryNames: string[];
   limit?: number;
 }) {
-  const allEntries = queryAll<KnowledgeEntryRecord>(
+  let allEntries = queryAll<KnowledgeEntryRecord>(
     "SELECT * FROM knowledge_entries ORDER BY updated_at DESC, created_at DESC",
   ).map(normalizeKnowledgeEntryRecord);
+  if (input.allowedKnowledgeSpaceIds) {
+    const allowedSpaceFilter = new Set(input.allowedKnowledgeSpaceIds.filter(Boolean));
+    if (!allowedSpaceFilter.size) return [];
+    allEntries = allEntries.filter((entry) =>
+      Boolean(entry.knowledgeSpaceId && allowedSpaceFilter.has(entry.knowledgeSpaceId)),
+    );
+  }
 
   if (
     !input.knowledgeSpaceIds.length &&
@@ -1103,6 +1114,7 @@ function retrievalLevelsForEntry(
 
 export function searchKnowledgeEntries(input: {
   query: string;
+  allowedKnowledgeSpaceIds?: string[];
   knowledgeSpaceIds?: string[];
   scopeUris?: string[];
   knowledgeCategories?: string[];
@@ -1130,6 +1142,7 @@ export function searchKnowledgeEntries(input: {
   });
 
   const entries = filterKnowledgeEntriesForScopes({
+    allowedKnowledgeSpaceIds: input.allowedKnowledgeSpaceIds,
     knowledgeSpaceIds,
     scopeUris,
     knowledgeCategories,

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ export function ExecutionEnvironmentForm({
   onSaved,
 }: ExecutionEnvironmentFormProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -195,7 +197,7 @@ export function ExecutionEnvironmentForm({
           <Button type="button" onClick={save} disabled={isSaving}>
             {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c9da720eada"}
           </Button>
-          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{text(message, message)}</div> : null}
         </div>
     </div>
   );

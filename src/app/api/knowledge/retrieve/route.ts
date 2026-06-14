@@ -1,23 +1,17 @@
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
+import { canAccessBusinessTeam } from "@/server/auth-core";
 import { queryOne, type TaskRun } from "@/server/db";
-import { buildTaskRunKnowledgeRetrieval } from "@/server/knowledge-core";
-import { searchKnowledgeEntries } from "@/server/knowledge-engine";
 import {
   requireKnowledgeApiAuthFailure,
+  resolveKnowledgeApiSearchAccess,
   resolveKnowledgeApiAuthContext,
+  type KnowledgeApiAuthContext,
 } from "@/server/knowledge-api-auth";
 import { normalizeKnowledgeCategories, type KnowledgeCategory } from "@/lib/knowledge-categories";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-async function guardRequest(request: Request) {
-  const auth = await resolveKnowledgeApiAuthContext(request);
-  if (!auth) {
-    return requireKnowledgeApiAuthFailure();
-  }
-  return null;
-}
 
 type KnowledgeRetrieveRequest = {
   taskRunId?: string;
@@ -151,10 +145,13 @@ function normalizeLevels(levels: KnowledgeRetrieveRequest["levels"]) {
   return (levels?.length ? levels : undefined);
 }
 
-function buildSearchPacket(input: KnowledgeRetrieveRequest) {
+async function buildSearchPacket(input: KnowledgeRetrieveRequest, auth: KnowledgeApiAuthContext) {
+  const { searchKnowledgeEntries } = await import("@/server/knowledge-engine");
+  const access = resolveKnowledgeApiSearchAccess(auth, input.knowledgeSpaceIds);
   const search = searchKnowledgeEntries({
     query: input.query ?? "",
-    knowledgeSpaceIds: input.knowledgeSpaceIds,
+    allowedKnowledgeSpaceIds: access.allowedKnowledgeSpaceIds,
+    knowledgeSpaceIds: access.knowledgeSpaceIds,
     scopeUris: input.scopeUris,
     knowledgeCategories: input.knowledgeCategories,
     repositoryNames: input.repositoryNames,
@@ -173,15 +170,13 @@ function buildSearchPacket(input: KnowledgeRetrieveRequest) {
   };
 }
 
-async function buildTaskRunPacket(taskRunId: string, request: KnowledgeRetrieveRequest) {
-  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", taskRunId);
-  if (!taskRun) {
-    return null;
-  }
-
+async function buildTaskRunPacket(taskRun: TaskRun, request: KnowledgeRetrieveRequest, auth: KnowledgeApiAuthContext) {
+  const { buildTaskRunKnowledgeRetrieval } = await import("@/server/knowledge-core");
+  const access = resolveKnowledgeApiSearchAccess(auth, request.knowledgeSpaceIds);
   return buildTaskRunKnowledgeRetrieval(taskRun, {
     query: request.query,
-    knowledgeSpaceIds: request.knowledgeSpaceIds,
+    allowedKnowledgeSpaceIds: access.allowedKnowledgeSpaceIds,
+    knowledgeSpaceIds: access.knowledgeSpaceIds,
     scopeUris: request.scopeUris,
     knowledgeCategories: request.knowledgeCategories,
     repositoryNames: request.repositoryNames,
@@ -191,7 +186,11 @@ async function buildTaskRunPacket(taskRunId: string, request: KnowledgeRetrieveR
   });
 }
 
-function buildTaskRunPacketResponse(taskRunId: string, payload: KnowledgeRetrieveRequest, retrieval: Exclude<Awaited<ReturnType<typeof buildTaskRunPacket>>, null>) {
+function buildTaskRunPacketResponse(
+  taskRunId: string,
+  payload: KnowledgeRetrieveRequest,
+  retrieval: Awaited<ReturnType<typeof buildTaskRunPacket>>,
+) {
   return {
     kind: "taskRun",
     query: retrieval.query,
@@ -213,47 +212,66 @@ function buildTaskRunPacketResponse(taskRunId: string, payload: KnowledgeRetriev
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await guardRequest(request);
-  if (unauthorized) {
+  const auth = await resolveKnowledgeApiAuthContext(request);
+  if (!auth) {
+    const unauthorized = requireKnowledgeApiAuthFailure();
     return NextResponse.json({ ok: false, error: unauthorized.error }, { status: unauthorized.status });
   }
 
   const payload = parseKnowledgeRetrieveRequest(await request.json().catch(() => ({})));
   if (!payload) {
-    return NextResponse.json({ ok: false, error: "query or taskRunId is required" }, { status: 400 });
+    return knowledgeRetrieveRequiredResponse();
   }
 
-  return buildKnowledgeRetrieveResponse(payload);
+  return buildKnowledgeRetrieveResponse(payload, auth);
 }
 
 export async function GET(request: Request) {
-  const unauthorized = await guardRequest(request);
-  if (unauthorized) {
+  const auth = await resolveKnowledgeApiAuthContext(request);
+  if (!auth) {
+    const unauthorized = requireKnowledgeApiAuthFailure();
     return NextResponse.json({ ok: false, error: unauthorized.error }, { status: unauthorized.status });
   }
 
   const payload = parseKnowledgeRetrieveRequestFromSearchParams(new URL(request.url));
   if (!payload) {
-    return NextResponse.json({ ok: false, error: "query or taskRunId is required" }, { status: 400 });
+    return knowledgeRetrieveRequiredResponse();
   }
 
-  return buildKnowledgeRetrieveResponse(payload);
+  return buildKnowledgeRetrieveResponse(payload, auth);
 }
 
-async function buildKnowledgeRetrieveResponse(payload: KnowledgeRetrieveRequest) {
+function knowledgeRetrieveRequiredResponse() {
+  return NextResponse.json(
+    { ok: false, error: uiText("ui.api.errors.knowledgeRetrieveInputRequired", "Query or taskRunId is required.") },
+    { status: 400 },
+  );
+}
+
+async function buildKnowledgeRetrieveResponse(payload: KnowledgeRetrieveRequest, auth: KnowledgeApiAuthContext) {
   if (!payload.query && !payload.taskRunId) {
-    return NextResponse.json({ ok: false, error: "query or taskRunId is required" }, { status: 400 });
+    return knowledgeRetrieveRequiredResponse();
   }
 
   if (!payload.taskRunId) {
-    return NextResponse.json({ ok: true, packet: buildSearchPacket(payload) });
+    return NextResponse.json({ ok: true, packet: await buildSearchPacket(payload, auth) });
   }
 
-  const retrieval = await buildTaskRunPacket(payload.taskRunId, payload);
-  if (!retrieval) {
-    return NextResponse.json({ ok: false, error: "task run not found" }, { status: 404 });
+  const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", payload.taskRunId);
+  if (!taskRun) {
+    return NextResponse.json(
+      { ok: false, error: uiText("ui.api.errors.taskRunNotFound", "Task run does not exist.") },
+      { status: 404 },
+    );
+  }
+  if (auth.mode === "session" && !canAccessBusinessTeam(auth.authContext, taskRun.businessTeamId)) {
+    return NextResponse.json(
+      { ok: false, error: uiText("ui.api.errors.businessTeamAccessDenied", "Business team access denied.") },
+      { status: 403 },
+    );
   }
 
+  const retrieval = await buildTaskRunPacket(taskRun, payload, auth);
   return NextResponse.json({
     ok: true,
     packet: buildTaskRunPacketResponse(payload.taskRunId, payload, retrieval),

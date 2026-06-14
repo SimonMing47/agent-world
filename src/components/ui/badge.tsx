@@ -26,10 +26,11 @@ export function Badge({
   className,
   variant,
   children,
+  ...props
 }: React.HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>) {
   const text = useLanguageText();
   return (
-    <span suppressHydrationWarning className={cn(badgeVariants({ variant }), className)}>
+    <span {...props} suppressHydrationWarning className={cn(badgeVariants({ variant }), className)}>
       {localizeNode(children, text)}
     </span>
   );

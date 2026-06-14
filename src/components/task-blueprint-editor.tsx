@@ -1653,7 +1653,7 @@ export function TaskBlueprintEditor({
               ? uiText("ui.taskBlueprintEditor.actions.saveTask")
               : uiText("ui.taskBlueprintEditor.actions.createTask")}
         </Button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="text-xs text-[var(--ink-muted)]">{uiText(message, message)}</div> : null}
       </div>
     </div>
   );

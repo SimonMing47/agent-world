@@ -141,7 +141,7 @@ export function LanguagePackSettingsForm({
           </div>
         </div>
 
-        {message ? <div className="text-sm text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="text-sm text-[var(--ink-muted)]">{text(message, message)}</div> : null}
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="primary" onClick={save} disabled={isPending}>
             {isPending ? text("actions.saving") : text("settings.languageConfiguration.save", "Save Language")}

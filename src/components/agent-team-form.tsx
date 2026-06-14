@@ -1068,7 +1068,7 @@ export function AgentTeamForm(props: AgentTeamFormProps) {
         </DialogContent>
       </Dialog>
 
-      {message ? <div className="rounded-xl bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-muted)]">{message}</div> : null}
+      {message ? <div className="rounded-xl bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-muted)]">{text(message, message)}</div> : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button variant="secondary" onClick={launchCodeReviewSession} disabled={isSaving || isLaunching}>
           <ClipboardList className="h-4 w-4" />

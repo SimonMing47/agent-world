@@ -1,6 +1,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { execute, queryAll, queryOne, type KnowledgeApiToken } from "@/server/db";
-import { getRequestAuthContext, type AuthContext } from "@/server/auth-core";
+import { normalizeKnowledgeUri } from "@/lib/knowledge-uri";
+import { uiText } from "@/lib/language-pack";
+import { canAccessBusinessTeam, getRequestAuthContext, type AuthContext } from "@/server/auth-core";
+import { execute, queryAll, queryOne, type AgentTeam, type KnowledgeApiToken, type KnowledgeSpace } from "@/server/db";
+import { readSecretEnvList } from "@/server/secret-env";
 
 const DEFAULT_TOKEN_TTL_DAYS = 365;
 
@@ -52,17 +55,11 @@ function parseBearerToken(request: Pick<Request, "headers">) {
 }
 
 function getConfiguredEnvironmentTokens() {
-  const rawTokens = [
-    process.env.AGENTWORLD_KNOWLEDGE_API_TOKEN,
-    process.env.AGENTWORLD_KNOWLEDGE_API_TOKENS,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .flatMap((value) => value.split(","));
-
   return new Set(
-    rawTokens
-      .map((value) => value.trim())
-      .filter((value) => value.length > 0),
+    readSecretEnvList([
+      "AGENTWORLD_KNOWLEDGE_API_TOKEN",
+      "AGENTWORLD_KNOWLEDGE_API_TOKENS",
+    ]),
   );
 }
 
@@ -212,6 +209,71 @@ export function requireKnowledgeApiAuthFailure() {
   return {
     ok: false as const,
     status: 401,
-    error: "Missing or invalid API token",
+    error: uiText("ui.api.errors.knowledgeApiAuthRequired", "Missing or invalid knowledge API token."),
   };
+}
+
+function uniqueNonEmptyStrings(value?: string[]) {
+  return [...new Set((value ?? []).map((item) => item.trim()).filter(Boolean))];
+}
+
+function resolveKnowledgeSpaceBusinessTeamId(
+  space: Pick<KnowledgeSpace, "businessTeamId" | "agentTeamId">,
+  agentTeamById: Map<string, AgentTeam>,
+) {
+  if (space.businessTeamId) return space.businessTeamId;
+  if (!space.agentTeamId) return null;
+  return agentTeamById.get(space.agentTeamId)?.businessTeamId ?? null;
+}
+
+export function listVisibleKnowledgeSpaceIds(authContext: AuthContext) {
+  const agentTeamById = new Map(queryAll<AgentTeam>("SELECT * FROM agent_teams").map((team) => [team.id, team]));
+  return queryAll<KnowledgeSpace>(
+    "SELECT * FROM knowledge_spaces WHERE status <> 'deleted'",
+  )
+    .filter((space) =>
+      canAccessBusinessTeam(
+        authContext,
+        resolveKnowledgeSpaceBusinessTeamId(space, agentTeamById),
+        { allowGlobal: space.visibility === "global" || space.spaceType === "global" },
+      ),
+    )
+    .map((space) => space.id);
+}
+
+export function resolveKnowledgeApiSearchAccess(
+  auth: KnowledgeApiAuthContext,
+  requestedKnowledgeSpaceIds?: string[],
+) {
+  const requestedIds = uniqueNonEmptyStrings(requestedKnowledgeSpaceIds);
+  if (auth.mode === "token") {
+    return {
+      allowedKnowledgeSpaceIds: undefined,
+      knowledgeSpaceIds: requestedIds.length ? requestedIds : undefined,
+    };
+  }
+
+  const visibleIds = new Set(listVisibleKnowledgeSpaceIds(auth.authContext));
+  const scopedVisibleIds = requestedIds.length
+    ? requestedIds.filter((id) => visibleIds.has(id))
+    : [...visibleIds];
+  return {
+    allowedKnowledgeSpaceIds: scopedVisibleIds,
+    knowledgeSpaceIds: requestedIds.length ? scopedVisibleIds : undefined,
+  };
+}
+
+export function canReadKnowledgeUri(auth: KnowledgeApiAuthContext, uri: string) {
+  if (auth.mode === "token") return true;
+  const searchAccess = resolveKnowledgeApiSearchAccess(auth);
+  if (!searchAccess.allowedKnowledgeSpaceIds?.length) return false;
+  const normalizedUri = normalizeKnowledgeUri(uri);
+  const entries = queryAll<{ knowledgeSpaceId: string | null }>(
+    "SELECT knowledge_space_id FROM knowledge_entries WHERE viking_uri = ? OR viking_uri LIKE ? LIMIT 1",
+    normalizedUri,
+    `${normalizedUri.replace(/\/+$/, "")}/%`,
+  );
+  return entries.some((entry) =>
+    Boolean(entry.knowledgeSpaceId && searchAccess.allowedKnowledgeSpaceIds?.includes(entry.knowledgeSpaceId)),
+  );
 }

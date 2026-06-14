@@ -7,9 +7,11 @@ import {
   type ProviderRuntimeBinding,
   type TenantSpace,
 } from "@/server/db";
-import { getRequestAuthContext } from "@/server/auth-core";
-import { createRuntimeSession, submitRuntimeSessionMessage } from "@/server/runtime-session-core";
-import { submitTaskRun } from "@/server/queries";
+import {
+  apiAccessErrorResponse,
+  assertBusinessTeamAccess,
+  requireAuthenticatedActor,
+} from "@/server/api-access-control";
 import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +41,7 @@ function resolveRuntimeDefaults() {
 
 export async function POST(request: Request) {
   try {
-    const authContext = await getRequestAuthContext(request);
-    const actorName = authContext?.user.name?.trim() || authContext?.user.email?.trim();
-    if (!actorName) {
-      return NextResponse.json({ ok: false, error: uiText("identityAccess.errors.signInRequired") }, { status: 401 });
-    }
+    const { actor: actorName, authContext } = await requireAuthenticatedActor(request, "code-review-session");
 
     const body = (await request.json()) as { teamId?: string };
     if (!body.teamId?.trim()) {
@@ -54,6 +52,7 @@ export async function POST(request: Request) {
     if (!team) {
       return NextResponse.json({ ok: false, error: uiText("ui.agentTeamCodeReviewSession.errors.teamMissing") }, { status: 404 });
     }
+    assertBusinessTeamAccess(authContext, team.businessTeamId);
 
     const businessTeam = queryOne<BusinessTeam>(
       "SELECT * FROM business_teams WHERE id = ?",
@@ -68,6 +67,7 @@ export async function POST(request: Request) {
     if (!tenantSpace) throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.tenantSpaceMissing"));
 
     const { runtimeBinding, providerProfile } = resolveRuntimeDefaults();
+    const { submitTaskRun } = await import("@/server/queries");
     const taskRun = submitTaskRun({
       teamId: team.id,
       sourceType: "manual",
@@ -111,6 +111,7 @@ export async function POST(request: Request) {
       throw new Error(uiText("ui.agentTeamCodeReviewSession.errors.taskRunUnreadable"));
     }
 
+    const { createRuntimeSession, submitRuntimeSessionMessage } = await import("@/server/runtime-session-core");
     const detail = createRuntimeSession({
       tenantSpaceId: tenantSpace.id,
       businessTeamId: businessTeam.id,
@@ -144,6 +145,8 @@ export async function POST(request: Request) {
       taskRunId: taskRun.taskRun.id,
     });
   } catch (error) {
+    const accessResponse = apiAccessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : uiText("ui.agentTeamCodeReviewSession.errors.createFailed") },
       { status: 400 },

@@ -1,49 +1,77 @@
 import { NextResponse } from "next/server";
-import { getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
+import { filterByBusinessTeamAccess } from "@/server/auth-core";
+import {
+  apiAccessErrorResponse,
+  assertBusinessTeamAccess,
+  requireAuthenticatedActor,
+  requireTeamMemberActor,
+} from "@/server/api-access-control";
 import { deleteManagedResource, importTeamMembersFromRows, listTeamMembers, upsertTeamMember } from "@/server/governance-core";
+import type { TeamMember } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const authContext = await getRequestAuthContext(request);
-  return NextResponse.json({
-    members: listTeamMembers().filter((member) =>
-      authContext?.accessibleBusinessTeamIds.includes(member.businessTeamId) || authContext?.user.isSystemAdmin === 1,
-    ),
-  });
+  try {
+    const access = await requireAuthenticatedActor(request, "team-member-console");
+    return NextResponse.json({
+      members: filterByBusinessTeamAccess(listTeamMembers(), access.authContext, (member) => member.businessTeamId),
+    });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as
-    | (Parameters<typeof upsertTeamMember>[0] & { mode?: "single" })
-    | ({ mode: "import"; tenantSpaceId: string; businessTeamId: string; rows: string });
+  try {
+    const access = await requireAuthenticatedActor(request, "team-member-console");
+    const body = (await request.json()) as
+      | (Parameters<typeof upsertTeamMember>[0] & { mode?: "single" })
+      | ({ mode: "import"; tenantSpaceId: string; businessTeamId: string; rows: string });
 
-  if (body.mode === "import") {
-    const authContext = await getRequestAuthContext(request);
-    requireBusinessTeamAccess(authContext, body.businessTeamId);
-    const members = importTeamMembersFromRows(body);
-    return NextResponse.json({ ok: true, members });
+    if (body.mode === "import") {
+      assertBusinessTeamAccess(access.authContext, body.businessTeamId);
+      const members = importTeamMembersFromRows(body);
+      return NextResponse.json({ ok: true, members });
+    }
+
+    const current = body.id ? listTeamMembers().find((member) => member.id === body.id) : null;
+    if (current) {
+      assertBusinessTeamAccess(access.authContext, current.businessTeamId);
+    }
+    assertBusinessTeamAccess(access.authContext, body.businessTeamId ?? current?.businessTeamId);
+    const member = upsertTeamMember(body as Parameters<typeof upsertTeamMember>[0]);
+    return NextResponse.json({ ok: true, member });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveTeamMemberFailed") },
+      { status: 400 },
+    );
   }
-
-  const authContext = await getRequestAuthContext(request);
-  requireBusinessTeamAccess(authContext, body.businessTeamId);
-  const member = upsertTeamMember(body);
-  return NextResponse.json({ ok: true, member });
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json()) as Parameters<typeof upsertTeamMember>[0];
-  const authContext = await getRequestAuthContext(request);
-  requireBusinessTeamAccess(authContext, body.businessTeamId);
-  const member = upsertTeamMember(body);
-  return NextResponse.json({ ok: true, member });
+  return POST(request);
 }
 
 export async function DELETE(request: Request) {
-  const body = (await request.json()) as { id: string };
-  const authContext = await getRequestAuthContext(request);
-  const member = listTeamMembers().find((item) => item.id === body.id);
-  requireBusinessTeamAccess(authContext, member?.businessTeamId);
-  deleteManagedResource({ type: "team-member", id: body.id });
-  return NextResponse.json({ ok: true });
+  try {
+    await requireAuthenticatedActor(request, "team-member-console");
+    const body = (await request.json()) as Pick<TeamMember, "id">;
+    await requireTeamMemberActor(request, body.id, "team-member-console");
+    deleteManagedResource({ type: "team-member", id: body.id });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveTeamMemberFailed") },
+      { status: 400 },
+    );
+  }
 }

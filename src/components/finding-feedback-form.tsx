@@ -110,7 +110,7 @@ export function FindingFeedbackForm({
               status === "failed" ? "text-[var(--danger)]" : "text-[#166534]"
             }`}
           >
-            {message}
+            {text(message, message)}
           </span>
         ) : null}
       </div>

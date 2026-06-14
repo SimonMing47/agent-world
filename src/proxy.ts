@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { uiText } from "@/lib/language-pack";
 
 const AUTH_SESSION_COOKIE = "agentworld_session";
 const PUBLIC_PATHS = new Set(["/", "/signin"]);
@@ -23,11 +24,25 @@ function isPublicPath(pathname: string) {
   );
 }
 
+function isApiPath(pathname: string) {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const sessionCookie = request.cookies.get(AUTH_SESSION_COOKIE)?.value;
 
   if (!isPublicPath(pathname) && !sessionCookie) {
+    if (isApiPath(pathname)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "authentication_required",
+          error: uiText("ui.api.errors.authenticationRequired", "Authentication required."),
+        },
+        { status: 401 },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = `?next=${encodeURIComponent(pathname)}`;

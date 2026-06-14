@@ -108,7 +108,7 @@ export function WebhookEndpointForm({
         checked={form.isEnabled}
         onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
       />
-      ui.generated.cd4e9ca3dd4
+      {text("ui.generated.cd4e9ca3dd4")}
     </label>
   );
 
@@ -193,7 +193,7 @@ export function WebhookEndpointForm({
           >
             {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c2edacd603b"}
           </Button>
-          {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+          {message ? <div className="text-xs text-[var(--ink-muted)]">{text(message, message)}</div> : null}
         </div>
       </div>
     </>

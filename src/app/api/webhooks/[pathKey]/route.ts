@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  getWebhookEndpointByPathKey,
-  executeTaskRunUntilSettled,
-  listTaskBlueprints,
-  listTaskRuns,
-  submitTaskRunFromBlueprint,
-} from "@/server/queries";
-import {
   buildWebhookTaskInputForBlueprint,
-  matchWebhookBlueprints,
+  matchWebhookBlueprintsForEndpoint,
   validateWebhookSecret,
 } from "@/server/webhook-trigger-core";
-import { attachRegisteredCodebaseToInput } from "@/server/task-worktree-core";
+import { queryOne, type WebhookEndpoint } from "@/server/db";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,38 +22,26 @@ async function readJson(request: Request) {
   }
 }
 
+function getWebhookEndpointByPathKey(pathKey: string) {
+  return queryOne<WebhookEndpoint>(
+    "SELECT * FROM webhook_endpoints WHERE path_key = ? ORDER BY name ASC LIMIT 1",
+    pathKey,
+  );
+}
+
+function isTaskBlueprintReadinessError(error: unknown): error is {
+  readiness: unknown;
+  blockerChecks: unknown;
+} {
+  return error instanceof Error && error.name === "TaskBlueprintReadinessError";
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   const { pathKey } = await context.params;
-  const webhook = getWebhookEndpointByPathKey(pathKey);
-
-  if (!webhook || webhook.isEnabled !== 1) {
-    return NextResponse.json({ ok: false, error: "webhook not found" }, { status: 404 });
-  }
-
-  const matchedBlueprints = matchWebhookBlueprints(pathKey, listTaskBlueprints());
-  const recentRuns = listTaskRuns()
-    .filter((taskRun) => matchedBlueprints.some((blueprint) => blueprint.id === taskRun.blueprintId))
-    .slice(0, 8)
-    .map((taskRun) => ({
-      id: taskRun.id,
-      blueprintId: taskRun.blueprintId,
-      sourceRef: taskRun.sourceRef,
-      status: taskRun.status,
-      createdAt: taskRun.createdAt,
-    }));
-
-  return NextResponse.json({
-    ok: true,
-    pathKey,
-    webhook,
-    matchedBlueprints: matchedBlueprints.map((blueprint) => ({
-      id: blueprint.id,
-      name: blueprint.name,
-      status: blueprint.status,
-      category: blueprint.category,
-    })),
-    recentRuns,
-  });
+  return NextResponse.json(
+    { ok: false, error: uiText("ui.api.errors.webhookEndpointNotFound", "Webhook endpoint does not exist."), pathKey },
+    { status: 404 },
+  );
 }
 
 async function handleWebhookRequest(request: Request, context: RouteContext) {
@@ -67,12 +49,15 @@ async function handleWebhookRequest(request: Request, context: RouteContext) {
   const webhook = getWebhookEndpointByPathKey(pathKey);
 
   if (!webhook || webhook.isEnabled !== 1) {
-    return NextResponse.json({ ok: false, error: "webhook not found" }, { status: 404 });
+    return NextResponse.json(
+      { ok: false, error: uiText("ui.api.errors.webhookEndpointNotFound", "Webhook endpoint does not exist.") },
+      { status: 404 },
+    );
   }
 
   if (request.method !== webhook.method) {
     return NextResponse.json(
-      { ok: false, error: `webhook ${pathKey} expects ${webhook.method}` },
+      { ok: false, error: uiText("webhook.errors.methodNotAllowed", undefined, { method: webhook.method }) },
       { status: 405 },
     );
   }
@@ -84,16 +69,22 @@ async function handleWebhookRequest(request: Request, context: RouteContext) {
 
   const payload = await readJson(request);
   if (!payload) {
-    return NextResponse.json({ ok: false, error: "request body must be valid JSON" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: uiText("webhook.errors.requestJsonInvalid") }, { status: 400 });
   }
 
-  const matchedBlueprints = matchWebhookBlueprints(pathKey, listTaskBlueprints()).filter(
+  const {
+    executeTaskRunUntilSettled,
+    listTaskBlueprints,
+    submitTaskRunFromBlueprint,
+  } = await import("@/server/queries");
+  const { attachRegisteredCodebaseToInput } = await import("@/server/task-worktree-core");
+  const matchedBlueprints = matchWebhookBlueprintsForEndpoint(webhook, listTaskBlueprints()).filter(
     (blueprint) => blueprint.status === "active",
   );
 
   if (matchedBlueprints.length === 0) {
     return NextResponse.json(
-      { ok: false, error: `no active webhook blueprint matched path ${pathKey}` },
+      { ok: false, error: uiText("webhook.errors.noActiveBlueprintMatched", undefined, { pathKey }) },
       { status: 404 },
     );
   }
@@ -137,15 +128,21 @@ async function handleWebhookRequest(request: Request, context: RouteContext) {
           : null,
       });
     } catch (error) {
+      const readinessError = isTaskBlueprintReadinessError(error) ? error : null;
       results.push({
         ok: false,
         blueprintId: blueprint.id,
+        code: readinessError ? "task_blueprint_not_ready" : "webhook_dispatch_failed",
         error: error instanceof Error ? error.message : "submit failed",
+        readiness: readinessError?.readiness,
+        blockedChecks: readinessError?.blockerChecks,
       });
     }
   }
 
   const hasSuccess = results.some((result) => result.ok);
+  const hasOnlyReadinessFailures =
+    results.length > 0 && results.every((result) => !result.ok && result.code === "task_blueprint_not_ready");
   return NextResponse.json(
     {
       ok: hasSuccess,
@@ -153,7 +150,7 @@ async function handleWebhookRequest(request: Request, context: RouteContext) {
       matchedBlueprintCount: matchedBlueprints.length,
       results,
     },
-    { status: hasSuccess ? 200 : 500 },
+    { status: hasSuccess ? 200 : hasOnlyReadinessFailures ? 422 : 500 },
   );
 }
 

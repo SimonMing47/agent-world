@@ -16,6 +16,7 @@ import {
   type LocalAuthCredential,
   type SystemSetting,
 } from "@/server/db";
+import { readOptionalSecretEnv } from "@/server/secret-env";
 
 export { listAuthAdapterCatalog } from "@/server/auth-adapter-core";
 
@@ -139,7 +140,7 @@ function verifyPassword(password: string, storedHash: string) {
 function bootstrapLocalAdminDefaults() {
   return {
     username: normalizeUsername(process.env.AGENTWORLD_BOOTSTRAP_USERNAME || DEFAULT_BOOTSTRAP_USERNAME),
-    password: process.env.AGENTWORLD_BOOTSTRAP_PASSWORD || DEFAULT_BOOTSTRAP_PASSWORD,
+    password: readOptionalSecretEnv("AGENTWORLD_BOOTSTRAP_PASSWORD") || DEFAULT_BOOTSTRAP_PASSWORD,
     email: (process.env.AGENTWORLD_BOOTSTRAP_EMAIL || "admin@agentworld.local").trim().toLowerCase(),
     name: process.env.AGENTWORLD_BOOTSTRAP_NAME || "AgentWorld Administrator",
     title: process.env.AGENTWORLD_BOOTSTRAP_TITLE || "System Administrator",

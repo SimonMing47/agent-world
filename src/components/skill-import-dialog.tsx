@@ -170,7 +170,7 @@ export function SkillImportDialog({ businessTeams }: { businessTeams: Option[] }
         </FieldGroup>
       </div>
 
-      {message ? <div className="text-sm text-[var(--ink-muted)]">{message}</div> : null}
+      {message ? <div className="text-sm text-[var(--ink-muted)]">{text(message, message)}</div> : null}
     </div>
   );
 }
