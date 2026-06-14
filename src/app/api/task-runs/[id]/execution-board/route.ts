@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
-import { getTaskRunExecutionBoard } from "@/server/queries";
+import { apiAccessErrorResponse, requireTaskRunActor } from "@/server/api-access-control";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const resolved = await params;
-  const board = getTaskRunExecutionBoard(resolved.id);
-  return NextResponse.json({ board });
+  try {
+    const resolved = await params;
+    await requireTaskRunActor(request, resolved.id);
+    const { getTaskRunExecutionBoard } = await import("@/server/queries");
+    const board = getTaskRunExecutionBoard(resolved.id);
+    return NextResponse.json({ board });
+  } catch (error) {
+    const accessResponse = apiAccessErrorResponse(error);
+    if (accessResponse) return accessResponse;
+    throw error;
+  }
 }

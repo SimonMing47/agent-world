@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { T } from "@/components/i18n-text";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
@@ -55,7 +56,7 @@ function FormActions({
       <Button type="button" onClick={onSave} disabled={isSaving}>
         {isSaving ? "ui.generated.ca032e8fdda" : label}
       </Button>
-      {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+      {message ? <div className="text-xs text-[var(--ink-muted)]"><T k={message} /></div> : null}
     </div>
   );
 }
@@ -218,7 +219,7 @@ export function SkillForm({
               checked={form.isEnabled}
               onChange={(event) => setForm({ ...form, isEnabled: event.target.checked })}
             />
-            ui.generated.c0e122f82e5
+            <T k="ui.generated.c0e122f82e5" />
           </label>
         </FieldGroup>
         <FieldGroup label="ui.generated.c7a70cc4e2d" className="md:col-span-2">
@@ -244,7 +245,7 @@ export function SkillForm({
             ui.generated.cee34092def
           </Button>
         </div>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="text-xs text-[var(--ink-muted)]"><T k={message} /></div> : null}
       </div>
     </div>
   );

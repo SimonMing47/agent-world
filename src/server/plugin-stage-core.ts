@@ -10,7 +10,7 @@ import {
   buildFindingFeedbackPath,
   buildFindingFeedbackToken,
   buildFindingFeedbackUrl,
-} from "@/server/finding-feedback-core";
+} from "@/server/finding-feedback-token";
 import {
   createPluginRuntimeContext,
   resolveOutputPublisher,
@@ -70,8 +70,35 @@ function renderTemplate(template: string, context: JsonRecord) {
   });
 }
 
-function renderPayloadTemplate(template: string | undefined, context: JsonRecord) {
+function renderTemplateValue(value: unknown, context: JsonRecord): unknown {
+  if (typeof value === "string") {
+    const exactMatch = value.match(/^\$\{([^}]+)}$/);
+    if (exactMatch) {
+      const resolved = readPath(context, exactMatch[1]?.trim() ?? "");
+      if (resolved !== undefined) return resolved;
+    }
+    return renderTemplate(value, context);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => renderTemplateValue(item, context));
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, renderTemplateValue(item, context)]),
+    );
+  }
+  return value;
+}
+
+export function renderPayloadTemplate(template: string | undefined, context: JsonRecord) {
   if (!template?.trim()) return {};
+  try {
+    const parsedTemplate = JSON.parse(template) as unknown;
+    const rendered = renderTemplateValue(parsedTemplate, context);
+    return isRecord(rendered) ? rendered : { value: rendered };
+  } catch {
+    // Fall back to string rendering for legacy non-JSON templates below.
+  }
   const rendered = renderTemplate(template, context);
   try {
     const parsed = JSON.parse(rendered) as unknown;

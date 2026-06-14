@@ -149,7 +149,7 @@ export default async function AgentTeamsPage() {
         description="ui.generated.cca6845699e"
         badges={[
           { label: <>{teams.length} ui.common.count.agentTeams</>, variant: "accent" },
-          { label: <>{members.length} ui.generated.c6fa3ec603b</>, variant: "neutral" },
+          { label: <>{members.length} {t("ui.generated.c6fa3ec603b")}</>, variant: "neutral" },
         ]}
       />
 

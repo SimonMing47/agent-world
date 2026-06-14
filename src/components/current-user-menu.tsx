@@ -6,6 +6,7 @@ import { BadgeCheck, LogOut, Mail, Shield, Users } from "lucide-react";
 import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ExternalImage } from "@/components/ui/external-image";
 
 type TeamSummary = {
   id: string;
@@ -51,8 +52,7 @@ export function CurrentUserMenu({
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/78 p-1 shadow-[var(--shadow-soft)] ring-1 ring-black/4 transition hover:bg-white"
         >
           {user.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+            <ExternalImage src={user.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
           ) : (
             <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(29,78,216,0.1)] text-[10px] font-semibold text-[var(--accent)]">
               {user.initials}
@@ -67,8 +67,7 @@ export function CurrentUserMenu({
         <DialogBody className="space-y-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             {user.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
+              <ExternalImage src={user.avatarUrl} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
             ) : (
               <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-[rgba(29,78,216,0.1)] text-2xl font-semibold text-[var(--accent)]">
                 {user.initials}

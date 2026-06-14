@@ -1,10 +1,12 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextResponse } from "next/server";
-import { upsertKnowledgeEntry } from "@/server/knowledge-engine";
-import { getRequestAuthContext, requireBusinessTeamAccess } from "@/server/auth-core";
-import { listKnowledgeSpaces } from "@/server/knowledge-core";
-import { listAgentTeams } from "@/server/queries";
+import {
+  apiAccessErrorResponse,
+  assertBusinessTeamAccess,
+  requireAuthenticatedActor,
+} from "@/server/api-access-control";
+import { resolveKnowledgeSpaceBusinessTeamId } from "@/server/knowledge-session-access";
 import { uiText } from "@/lib/language-pack";
 import {
   compactDiscoveredKnowledgeContent,
@@ -42,13 +44,23 @@ type KnowledgeImportPayload = {
   preserveTree?: boolean;
 };
 
-function resolveSpaceBusinessTeamId(spaceId: string | null | undefined) {
-  if (!spaceId) return null;
-  const space = listKnowledgeSpaces().find((item) => item.id === spaceId);
-  if (space?.businessTeamId) return space.businessTeamId;
-  if (space?.agentTeamId) return listAgentTeams().find((team) => team.id === space.agentTeamId)?.businessTeamId ?? null;
-  return null;
-}
+type KnowledgeEntryUpsertInput = {
+  id?: string;
+  knowledgeSpaceId?: string | null;
+  layer: string;
+  scopeKey: string;
+  title: string;
+  contentMd: string;
+  metadataJson?: string;
+  sourceType: "inspection_context" | "inspection_finding" | "inspection_feedback" | "skill" | "manual";
+  skillId?: string | null;
+  baseRevision?: number | null;
+  updatedBy?: string | null;
+  saveReason?: string | null;
+};
+
+type KnowledgeEntryUpsertResult = { id: string } | null;
+type KnowledgeEntryUpsert = (input: KnowledgeEntryUpsertInput) => Promise<KnowledgeEntryUpsertResult>;
 
 function decodeEntities(value: string) {
   return value
@@ -271,16 +283,18 @@ async function importDirectoryFiles({
   files,
   knowledgeSpaceId,
   parentFolderId,
+  upsertKnowledgeEntry,
   updatedBy,
   importedAt,
 }: {
   files: ImportFilePayload[];
   knowledgeSpaceId: string;
   parentFolderId?: string | null;
+  upsertKnowledgeEntry: KnowledgeEntryUpsert;
   updatedBy: string | null;
   importedAt: string;
 }) {
-  const entries: Awaited<ReturnType<typeof upsertKnowledgeEntry>>[] = [];
+  const entries: Awaited<ReturnType<KnowledgeEntryUpsert>>[] = [];
   const folderIdsByPath = new Map<string, string>();
   const sortedFiles = files
     .filter((file) => file.content?.trim())
@@ -369,15 +383,16 @@ async function importDirectoryFiles({
 
 export async function POST(request: Request) {
   try {
+    const { authContext } = await requireAuthenticatedActor(request, "knowledge-import-console");
     const body = (await request.json()) as KnowledgeImportPayload;
     const knowledgeSpaceId = body.knowledgeSpaceId?.trim();
     if (!knowledgeSpaceId) throw new Error(uiText("ui.knowledgeImport.errors.spaceRequired"));
 
-    const authContext = await getRequestAuthContext(request);
-    requireBusinessTeamAccess(authContext, resolveSpaceBusinessTeamId(knowledgeSpaceId));
+    assertBusinessTeamAccess(authContext, resolveKnowledgeSpaceBusinessTeamId(knowledgeSpaceId));
     const updatedBy = authContext?.user.email || authContext?.user.name || authContext?.user.id || null;
     const importedAt = new Date().toISOString();
-    const entries: Awaited<ReturnType<typeof upsertKnowledgeEntry>>[] = [];
+    const { upsertKnowledgeEntry } = await import("@/server/knowledge-engine");
+    const entries: Awaited<ReturnType<KnowledgeEntryUpsert>>[] = [];
     const files = body.files ?? [];
     const shouldPreserveTree =
       body.importMode === "directory" ||
@@ -416,6 +431,7 @@ export async function POST(request: Request) {
           files,
           knowledgeSpaceId,
           parentFolderId: body.parentFolderId,
+          upsertKnowledgeEntry,
           updatedBy,
           importedAt,
         })),
@@ -453,6 +469,8 @@ export async function POST(request: Request) {
     if (!entries.length) throw new Error(uiText("ui.knowledgeImport.errors.noArchiveContent"));
     return NextResponse.json({ ok: true, entries, imported: entries.length });
   } catch (error) {
+    const accessResponse = apiAccessErrorResponse(error);
+    if (accessResponse) return accessResponse;
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : uiText("ui.knowledgeImport.errors.importFailed") },
       { status: 400 },

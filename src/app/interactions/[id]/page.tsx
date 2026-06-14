@@ -1,10 +1,10 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { RuntimeInteractionConsole } from "@/components/runtime-interaction-console";
 import { translateWithPack } from "@/lib/language-pack";
 import { formatDateTime } from "@/lib/utils";
 import { buildAgentHarnessExecutionProfile } from "@/server/agent-harness-core";
-import { getRequestAuthContext } from "@/server/auth-core";
+import { canAccessBusinessTeam, getRequestAuthContext } from "@/server/auth-core";
 import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getRuntimeSessionDetail } from "@/server/runtime-session-core";
 
@@ -29,6 +29,12 @@ export default async function RuntimeInteractionDetailPage({
   const label = (group: string, value: string) => t(`labels.${group}.${value}`, value);
 
   if (!detail) {
+    notFound();
+  }
+  if (!authContext) {
+    redirect(`/signin?next=${encodeURIComponent(`/interactions/${resolved.id}`)}`);
+  }
+  if (!canAccessBusinessTeam(authContext, detail.session.businessTeamId)) {
     notFound();
   }
 

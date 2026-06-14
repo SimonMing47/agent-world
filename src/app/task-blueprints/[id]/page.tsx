@@ -16,8 +16,10 @@ import {
 import { DefinitionList } from "@/components/ui/definition-list";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
+import { translateWithPack } from "@/lib/language-pack";
 import { translateStatus, translateVisibility } from "@/lib/presentation";
 import { formatDateTime } from "@/lib/utils";
+import { getActiveLanguagePack } from "@/server/language-pack-store";
 import { getTaskBlueprintDetail } from "@/server/queries";
 
 type BadgeVariant = "neutral" | "accent" | "success" | "warning" | "danger";
@@ -52,10 +54,34 @@ function effectVariant(effect: string): BadgeVariant {
   return "neutral";
 }
 
-function formatTrigger(trigger: Record<string, unknown>) {
-  if (trigger.type === "webhook") return `Webhook · ${String(trigger.event ?? trigger.webhookPathKey ?? "")}`;
-  if (trigger.type === "cron") return `Cron · ${String(trigger.expression ?? "")}`;
-  return String(trigger.type ?? "manual");
+function readinessVariant(status: string): BadgeVariant {
+  if (status === "ready") return "success";
+  if (status === "needs_attention") return "warning";
+  if (status === "blocked") return "danger";
+  return "neutral";
+}
+
+function readinessCheckVariant(status: string): BadgeVariant {
+  if (status === "ok") return "success";
+  if (status === "warning") return "warning";
+  if (status === "blocker") return "danger";
+  return "neutral";
+}
+
+function formatTrigger(
+  trigger: Record<string, unknown>,
+  t: (key: string, fallback?: string, params?: Record<string, string | number>) => string,
+) {
+  if (trigger.type === "webhook") {
+    const value = String(trigger.event ?? trigger.webhookPathKey ?? t("ui.taskBlueprints.trigger.empty"));
+    return t("ui.taskBlueprints.trigger.webhook", undefined, { value });
+  }
+  if (trigger.type === "cron") {
+    const value = String(trigger.expression ?? t("ui.taskBlueprints.trigger.empty"));
+    return t("ui.taskBlueprints.trigger.cron", undefined, { value });
+  }
+  if (trigger.type === "access_grant") return t("ui.taskBlueprints.trigger.accessGrant");
+  return t("ui.taskBlueprints.trigger.manual");
 }
 
 function buildInputDraft(schema: Record<string, unknown>) {
@@ -102,8 +128,8 @@ function getSchemaRows(schema: Record<string, unknown>) {
 }
 
 function compactJson(value: unknown) {
-  if (value === undefined || value === null || value === "") return "ui.generated.c72077749f7";
-  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "ui.generated.c72077749f7";
+  if (value === undefined || value === null || value === "") return "ui.taskBlueprints.values.none";
+  if (Array.isArray(value)) return value.length ? value.map(String).join(", ") : "ui.taskBlueprints.values.none";
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
@@ -133,15 +159,18 @@ export default async function TaskBlueprintDetailPage({
     notFound();
   }
 
+  const languagePack = getActiveLanguagePack();
+  const t = (key: string, fallback?: string, params?: Record<string, string | number>) =>
+    translateWithPack(languagePack, key, fallback, params);
   const inputSchemaRows = getSchemaRows(detail.inputSchema);
   const codebaseScope = codebaseScopeDetail(detail.environmentSelector, detail.options.codebases ?? []);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="ui.generated.cb19fb2fe5d"
+        eyebrow="ui.taskBlueprintDetail.eyebrow"
         title={detail.blueprint.name}
-        description="ui.generated.c975fcc7143"
+        description="ui.taskBlueprintDetail.description"
         badges={[
           { label: translateStatus(detail.blueprint.status), variant: statusVariant(detail.blueprint.status) },
           { label: translateVisibility(detail.blueprint.visibility), variant: "neutral" },
@@ -152,9 +181,19 @@ export default async function TaskBlueprintDetailPage({
 
       <SummaryStrip
         items={[
-          { label: "ui.generated.c648c5a6b11", value: detail.recentRuns.length, detail: "ui.generated.cdef121b0f4" },
-          { label: "ui.generated.c95f4519aab", value: detail.permissionPreview.rules.length, detail: <>ui.common.detail.defaultModePrefix {detail.permissionPreview.defaultMode}</> },
-          { label: "ui.generated.c6fcb629b38", value: detail.runPlan.nodeCount, detail: detail.runPlan.strategy },
+          { label: "ui.taskBlueprintDetail.summary.recentRuns", value: detail.recentRuns.length, detail: "ui.taskBlueprintDetail.summary.recentRunsDetail" },
+          {
+            label: "ui.taskBlueprintDetail.summary.permissions",
+            value: detail.permissionPreview.rules.length,
+            detail: t("ui.taskBlueprintDetail.summary.defaultMode", undefined, { mode: detail.permissionPreview.defaultMode }),
+          },
+          { label: "ui.taskBlueprintDetail.summary.runPlan", value: detail.runPlan.nodeCount, detail: detail.runPlan.strategy },
+          {
+            label: "ui.taskBlueprintReadiness.summary.label",
+            value: `${detail.readiness.score}%`,
+            detail: `ui.taskBlueprintReadiness.status.${detail.readiness.status}`,
+            tone: detail.readiness.status === "ready" ? "accent" : "default",
+          },
         ]}
       />
 
@@ -162,23 +201,60 @@ export default async function TaskBlueprintDetailPage({
         <section className="space-y-4">
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.c46d4c1b4e4"
-              title="ui.generated.c09b13c70a6"
-              description="ui.generated.c954ecfe6e5"
+              eyebrow="ui.taskBlueprintReadiness.eyebrow"
+              title="ui.taskBlueprintReadiness.title"
+              description="ui.taskBlueprintReadiness.description"
+              action={
+                <Badge variant={readinessVariant(detail.readiness.status)}>
+                  {`ui.taskBlueprintReadiness.status.${detail.readiness.status}`}
+                </Badge>
+              }
+            />
+            <PanelBody className="p-0">
+              <DataTable>
+                <DataTableHeader>
+                  <DataTableRow className="hover:bg-transparent">
+                    <DataTableHead>ui.taskBlueprintReadiness.columns.check</DataTableHead>
+                    <DataTableHead>ui.taskBlueprintReadiness.columns.status</DataTableHead>
+                    <DataTableHead>ui.taskBlueprintReadiness.columns.detail</DataTableHead>
+                  </DataTableRow>
+                </DataTableHeader>
+                <DataTableBody>
+                  {detail.readiness.checks.map((check) => (
+                    <DataTableRow key={check.id}>
+                      <DataTableCell className="font-medium text-[var(--ink)]">{check.labelKey}</DataTableCell>
+                      <DataTableCell>
+                        <Badge variant={readinessCheckVariant(check.status)}>
+                          {`ui.taskBlueprintReadiness.checkStatus.${check.status}`}
+                        </Badge>
+                      </DataTableCell>
+                      <DataTableCell>{check.detailKey}</DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            </PanelBody>
+          </Panel>
+
+          <Panel>
+            <PanelHeader
+              eyebrow="ui.taskBlueprintDetail.sections.overviewEyebrow"
+              title="ui.taskBlueprintDetail.sections.overviewTitle"
+              description="ui.taskBlueprintDetail.sections.overviewDescription"
             />
             <PanelBody>
               <DefinitionList
                 columnsClassName="md:grid-cols-2"
                 items={[
-                  { label: "ui.generated.c02446dfb0d", value: detail.blueprint.id },
-                  { label: "ui.generated.ced9f6d4d8e", value: detail.blueprint.category },
-                  { label: "ui.generated.c2b90028ff3", value: detail.businessTeamName },
-                  { label: "ui.generated.c70f970c1fc", value: detail.agentTeamName },
-                  { label: "ui.generated.c059d73c843", value: detail.environmentName },
+                  { label: "ui.taskBlueprintDetail.fields.id", value: detail.blueprint.id },
+                  { label: "ui.taskBlueprintDetail.fields.category", value: detail.blueprint.category },
+                  { label: "ui.taskBlueprintDetail.fields.businessTeam", value: detail.businessTeamName },
+                  { label: "ui.taskBlueprintDetail.fields.agentTeam", value: detail.agentTeamName },
+                  { label: "ui.taskBlueprintDetail.fields.environment", value: detail.environmentName },
                   { label: "ui.taskBlueprintEditor.fields.codebaseScope", value: codebaseScope },
-                  { label: "ui.generated.cbc56f948bb", value: detail.providerName },
-                  { label: "ui.generated.c84e3802f60", value: formatDateTime(detail.blueprint.createdAt) },
-                  { label: "ui.generated.c093dea88c9", value: formatDateTime(detail.blueprint.updatedAt) },
+                  { label: "ui.taskBlueprintDetail.fields.provider", value: detail.providerName },
+                  { label: "ui.taskBlueprintDetail.fields.createdAt", value: formatDateTime(detail.blueprint.createdAt) },
+                  { label: "ui.taskBlueprintDetail.fields.updatedAt", value: formatDateTime(detail.blueprint.updatedAt) },
                 ]}
               />
             </PanelBody>
@@ -186,34 +262,34 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.cabaf6289a8"
-              title="ui.generated.c1b1da04ec5"
-              description="ui.generated.cf296ff6359"
+              eyebrow="ui.taskBlueprintDetail.sections.triggerEyebrow"
+              title="ui.taskBlueprintDetail.sections.triggerTitle"
+              description="ui.taskBlueprintDetail.sections.triggerDescription"
             />
             <PanelBody className="space-y-5">
               <DefinitionList
                 columnsClassName="md:grid-cols-3"
                 items={[
-                  { label: "ui.generated.c2d189a3f46", value: formatTrigger(detail.trigger) },
-                  { label: "ui.generated.ce4e46c7235", value: String(detail.trigger.type ?? "manual") },
-                  { label: "ui.generated.cc2dd028659", value: String(detail.trigger.connector ?? "ui.generated.c72077749f7") },
-                  { label: "ui.generated.c550e328062", value: String(detail.trigger.event ?? "ui.generated.c72077749f7") },
-                  { label: "Webhook", value: String(detail.trigger.webhookPathKey ?? "ui.generated.c72077749f7") },
-                  { label: "ui.generated.c11118f711c", value: String(detail.trigger.idempotencyKey ?? "ui.generated.c72077749f7") },
+                  { label: "ui.taskBlueprintDetail.fields.triggerSummary", value: formatTrigger(detail.trigger, t) },
+                  { label: "ui.taskBlueprintDetail.fields.triggerType", value: String(detail.trigger.type ?? "manual") },
+                  { label: "ui.taskBlueprintDetail.fields.connector", value: String(detail.trigger.connector ?? "ui.taskBlueprints.values.none") },
+                  { label: "ui.taskBlueprintDetail.fields.event", value: String(detail.trigger.event ?? "ui.taskBlueprints.values.none") },
+                  { label: "ui.taskBlueprintDetail.fields.webhookPath", value: String(detail.trigger.webhookPathKey ?? "ui.taskBlueprints.values.none") },
+                  { label: "ui.taskBlueprintDetail.fields.idempotencyKey", value: String(detail.trigger.idempotencyKey ?? "ui.taskBlueprints.values.none") },
                 ]}
               />
 
               {inputSchemaRows.length === 0 ? (
-                <EmptyState>ui.generated.c2d19bb69e3</EmptyState>
+                <EmptyState>{t("ui.taskBlueprintDetail.empty.inputSchema")}</EmptyState>
               ) : (
                 <DataTable>
                   <DataTableHeader>
                     <DataTableRow>
-                      <DataTableHead>ui.generated.c77a49f2c38</DataTableHead>
-                      <DataTableHead>ui.generated.ce4e46c7235</DataTableHead>
-                      <DataTableHead>ui.generated.c32945d3e36</DataTableHead>
-                      <DataTableHead>ui.generated.cf094cc6ebb</DataTableHead>
-                      <DataTableHead>ui.generated.c26670dda42</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.name</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.type</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.required</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.defaultValue</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.description</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
                   <DataTableBody>
@@ -223,13 +299,13 @@ export default async function TaskBlueprintDetailPage({
                         <DataTableCell>{field.type}</DataTableCell>
                         <DataTableCell>
                           <Badge variant={field.required ? "warning" : "neutral"}>
-                            {field.required ? "ui.generated.c32945d3e36" : "ui.generated.c53e32830a5"}
+                            {field.required ? "ui.common.boolean.yes" : "ui.common.boolean.no"}
                           </Badge>
                         </DataTableCell>
                         <DataTableCell>
                           {field.enumValues.length > 0 ? field.enumValues.join(", ") : compactJson(field.defaultValue)}
                         </DataTableCell>
-                        <DataTableCell>{field.description || "ui.generated.c72077749f7"}</DataTableCell>
+                        <DataTableCell>{field.description || "ui.taskBlueprints.values.none"}</DataTableCell>
                       </DataTableRow>
                     ))}
                   </DataTableBody>
@@ -240,29 +316,29 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.c560165a6d7"
-              title="ui.generated.cb6ffb455c5"
-              description="ui.generated.c8591732f43"
+              eyebrow="ui.taskBlueprintDetail.sections.permissionsEyebrow"
+              title="ui.taskBlueprintDetail.sections.permissionsTitle"
+              description="ui.taskBlueprintDetail.sections.permissionsDescription"
             />
             <PanelBody className="space-y-4">
               <SummaryStrip
                 gridClassName="grid-cols-3"
                 items={[
-                  { label: "Allow", value: detail.permissionPreview.counts.allow },
-                  { label: "Ask", value: detail.permissionPreview.counts.ask },
-                  { label: "Deny", value: detail.permissionPreview.counts.deny },
+                  { label: "ui.taskBlueprintDetail.permissions.allow", value: detail.permissionPreview.counts.allow },
+                  { label: "ui.taskBlueprintDetail.permissions.ask", value: detail.permissionPreview.counts.ask },
+                  { label: "ui.taskBlueprintDetail.permissions.deny", value: detail.permissionPreview.counts.deny },
                 ]}
               />
               {detail.permissionPreview.rules.length === 0 ? (
-                <EmptyState>ui.generated.c7ead357861</EmptyState>
+                <EmptyState>{t("ui.taskBlueprintDetail.empty.permissions")}</EmptyState>
               ) : (
                 <DataTable>
                   <DataTableHeader>
                     <DataTableRow>
-                      <DataTableHead>Effect</DataTableHead>
-                      <DataTableHead>Resource</DataTableHead>
-                      <DataTableHead>Scope</DataTableHead>
-                      <DataTableHead>Reason</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.effect</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.resource</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.scope</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.reason</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
                   <DataTableBody>
@@ -273,7 +349,7 @@ export default async function TaskBlueprintDetailPage({
                         </DataTableCell>
                         <DataTableCell className="font-medium text-[var(--ink)]">{rule.resource}</DataTableCell>
                         <DataTableCell>{rule.scope}</DataTableCell>
-                        <DataTableCell>{rule.reason ?? "ui.generated.c72077749f7"}</DataTableCell>
+                        <DataTableCell>{rule.reason ?? "ui.taskBlueprints.values.none"}</DataTableCell>
                       </DataTableRow>
                     ))}
                   </DataTableBody>
@@ -284,42 +360,42 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.c63881557e3"
-              title="ui.generated.c9687f854a8"
-              description="ui.generated.cd0e415794d"
+              eyebrow="ui.taskBlueprintDetail.sections.runPlanEyebrow"
+              title="ui.taskBlueprintDetail.sections.runPlanTitle"
+              description="ui.taskBlueprintDetail.sections.runPlanDescription"
             />
             <PanelBody className="space-y-5">
               <DefinitionList
                 columnsClassName="md:grid-cols-2"
                 items={[
                   {
-                    label: "Leader",
+                    label: "ui.taskBlueprintDetail.fields.leader",
                     value: detail.runPlan.leader.agentName,
                     detail: detail.runPlan.leader.role,
                   },
-                  { label: "ui.generated.cf3c49831c6", value: detail.runPlan.strategy },
-                  { label: "ui.generated.c815a1c560d", value: detail.runPlan.splitStrategy ?? "ui.generated.c72077749f7" },
-                  { label: "ui.generated.c4aeeacc808", value: detail.runPlan.conflictResolution.method },
+                  { label: "ui.taskBlueprintDetail.fields.strategy", value: detail.runPlan.strategy },
+                  { label: "ui.taskBlueprintDetail.fields.splitStrategy", value: detail.runPlan.splitStrategy ?? "ui.taskBlueprints.values.none" },
+                  { label: "ui.taskBlueprintDetail.fields.conflictResolution", value: detail.runPlan.conflictResolution.method },
                   {
-                    label: "ui.generated.c8a5ab059f8",
-                    value: detail.runPlan.aggregation?.agentName ?? "ui.generated.c72077749f7",
+                    label: "ui.taskBlueprintDetail.fields.aggregation",
+                    value: detail.runPlan.aggregation?.agentName ?? "ui.taskBlueprints.values.none",
                     detail: detail.runPlan.aggregation?.method ?? null,
                   },
-                  { label: "ui.generated.cc4fdaf4d2a", value: detail.runPlan.nodeCount },
+                  { label: "ui.taskBlueprintDetail.fields.nodeCount", value: detail.runPlan.nodeCount },
                 ]}
               />
 
               {detail.runPlan.workers.length === 0 ? (
-                <EmptyState>ui.generated.cb0aae34499</EmptyState>
+                <EmptyState>{t("ui.taskBlueprintDetail.empty.workers")}</EmptyState>
               ) : (
                 <DataTable>
                   <DataTableHeader>
                     <DataTableRow>
-                      <DataTableHead>Agent</DataTableHead>
-                      <DataTableHead>Agent ID</DataTableHead>
-                      <DataTableHead>ui.generated.ca5a837ff34</DataTableHead>
-                      <DataTableHead>ui.generated.c57d167c53b</DataTableHead>
-                      <DataTableHead>ui.generated.c6756e283cb</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.agent</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.agentId</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.blockType</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.tool</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.task</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
                   <DataTableBody>
@@ -340,22 +416,22 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.c648c5a6b11"
-              title="ui.generated.c648c5a6b11"
-              description="ui.generated.cc6d5a9f590"
+              eyebrow="ui.taskBlueprintDetail.sections.recentRunsEyebrow"
+              title="ui.taskBlueprintDetail.sections.recentRunsTitle"
+              description="ui.taskBlueprintDetail.sections.recentRunsDescription"
             />
             <PanelBody>
               {detail.recentRuns.length === 0 ? (
-                <EmptyState>ui.generated.c66fe97fb5a</EmptyState>
+                <EmptyState>{t("ui.taskBlueprintDetail.empty.recentRuns")}</EmptyState>
               ) : (
                 <DataTable>
                   <DataTableHeader>
                     <DataTableRow>
-                      <DataTableHead>ui.generated.c0c3acd446f</DataTableHead>
-                      <DataTableHead>ui.generated.cc63f79e636</DataTableHead>
-                      <DataTableHead>ui.generated.c62e951a692</DataTableHead>
-                      <DataTableHead>ui.generated.c3c75f3646a</DataTableHead>
-                      <DataTableHead>ui.generated.c84e3802f60</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.run</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.sourceType</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.status</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.requestedBy</DataTableHead>
+                      <DataTableHead>ui.taskBlueprintDetail.columns.createdAt</DataTableHead>
                     </DataTableRow>
                   </DataTableHeader>
                   <DataTableBody>
@@ -382,37 +458,37 @@ export default async function TaskBlueprintDetailPage({
 
           <Panel>
             <PanelHeader
-              eyebrow="ui.generated.cf3c49831c6"
-              title="ui.generated.cb4a207d28b"
-              description="ui.generated.ccd09569127"
+              eyebrow="ui.taskBlueprintDetail.sections.policiesEyebrow"
+              title="ui.taskBlueprintDetail.sections.policiesTitle"
+              description="ui.taskBlueprintDetail.sections.policiesDescription"
             />
             <PanelBody className="grid gap-4 lg:grid-cols-2">
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cfd7af3df33</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.environmentSelector")}</div>
                 <JsonBlock value={detail.environmentSelector} />
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cf47d3b9380</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.memoryPolicy")}</div>
                 <JsonBlock value={detail.memoryPolicy} />
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c084415a1ec</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.outputPolicy")}</div>
                 <JsonBlock value={detail.outputPolicy} />
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c3ce9649be0</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.dashboardPolicy")}</div>
                 <JsonBlock value={detail.dashboardPolicy} />
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c6408e9f93d</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.executionPolicy")}</div>
                 <JsonBlock value={detail.executionPolicy} />
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.c47610c27f3</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.archivePolicy")}</div>
                 <JsonBlock value={detail.archivePolicy} />
               </div>
               <div className="space-y-2 lg:col-span-2">
-                <div className="text-sm font-medium text-[var(--ink)]">ui.generated.cd8cce53c0b</div>
+                <div className="text-sm font-medium text-[var(--ink)]">{t("ui.taskBlueprintDetail.policies.resultSchema")}</div>
                 <JsonBlock value={detail.resultSchema} />
               </div>
             </PanelBody>
@@ -423,6 +499,8 @@ export default async function TaskBlueprintDetailPage({
           <BlueprintSubmitConsole
             blueprintId={detail.blueprint.id}
             initialPayload={buildInputDraft(detail.inputSchema)}
+            codebases={detail.options.codebases}
+            readiness={detail.readiness}
           />
           <TaskBlueprintEditor blueprint={detail.blueprint} options={detail.options} />
         </aside>

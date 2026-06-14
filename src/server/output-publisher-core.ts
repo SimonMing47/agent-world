@@ -4,11 +4,14 @@ import {
   resolveOutputPublisher,
 } from "@/server/plugin-sdk-core";
 import { uiText } from "@/lib/language-pack";
+import { normalizeKnowledgeUri } from "@/lib/knowledge-uri";
+import { buildRepositoryNameAliases } from "@/lib/repository-identity";
 import {
   buildFindingFeedbackPath,
   buildFindingFeedbackToken,
   buildFindingFeedbackUrl,
-} from "@/server/finding-feedback-core";
+} from "@/server/finding-feedback-token";
+import { createKnowledgeSpace, listKnowledgeSpaces } from "@/server/knowledge-core";
 
 type PublisherSpec = {
   type?: string;
@@ -40,6 +43,39 @@ function parseRecord(value: string | null | undefined) {
   } catch {
     return {};
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseRecordValue(value: unknown) {
+  return isRecord(value) ? value : {};
+}
+
+function parseArrayRecords(value: unknown) {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return "";
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "task";
+}
+
+function truncateForArchive(value: unknown, maxLength = 4000) {
+  const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}\n...`;
 }
 
 function parsePublishers(blueprint: TaskBlueprint) {
@@ -157,6 +193,197 @@ function buildPublicationInput(args: {
   } satisfies Record<string, unknown>;
 }
 
+function repositoryNameFromTask(taskRun: TaskRun, inputPayload: Record<string, unknown>) {
+  return firstString(
+    inputPayload.codebase_name,
+    inputPayload.codebaseName,
+    inputPayload.repo_id,
+    inputPayload.repository,
+    inputPayload.repositoryName,
+    inputPayload.repository_name,
+    taskRun.sourceRef,
+  );
+}
+
+function buildArchiveEntryTitle(args: { taskRun: TaskRun; blueprint: TaskBlueprint; inputPayload: Record<string, unknown> }) {
+  const repositoryName = repositoryNameFromTask(args.taskRun, args.inputPayload);
+  return uiText("ui.server.outputPublisher.archiveTitle", undefined, {
+    name: args.blueprint.name,
+    source: repositoryName || args.taskRun.sourceRef || args.taskRun.id,
+    date: args.taskRun.createdAt.slice(0, 10),
+  });
+}
+
+export function buildTaskRunArtifactArchiveContent(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint;
+  findings: Finding[];
+  environmentSnapshot: EnvironmentSnapshot | null;
+}) {
+  const inputPayload = parseRecord(args.taskRun.inputPayloadJson);
+  const environmentPayload = parseRecord(args.environmentSnapshot?.snapshotJson);
+  const feedbackPolicy = parseFindingFeedbackPolicy(args.blueprint, inputPayload);
+  const outputPayload = parseRecord(args.taskRun.outputPayloadJson);
+  const title = buildArchiveEntryTitle({ taskRun: args.taskRun, blueprint: args.blueprint, inputPayload });
+
+  return [
+    `# ${title}`,
+    "",
+    "## " + uiText("ui.server.outputPublisher.archive.sections.summary"),
+    "",
+    `- ${uiText("ui.server.outputPublisher.taskRun", undefined, { taskRunId: args.taskRun.id })}`,
+    `- ${uiText("ui.server.outputPublisher.sourceType", undefined, { sourceType: args.taskRun.sourceType })}`,
+    `- ${uiText("ui.server.outputPublisher.archive.status", undefined, { status: args.taskRun.status })}`,
+    `- ${uiText("ui.server.outputPublisher.archive.requestedBy", undefined, { requestedBy: args.taskRun.requestedBy })}`,
+    "",
+    "## " + uiText("ui.server.outputPublisher.archive.sections.findings"),
+    "",
+    buildFindingMarkdown(args.findings, feedbackPolicy),
+    "",
+    "## " + uiText("ui.server.outputPublisher.archive.sections.input"),
+    "",
+    "```json",
+    truncateForArchive(inputPayload),
+    "```",
+    "",
+    "## " + uiText("ui.server.outputPublisher.archive.sections.environment"),
+    "",
+    "```json",
+    truncateForArchive(environmentPayload),
+    "```",
+    Object.keys(outputPayload).length
+      ? [
+          "",
+          "## " + uiText("ui.server.outputPublisher.archive.sections.output"),
+          "",
+          "```json",
+          truncateForArchive(outputPayload),
+          "```",
+        ].join("\n")
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function findArchiveKnowledgeSpace(environmentSnapshot: EnvironmentSnapshot | null) {
+  const environmentPayload = parseRecord(environmentSnapshot?.snapshotJson);
+  const knowledgeContext = parseRecordValue(environmentPayload.knowledgeContext);
+  const archiveRefs = parseArrayRecords(knowledgeContext.archiveRefs);
+  if (archiveRefs.length === 0) return null;
+
+  const spaces = listKnowledgeSpaces();
+  for (const ref of archiveRefs) {
+    const id = firstString(ref.id, ref.knowledgeSpaceId);
+    const uri = firstString(ref.vikingUri, ref.uri);
+    const byId = id ? spaces.find((space) => space.id === id) : null;
+    if (byId) return byId;
+    const normalizedUri = uri ? normalizeKnowledgeUri(uri) : "";
+    const byUri = normalizedUri ? spaces.find((space) => normalizeKnowledgeUri(space.vikingUri) === normalizedUri) : null;
+    if (byUri) return byUri;
+  }
+  return null;
+}
+
+function resolveRepositoryAliases(inputPayload: Record<string, unknown>) {
+  return buildRepositoryNameAliases(
+    firstString(inputPayload.codebase_id, inputPayload.codebaseId),
+    firstString(inputPayload.codebase_name, inputPayload.codebaseName),
+    firstString(inputPayload.repo_id, inputPayload.repository, inputPayload.repositoryName, inputPayload.repository_name),
+    firstString(inputPayload.repo_url, inputPayload.repositoryUrl, inputPayload.repository_url),
+  );
+}
+
+function resolveArchiveKnowledgeSpace(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint;
+  environmentSnapshot: EnvironmentSnapshot | null;
+}) {
+  const configured = findArchiveKnowledgeSpace(args.environmentSnapshot);
+  if (configured) return configured;
+
+  const inputPayload = parseRecord(args.taskRun.inputPayloadJson);
+  const repositoryName = repositoryNameFromTask(args.taskRun, inputPayload);
+  const repositoryAliases = resolveRepositoryAliases(inputPayload);
+  const existing = repositoryAliases.length
+    ? listKnowledgeSpaces().find((space) => {
+        const aliases = buildRepositoryNameAliases(space.repositoryName, space.projectKey, space.slug, space.vikingUri);
+        return aliases.some((alias) => repositoryAliases.includes(alias));
+      })
+    : null;
+  if (existing) return existing;
+
+  return createKnowledgeSpace({
+    tenantSpaceId: args.taskRun.tenantSpaceId,
+    businessTeamId: args.taskRun.businessTeamId,
+    agentTeamId: args.taskRun.teamId,
+    name: uiText("ui.server.outputPublisher.archive.spaceName", undefined, {
+      source: repositoryName || args.blueprint.name,
+    }),
+    slug: `task-archive-${slugify(repositoryName || args.blueprint.name || args.taskRun.id)}`,
+    spaceType: repositoryName ? "project" : "team",
+    projectKey: repositoryName ? slugify(repositoryName) : undefined,
+    knowledgeCategory: repositoryName ? "codebase" : "domain",
+    repositoryName: repositoryName || undefined,
+    description: uiText("ui.server.outputPublisher.archive.spaceDescription"),
+    visibility: "team",
+  });
+}
+
+async function publishArtifactArchive(args: {
+  taskRun: TaskRun;
+  blueprint: TaskBlueprint;
+  findings: Finding[];
+  environmentSnapshot: EnvironmentSnapshot | null;
+}) {
+  const archiveSpace = resolveArchiveKnowledgeSpace(args);
+  if (!archiveSpace) {
+    return {
+      status: "skipped" as const,
+      message: uiText("ui.server.outputPublisher.archive.skipped"),
+      payload: { taskRunId: args.taskRun.id, findingCount: args.findings.length },
+    };
+  }
+
+  const inputPayload = parseRecord(args.taskRun.inputPayloadJson);
+  const { upsertKnowledgeEntry } = await import("@/server/knowledge-engine");
+  const entry = await upsertKnowledgeEntry({
+    id: `task-archive-${args.taskRun.id}`,
+    knowledgeSpaceId: archiveSpace.id,
+    layer: "task-archive",
+    scopeKey: `${args.blueprint.category}/${slugify(repositoryNameFromTask(args.taskRun, inputPayload) || args.taskRun.sourceRef || args.taskRun.id)}`,
+    title: buildArchiveEntryTitle({ taskRun: args.taskRun, blueprint: args.blueprint, inputPayload }),
+    contentMd: buildTaskRunArtifactArchiveContent(args),
+    metadataJson: JSON.stringify({
+      taskRunId: args.taskRun.id,
+      blueprintId: args.blueprint.id,
+      sourceType: args.taskRun.sourceType,
+      sourceRef: args.taskRun.sourceRef,
+      findingCount: args.findings.length,
+      archivedAt: new Date().toISOString(),
+    }),
+    sourceType: "inspection_context",
+    updatedBy: "output-publisher",
+    saveReason: "task_run_artifact_archive",
+  });
+
+  return {
+    status: "published" as const,
+    message: uiText("ui.server.outputPublisher.archive.published", undefined, {
+      space: archiveSpace.name,
+    }),
+    payload: {
+      taskRunId: args.taskRun.id,
+      findingCount: args.findings.length,
+      knowledgeSpaceId: archiveSpace.id,
+      knowledgeSpaceName: archiveSpace.name,
+      knowledgeEntryId: entry?.id ?? null,
+      knowledgeUri: entry?.vikingUri ?? null,
+      syncStatus: entry?.syncStatus ?? null,
+    },
+  };
+}
+
 export async function publishTaskRunOutputs(args: {
   taskRun: TaskRun;
   blueprint: TaskBlueprint | null;
@@ -184,12 +411,16 @@ export async function publishTaskRunOutputs(args: {
     }
 
     if (publisherType === "artifact_archive") {
+      const archiveResult = await publishArtifactArchive({
+        taskRun: args.taskRun,
+        blueprint: args.blueprint,
+        findings: args.findings,
+        environmentSnapshot: args.environmentSnapshot,
+      });
       results.push({
         publisherType,
         pluginId: publisher.pluginId ?? null,
-        status: "drafted",
-        message: "Artifact archive record prepared from task output.",
-        payload: { taskRunId: args.taskRun.id, findingCount: args.findings.length },
+        ...archiveResult,
       });
       continue;
     }

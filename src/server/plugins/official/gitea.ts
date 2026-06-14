@@ -33,7 +33,11 @@ function firstString(value: unknown, paths: string[][]) {
 function stringInput(input: Record<string, unknown>, ...keys: string[]) {
   for (const key of keys) {
     const value = input[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "string" && value.trim()) {
+      const trimmed = value.trim();
+      if (/^\$\{[^}]+}$/.test(trimmed)) continue;
+      return trimmed;
+    }
     if (typeof value === "number") return String(value);
   }
   return "";
@@ -234,6 +238,50 @@ async function readPullRequestFilesWithContent(args: {
   return { headSha, files: output };
 }
 
+function firstArrayInput(input: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = input[key];
+    if (Array.isArray(value)) return value;
+  }
+  return [];
+}
+
+function numberInput(input: Record<string, unknown>, key: string) {
+  const value = input[key];
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function inlineFileContent(file: Record<string, unknown>) {
+  return (
+    stringInput(file, "content", "rawContent", "raw_content", "body") ||
+    stringInput(file, "patch", "diff", "unifiedDiff", "unified_diff")
+  );
+}
+
+function readInlinePullRequestFiles(input: Record<string, unknown>) {
+  return firstArrayInput(
+    input,
+    "changed_files",
+    "changedFiles",
+    "pull_request_files",
+    "pullRequestFiles",
+    "files",
+  )
+    .filter(isRecord)
+    .map((file) => ({
+      filename: stringInput(file, "filename", "filePath", "file_path", "path", "name", "new_path", "old_path"),
+      status: stringInput(file, "status", "changeType", "change_type"),
+      additions: numberInput(file, "additions"),
+      deletions: numberInput(file, "deletions"),
+      changes: numberInput(file, "changes"),
+      htmlUrl: stringInput(file, "htmlUrl", "html_url", "url"),
+      rawUrl: stringInput(file, "rawUrl", "raw_url"),
+      content: inlineFileContent(file),
+    }))
+    .filter((file) => file.filename && file.content);
+}
+
 function firstMatchingLine(content: string, regex: RegExp | null, includesAny: string[]) {
   const lines = content.split(/\r?\n/);
   for (const [index, line] of lines.entries()) {
@@ -278,15 +326,6 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
   }
 
   await ensurePermission(ctx, "repo.read", `${owner}/${repo}:${pullIndex}`);
-  const config = await resolveGiteaConfig(input, ctx);
-  if (!config.token) {
-    return {
-      status: "drafted",
-      reason: uiText("gitea.errors.tokenMissing"),
-      createdCount: 0,
-      findings: [],
-    };
-  }
 
   const contextConfiguration = isRecord(ctx.configuration) ? ctx.configuration : {};
   const rules = Array.isArray(input.rules)
@@ -294,12 +333,37 @@ async function scanPullRequestByRules(input: Record<string, unknown>, ctx: Plugi
     : Array.isArray(contextConfiguration.skillRules)
       ? contextConfiguration.skillRules.filter(isRecord)
       : [];
-  const { headSha, files } = await readPullRequestFilesWithContent({
-    owner,
-    repo,
-    pullIndex,
-    config: requireGiteaToken(config),
-  });
+  let headSha = stringInput(input, "headSha", "head_sha", "sourceCommitSha", "source_commit_sha", "diffRef", "diff_ref");
+  let files = readInlinePullRequestFiles(input);
+  if (files.length === 0) {
+    let config: Awaited<ReturnType<typeof resolveGiteaConfig>>;
+    try {
+      config = await resolveGiteaConfig(input, ctx);
+    } catch (error) {
+      return {
+        status: "drafted",
+        reason: error instanceof Error ? error.message : uiText("gitea.errors.baseUrlMissing"),
+        createdCount: 0,
+        findings: [],
+      };
+    }
+    if (!config.token) {
+      return {
+        status: "drafted",
+        reason: uiText("gitea.errors.tokenMissing"),
+        createdCount: 0,
+        findings: [],
+      };
+    }
+    const fetched = await readPullRequestFilesWithContent({
+      owner,
+      repo,
+      pullIndex,
+      config: requireGiteaToken(config),
+    });
+    headSha = fetched.headSha;
+    files = fetched.files;
+  }
   const created = [];
   for (const rule of rules) {
     const pathRegex = compileRuleRegex(rule.pathRegex ?? rule.filePathRegex);

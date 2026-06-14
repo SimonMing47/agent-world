@@ -1,4 +1,4 @@
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import {
   execute,
   queryAll,
@@ -8,10 +8,20 @@ import {
   type KnowledgeSpace,
   type TaskRun,
 } from "@/server/db";
-import { createKnowledgeSpace } from "@/server/knowledge-core";
-import { upsertKnowledgeEntry } from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
 import { buildRepositoryNameAliases } from "@/lib/repository-identity";
+import {
+  buildFindingFeedbackDigest,
+  parseFindingFeedbackToken,
+} from "@/server/finding-feedback-token";
+import { updateFinding } from "@/server/finding-core";
+import { appendTaskRunEvent } from "@/server/task-run-event-store";
+
+export {
+  buildFindingFeedbackPath,
+  buildFindingFeedbackToken,
+  buildFindingFeedbackUrl,
+} from "@/server/finding-feedback-token";
 
 export type FindingFeedbackVerdict = "accurate" | "inaccurate" | "unclear";
 
@@ -30,36 +40,14 @@ function parseRecord(value: string | null | undefined): JsonRecord {
   }
 }
 
+function feedbackStatusForVerdict(verdict: FindingFeedbackVerdict, currentStatus: string) {
+  if (verdict === "inaccurate") return "false_positive";
+  return currentStatus;
+}
+
 function normalizeVerdict(value: unknown): FindingFeedbackVerdict {
   if (value === "accurate" || value === "inaccurate" || value === "unclear") return value;
   return "unclear";
-}
-
-function tokenDigest(finding: Finding) {
-  return createHash("sha256")
-    .update([finding.id, finding.taskRunId, finding.fingerprint, finding.createdAt].join(":"))
-    .digest("hex")
-    .slice(0, 32);
-}
-
-export function buildFindingFeedbackToken(finding: Finding) {
-  return `${finding.id}.${tokenDigest(finding)}`;
-}
-
-export function buildFindingFeedbackPath(finding: Finding) {
-  return `/finding-feedback/${encodeURIComponent(buildFindingFeedbackToken(finding))}`;
-}
-
-export function buildFindingFeedbackUrl(finding: Finding, baseUrl?: string | null) {
-  const path = buildFindingFeedbackPath(finding);
-  const normalizedBaseUrl = baseUrl?.trim();
-  if (!normalizedBaseUrl) return path;
-
-  try {
-    return new URL(path, normalizedBaseUrl.endsWith("/") ? normalizedBaseUrl : `${normalizedBaseUrl}/`).toString();
-  } catch {
-    return path;
-  }
 }
 
 function safeCompare(left: string, right: string) {
@@ -69,21 +57,22 @@ function safeCompare(left: string, right: string) {
 }
 
 export function resolveFindingFeedbackToken(token: string) {
-  const normalized = token.trim();
-  const separator = normalized.lastIndexOf(".");
-  if (separator <= 0) return null;
-  const findingId = normalized.slice(0, separator);
-  const digest = normalized.slice(separator + 1);
-  const finding = queryOne<Finding>("SELECT * FROM findings WHERE id = ? AND status <> 'deleted'", findingId);
+  const parsed = parseFindingFeedbackToken(token);
+  if (!parsed) return null;
+  const finding = queryOne<Finding>(
+    "SELECT * FROM findings WHERE id = ? AND status <> 'deleted'",
+    parsed.findingId,
+  );
   if (!finding) return null;
-  if (!safeCompare(digest, tokenDigest(finding))) return null;
+  const expectedDigest = buildFindingFeedbackDigest(finding, parsed.version);
+  if (!safeCompare(parsed.digest, expectedDigest)) return null;
   const taskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", finding.taskRunId);
   if (!taskRun) return null;
   const existingFeedback = queryOne<InspectionFeedback>(
     "SELECT * FROM inspection_feedback WHERE token = ? ORDER BY created_at DESC LIMIT 1",
-    normalized,
+    parsed.normalized,
   );
-  return { token: normalized, finding, taskRun, existingFeedback };
+  return { token: parsed.normalized, finding, taskRun, existingFeedback };
 }
 
 function firstString(...values: unknown[]) {
@@ -101,7 +90,7 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "") || "repository";
 }
 
-function resolveKnowledgeSpaceForFeedback(taskRun: TaskRun) {
+async function resolveKnowledgeSpaceForFeedback(taskRun: TaskRun) {
   const input = parseRecord(taskRun.inputPayloadJson);
   const repositoryName = firstString(input.codebase_name, input.repo_id, input.repositoryName, input.repository_name);
   const repositoryAliases = buildRepositoryNameAliases(
@@ -118,6 +107,7 @@ function resolveKnowledgeSpaceForFeedback(taskRun: TaskRun) {
     if (existing) return existing;
   }
 
+  const { createKnowledgeSpace } = await import("@/server/knowledge-core");
   return createKnowledgeSpace({
     tenantSpaceId: taskRun.tenantSpaceId,
     businessTeamId: taskRun.businessTeamId,
@@ -180,16 +170,10 @@ export async function recordFindingFeedback(input: {
     existing?.createdAt ?? now,
   );
 
-  execute(
-    "UPDATE findings SET status = ?, updated_at = ? WHERE id = ?",
-    verdict === "inaccurate" ? "false_positive" : resolved.finding.status,
-    now,
-    resolved.finding.id,
-  );
-
   let knowledgeUri: string | null = null;
   if (input.writeKnowledge !== false) {
-    const space = resolveKnowledgeSpaceForFeedback(resolved.taskRun);
+    const { upsertKnowledgeEntry } = await import("@/server/knowledge-engine");
+    const space = await resolveKnowledgeSpaceForFeedback(resolved.taskRun);
     const layer = input.knowledgeLayer?.trim() || "feedback/finding";
     const scopePrefix = input.knowledgeScopePrefix?.trim() || "finding-feedback";
     const entry = await upsertKnowledgeEntry({
@@ -229,6 +213,60 @@ export async function recordFindingFeedback(input: {
       resolved.token,
     );
   }
+
+  const publication = parseRecord(resolved.finding.publicationJson);
+  const feedbackHistory = Array.isArray(publication.feedbackHistory)
+    ? publication.feedbackHistory.filter((item) => Boolean(item) && typeof item === "object")
+    : [];
+  const updatedStatus = feedbackStatusForVerdict(verdict, resolved.finding.status);
+  updateFinding({
+    id: resolved.finding.id,
+    status: updatedStatus,
+    publicationJson: {
+      ...publication,
+      feedback: {
+        verdict,
+        note,
+        sourceIp: input.sourceIp ?? null,
+        knowledgeUri,
+        recordedBy: "public-feedback",
+        recordedAt: now,
+      },
+      feedbackHistory: [
+        ...feedbackHistory.slice(-9),
+        {
+          verdict,
+          note,
+          sourceIp: input.sourceIp ?? null,
+          knowledgeUri,
+          recordedBy: "public-feedback",
+          recordedAt: now,
+          statusAfterFeedback: updatedStatus,
+        },
+      ],
+    },
+  });
+
+  appendTaskRunEvent({
+    traceId: resolved.taskRun.traceId,
+    taskRunId: resolved.taskRun.id,
+    phase: "finding_feedback_recorded",
+    foldGroup: "Team Actions",
+    title: uiText("ui.server.findingFeedback.eventTitle"),
+    content: uiText("ui.server.findingFeedback.eventContent", undefined, {
+      verdict,
+      title: resolved.finding.title,
+    }),
+    metadata: {
+      findingId: resolved.finding.id,
+      verdict,
+      note,
+      sourceIp: input.sourceIp ?? null,
+      knowledgeUri,
+      previousStatus: resolved.finding.status,
+      status: updatedStatus,
+    },
+  });
 
   return {
     ok: true,

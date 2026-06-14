@@ -6,6 +6,7 @@ import {
   saveLanguagePackSetting,
 } from "@/server/language-pack-store";
 import { uiText } from "@/lib/language-pack";
+import { apiAccessErrorResponse, requireSystemAdminActor } from "@/server/api-access-control";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ export function GET() {
 
 export async function PUT(request: Request) {
   try {
+    await requireSystemAdminActor(request);
     const body = (await request.json()) as { activeLocale?: string; customPack?: unknown };
     const setting = saveLanguagePackSetting({
       activeLocale: body.activeLocale ?? "zh-CN",
@@ -43,6 +45,8 @@ export async function PUT(request: Request) {
       })),
     });
   } catch (error) {
+    const accessErrorResponse = apiAccessErrorResponse(error);
+    if (accessErrorResponse) return accessErrorResponse;
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : uiText("ui.api.errors.saveLanguagePackFailed") },
       { status: 400 },

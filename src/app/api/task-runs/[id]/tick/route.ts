@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { executeTaskRunTick } from "@/server/queries";
+import { apiAccessErrorResponse, requireTaskRunActor } from "@/server/api-access-control";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +8,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const resolved = await params;
-  const body = (await request.json().catch(() => ({}))) as { requestedBy?: string };
-  const detail = await executeTaskRunTick(resolved.id, body.requestedBy ?? "console");
-  return NextResponse.json({ detail });
+  try {
+    const { actor } = await requireTaskRunActor(request, resolved.id);
+    const body = (await request.json().catch(() => ({}))) as { requestedBy?: string };
+    const { executeTaskRunTick } = await import("@/server/queries");
+    const detail = await executeTaskRunTick(resolved.id, body.requestedBy ?? actor);
+    return NextResponse.json({ detail });
+  } catch (error) {
+    const accessResponse = apiAccessErrorResponse(error);
+    if (accessResponse) return accessResponse;
+    throw error;
+  }
 }

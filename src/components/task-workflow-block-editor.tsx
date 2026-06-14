@@ -263,7 +263,7 @@ export function TaskWorkflowBlockEditor({ blocks, onChange, agents, agentTeams, 
                 <FieldGroup label="ui.generated.c21c87436e6">
                   <div className="flex min-h-10 flex-wrap gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
                     {dependencyOptions(blocks, block.id).length === 0 ? (
-                      <span className="text-xs text-[var(--ink-muted)]">ui.generated.c77c35984b8</span>
+                      <span className="text-xs text-[var(--ink-muted)]">{text("ui.generated.c77c35984b8")}</span>
                     ) : (
                       dependencyOptions(blocks, block.id).map((option) => (
                         <button

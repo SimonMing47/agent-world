@@ -63,8 +63,13 @@ import {
 } from "@/server/agent-orchestration-core";
 import { buildEnvironmentSnapshotPayload } from "@/server/environment-snapshot-core";
 import {
+  buildFindingDashboard,
+  buildFindingOwnerBoard,
+  buildFindingTriageQueue,
   ensureTaskRunSummaryFinding,
+  updateFinding,
 } from "@/server/finding-core";
+import { buildFindingRemediationTaskInput } from "@/server/finding-remediation-core";
 import { readKnowledgeContent } from "@/server/knowledge-engine";
 import {
   buildTaskRunKnowledgeRetrieval,
@@ -73,6 +78,8 @@ import {
 import { publishTaskRunOutputs } from "@/server/output-publisher-core";
 import { executePluginStage } from "@/server/plugin-stage-core";
 import {
+  assertTaskBlueprintReadiness,
+  buildTaskBlueprintReadiness,
   buildTaskBlueprintDetail,
   buildTaskBlueprintSummary,
   buildTaskRunKernelView,
@@ -80,7 +87,9 @@ import {
   renderTemplateValue,
 } from "@/server/task-blueprint-core";
 import { appendTaskRunEvent, getTaskRunNodes } from "@/server/task-run-event-store";
+import { buildTaskRunTeamActivity } from "@/server/task-run-team-activity-core";
 import { cleanupTaskWorktree, prepareTaskWorktree } from "@/server/task-worktree-core";
+import { buildTeamActionQueue } from "@/server/team-action-queue-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
 import { buildAgentSkillLoadout } from "@/server/agent-skill-core";
 import { getLanguagePackSetting } from "@/server/language-pack-store";
@@ -811,10 +820,13 @@ export function getTaskBlueprintsSnapshot() {
   const blueprints = listTaskBlueprints();
   const businessTeams = listBusinessTeams();
   const teams = listAgentTeams();
+  const agents = listAgents();
   const environments = listExecutionEnvironments();
+  const codebases = listCodebaseProfiles();
   const providerAdapters = listProviderAdapterDefinitions();
   const taskRuns = listTaskRuns();
   const findings = listFindings();
+  const scheduleAssessments = listScheduleAssessments(listScheduleTemplates());
 
   return {
     blueprints: blueprints.map((blueprint) =>
@@ -822,13 +834,16 @@ export function getTaskBlueprintsSnapshot() {
         blueprint,
         businessTeams,
         teams,
+        agents,
         environments,
         providerAdapters,
+        codebases,
         taskRuns,
         findings,
       }),
     ),
     providerAdapters,
+    scheduleAssessments,
   };
 }
 
@@ -871,14 +886,15 @@ export function getTaskBlueprintDetail(blueprintId: string) {
 
   return {
     ...buildTaskBlueprintDetail({
-    blueprint,
-    businessTeams: listBusinessTeams(),
-    teams: listAgentTeams(),
-    agents: listAgents(),
-    environments: listExecutionEnvironments(),
-    providerAdapters: listProviderAdapterDefinitions(),
-    taskRuns: listTaskRuns(),
-    findings: listFindings(),
+      blueprint,
+      businessTeams: listBusinessTeams(),
+      teams: listAgentTeams(),
+      agents: listAgents(),
+      environments: listExecutionEnvironments(),
+      providerAdapters: listProviderAdapterDefinitions(),
+      codebases: listCodebaseProfiles(),
+      taskRuns: listTaskRuns(),
+      findings: listFindings(),
     }),
     options: getTaskBlueprintEditorOptions(),
   };
@@ -1200,6 +1216,7 @@ export function getTaskRunDetail(taskRunId: string) {
       agents: agents.filter((agent) => agent.teamId === taskRun.teamId),
     }),
     interventions,
+    teamActivity: buildTaskRunTeamActivity(events),
     groupedEvents: groupEventsByFoldGroup(events),
     kernel: buildTaskRunKernelView({
       taskRun,
@@ -1247,6 +1264,7 @@ export function getDashboardSnapshot() {
   const executionPolicies = listExecutionPolicies();
   const blueprints = listTaskBlueprints();
   const providerAdapters = listProviderAdapterDefinitions();
+  const codebases = listCodebaseProfiles();
   const findings = listFindings();
 
   const runningTaskRuns = task_runs.filter((taskRun) => taskRun.status === "running");
@@ -1269,7 +1287,7 @@ export function getDashboardSnapshot() {
   const taskRunPriorityBoard = task_runs
     .map((taskRun) => buildTaskRunPriorityAssessment(taskRun))
     .sort((left, right) => right.effectivePriority - left.effectivePriority);
-  const taskRunWorkflowProgress = Object.fromEntries(
+  const taskRunRuntimeSignals = Object.fromEntries(
     task_runs.map((taskRun) => {
       const nodes = getTaskRunNodes(taskRun.id);
       const events = queryAll<EventLog>(
@@ -1278,15 +1296,50 @@ export function getDashboardSnapshot() {
       );
       return [
         taskRun.id,
-        buildTaskRunWorkflowProgress({
-          taskRun,
-          nodes,
-          events,
-          agents: agents.filter((agent) => agent.teamId === taskRun.teamId),
-        }),
+        {
+          workflowProgress: buildTaskRunWorkflowProgress({
+            taskRun,
+            nodes,
+            events,
+            agents: agents.filter((agent) => agent.teamId === taskRun.teamId),
+          }),
+          teamActivity: buildTaskRunTeamActivity(events, { limit: 4 }),
+        },
       ];
     }),
   );
+  const taskRunWorkflowProgress = Object.fromEntries(
+    Object.entries(taskRunRuntimeSignals).map(([taskRunId, signals]) => [
+      taskRunId,
+      signals.workflowProgress,
+    ]),
+  );
+  const taskRunTeamActivity = Object.fromEntries(
+    Object.entries(taskRunRuntimeSignals).map(([taskRunId, signals]) => [
+      taskRunId,
+      signals.teamActivity,
+    ]),
+  );
+  const findingOwnerBoard = buildFindingOwnerBoard({
+    findings,
+    taskRuns: task_runs,
+    businessTeams: business_teams,
+    teams,
+    blueprints,
+  });
+  const findingTriageQueue = buildFindingTriageQueue({
+    findings,
+    taskRuns: task_runs,
+    businessTeams: business_teams,
+    teams,
+    blueprints,
+  });
+  const teamActionQueue = buildTeamActionQueue({
+    taskRuns: task_runs,
+    taskRunWorkflowProgress,
+    findingTriageQueue,
+    findingOwnerBoard,
+  });
 
   const featuredTaskRun = runningTaskRuns[0] ?? awaitingTaskRuns[0] ?? task_runs[0] ?? null;
   const featuredTeam = featuredTaskRun
@@ -1352,14 +1405,25 @@ export function getDashboardSnapshot() {
         blueprint,
         businessTeams: business_teams,
         teams,
+        agents,
         environments,
         providerAdapters,
+        codebases,
         taskRuns: task_runs,
         findings,
       }),
     ),
     task_runs,
     taskRunWorkflowProgress,
+    taskRunTeamActivity,
+    findingDashboard: buildFindingDashboard({
+      findings,
+      taskRuns: task_runs,
+      businessTeams: business_teams,
+    }),
+    findingOwnerBoard,
+    findingTriageQueue,
+    teamActionQueue,
     serviceCatalogResumes,
     access_grants: access_grants.map((accessGrant) => ({
       ...buildAccessGrantSummary(accessGrant),
@@ -2044,22 +2108,46 @@ export function submitTaskRunFromBlueprint(args: {
 }) {
   const blueprint = queryOne<TaskBlueprint>("SELECT * FROM task_blueprints WHERE id = ?", args.blueprintId);
   if (!blueprint) throw new Error(uiText("ui.generated.cd492e543a6"));
+
+  const teams = listAgentTeams();
+  const allAgents = listAgents();
+  const environments = listExecutionEnvironments();
+  const providerAdapters = listProviderAdapterDefinitions();
+  const codebases = listCodebaseProfiles();
+  const taskRuns = listTaskRuns();
+  const readiness = buildTaskBlueprintReadiness({
+    blueprint,
+    teams,
+    agents: allAgents,
+    environments,
+    providerAdapters,
+    codebases,
+    taskRuns,
+  });
+  assertTaskBlueprintReadiness(readiness);
+
   if (blueprint.status !== "active") throw new Error(uiText("ui.generated.ce030c4c173"));
 
-  const team = queryOne<AgentTeam>("SELECT * FROM agent_teams WHERE id = ?", blueprint.teamId);
+  const team = teams.find((item) => item.id === blueprint.teamId) ?? null;
   if (!team) throw new Error(uiText("ui.generated.ccd11f4dbde"));
 
-  const agents = listAgents().filter((agent) => agent.teamId === team.id);
+  const agents = allAgents.filter((agent) => agent.teamId === team.id);
   const environment = blueprint.environmentId
-    ? queryOne<ExecutionEnvironment>("SELECT * FROM execution_environments WHERE id = ?", blueprint.environmentId)
+    ? environments.find((item) => item.id === blueprint.environmentId) ?? null
     : null;
   const trigger = parseJsonRecord(blueprint.triggerJson);
   const executionPolicy = parseJsonRecord(blueprint.executionPolicyJson);
+  const codebaseScope = parseTaskBlueprintCodebaseScope(blueprint);
+  const defaultCodebaseId =
+    codebaseScope.mode === "selected" && codebaseScope.codebaseIds.length === 1
+      ? codebaseScope.codebaseIds[0]
+      : "";
   const inputPayload: Record<string, unknown> = {
     taskCategory: blueprint.category,
     taskBlueprintId: blueprint.id,
     run_date: new Date().toISOString().slice(0, 10),
     branch: environment?.defaultBranch ?? "",
+    ...(defaultCodebaseId ? { codebase_id: defaultCodebaseId } : {}),
     ...args.inputPayload,
   };
   assertTaskBlueprintCodebaseScope(blueprint, inputPayload);
@@ -2163,13 +2251,19 @@ export function submitDueTaskBlueprintSchedules(args: {
   now?: string;
   requestedBy?: string;
   inputPayload?: Record<string, unknown>;
+  force?: boolean;
+  accessibleBusinessTeamIds?: string[] | null;
 } = {}) {
   const now = args.now ? new Date(args.now) : new Date();
+  const accessibleBusinessTeamIds = args.accessibleBusinessTeamIds
+    ? new Set(args.accessibleBusinessTeamIds)
+    : null;
   const results = listTaskBlueprints()
     .filter((blueprint) => blueprint.status === "active")
+    .filter((blueprint) => !accessibleBusinessTeamIds || accessibleBusinessTeamIds.has(blueprint.ownerBusinessTeamId))
     .filter((blueprint) => {
       const trigger = parseJsonRecord(blueprint.triggerJson);
-      return normalizeTriggerType(trigger.type) === "schedule" && isCronBlueprintDue(trigger.expression, now);
+      return normalizeTriggerType(trigger.type) === "schedule" && (args.force || isCronBlueprintDue(trigger.expression, now));
     })
     .map((blueprint) => {
       try {
@@ -2201,6 +2295,7 @@ export function submitDueTaskBlueprintSchedules(args: {
   return {
     ok: results.every((result) => result.ok),
     now: now.toISOString(),
+    forced: args.force === true,
     submittedCount: results.filter((result) => result.ok).length,
     results,
   };
@@ -2913,6 +3008,120 @@ export function resolveTaskRunIntervention(args: {
   });
 
   return getTaskRunDetail(taskRun.id);
+}
+
+export function createFindingRemediationTaskRun(args: {
+  taskRunId: string;
+  findingId: string;
+  requestedBy?: string | null;
+}) {
+  const sourceTaskRun = queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", args.taskRunId);
+  if (!sourceTaskRun) throw new Error(uiText("ui.server.findingRemediation.taskRunNotFound"));
+
+  const finding = queryOne<Finding>(
+    "SELECT * FROM findings WHERE id = ? AND task_run_id = ? AND status <> 'deleted'",
+    args.findingId,
+    args.taskRunId,
+  );
+  if (!finding) throw new Error(uiText("ui.server.findingRemediation.findingNotFound"));
+
+  const remediationInput = buildFindingRemediationTaskInput({ finding, sourceTaskRun });
+  const existing = queryOne<TaskRun>(
+    "SELECT * FROM task_runs WHERE parent_task_run_id = ? AND idempotency_key = ? ORDER BY created_at DESC LIMIT 1",
+    sourceTaskRun.id,
+    remediationInput.idempotencyKey,
+  );
+  if (existing) {
+    return {
+      created: false,
+      taskRun: existing,
+      detail: getTaskRunDetail(existing.id),
+    };
+  }
+
+  const sourceEnvironmentSnapshot = sourceTaskRun.environmentSnapshotId
+    ? queryOne<EnvironmentSnapshot>(
+        "SELECT * FROM environment_snapshots WHERE id = ?",
+        sourceTaskRun.environmentSnapshotId,
+      )
+    : null;
+  const sourceSnapshotPayload = sourceEnvironmentSnapshot
+    ? parseJsonRecord(sourceEnvironmentSnapshot.snapshotJson)
+    : null;
+  const now = nowIso();
+  const detail = submitTaskRun({
+    teamId: sourceTaskRun.teamId,
+    idempotencyKey: remediationInput.idempotencyKey,
+    parentTaskRunId: sourceTaskRun.id,
+    sourceType: "manual",
+    sourceRef: remediationInput.sourceRef,
+    requestedBy: args.requestedBy?.trim() || "console",
+    priority: remediationInput.priority,
+    environmentId: sourceEnvironmentSnapshot?.environmentId ?? null,
+    plannerMode: "rule",
+    summary: uiText("ui.server.findingRemediation.summary", undefined, { title: finding.title }),
+    inputPayload: remediationInput.inputPayload,
+    environmentSnapshot: sourceSnapshotPayload
+      ? {
+          templateId: sourceEnvironmentSnapshot?.templateId ?? null,
+          environmentId: sourceEnvironmentSnapshot?.environmentId ?? null,
+          payload: {
+            ...sourceSnapshotPayload,
+            remediation: remediationInput.inputPayload,
+          },
+        }
+      : null,
+  });
+  const remediationTaskRun = detail?.taskRun ?? null;
+
+  if (remediationTaskRun) {
+    const publication = parseJsonRecord(finding.publicationJson);
+    const history = Array.isArray(publication.remediationHistory)
+      ? publication.remediationHistory.filter((item) => Boolean(item) && typeof item === "object")
+      : [];
+    updateFinding({
+      id: finding.id,
+      publicationJson: {
+        ...publication,
+        remediation: {
+          taskRunId: remediationTaskRun.id,
+          createdBy: args.requestedBy?.trim() || "console",
+          createdAt: now,
+        },
+        remediationHistory: [
+          ...history.slice(-9),
+          {
+            taskRunId: remediationTaskRun.id,
+            createdBy: args.requestedBy?.trim() || "console",
+            createdAt: now,
+          },
+        ],
+      },
+    });
+
+    appendTaskRunEvent({
+      traceId: sourceTaskRun.traceId,
+      taskRunId: sourceTaskRun.id,
+      phase: "remediation_task_created",
+      foldGroup: "Team Actions",
+      title: uiText("ui.server.findingRemediation.eventTitle"),
+      content: uiText("ui.server.findingRemediation.eventContent", undefined, {
+        requestedBy: args.requestedBy?.trim() || "console",
+        taskRunId: remediationTaskRun.id,
+        title: finding.title,
+      }),
+      metadata: {
+        findingId: finding.id,
+        remediationTaskRunId: remediationTaskRun.id,
+      },
+    });
+  }
+
+  return {
+    created: true,
+    taskRun: remediationTaskRun,
+    detail,
+  };
 }
 
 export function resumeTaskRun(taskRunId: string, requestedBy: string) {

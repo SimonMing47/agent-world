@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguageText } from "@/components/language-pack-provider";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 
@@ -13,6 +14,10 @@ type TaskRunOpsConsoleProps = {
 
 const OPS_ACTOR = "console";
 
+function opsTextKey(key: string) {
+  return ["ui", "taskRunDetail", "opsConsole", key].join(".");
+}
+
 async function postJson(url: string, body: Record<string, unknown>) {
   const response = await fetch(url, {
     method: "POST",
@@ -22,12 +27,13 @@ async function postJson(url: string, body: Record<string, unknown>) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "ui.generated.c8fdc4112a4");
+    throw new Error(text || opsTextKey("messages.failed"));
   }
 }
 
 export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
   const router = useRouter();
+  const text = useLanguageText();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -36,17 +42,21 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
       try {
         setMessage(null);
         await run();
-        setMessage("ui.generated.cdf74cc3481");
+        setMessage(opsTextKey("messages.completed"));
         router.refresh();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "ui.generated.c09e424b5e8");
+        setMessage(error instanceof Error ? error.message : opsTextKey("messages.unknownError"));
       }
     });
   };
 
   return (
     <Panel>
-      <PanelHeader eyebrow="ui.generated.cf3ea6d345e" title="ui.generated.c0c1b35f1c4" description="ui.generated.c96220dbea8" />
+      <PanelHeader
+        eyebrow={opsTextKey("eyebrow")}
+        title={opsTextKey("title")}
+        description={opsTextKey("description")}
+      />
       <PanelBody>
         <div className="grid gap-3 sm:grid-cols-2">
           <Button
@@ -57,7 +67,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
               runAction(() => postJson(`/api/task-runs/${props.taskRunId}/tick`, { requestedBy: OPS_ACTOR }))
             }
           >
-            ui.generated.ce3cacac29e
+            {opsTextKey("actions.tick")}
           </Button>
           <Button
             type="button"
@@ -67,7 +77,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
               runAction(() => postJson(`/api/task-runs/${props.taskRunId}/resume`, { requestedBy: OPS_ACTOR }))
             }
           >
-            ui.generated.cc6c4880a68
+            {opsTextKey("actions.resume")}
           </Button>
           {props.retryNodeId ? (
             <Button
@@ -82,7 +92,7 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                 )
               }
             >
-              ui.generated.c645f6f5302
+              {opsTextKey("actions.retry")}
             </Button>
           ) : null}
           {props.pendingInterventionId ? (
@@ -96,12 +106,12 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                     postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
                       decision: "approved",
                       resolvedBy: OPS_ACTOR,
-                      resolutionNote: "Approved from task run console",
+                      resolutionNote: text(opsTextKey("resolution.approved")),
                     }),
                   )
                 }
               >
-                ui.generated.c23f7419d21
+                {opsTextKey("actions.approve")}
               </Button>
               <Button
                 type="button"
@@ -112,17 +122,17 @@ export function TaskRunOpsConsole(props: TaskRunOpsConsoleProps) {
                     postJson(`/api/task-run-interventions/${props.pendingInterventionId}/resolve`, {
                       decision: "rejected",
                       resolvedBy: OPS_ACTOR,
-                      resolutionNote: "Rejected from task run console",
+                      resolutionNote: text(opsTextKey("resolution.rejected")),
                     }),
                   )
                 }
               >
-                ui.generated.c1c9e390d8c
+                {opsTextKey("actions.reject")}
               </Button>
             </div>
           ) : null}
         </div>
-        {message ? <div className="mt-3 text-sm text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="mt-3 text-sm text-[var(--ink-muted)]">{text(message)}</div> : null}
       </PanelBody>
     </Panel>
   );

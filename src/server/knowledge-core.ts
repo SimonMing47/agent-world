@@ -11,11 +11,6 @@ import {
   type TaskBlueprint,
   type TaskRun,
 } from "@/server/db";
-import {
-  getKnowledgeEngineHealth,
-  getKnowledgeEngineTree,
-  searchKnowledgeEntries,
-} from "@/server/knowledge-engine";
 import { uiText } from "@/lib/language-pack";
 import { isCodebaseKnowledgeCategory, normalizeKnowledgeCategory, normalizeKnowledgeCategories } from "@/lib/knowledge-categories";
 import { normalizeKnowledgeUri, replaceLegacyKnowledgeUriText } from "@/lib/knowledge-uri";
@@ -547,6 +542,7 @@ export async function buildTaskRunKnowledgeRetrieval(
   taskRun: TaskRun,
   options: {
     query?: string;
+    allowedKnowledgeSpaceIds?: string[];
     knowledgeSpaceIds?: string[];
     scopeUris?: string[];
     knowledgeCategories?: string[];
@@ -582,6 +578,7 @@ export async function buildTaskRunKnowledgeRetrieval(
       )
     : [];
   const repositoryNames = explicitRepositoryNames.length ? explicitRepositoryNames : inferredRepositoryNames;
+  const { getKnowledgeEngineHealth, getKnowledgeEngineTree, searchKnowledgeEntries } = await import("@/server/knowledge-engine");
   const health = await getKnowledgeEngineHealth();
   const refs = [];
 
@@ -597,6 +594,7 @@ export async function buildTaskRunKnowledgeRetrieval(
   const searchable = query
     ? searchKnowledgeEntries({
         query,
+        allowedKnowledgeSpaceIds: options.allowedKnowledgeSpaceIds,
         scopeUris,
         knowledgeSpaceIds,
         knowledgeCategories,

@@ -12,6 +12,7 @@ import { upsertFinding } from "@/server/finding-core";
 import type { PluginManifest } from "@/server/plugin-core";
 import { codehubExecutablePlugin } from "@/server/plugins/official/codehub";
 import { giteaExecutablePlugin } from "@/server/plugins/official/gitea";
+import { softwareTeamExecutablePlugin } from "@/server/plugins/official/software-team";
 import { uiText } from "@/lib/language-pack";
 
 export type PluginPermissionRequest = {
@@ -246,6 +247,7 @@ function loadBundledExecutablePluginModules(): ExecutablePluginModule[] {
   return [
     codehubExecutablePlugin,
     giteaExecutablePlugin,
+    softwareTeamExecutablePlugin,
   ];
 }
 
@@ -627,7 +629,9 @@ function decidePermission(
 }
 
 function buildTaskContext(input: PluginRuntimeContextInput) {
-  const taskRun = input.taskRun;
+  const taskRun = input.taskRun
+    ? queryOne<TaskRun>("SELECT * FROM task_runs WHERE id = ?", input.taskRun.id) ?? input.taskRun
+    : null;
   const blueprint = input.blueprint;
   return {
     taskRun: taskRun

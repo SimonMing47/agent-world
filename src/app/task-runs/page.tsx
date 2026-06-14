@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { FindingCleanupCampaignLauncher } from "@/components/finding-cleanup-campaign-launcher";
 import { PageHeader } from "@/components/page-header";
+import { TeamActionQueueActions } from "@/components/team-action-queue-actions";
+import { TaskRunFindingActions } from "@/components/task-run-finding-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   DataTable,
@@ -12,17 +15,38 @@ import {
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { SummaryStrip } from "@/components/ui/summary-strip";
 import { uiText } from "@/lib/language-pack";
-import { translateSourceType, translateStatus } from "@/lib/presentation";
-import { formatDateTime } from "@/lib/utils";
+import { localizeDemoCopy, translateSeverity, translateSourceType, translateStatus } from "@/lib/presentation";
+import { formatDateTime, formatNumber } from "@/lib/utils";
 import { getDashboardSnapshot } from "@/server/queries";
 
 type DashboardSnapshot = ReturnType<typeof getDashboardSnapshot>;
 type DashboardTaskRun = DashboardSnapshot["task_runs"][number];
 type DashboardWorkflowProgress = DashboardSnapshot["taskRunWorkflowProgress"][string];
+type DashboardTaskRunTeamActivity = DashboardSnapshot["taskRunTeamActivity"][string];
 type DashboardTeamSummary = DashboardSnapshot["teamSummaries"][number];
 type DashboardBusinessTeamSummary = DashboardSnapshot["businessTeamSummaries"][number];
 type DashboardTaskBlueprintSummary = DashboardSnapshot["taskBlueprints"][number];
+type DashboardFindingTriageItem = DashboardSnapshot["findingTriageQueue"][number];
+type DashboardFindingOwnerBoardItem = DashboardSnapshot["findingOwnerBoard"][number];
+type DashboardTeamActionQueueItem = DashboardSnapshot["teamActionQueue"][number];
 type KanbanColumnId = "intake" | "running" | "waiting" | "done" | "blocked";
+
+function buildCleanupTeamOptions(snapshot: DashboardSnapshot) {
+  const findingCountByTeam = new Map<string, number>();
+  for (const finding of snapshot.findingTriageQueue) {
+    if (!finding.agentTeamId) continue;
+    findingCountByTeam.set(finding.agentTeamId, (findingCountByTeam.get(finding.agentTeamId) ?? 0) + 1);
+  }
+
+  return snapshot.teamSummaries
+    .map((team) => ({
+      id: team.id,
+      name: team.name,
+      findingCount: findingCountByTeam.get(team.id) ?? 0,
+    }))
+    .filter((team) => team.findingCount > 0)
+    .sort((left, right) => right.findingCount - left.findingCount || left.name.localeCompare(right.name));
+}
 
 function taskRunsText(key: string, params?: Record<string, string | number>) {
   return uiText(`ui.taskRuns.${key}`, undefined, params);
@@ -34,6 +58,32 @@ function workflowBadgeVariant(status: string): "neutral" | "accent" | "success" 
   if (["running", "queued", "preparing_environment", "publishing_output"].includes(status)) return "accent";
   if (["completed", "succeeded", "approved"].includes(status)) return "success";
   return "neutral";
+}
+
+function severityBadgeVariant(severity: string): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (["critical", "high"].includes(severity)) return "danger";
+  if (severity === "medium") return "warning";
+  if (severity === "low") return "accent";
+  return "neutral";
+}
+
+function actionQueuePriorityVariant(priority: DashboardTeamActionQueueItem["priority"]): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (priority === "critical") return "danger";
+  if (priority === "high") return "warning";
+  if (priority === "medium") return "accent";
+  return "neutral";
+}
+
+function teamActivityVariant(kind: string | undefined): "neutral" | "accent" | "success" | "warning" | "danger" {
+  if (kind === "blocker" || kind === "policy") return "danger";
+  if (kind === "handoff" || kind === "gate") return "warning";
+  if (kind === "decision" || kind === "finding" || kind === "remediation") return "accent";
+  if (kind === "cleanup") return "success";
+  return "neutral";
+}
+
+function getLatestTeamActivity(activity: DashboardTaskRunTeamActivity | undefined) {
+  return activity?.latestHandoff ?? activity?.latestItem ?? null;
 }
 
 function taskDisplayName(taskRun: DashboardTaskRun) {
@@ -135,15 +185,63 @@ function WorkflowProgressPreview({ progress }: { progress: DashboardWorkflowProg
   );
 }
 
+function TeamActivitySignal({
+  activity,
+  compact = false,
+}: {
+  activity: DashboardTaskRunTeamActivity | undefined;
+  compact?: boolean;
+}) {
+  const latestActivity = getLatestTeamActivity(activity);
+  const totalCount = activity?.totalCount ?? 0;
+
+  if (!latestActivity) {
+    return (
+      <div className={compact ? "mt-2 text-xs text-[var(--ink-muted)]" : "mt-3 border-t border-[var(--line)] pt-3 text-xs text-[var(--ink-muted)]"}>
+        {taskRunsText("teamActivity.empty")}
+      </div>
+    );
+  }
+
+  const headlineKey = latestActivity.kind === "handoff" ? "teamActivity.latestHandoff" : "teamActivity.latestSignal";
+
+  return (
+    <div className={compact ? "mt-3 min-w-[240px]" : "mt-3 border-t border-[var(--line)] pt-3"}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-medium text-[var(--ink)]">{taskRunsText(headlineKey)}</span>
+        <Badge variant={activity?.blockerCount ? "danger" : teamActivityVariant(latestActivity.kind)}>
+          {taskRunsText("teamActivity.count", { count: formatNumber(totalCount) })}
+        </Badge>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <Badge variant={teamActivityVariant(latestActivity.kind)}>
+          {taskRunsText(`teamActivity.kinds.${latestActivity.kind}`)}
+        </Badge>
+        <span className="text-xs text-[var(--ink-muted)]">
+          {latestActivity.actor
+            ? taskRunsText("teamActivity.actor", { actor: latestActivity.actor })
+            : taskRunsText("teamActivity.systemActor")}
+        </span>
+      </div>
+      <div className={compact ? "mt-1 line-clamp-1 text-xs font-medium text-[var(--ink)]" : "mt-1 line-clamp-2 text-sm font-medium leading-5 text-[var(--ink)]"}>
+        {localizeDemoCopy(latestActivity.title)}
+      </div>
+      <div className="mt-1 text-xs text-[var(--ink-subtle)]">{formatDateTime(latestActivity.createdAt)}</div>
+    </div>
+  );
+}
+
 function TaskKanbanCard({
   taskRun,
   progress,
+  activity,
   team,
   businessTeam,
   blueprint,
 }: {
   taskRun: DashboardTaskRun;
   progress: DashboardWorkflowProgress | undefined;
+  activity: DashboardTaskRunTeamActivity | undefined;
   team: DashboardTeamSummary | undefined;
   businessTeam: DashboardBusinessTeamSummary | undefined;
   blueprint: DashboardTaskBlueprintSummary | undefined;
@@ -188,6 +286,8 @@ function TaskKanbanCard({
           </div>
         ) : null}
       </div>
+
+      <TeamActivitySignal activity={activity} />
 
       <div className="mt-3">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs">
@@ -285,6 +385,7 @@ function TaskKanbanBoard({ snapshot }: { snapshot: DashboardSnapshot }) {
                     key={taskRun.id}
                     taskRun={taskRun}
                     progress={snapshot.taskRunWorkflowProgress[taskRun.id]}
+                    activity={snapshot.taskRunTeamActivity[taskRun.id]}
                     team={snapshot.teamSummaries.find((item) => item.id === taskRun.teamId)}
                     businessTeam={snapshot.businessTeamSummaries.find((item) => item.id === taskRun.businessTeamId)}
                     blueprint={snapshot.taskBlueprints.find((item) => item.id === taskRun.blueprintId)}
@@ -304,6 +405,321 @@ function TaskKanbanBoard({ snapshot }: { snapshot: DashboardSnapshot }) {
   );
 }
 
+function TeamActionQueuePanel({ items }: { items: DashboardTeamActionQueueItem[] }) {
+  const urgentCount = items.filter((item) => item.priority === "critical" || item.priority === "high").length;
+  const gateCount = items.filter((item) => item.kind === "waiting_gate" || item.kind === "blocked_run").length;
+
+  return (
+    <Panel>
+      <PanelHeader
+        eyebrow={taskRunsText("actionQueue.eyebrow")}
+        title={taskRunsText("actionQueue.title")}
+        description={taskRunsText("actionQueue.description")}
+        action={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Badge variant={urgentCount > 0 ? "warning" : "success"}>
+              {taskRunsText("actionQueue.badges.urgent", { count: formatNumber(urgentCount) })}
+            </Badge>
+            <Badge variant={gateCount > 0 ? "danger" : "neutral"}>
+              {taskRunsText("actionQueue.badges.gates", { count: formatNumber(gateCount) })}
+            </Badge>
+          </div>
+        }
+      />
+      <PanelBody className="p-0">
+        {items.length === 0 ? (
+          <div className="px-6 py-5">
+            <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-muted)] px-4 py-6 text-sm text-[var(--ink-muted)]">
+              {taskRunsText("actionQueue.empty")}
+            </div>
+          </div>
+        ) : (
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>{taskRunsText("actionQueue.columns.priority")}</DataTableHead>
+                <DataTableHead>{taskRunsText("actionQueue.columns.work")}</DataTableHead>
+                <DataTableHead>{taskRunsText("actionQueue.columns.context")}</DataTableHead>
+                <DataTableHead>{taskRunsText("actionQueue.columns.updated")}</DataTableHead>
+                <DataTableHead align="right">{taskRunsText("actionQueue.columns.action")}</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {items.map((item) => (
+                <DataTableRow key={item.id}>
+                  <DataTableCell className="min-w-[150px]">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant={actionQueuePriorityVariant(item.priority)}>
+                        {taskRunsText(`actionQueue.priorities.${item.priority}`)}
+                      </Badge>
+                      <Badge variant="neutral">{taskRunsText(`actionQueue.kinds.${item.kind}`)}</Badge>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell className="min-w-[320px]">
+                    <Link href={item.href} className="font-semibold text-[var(--ink)] hover:underline">
+                      {uiText(item.titleKey, undefined, item.titleParams)}
+                    </Link>
+                    <div className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">
+                      {uiText(item.descriptionKey, undefined, item.descriptionParams)}
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell className="min-w-[220px]">
+                    <div className="font-medium text-[var(--ink)]">
+                      {item.businessTeamName ?? taskRunsText("actionQueue.context.taskRun")}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--ink-muted)]">
+                      {item.agentTeamName ?? taskRunsText("actionQueue.context.operational")}
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell className="min-w-[180px]">
+                    {item.createdAt ? formatDateTime(item.createdAt) : taskRunsText("actionQueue.context.noTimestamp")}
+                  </DataTableCell>
+                  <DataTableCell align="right">
+                    <TeamActionQueueActions
+                      href={item.href}
+                      actionKey={item.actionKey}
+                      taskRunId={item.taskRunId}
+                      findingId={item.findingId}
+                      assignment={item.assignment}
+                      remediation={item.remediation}
+                      openVariant={item.priority === "critical" ? "primary" : "secondary"}
+                    />
+                  </DataTableCell>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+function FindingTriageQueuePanel({ snapshot }: { snapshot: DashboardSnapshot }) {
+  const queue = snapshot.findingTriageQueue;
+  const highRiskCount = queue.filter((finding) => ["critical", "high"].includes(finding.severity)).length;
+  const cleanupTeamOptions = buildCleanupTeamOptions(snapshot);
+
+  return (
+    <Panel>
+      <PanelHeader
+        eyebrow={taskRunsText("findingQueue.eyebrow")}
+        title={taskRunsText("findingQueue.title")}
+        description={taskRunsText("findingQueue.description")}
+        action={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={queue.length > 0 ? "warning" : "success"}>
+                {taskRunsText("findingQueue.badges.open", { count: formatNumber(queue.length) })}
+              </Badge>
+              <Badge variant={highRiskCount > 0 ? "danger" : "neutral"}>
+                {taskRunsText("findingQueue.badges.highRisk", { count: formatNumber(highRiskCount) })}
+              </Badge>
+            </div>
+            <FindingCleanupCampaignLauncher disabled={queue.length === 0} teamOptions={cleanupTeamOptions} />
+          </div>
+        }
+      />
+      <PanelBody className="p-0">
+        {queue.length === 0 ? (
+          <div className="px-6 py-5">
+            <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-muted)] px-4 py-6 text-sm text-[var(--ink-muted)]">
+              {taskRunsText("findingQueue.empty")}
+            </div>
+          </div>
+        ) : (
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>{taskRunsText("findingQueue.columns.finding")}</DataTableHead>
+                <DataTableHead>{taskRunsText("findingQueue.columns.team")}</DataTableHead>
+                <DataTableHead>{taskRunsText("findingQueue.columns.source")}</DataTableHead>
+                <DataTableHead>{taskRunsText("findingQueue.columns.status")}</DataTableHead>
+                <DataTableHead>{taskRunsText("findingQueue.columns.actions")}</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {queue.map((finding: DashboardFindingTriageItem) => (
+                <DataTableRow key={finding.id}>
+                  <DataTableCell className="min-w-[300px]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={severityBadgeVariant(finding.severity)}>{translateSeverity(finding.severity)}</Badge>
+                      <Badge variant="neutral">{finding.category}</Badge>
+                    </div>
+                    <Link href={`/task-runs/${finding.taskRunId}`} className="mt-2 block font-medium text-[var(--ink)] hover:underline">
+                      {localizeDemoCopy(finding.title)}
+                    </Link>
+                    <div className="mt-1 text-xs leading-5 text-[var(--ink-muted)]">
+                      {finding.location ?? taskRunsText("findingQueue.noLocation")}
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell className="min-w-[220px]">
+                    <div className="font-medium text-[var(--ink)]">{finding.businessTeamName}</div>
+                    <div className="mt-1 text-xs text-[var(--ink-muted)]">{finding.agentTeamName}</div>
+                  </DataTableCell>
+                  <DataTableCell className="min-w-[220px]">
+                    <div className="font-medium text-[var(--ink)]">
+                      {finding.blueprintName ?? taskRunsText("fallback.unboundBlueprint")}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--ink-muted)]">
+                      {finding.taskRunSourceRef ?? taskRunsText("findingQueue.noSource")}
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant={workflowBadgeVariant(finding.status)}>{translateStatus(finding.status)}</Badge>
+                      {finding.taskRunStatus ? (
+                        <Badge variant={workflowBadgeVariant(finding.taskRunStatus)}>
+                          {translateStatus(finding.taskRunStatus)}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-xs text-[var(--ink-muted)]">{formatDateTime(finding.createdAt)}</div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <TaskRunFindingActions
+                      taskRunId={finding.taskRunId}
+                      findingId={finding.id}
+                      currentStatus={finding.status}
+                      feedbackPath={finding.feedbackPath}
+                      latestFeedback={finding.latestFeedback}
+                      assignment={finding.assignment}
+                    />
+                  </DataTableCell>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+function FindingOwnerBoardPanel({ snapshot }: { snapshot: DashboardSnapshot }) {
+  const rows = snapshot.findingOwnerBoard;
+  const unassignedCount = rows.find((row) => row.isUnassigned)?.total ?? 0;
+  const overdueCount = rows.reduce((sum, row) => sum + row.overdue, 0);
+
+  return (
+    <Panel>
+      <PanelHeader
+        eyebrow={taskRunsText("ownerBoard.eyebrow")}
+        title={taskRunsText("ownerBoard.title")}
+        description={taskRunsText("ownerBoard.description")}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={unassignedCount > 0 ? "warning" : "success"}>
+              {taskRunsText("ownerBoard.badges.unassigned", { count: formatNumber(unassignedCount) })}
+            </Badge>
+            <Badge variant={overdueCount > 0 ? "danger" : "neutral"}>
+              {taskRunsText("ownerBoard.badges.overdue", { count: formatNumber(overdueCount) })}
+            </Badge>
+          </div>
+        }
+      />
+      <PanelBody className="p-0">
+        {rows.length === 0 ? (
+          <div className="px-6 py-5">
+            <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--surface-muted)] px-4 py-6 text-sm text-[var(--ink-muted)]">
+              {taskRunsText("ownerBoard.empty")}
+            </div>
+          </div>
+        ) : (
+          <DataTable>
+            <DataTableHeader>
+              <DataTableRow className="hover:bg-transparent">
+                <DataTableHead>{taskRunsText("ownerBoard.columns.owner")}</DataTableHead>
+                <DataTableHead>{taskRunsText("ownerBoard.columns.workload")}</DataTableHead>
+                <DataTableHead>{taskRunsText("ownerBoard.columns.sla")}</DataTableHead>
+                <DataTableHead>{taskRunsText("ownerBoard.columns.samples")}</DataTableHead>
+                <DataTableHead align="right">{taskRunsText("ownerBoard.columns.action")}</DataTableHead>
+              </DataTableRow>
+            </DataTableHeader>
+            <DataTableBody>
+              {rows.map((row: DashboardFindingOwnerBoardItem) => {
+                const topFinding = row.sampleFindings[0] ?? null;
+                return (
+                  <DataTableRow key={row.ownerKey}>
+                    <DataTableCell className="min-w-[220px]">
+                      <div className="font-semibold text-[var(--ink)]">
+                        {row.isUnassigned ? taskRunsText("ownerBoard.unassignedOwner") : row.ownerLabel}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <Badge variant={row.isUnassigned ? "warning" : "accent"}>
+                          {row.isUnassigned ? taskRunsText("ownerBoard.ownerState.unassigned") : taskRunsText("ownerBoard.ownerState.assigned")}
+                        </Badge>
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell>
+                      <div className="text-sm font-medium text-[var(--ink)]">
+                        {taskRunsText("ownerBoard.totalFindings", { count: formatNumber(row.total) })}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        <Badge variant={row.highRisk > 0 ? "danger" : "neutral"}>
+                          {taskRunsText("ownerBoard.highRisk", { count: formatNumber(row.highRisk) })}
+                        </Badge>
+                        <Badge variant={row.overdue > 0 ? "danger" : "neutral"}>
+                          {taskRunsText("ownerBoard.overdue", { count: formatNumber(row.overdue) })}
+                        </Badge>
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell className="min-w-[190px]">
+                      {row.nextDueAt ? (
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-[var(--ink)]">
+                            {formatDateTime(row.nextDueAt)}
+                          </div>
+                          <div className="text-xs text-[var(--ink-muted)]">{taskRunsText("ownerBoard.nextDue")}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-[var(--ink-muted)]">{taskRunsText("ownerBoard.noDueDate")}</span>
+                      )}
+                    </DataTableCell>
+                    <DataTableCell className="min-w-[300px]">
+                      <div className="space-y-2">
+                        {row.sampleFindings.map((finding) => (
+                          <Link
+                            key={finding.id}
+                            href={`/task-runs/${finding.taskRunId}`}
+                            className="block rounded-md border border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2 hover:border-[var(--accent)]"
+                          >
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Badge variant={severityBadgeVariant(finding.severity)}>{translateSeverity(finding.severity)}</Badge>
+                              <Badge variant={finding.overdue ? "danger" : "neutral"}>
+                                {finding.overdue ? taskRunsText("ownerBoard.sampleOverdue") : taskRunsText("ownerBoard.sampleOnTrack")}
+                              </Badge>
+                            </div>
+                            <div className="mt-1 line-clamp-1 text-sm font-medium text-[var(--ink)]">
+                              {localizeDemoCopy(finding.title)}
+                            </div>
+                            <div className="mt-1 truncate text-xs text-[var(--ink-muted)]">
+                              {finding.location ?? taskRunsText("findingQueue.noLocation")}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell align="right">
+                      {topFinding ? (
+                        <Link href={`/task-runs/${topFinding.taskRunId}`} className="text-sm font-medium text-[var(--accent)] hover:underline">
+                          {taskRunsText("ownerBoard.openTopRun")}
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-[var(--ink-muted)]">{taskRunsText("ownerBoard.noAction")}</span>
+                      )}
+                    </DataTableCell>
+                  </DataTableRow>
+                );
+              })}
+            </DataTableBody>
+          </DataTable>
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
 export default function TaskRunsPage() {
   const snapshot = getDashboardSnapshot();
   const activeCount = snapshot.task_runs.filter((taskRun) =>
@@ -314,6 +730,8 @@ export default function TaskRunsPage() {
   ).length;
   const webhookCount = snapshot.task_runs.filter((taskRun) => taskRun.sourceType === "webhook").length;
   const manualCount = snapshot.task_runs.filter((taskRun) => taskRun.sourceType === "manual").length;
+  const unassignedFindingCount = snapshot.findingOwnerBoard.find((row) => row.isUnassigned)?.total ?? 0;
+  const overdueFindingCount = snapshot.findingOwnerBoard.reduce((sum, row) => sum + row.overdue, 0);
 
   return (
     <div className="space-y-6">
@@ -349,10 +767,29 @@ export default function TaskRunsPage() {
             value: manualCount,
             detail: taskRunsText("summary.manualRuns.detail"),
           },
+          {
+            label: taskRunsText("summary.unassignedFindings.label"),
+            value: unassignedFindingCount,
+            detail: taskRunsText("summary.unassignedFindings.detail"),
+            tone: unassignedFindingCount > 0 ? "accent" : "default",
+          },
+          {
+            label: taskRunsText("summary.overdueFindings.label"),
+            value: overdueFindingCount,
+            detail: taskRunsText("summary.overdueFindings.detail"),
+            tone: overdueFindingCount > 0 ? "accent" : "default",
+          },
         ]}
+        gridClassName="sm:grid-cols-2 xl:grid-cols-6"
       />
 
+      <TeamActionQueuePanel items={snapshot.teamActionQueue} />
+
       <TaskKanbanBoard snapshot={snapshot} />
+
+      <FindingOwnerBoardPanel snapshot={snapshot} />
+
+      <FindingTriageQueuePanel snapshot={snapshot} />
 
       <section className="grid gap-4 2xl:grid-cols-[1.45fr_0.55fr]">
         <Panel>
@@ -415,6 +852,7 @@ export default function TaskRunsPage() {
                       </DataTableCell>
                       <DataTableCell>
                         <WorkflowProgressPreview progress={snapshot.taskRunWorkflowProgress[taskRun.id]} />
+                        <TeamActivitySignal activity={snapshot.taskRunTeamActivity[taskRun.id]} compact />
                       </DataTableCell>
                       <DataTableCell>{blueprint?.name ?? taskRunsText("fallback.unboundBlueprint")}</DataTableCell>
                       <DataTableCell align="right">{formatDateTime(taskRun.createdAt)}</DataTableCell>

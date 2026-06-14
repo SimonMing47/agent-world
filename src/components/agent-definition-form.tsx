@@ -921,7 +921,7 @@ export function AgentDefinitionForm(props: AgentDefinitionFormProps) {
         <Button type="button" onClick={save} disabled={isSaving}>
           {isSaving ? "ui.generated.ca032e8fdda" : "ui.generated.c9ddfa65322"}
         </Button>
-        {message ? <div className="text-xs text-[var(--ink-muted)]">{message}</div> : null}
+        {message ? <div className="text-xs text-[var(--ink-muted)]">{text(message, message)}</div> : null}
       </div>
     </div>
   );

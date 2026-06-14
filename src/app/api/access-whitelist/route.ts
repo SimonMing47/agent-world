@@ -1,33 +1,39 @@
 import { NextResponse } from "next/server";
 import {
   deleteAccessWhitelistRule,
-  getRequestAuthContext,
   listAccessWhitelistRules,
   upsertAccessWhitelistRule,
 } from "@/server/auth-core";
+import { apiAccessErrorResponse, requireSystemAdminActor } from "@/server/api-access-control";
+import { uiText } from "@/lib/language-pack";
 
 export const dynamic = "force-dynamic";
 
-async function ensureAdmin(request: Request) {
-  const authContext = await getRequestAuthContext(request);
-  if (!authContext || authContext.user.isSystemAdmin !== 1) {
-    return NextResponse.json({ ok: false, error: "identityAccess.errors.adminRequired" }, { status: 403 });
-  }
-  return null;
-}
-
 export async function GET(request: Request) {
-  const denied = await ensureAdmin(request);
-  if (denied) return denied;
-  return NextResponse.json({ rules: listAccessWhitelistRules() });
+  try {
+    await requireSystemAdminActor(request, "identity-access-console");
+    return NextResponse.json({ rules: listAccessWhitelistRules() });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    throw error;
+  }
 }
 
 export async function POST(request: Request) {
-  const denied = await ensureAdmin(request);
-  if (denied) return denied;
-  const body = (await request.json()) as Parameters<typeof upsertAccessWhitelistRule>[0];
-  const rule = upsertAccessWhitelistRule(body);
-  return NextResponse.json({ ok: true, rule });
+  try {
+    await requireSystemAdminActor(request, "identity-access-console");
+    const body = (await request.json()) as Parameters<typeof upsertAccessWhitelistRule>[0];
+    const rule = upsertAccessWhitelistRule(body);
+    return NextResponse.json({ ok: true, rule });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : uiText("common.messages.saveFailed") },
+      { status: 400 },
+    );
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -35,9 +41,17 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const denied = await ensureAdmin(request);
-  if (denied) return denied;
-  const body = (await request.json()) as { id: string };
-  deleteAccessWhitelistRule(body.id);
-  return NextResponse.json({ ok: true });
+  try {
+    await requireSystemAdminActor(request, "identity-access-console");
+    const body = (await request.json()) as { id: string };
+    deleteAccessWhitelistRule(body.id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const accessError = apiAccessErrorResponse(error);
+    if (accessError) return accessError;
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : uiText("common.messages.saveFailed") },
+      { status: 400 },
+    );
+  }
 }

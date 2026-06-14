@@ -1,21 +1,15 @@
 import { NextResponse } from "next/server";
-import { searchKnowledgeEntries } from "@/server/knowledge-engine";
+import { uiText } from "@/lib/language-pack";
 import {
   requireKnowledgeApiAuthFailure,
+  resolveKnowledgeApiSearchAccess,
   resolveKnowledgeApiAuthContext,
+  type KnowledgeApiAuthContext,
 } from "@/server/knowledge-api-auth";
 import { normalizeKnowledgeCategories, type KnowledgeCategory } from "@/lib/knowledge-categories";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-async function guardRequest(request: Request) {
-  const auth = await resolveKnowledgeApiAuthContext(request);
-  if (!auth) {
-    return requireKnowledgeApiAuthFailure();
-  }
-  return null;
-}
 
 type ParsedKnowledgeQuery = {
   query: string;
@@ -134,10 +128,13 @@ function withDefaultIds(value?: string[]) {
   return value;
 }
 
-function buildResponse(input: ParsedKnowledgeQuery) {
+async function buildResponse(input: ParsedKnowledgeQuery, auth: KnowledgeApiAuthContext) {
+  const { searchKnowledgeEntries } = await import("@/server/knowledge-engine");
+  const access = resolveKnowledgeApiSearchAccess(auth, input.knowledgeSpaceIds);
   const parsed = searchKnowledgeEntries({
     query: input.query,
-    knowledgeSpaceIds: withDefaultIds(input.knowledgeSpaceIds),
+    allowedKnowledgeSpaceIds: access.allowedKnowledgeSpaceIds,
+    knowledgeSpaceIds: withDefaultIds(access.knowledgeSpaceIds),
     scopeUris: withDefaultIds(input.scopeUris),
     knowledgeCategories: input.knowledgeCategories,
     repositoryNames: input.repositoryNames,
@@ -150,30 +147,38 @@ function buildResponse(input: ParsedKnowledgeQuery) {
 }
 
 export async function GET(request: Request) {
-  const unauthorized = await guardRequest(request);
-  if (unauthorized) {
+  const auth = await resolveKnowledgeApiAuthContext(request);
+  if (!auth) {
+    const unauthorized = requireKnowledgeApiAuthFailure();
     return NextResponse.json({ ok: false, error: unauthorized.error }, { status: unauthorized.status });
   }
 
   const payload = parseKnowledgeQueryFromSearchParams(new URL(request.url));
   if (!payload) {
-    return NextResponse.json({ ok: false, error: "query is required" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: uiText("ui.api.errors.knowledgeQueryRequired", "Query is required.") },
+      { status: 400 },
+    );
   }
 
-  return buildResponse(payload);
+  return buildResponse(payload, auth);
 }
 
 export async function POST(request: Request) {
-  const unauthorized = await guardRequest(request);
-  if (unauthorized) {
+  const auth = await resolveKnowledgeApiAuthContext(request);
+  if (!auth) {
+    const unauthorized = requireKnowledgeApiAuthFailure();
     return NextResponse.json({ ok: false, error: unauthorized.error }, { status: unauthorized.status });
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const payload = parseKnowledgeQueryFromBody(body);
   if (!payload) {
-    return NextResponse.json({ ok: false, error: "query is required" }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: uiText("ui.api.errors.knowledgeQueryRequired", "Query is required.") },
+      { status: 400 },
+    );
   }
 
-  return buildResponse(payload);
+  return buildResponse(payload, auth);
 }

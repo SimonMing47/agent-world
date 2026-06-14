@@ -2,6 +2,7 @@ import {
   type Agent,
   type AgentTeam,
   type BusinessTeam,
+  type CodebaseProfile,
   type EnvironmentSnapshot,
   type ExecutionEnvironment,
   type Finding,
@@ -10,7 +11,7 @@ import {
   type TaskEvent,
   type TaskRun,
 } from "@/server/db";
-import { summarizeAgentTeamRunPlan } from "@/server/agent-orchestration-core";
+import { buildNodeSpecsFromRunPlan, summarizeAgentTeamRunPlan } from "@/server/agent-orchestration-core";
 import { buildEffectivePermissionPreview } from "@/server/permission-core";
 import { summarizeProviderAdapter } from "@/server/provider-core";
 import { summarizeFinding } from "@/server/finding-core";
@@ -36,6 +37,226 @@ function parseArray(value: string) {
   }
 }
 
+function countRunPlanBlocks(value: string) {
+  const runPlan = parseRecord(value);
+  const blocks = Array.isArray(runPlan.blocks) ? runPlan.blocks : [];
+  const workers = Array.isArray(runPlan.workers) ? runPlan.workers : [];
+  return blocks.length + workers.length;
+}
+
+function parseCodebaseScope(value: string) {
+  const selector = parseRecord(value);
+  const rawScope = selector.codebaseScope;
+  if (!rawScope || typeof rawScope !== "object" || Array.isArray(rawScope)) {
+    return { mode: "all", codebaseIds: [] as string[] };
+  }
+  const scope = rawScope as Record<string, unknown>;
+  return {
+    mode: scope.mode === "selected" ? "selected" : "all",
+    codebaseIds: Array.isArray(scope.codebaseIds) ? scope.codebaseIds.map(String).filter(Boolean) : [],
+  };
+}
+
+function readinessCheck(args: {
+  id: string;
+  status: "ok" | "warning" | "blocker";
+  labelKey: string;
+  detailKey: string;
+}) {
+  return args;
+}
+
+export function buildTaskBlueprintReadiness(args: {
+  blueprint: TaskBlueprint;
+  teams: AgentTeam[];
+  agents?: Agent[];
+  environments: ExecutionEnvironment[];
+  providerAdapters: ProviderAdapterDefinition[];
+  codebases?: CodebaseProfile[];
+  taskRuns: TaskRun[];
+}) {
+  const trigger = parseRecord(args.blueprint.triggerJson);
+  const inputSchema = parseRecord(args.blueprint.inputSchemaJson);
+  const outputPolicy = parseRecord(args.blueprint.outputPolicyJson);
+  const permissionPolicy = parseRecord(args.blueprint.permissionPolicyJson);
+  const codebaseScope = parseCodebaseScope(args.blueprint.environmentSelectorJson);
+  const team = args.teams.find((item) => item.id === args.blueprint.teamId) ?? null;
+  const environment = args.environments.find((item) => item.id === args.blueprint.environmentId) ?? null;
+  const provider = args.providerAdapters.find((item) => item.id === args.blueprint.providerAdapterId) ?? null;
+  const publishers = Array.isArray(outputPolicy.publishers) ? outputPolicy.publishers : [];
+  const permissionRules = Array.isArray(permissionPolicy.rules) ? permissionPolicy.rules : [];
+  const findingFeedback =
+    outputPolicy.findingFeedback && typeof outputPolicy.findingFeedback === "object" && !Array.isArray(outputPolicy.findingFeedback)
+      ? (outputPolicy.findingFeedback as Record<string, unknown>)
+      : {};
+  const selectedCodebases = codebaseScope.codebaseIds.filter((id) =>
+    (args.codebases ?? []).some((codebase) => codebase.id === id),
+  );
+  const runCount = args.taskRuns.filter((taskRun) => taskRun.blueprintId === args.blueprint.id).length;
+  const runPlanBlockCount = countRunPlanBlocks(args.blueprint.agentTeamRunPlanJson);
+  const scopedAgents = args.agents?.filter((agent) => agent.teamId === args.blueprint.teamId);
+  const executableNodeCount = scopedAgents
+    ? buildNodeSpecsFromRunPlan(args.blueprint.agentTeamRunPlanJson, scopedAgents).length
+    : runPlanBlockCount;
+  const runPlanReady = runPlanBlockCount > 0 && executableNodeCount > 0;
+
+  const triggerReady =
+    trigger.type === "webhook"
+      ? Boolean(trigger.webhookPathKey || trigger.connector || trigger.event)
+      : trigger.type === "cron"
+        ? typeof trigger.expression === "string" && trigger.expression.trim().length > 0
+        : true;
+  const schemaReady = !("type" in inputSchema) || inputSchema.type === "object";
+  const codebaseReady =
+    codebaseScope.mode === "selected"
+      ? codebaseScope.codebaseIds.length > 0 && selectedCodebases.length === codebaseScope.codebaseIds.length
+      : true;
+
+  const checks = [
+    readinessCheck({
+      id: "active",
+      status: args.blueprint.status === "active" ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.active.label",
+      detailKey:
+        args.blueprint.status === "active"
+          ? "ui.taskBlueprintReadiness.checks.active.ok"
+          : "ui.taskBlueprintReadiness.checks.active.blocker",
+    }),
+    readinessCheck({
+      id: "team",
+      status: team ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.team.label",
+      detailKey: team ? "ui.taskBlueprintReadiness.checks.team.ok" : "ui.taskBlueprintReadiness.checks.team.blocker",
+    }),
+    readinessCheck({
+      id: "provider",
+      status: provider || !args.blueprint.providerAdapterId ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.provider.label",
+      detailKey:
+        provider || !args.blueprint.providerAdapterId
+          ? "ui.taskBlueprintReadiness.checks.provider.ok"
+          : "ui.taskBlueprintReadiness.checks.provider.warning",
+    }),
+    readinessCheck({
+      id: "trigger",
+      status: triggerReady ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.trigger.label",
+      detailKey: triggerReady ? "ui.taskBlueprintReadiness.checks.trigger.ok" : "ui.taskBlueprintReadiness.checks.trigger.blocker",
+    }),
+    readinessCheck({
+      id: "input_schema",
+      status: schemaReady ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.inputSchema.label",
+      detailKey:
+        schemaReady
+          ? "ui.taskBlueprintReadiness.checks.inputSchema.ok"
+          : "ui.taskBlueprintReadiness.checks.inputSchema.blocker",
+    }),
+    readinessCheck({
+      id: "run_plan",
+      status: runPlanReady ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.runPlan.label",
+      detailKey:
+        runPlanReady
+          ? "ui.taskBlueprintReadiness.checks.runPlan.ok"
+          : "ui.taskBlueprintReadiness.checks.runPlan.blocker",
+    }),
+    readinessCheck({
+      id: "environment",
+      status: environment || codebaseScope.mode === "selected" ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.environment.label",
+      detailKey:
+        environment || codebaseScope.mode === "selected"
+          ? "ui.taskBlueprintReadiness.checks.environment.ok"
+          : "ui.taskBlueprintReadiness.checks.environment.warning",
+    }),
+    readinessCheck({
+      id: "codebase_scope",
+      status: codebaseReady ? "ok" : "blocker",
+      labelKey: "ui.taskBlueprintReadiness.checks.codebaseScope.label",
+      detailKey:
+        codebaseReady
+          ? "ui.taskBlueprintReadiness.checks.codebaseScope.ok"
+          : "ui.taskBlueprintReadiness.checks.codebaseScope.blocker",
+    }),
+    readinessCheck({
+      id: "permissions",
+      status: permissionRules.length > 0 ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.permissions.label",
+      detailKey:
+        permissionRules.length > 0
+          ? "ui.taskBlueprintReadiness.checks.permissions.ok"
+          : "ui.taskBlueprintReadiness.checks.permissions.warning",
+    }),
+    readinessCheck({
+      id: "output",
+      status: publishers.length > 0 ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.output.label",
+      detailKey:
+        publishers.length > 0
+          ? "ui.taskBlueprintReadiness.checks.output.ok"
+          : "ui.taskBlueprintReadiness.checks.output.warning",
+    }),
+    readinessCheck({
+      id: "feedback",
+      status: findingFeedback.enabled === true ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.feedback.label",
+      detailKey:
+        findingFeedback.enabled === true
+          ? "ui.taskBlueprintReadiness.checks.feedback.ok"
+          : "ui.taskBlueprintReadiness.checks.feedback.warning",
+    }),
+    readinessCheck({
+      id: "run_history",
+      status: runCount > 0 ? "ok" : "warning",
+      labelKey: "ui.taskBlueprintReadiness.checks.runHistory.label",
+      detailKey:
+        runCount > 0
+          ? "ui.taskBlueprintReadiness.checks.runHistory.ok"
+          : "ui.taskBlueprintReadiness.checks.runHistory.warning",
+    }),
+  ];
+  const blockerCount = checks.filter((check) => check.status === "blocker").length;
+  const warningCount = checks.filter((check) => check.status === "warning").length;
+  const okCount = checks.filter((check) => check.status === "ok").length;
+
+  return {
+    status: blockerCount > 0 ? "blocked" : warningCount > 0 ? "needs_attention" : "ready",
+    score: Math.round((okCount / checks.length) * 100),
+    okCount,
+    warningCount,
+    blockerCount,
+    checks,
+  };
+}
+
+export type TaskBlueprintReadinessResult = ReturnType<typeof buildTaskBlueprintReadiness>;
+export type TaskBlueprintReadinessCheck = TaskBlueprintReadinessResult["checks"][number];
+
+export class TaskBlueprintReadinessError extends Error {
+  readiness: TaskBlueprintReadinessResult;
+  blockerChecks: TaskBlueprintReadinessCheck[];
+
+  constructor(readiness: TaskBlueprintReadinessResult) {
+    const blockerChecks = readiness.checks.filter((check) => check.status === "blocker");
+    const labels = blockerChecks.map((check) => uiText(check.labelKey)).join(", ");
+    super(
+      uiText("ui.taskBlueprintReadiness.errors.submitBlocked", undefined, {
+        checks: labels || uiText("ui.taskBlueprintReadiness.status.blocked"),
+      }),
+    );
+    this.name = "TaskBlueprintReadinessError";
+    this.readiness = readiness;
+    this.blockerChecks = blockerChecks;
+  }
+}
+
+export function assertTaskBlueprintReadiness(readiness: TaskBlueprintReadinessResult) {
+  if (readiness.blockerCount > 0) {
+    throw new TaskBlueprintReadinessError(readiness);
+  }
+}
+
 export function renderTemplateValue(template: string, values: Record<string, unknown>) {
   return template.replace(/\$\{([^}]+)\}/g, (_, key: string) => {
     const value = values[key.trim()];
@@ -54,8 +275,10 @@ export function buildTaskBlueprintSummary(args: {
   blueprint: TaskBlueprint;
   businessTeams: BusinessTeam[];
   teams: AgentTeam[];
+  agents?: Agent[];
   environments: ExecutionEnvironment[];
   providerAdapters: ProviderAdapterDefinition[];
+  codebases?: CodebaseProfile[];
   taskRuns: TaskRun[];
   findings: Finding[];
 }) {
@@ -89,6 +312,15 @@ export function buildTaskBlueprintSummary(args: {
     trigger,
     memorySpaces: parseArray(JSON.stringify(memoryPolicy.requiredSpaces ?? [])),
     publishers: Array.isArray(outputPolicy.publishers) ? outputPolicy.publishers : [],
+    readiness: buildTaskBlueprintReadiness({
+      blueprint: args.blueprint,
+      teams: args.teams,
+      agents: args.agents,
+      environments: args.environments,
+      providerAdapters: args.providerAdapters,
+      codebases: args.codebases,
+      taskRuns: args.taskRuns,
+    }),
     runCount,
     findingCount: scopedFindings.length,
     criticalOrHighFindingCount: scopedFindings.filter((finding) =>
@@ -104,6 +336,7 @@ export function buildTaskBlueprintDetail(args: {
   agents: Agent[];
   environments: ExecutionEnvironment[];
   providerAdapters: ProviderAdapterDefinition[];
+  codebases?: CodebaseProfile[];
   taskRuns: TaskRun[];
   findings: Finding[];
 }) {
